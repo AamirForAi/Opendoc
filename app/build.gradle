@@ -145,12 +145,6 @@ dependencies {
     // MJ PDF's fork of
     implementation project(':AndroidPdfViewer:android-pdf-viewer')
 
-    // License Presenter Library (Proguard config not needed)
-    implementation('com.github.franmontiel:AttributionPresenter:1.0.1') {
-        exclude group: 'com.google.android', module: 'flexbox'
-    }
-    implementation 'com.google.android.flexbox:flexbox:3.0.0'
-
     // Gson
     implementation 'com.google.code.gson:gson:2.10.1'
 
