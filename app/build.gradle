@@ -131,8 +131,6 @@ dependencies {
 
     implementation project(path: ':PdfiumAndroid')
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
-    // To use Kotlin annotation processing tool
-    ksp "androidx.room:room-compiler:2.6.1"
 
 
     implementation 'androidx.appcompat:appcompat:1.6.1'

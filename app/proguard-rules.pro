@@ -39,8 +39,6 @@
 # ACRA creates a proxy for this interface
 -keep interface org.acra.ErrorReporter
 
--dontwarn android.support.**
-
 -dontwarn com.faendir.kotlin.autodsl.DslInspect
 -dontwarn com.faendir.kotlin.autodsl.DslMandatory
 -dontwarn com.google.auto.service.AutoService
