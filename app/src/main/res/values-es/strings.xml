@@ -176,7 +176,7 @@
     <string name="no_app_to_open_link">No se encontró una aplicación apropiada para abrir el enlace</string>
     <string name="copy_link_url">Copiar URL del enlace</string>
     <string name="failed_to_extract_text">Fallo al extraer texto</string>
-    <string name="page_counter_label">Página: %d/%d</string>
+    <string name="page_counter_label">Página: %1$d/%2$d</string>
     <string name="next_page">Página Siguiente</string>
     <string name="prev_page">Página Anterior</string>
     <string name="text_color">Color del Texto</string>

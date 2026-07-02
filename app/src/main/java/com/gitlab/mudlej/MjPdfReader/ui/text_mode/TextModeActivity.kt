@@ -156,7 +156,7 @@ class TextModeActivity  : AppCompatActivity() {
     }
 
     private fun updatePageCounter() {
-        binding.pageCounter.text = getString(R.string.page_counter_label).format(pageNumber, pdfLength)
+        binding.pageCounter.text = getString(R.string.page_counter_label, pageNumber, pdfLength)
     }
 
     private fun goToPage(pageIndex: Int) {

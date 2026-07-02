@@ -179,7 +179,7 @@
     <string name="no_app_to_open_link">Не найдено подходящего приложения для открытия ссылки</string>
     <string name="copy_link_url">Копировать URL ссылки</string>
     <string name="failed_to_extract_text">Не удалось извлечь текст</string>
-    <string name="page_counter_label">Страница: %d/%d</string>
+    <string name="page_counter_label">Страница: %1$d/%2$d</string>
     <string name="next_page">Следующая страница</string>
     <string name="prev_page">Предыдущая страница</string>
     <string name="text_color">Цвет текста</string>

@@ -176,7 +176,7 @@
     <string name="no_app_to_open_link">لم يتم العثور على تطبيق مناسب لفتح الرابط</string>
     <string name="copy_link_url">نسخ رابط الرابط</string>
     <string name="failed_to_extract_text">فشل في استخراج النص</string>
-    <string name="page_counter_label">الصفحة: %d/%d</string>
+    <string name="page_counter_label">الصفحة: %1$d/%2$d</string>
     <string name="next_page">الصفحة التالية</string>
     <string name="prev_page">الصفحة السابقة</string>
     <string name="text_color">لون النص</string>

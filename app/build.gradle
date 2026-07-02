@@ -52,7 +52,7 @@ android {
         targetSdkVersion 34
         versionCode 56
         versionName "2.2.1"
-        multiDexEnabled true
+        multiDexEnabled = true
         vectorDrawables.useSupportLibrary = true
 
         Properties properties = new Properties()
@@ -65,8 +65,8 @@ android {
 
     buildFeatures {
         buildConfig = true
-        resValues true
-        viewBinding true
+        resValues = true
+        viewBinding = true
     }
 
     packaging {
@@ -79,7 +79,7 @@ android {
         release {
             debuggable false
             minifyEnabled true
-            shrinkResources true
+            shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
 
@@ -94,10 +94,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-    namespace 'com.gitlab.mudlej.MjPdfReader'
+    namespace = 'com.gitlab.mudlej.MjPdfReader'
     lint {
-        abortOnError false
-        checkReleaseBuilds false
+        abortOnError = false
+        checkReleaseBuilds = false
     }
 }
 
