@@ -5,7 +5,7 @@ import shutil
 from build_dependencies.common import download_file, extract_tar_file, log, delete_if_exists, \
     delete_file_if_exists, get_lib_path, run_cmd, get_toolchain
 from build_dependencies.values import Arch, FILE_NAMES, LIB_EXTENSION, Lib, FREETYPE_BUILD, \
-    ARCH_NAMES, LIBPNG_BUILD, FREETYPE_URL, ANDROID_PLATFORM, BUILD_TYPE
+    ARCH_NAMES, LIBPNG_BUILD, FREETYPE_URL, ANDROID_PLATFORM, BUILD_TYPE, LINKER_FLAGS_16KB
 
 BUILT_LIB_NAME = "libfreetype.so"
 DOWNLOADED_LIB_PATH = f"{FREETYPE_BUILD}/{BUILT_LIB_NAME}"
@@ -77,6 +77,7 @@ def build_freetype(arch, FREETYPE_DIR, LIBPNG_DEPENDENCY_PATH):
     cmd += ["-DANDROID_ABI=" + ARCH_NAMES[arch]]
     cmd += ["-DANDROID_PLATFORM=" + ANDROID_PLATFORM]
     cmd += ["-DCMAKE_INSTALL_PREFIX=" + INSTALL_PREFIX]
+    cmd += ["-DCMAKE_SHARED_LINKER_FLAGS=" + LINKER_FLAGS_16KB]
     cmd += ["-DFT_WITH_ZLIB=ON -D FT_WITH_PNG=ON"]
     cmd += ["-DPNG_PNG_INCLUDE_DIR=" + LIBPNG_INCLUDE_PATH]
     cmd += ["-DPNG_LIBRARY=" + LIBPNG_LIBRARY_PATH]

@@ -1,5 +1,6 @@
 APP_STL := c++_shared
 APP_CPPFLAGS += -fexceptions
+APP_LDFLAGS += -Wl,-z,max-page-size=16384
 
 #For ANativeWindow support
 APP_PLATFORM = android-19

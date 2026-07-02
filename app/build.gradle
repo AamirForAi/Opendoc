@@ -70,6 +70,12 @@ android {
         viewBinding true
     }
 
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     buildTypes {
         release {
             debuggable false
@@ -108,7 +114,7 @@ kotlin {
 
 dependencies {
     // Kotlin
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.20"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.23"
     implementation 'androidx.preference:preference-ktx:1.2.1'
 
     // Activity
@@ -125,8 +131,6 @@ dependencies {
 
     implementation project(path: ':PdfiumAndroid')
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
-    annotationProcessor "androidx.room:room-compiler:2.6.1"
-
     // To use Kotlin annotation processing tool
     ksp "androidx.room:room-compiler:2.6.1"
 
@@ -144,7 +148,10 @@ dependencies {
     implementation project(':AndroidPdfViewer:android-pdf-viewer')
 
     // License Presenter Library (Proguard config not needed)
-    implementation 'com.github.franmontiel:AttributionPresenter:1.0.1'
+    implementation('com.github.franmontiel:AttributionPresenter:1.0.1') {
+        exclude group: 'com.google.android', module: 'flexbox'
+    }
+    implementation 'com.google.android.flexbox:flexbox:3.0.0'
 
     // Gson
     implementation 'com.google.code.gson:gson:2.10.1'
