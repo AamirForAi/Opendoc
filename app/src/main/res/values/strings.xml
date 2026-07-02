@@ -179,7 +179,7 @@
     <string name="no_app_to_open_link">Didn\'t find an appropriate app to open the link</string>
     <string name="copy_link_url">Copy link URL</string>
     <string name="failed_to_extract_text">Failed to extract text</string>
-    <string name="page_counter_label">Page: %d/%d</string>
+    <string name="page_counter_label">Page: %1$d/%2$d</string>
     <string name="next_page">Next Page</string>
     <string name="prev_page">Prev Page</string>
     <string name="text_color">Text Color</string>
