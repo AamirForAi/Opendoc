@@ -20,7 +20,7 @@ MJ PDF is a fast, minimalist, powerful and totally free PDF viewer made by [Mudl
 * [More Screenshots](https://gitlab.com/mudlej_android/mj_pdf_reader/-/tree/main/screenshots)
 * [MJ PDF Features](#mj-pdf-features)
 * [Privacy && Exodus Report](#permissions-and-privacy)
-* [MJ PDF V2.1.2 Release Notes](#mj-pdf-v212-release-notes)
+* [MJ PDF V2.2.1 Release Notes](#mj-pdf-v221-short-release-notes)
 * [MJ PDF TO-DO List](https://gitlab.com/mudlej_android/mj_pdf_reader/-/blob/main/todo.md)
 * [What is different from PDF Viewer Plus](#what-is-different-from-pdf-viewer-plus)
 * [Underlying Libraries](#underlying-libraries)
@@ -31,6 +31,7 @@ MJ PDF is a fast, minimalist, powerful and totally free PDF viewer made by [Mudl
 ## MJ PDF Features
 - Fast, simple, and very lightweight. (~5MB in Play Store)
 - Open source with total privacy.
+- Localized in Arabic, Chinese, Dutch, French, German, Hindi, Italian, Persian, Polish, Portuguese, Russian, Spanish, and Turkish.
 - Remembers the last page that was opened in each document.
 - Dark mode for the PDF.
 - Very fast and powerful search in the PDF.
