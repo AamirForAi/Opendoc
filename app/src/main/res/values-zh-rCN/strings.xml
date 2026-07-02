@@ -40,7 +40,7 @@
 -->
     <string name="mj_app_name" translatable="false">MJ PDF</string>
     <string name="what_is_new">
-        * 新增对阿拉伯语、繁体中文、土耳其语、德语、西班牙语、葡萄牙语、印地语、俄语的支持。\n\n
+        * 新增对阿拉伯语、中文、土耳其语、德语、西班牙语、葡萄牙语、印地语、俄语的支持。\n\n
         * 搜索增强功能：返回结果按钮；更好的高亮显示。\n\n
         * 用户界面修复：保持图标颜色一致，改进布局和可见性。\n\n
         * 新增固定横屏模式。\n\n
@@ -175,11 +175,11 @@
     <string name="links_activity_title">PDF 文档中的嵌入链接</string>
     <string name="too_many_results_may_be_slow">结果过多！搜索可能会缓慢。</string>
     <string name="links_in_document">文档中的链接</string>
-    <string name="number_of_filtered_results">“%,d 个筛选后的结果。”</string>
+    <string name="number_of_filtered_results" tools:ignore="PluralsCandidate">"%,d 个筛选后的结果。"</string>
     <string name="no_app_to_open_link">找不到用于打开链接的应用</string>
     <string name="copy_link_url">复制链接</string>
     <string name="failed_to_extract_text">无法提取文字</string>
-    <string name="page_counter_label">页数：%d/%d</string>
+    <string name="page_counter_label">页数：%1$d/%2$d</string>
     <string name="next_page">下一页</string>
     <string name="prev_page">上一页</string>
     <string name="text_color">文字颜色</string>

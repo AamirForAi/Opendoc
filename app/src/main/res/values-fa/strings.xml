@@ -40,27 +40,26 @@
 -->
     <string name="mj_app_name" translatable="false">MJ PDF</string>
     <string name="what_is_new">
-        * افزودن پشتیبانی برای عربی، چینی، ترکی، آلمانی، اسپانیایی، پرتغالی، هندی، روسی.
-        * بهبود جستجو: دکمه بازگشت به یافته‌ها؛ برجسته سازی(Highlight) بهتر.
-        * حل مشکلات رابط کاربری: رنگ‌های نماد‌ها یکسان‌تر، بهبود طرح‌بندی و دید.
-        * افزوده حالت همیشه افقی.
-        * افزودن دکمه بارگذاری مجدد PDF در تنظیمات (آزمایشی).
-        * پشتیبانی بهتر برای PDFهای محافظت‌شده با رمز و PDFهای غیر محلی.
-        * ثبات: رفع خرابی‌های ناشی از کار در پس‌زمینه.
-        * توسعه: ارتقا SDK، Gradle و وابستگی‌ها.
+        * افزودن پشتیبانی برای عربی، چینی، ترکی، آلمانی، اسپانیایی، پرتغالی، هندی، روسی.\n\n
+        * بهبود جستجو: دکمه بازگشت به یافته‌ها؛ برجسته‌سازی(Highlight) بهتر.\n\n
+        * حل مشکلات رابط کاربری: رنگ‌های نمادها یکسان‌تر، بهبود طرح‌بندی و دید.\n\n
+        * افزودن حالت همیشه افقی.\n\n
+        * افزودن دکمه بارگذاری مجدد PDF در تنظیمات (آزمایشی).\n\n
+        * پشتیبانی بهتر برای PDFهای محافظت‌شده با رمز و PDFهای غیرمحلی.\n\n
+        * ثبات: رفع خرابی‌های ناشی از کار در پس‌زمینه.\n\n
+        * توسعه: ارتقای SDK، Gradle و وابستگی‌ها.
     </string>
     <string name="pick_file">انتخاب پرونده</string>
-    <string name="toast_pick_file_error">ناتوانایی در انتخاب پرونده! لطفاً مدیر پرونده گوشی خود را بررسی کنید.</string>
+    <string name="toast_pick_file_error">ناتوانی در انتخاب پرونده! لطفاً مدیر پرونده گوشی خود را بررسی کنید.</string>
     <string name="toast_http_code_error">سرور با خطایی پاسخ داد.</string>
     <string name="toast_generic_download_error">به دلیلی نامشخص نتوانستیم این پرونده را دریافت کنیم.</string>
     <string name="toast_ssl_error">اتصال امن ناموفق بود.</string>
-    <string name="saved_to_download">پرونده در پوشه دریافت نگه‌داری شد.</string>
-    <string name="save_to_download_failed">نگه‌داری پرونده در پوشه دریافت ناموفق بود.</string>
+    <string name="saved_to_download">پرونده در پوشه دریافت ذخیره شد.</string>
+    <string name="save_to_download_failed">ذخیره پرونده در پوشه دریافت ناموفق بود.</string>
     <string name="action_about">درباره</string>
     <string name="intro">اجرای مقدماتی</string>
     <string name="email">رایانامه (سازنده)</string>
-    <string name="description_open">رایگان و بدون محدودیت.
-شما می‌توانید آزادانه بخوانید، ویرایش کنید، هم‌رسانی کنید و نرم‌افزار و سورس کد آن را مجدداً توزیع کنید.</string>
+    <string name="description_open">رایگان و بدون محدودیت.\nشما می‌توانید آزادانه بخوانید، ویرایش کنید، هم‌رسانی کنید و نرم‌افزار و سورس کد آن را مجدداً توزیع کنید.</string>
     <string name="title_open">این مال شماست</string>
     <string name="description_intro">یک خواننده سریع، ساده و قدرتمند PDF</string>
     <string name="myLicense">مجوز</string>
@@ -69,8 +68,8 @@
     <string name="done">انجام شد</string>
     <string name="results">یافته‌های جستجو</string>
     <string name="ok">تایید</string>
-    <string name="title_permission">مجوزهای نگه‌داری</string>
-    <string name="description_permission">برنامه برای خواندن/نوشتن سند‌ها از شما درخواست مجوز نگه‌داری خواهد کرد.</string>
+    <string name="title_permission">مجوزهای فضای ذخیره‌سازی</string>
+    <string name="description_permission">برنامه برای خواندن/نوشتن سندها از شما مجوز فضای ذخیره‌سازی درخواست می‌کند.</string>
     <string name="libs">کتابخانه‌های متن باز</string>
     <string name="code">سورس کد</string>
     <string name="share">هم‌رسانی</string>
@@ -87,9 +86,9 @@
     <string name="horizontal_scrolling_mode">پیمایش افقی</string>
     <string name="double_tap_to_exit">دوبار ضربه بزنید برای خروج</string>
     <string name="snap">صفحه‌بندی</string>
-    <string name="snap_summary">پس از هر لمس، نمایش روی صفحه فعلی مرکز شود.</string>
+    <string name="snap_summary">پس از هر کشیدن، نمایش روی صفحه فعلی مرکز شود.</string>
     <string name="fling">پرش صفحه</string>
-    <string name="fling_summary">با لمس سریع به صفحه بعد بروید.</string>
+    <string name="fling_summary">با کشیدن سریع به صفحه بعد بروید.</string>
     <string name="visual_settings">تصویری</string>
     <string name="pdf_title">عنوان</string>
     <string name="pdf_author">نویسنده</string>
@@ -99,10 +98,7 @@
     <string name="wrong_password">گذرواژه نادرست است.</string>
     <string name="keep_screen_on">صفحه‌نمایش روشن بماند</string>
     <string name="space_between_pages">فاصله بین صفحات</string>
-    <string name="privacy_info">این برنامه هیچ داده‌ای جمع‌آوری نمی‌کند.
-مجوزهای زیر برای ویژگی‌های خاصی در برنامه لازم‌اند:
-- <b>اینترنت</b>: بازکردن PDF از طریق پیوندهای
-- <b>حافظه</b>: باز کردن پرونده‌ها از حافظه، نگه‌داشتن PDFهایی که با پیوند‌ها باز می‌شوند</string>
+    <string name="privacy_info">این برنامه هیچ داده‌ای جمع‌آوری نمی‌کند.\nمجوزهای زیر برای ارائه ویژگی‌های خاص در برنامه لازم‌اند:\n- <b>اینترنت</b>: باز کردن PDF از طریق پیوندها\n- <b>فضای ذخیره‌سازی</b>: باز کردن پرونده‌ها از فضای ذخیره‌سازی، ذخیره PDFهایی که با پیوندها باز می‌شوند</string>
     <string name="switch_theme">تغییر پوسته PDF</string>
     <string name="open_another_pdf">باز کردن PDF دیگر</string>
     <string name="close">بستن</string>
@@ -118,7 +114,7 @@
     <string name="error_load_file_name">ناتوان در واکشی نام پرونده</string>
     <string name="cannot_load_page">"ناتوان در بارگذاری صفحه"</string>
     <string name="experimental">آزمایشی</string>
-    <string name="caution">هوشیاری</string>
+    <string name="caution">احتیاط</string>
     <string name="app_dark_dialog_message">در برخی دستگاه‌ها، این گزینه ممکن است باعث نمایش مستطیل‌های سیاه در هنگام خواندن PDF شود. اگر این اتفاق افتاد، فقط این گزینه را خاموش کنید.</string>
     <string name="restore">بازنشانی</string>
     <string name="no_pdf_in_app">هیچ PDFی در برنامه باز نیست</string>
@@ -128,13 +124,13 @@
     <string name="max_zoom_value">مقدار بیشینه بزرگنمایی</string>
     <string name="apply">اعمال</string>
     <string name="reset">بازنشانی</string>
-    <string name="cancel">ردکردن</string>
+    <string name="cancel">لغو</string>
     <string name="page">صفحه</string>
     <string name="bookmarks">نشانه‌ها</string>
     <string name="no_bookmarks">این پرونده شامل نشانه نیست</string>
     <string name="additional_options">بیشتر</string>
     <string name="search">جستجو</string>
-    <string name="search_results">یافته‌ها جستجو</string>
+    <string name="search_results">نتایج جستجو</string>
     <string name="copied_to_clipboard">متن رونویسی شد</string>
     <string name="copy_all">رونویسی همه</string>
     <string name="increase_text_size">افزایش اندازه متن</string>
@@ -166,7 +162,7 @@
     <string name="expand_search_result_text">گسترش متن نتایج جستجو برای نمایش بیشتر</string>
     <string name="no_table_of_contents">فهرست مطالب موجود نیست</string>
     <string name="too_short_query">پرس و جو خیلی کوتاه</string>
-    <string name="too_short_query_message">هشدار: پرس و جوی جستجو '%s' خیلی کوتاه است! ممکن است گوشی شما در مقابله با یافته‌های بسیار زیاد ایراد داشته باشد. اگر مشکلی پیش آمد، برنامه را ببندید و دوباره باز کنید.</string>
+    <string name="too_short_query_message">هشدار: پرس و جوی جستجو \'%s\' خیلی کوتاه است! ممکن است گوشی شما در مقابله با یافته‌های بسیار زیاد ایراد داشته باشد. اگر مشکلی پیش آمد، برنامه را ببندید و دوباره باز کنید.</string>
     <string name="loading">در حال بارگذاری…</string>
     <string name="no_links_put_in_pdf">هیچ پیوندی در سند گنجانده نشده است.</string>
     <string name="links_activity_title">پیوند‌های گنجانده شده در PDF</string>
@@ -176,7 +172,7 @@
     <string name="no_app_to_open_link">برنامه مناسبی برای باز کردن پیوند پیدا نشد</string>
     <string name="copy_link_url">رونویسی نشانی پیوند</string>
     <string name="failed_to_extract_text">عدم توانایی در استخراج متن</string>
-    <string name="page_counter_label">صفحه: %d/%d</string>
+    <string name="page_counter_label">صفحه: %1$d/%2$d</string>
     <string name="next_page">صفحه پسین</string>
     <string name="prev_page">صفحه پیشین</string>
     <string name="text_color">رنگ متن</string>
@@ -185,12 +181,12 @@
     <string name="proceed_anyway">به هر حال ادامه بده</string>
     <string name="page_out_of_bound" tools:ignore="PluralsCandidate">صفحه #%d در این PDF وجود ندارد.</string>
     <string name="press_back_again">برای خروج، دوباره دکمه بازگشت را فشار دهید</string>
-    <string name="dracula_theme">پوستهدراکولا</string>
+    <string name="dracula_theme">پوسته دراکولا</string>
     <string name="non_clickable_pdf_icon">نماد PDF غیرقابل کلیک</string>
     <string name="recently_opened">اخیراً باز شده</string>
     <string name="delete">حذف</string>
     <string name="delete_dialog_title">آیا مطمئن هستید؟</string>
-    <string name="delete_dialog_message">پاک‌کرن ضبط نگه‌داری شده باعث می‌شود برنامه همه داده‌هایی را که درباره PDF دارد فراموش کند.</string>
+    <string name="delete_dialog_message">حذف رکورد ذخیره‌شده باعث می‌شود برنامه همه داده‌هایی را که درباره PDF دارد فراموش کند.</string>
     <string name="list_mode">حالت فهرست</string>
     <string name="filter_list_dialog_title">پالایش پرونده‌ها</string>
     <string name="status">وضعیت</string>
@@ -199,7 +195,7 @@
     <string name="last_opened_key">آخرین باز شده:</string>
     <string name="pdf_cover_image">تصویر جلد PDF</string>
     <string name="all_files">همه پرونده‌ها</string>
-    <string name="about_record">درباره ضبط</string>
+    <string name="about_record">درباره رکورد</string>
     <string name="record_percentage_template">(%d%%)</string>
     <string name="pages">صفحات</string>
     <string name="exit">خروج</string>
@@ -214,13 +210,11 @@
     <string name="auto_full_screen">تمام‌صفحه خودکار</string>
     <string name="auto_full_screen_summary">هنگامی که سندی باز می‌شود، به طور خودکار حالت تمام‌صفحه روشن شود.</string>
     <string name="always_horizontal">همیشه در حالت افقی</string>
-    <string name="always_horizontal_summary">همیشه حالت افقی به جای عمودی به‌کار گرفته کنید.</string>
+    <string name="always_horizontal_summary">همیشه حالت افقی را به جای حالت عمودی به کار بگیرید.</string>
     <string name="dark_theme_for_app">رابط کاربری از پوسته سامانه پیروی کند</string>
-    <string name="app_dark_theme_summary">با روشن کردن این گزینه، رابط کاربری برنامه(نه محتوای PDF) به شیوه خودکار با پوسته روشن یا تیره سامانه شما سازگار شود.
-توجه: این گزینه ممکن است رنگ‌های پس‌زمینه PDF را در برخی دستگاه‌ها تحت تأثیر قرار دهد.</string>
+    <string name="app_dark_theme_summary">با روشن کردن این گزینه، رابط کاربری برنامه (نه محتوای PDF) به صورت خودکار با پوسته روشن یا تیره سامانه شما سازگار می‌شود.\n\nتوجه: این گزینه ممکن است رنگ‌های پس‌زمینه PDF را در برخی دستگاه‌ها تحت تأثیر قرار دهد.</string>
     <string name="dark_theme_for_pdf">PDF از پوسته سامانه پیروی کند</string>
-    <string name="pdf_dark_theme_summary">سازگار شدن صفحات و محتوای PDF با پوسته روشن یا تیره سامانه شما.
-توجه: روشن کردن این گزینه، گزینه 'تغییر پوستهPDF' را در منوی اصلی خاموش می‌کند.</string>
+    <string name="pdf_dark_theme_summary">صفحات و محتوای PDF به صورت خودکار با پوسته روشن یا تیره سامانه شما سازگار می‌شوند.\n\nتوجه: روشن کردن این گزینه، گزینه \'تغییر پوسته PDF\' را در منوی اصلی خاموش می‌کند.</string>
     <string name="enable_reload_button">نمایش دکمه بارگذاری دوباره در نوار ابزار</string>
     <string name="enable_reload_summary">محتوای شما را به سرعت بازیابی می‌کند و اطمینان حاصل می‌کند که هرگونه به‌روزرسانی در سند بی‌درنگ قابل مشاهده است.</string>
     <string name="save_password">نگه‌داری گذرواژه</string>

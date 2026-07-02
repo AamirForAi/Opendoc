@@ -1,5 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- 
+    <!--
     ~ MJ PDF
     ~ Copyright (C) 2023 Mudlej
     ~
@@ -171,7 +171,7 @@
     <string name="too_short_query">Zbyt krótkie zapytanie</string>
     <string name="too_short_query_message">OSTRZEŻENIE: Zapytanie wyszukiwania \'%s\' jest zbyt krótkie! Twój telefon może mieć problemy z obsługą zbyt wielu wyników. Jeśli po tym będzie działać nieprawidłowo, zamknij aplikację i otwórz ją ponownie.</string>
     <string name="loading">Ładowanie…</string>
-    <string name="no_links_put_in_pdf">W dokumencie celowo nie umieszczono żadnych linków.</string>
+    <string name="no_links_put_in_pdf">Brak celowo osadzonych linków w dokumencie.</string>
     <string name="links_activity_title">Linki osadzone w PDF</string>
     <string name="too_many_results_may_be_slow">Zbyt wiele wyników! Przeszukiwanie wyników może być powolne.</string>
     <string name="links_in_document">Linki w dokumencie</string>
@@ -179,7 +179,7 @@
     <string name="no_app_to_open_link">Nie znaleziono odpowiedniej aplikacji do otwarcia linku</string>
     <string name="copy_link_url">Kopiuj adres URL linku</string>
     <string name="failed_to_extract_text">Nie udało się wyodrębnić tekstu</string>
-    <string name="page_counter_label">Strona: %d/%d</string>
+    <string name="page_counter_label">Strona: %1$d/%2$d</string>
     <string name="next_page">Następna strona</string>
     <string name="prev_page">Poprzednia strona</string>
     <string name="text_color">Kolor tekstu</string>
@@ -236,8 +236,8 @@
     <string name="pdf_keywords">Słowa kluczowe PDF</string>
     <string name="pdf_created">Utworzono PDF</string>
     <string name="pdf_modified">Zmodyfikowano PDF</string>
-    <string name="pdf_created_by">Utworzono przez PDF</string>
-    <string name="pdf_produced_by">Wyprodukowano przez PDF</string>
+    <string name="pdf_created_by">Utworzono przez</string>
+    <string name="pdf_produced_by">Wyprodukowano przez</string>
     <string name="pdf_file_size">Rozmiar pliku PDF</string>
     <string name="pdf_file_name">Nazwa pliku PDF</string>
     <string name="reload_pdf">Przeładuj PDF</string>

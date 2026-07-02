@@ -45,12 +45,12 @@
         * UI-verbeteringen: consistente pictogramkleuren, verbeterde lay-out en zichtbaarheid.\n\n
         * Altijd horizontale modus toegevoegd.\n\n
         * Experimentele knop PDF Opnieuw laden toegevoegd in de instellingen.\n\n
-        * Verbeterde ondersteuning voor met een wachtwoord beveiligde en niet-lokale pdf's.\n\n
+        * Verbeterde ondersteuning voor met een wachtwoord beveiligde en niet-lokale pdf\'s.\n\n
         * Stabiliteit: reparatie van crashes van achtergrondoperaties.\n\n
         * Ontwikkeling: verbeterde SDK, gradle en afhankelijkheden.
     </string>
     <string name="pick_file">Kies een bestand</string>
-    <string name="toast_pick_file_error">Kan bestand niet kiezen! Controleer het bestandsbeheerder op je telefoon.</string>
+    <string name="toast_pick_file_error">Kan bestand niet kiezen! Controleer je bestandsbeheerder op je telefoon.</string>
     <string name="toast_http_code_error">Externe server reageerde met een fout.</string>
     <string name="toast_generic_download_error">Dit bestand kon om een of andere reden niet worden gedownload.</string>
     <string name="toast_ssl_error">Veilige verbinding is mislukt.</string>
@@ -65,7 +65,7 @@
     <string name="myLicense">Licentie</string>
     <string name="privacy">Privacybeleid</string>
 
-    <string name="appChangelog">Functies / Wijzigen</string>
+    <string name="appChangelog">Functies / wijzigingslog</string>
     <string name="done">KLAAR</string>
     <string name="results">ZOEKRESULTATEN</string>
     <string name="ok">OK</string>
@@ -103,15 +103,15 @@
     <string name="wrong_password">Onjuist wachtwoord.</string>
 
     <string name="keep_screen_on">Scherm niet uitschakelen</string>
-    <string name="space_between_pages">Ruimte tussen pagina's</string>
-    <string name="privacy_info">Deze app verzamelt geen gegevens.\nDe volgende rechten zijn vereist i.v.m. specifieke functies in de app:\n- <b>Internet</b>: PDF's openen via links\n- <b>Opslag</b>: bestanden openen uit opslag, PDF's opslaan die via links zijn geopend</string>
+    <string name="space_between_pages">Ruimte tussen pagina\'s</string>
+    <string name="privacy_info">Deze app verzamelt geen gegevens.\nDe volgende rechten zijn vereist i.v.m. specifieke functies in de app:\n- <b>Internet</b>: PDF\'s openen via links\n- <b>Opslag</b>: bestanden openen uit opslag, PDF\'s opslaan die via links zijn geopend</string>
     <string name="switch_theme">PDF-thema schakelen</string>
     <string name="open_another_pdf">Nog een PDF openen</string>
     <string name="close">Sluiten</string>
     <string name="exit_fullscreen_button">Knop Volledig scherm afsluiten</string>
     <string name="ask_restore_zoom">Zoom herstellen?</string>
     <string name="rotate_screen">Scherm draaien</string>
-    <string name="exit_fullscreen_message">Met een tik op het schem wordt een X-knop in de linkerbovenhoek weergegeven. Klik erop om het volledige scherm af te sluiten.</string>
+    <string name="exit_fullscreen_message">Met een tik op het scherm wordt een X-knop in de linkerbovenhoek weergegeven. Klik erop om het volledige scherm af te sluiten.</string>
     <string name="gitlab" translatable="false">Gitlab</string>
     <string name="exit_fullscreen_title">Om Volledig scherm af te sluiten</string>
     <string name="exit_fullscreen_positive">Niet meer laten zien</string>
@@ -122,7 +122,7 @@
 
     <string name="experimental">Experimenteel</string>
     <string name="caution">Voorzichtig</string>
-    <string name="app_dark_dialog_message">Op sommige apparaten kan deze optie ervoor zorgen dat zwarte rechthoeken worden weergegeven bij het lezen van pdf's. Als dat gebeurt, zet dan deze optie uit.</string>
+    <string name="app_dark_dialog_message">Op sommige apparaten kan deze optie ervoor zorgen dat zwarte rechthoeken worden weergegeven bij het lezen van pdf\'s. Als dat gebeurt, zet dan deze optie uit.</string>
     <string name="restore">Herstellen</string>
     <string name="no_pdf_in_app">Er is geen PDF geopend in de app</string>
     <string name="advanced">Geavanceerd</string>
@@ -154,7 +154,7 @@
     <string name="turn_page_by_volume_buttons_title">Bladzijde omslaan met volumeknoppen</string>
     <string name="turn_page_by_volume_buttons_summary">Ga naar de volgende of vorige pagina met de volumeknoppen</string>
     <string name="dont_pop_up">Geen pop-up!</string>
-    <string name="text_mode">Textmodus</string>
+    <string name="text_mode">Tekstmodus</string>
     <string name="go_to_page">Ga naar pagina</string>
     <string name="no_input">Geen invoer!</string>
     <string name="go_to">Ga naar</string>
@@ -166,7 +166,7 @@
     <string name="links_in_file">Koppelingen in het bestand</string>
     <string name="page_number">[0/0]</string>
     <string name="searching">Zoeken…</string>
-    <string name="expand_search_result_text">Zoekresultaten uitbreiden om meer te tnen</string>
+    <string name="expand_search_result_text">Zoekresultaten uitbreiden om meer te tonen</string>
     <string name="no_table_of_contents">Geen inhoudsopgave</string>
     <string name="too_short_query">Zoekterm is te kort</string>
     <string name="too_short_query_message">WAARSCHUWING: De zoekterm \'%s\' is te kort! Je telefoon kan moeite hebben om te veel resultaten te verwerken. Sluit de app bij problemen en open deze opnieuw.</string>
@@ -179,7 +179,7 @@
     <string name="no_app_to_open_link">Geen geschikte app gevonden om de link te openen</string>
     <string name="copy_link_url">URL-koppeling kopiëren</string>
     <string name="failed_to_extract_text">Kan tekst niet extraheren</string>
-    <string name="page_counter_label">Pagina: %d/%d</string>
+    <string name="page_counter_label">Pagina: %1$d/%2$d</string>
     <string name="next_page">Volgende pagina</string>
     <string name="prev_page">Vorige pagina</string>
     <string name="text_color">Tekstkleur</string>
@@ -193,7 +193,7 @@
     <string name="recently_opened">Onlangs geopend</string>
     <string name="delete">Verwijderen</string>
     <string name="delete_dialog_title">Zeker weten?</string>
-    <string name="delete_dialog_message">Door het geschiedenis te verwijderen, vergeet de app alles wat het weet over de PDF.</string>
+    <string name="delete_dialog_message">Als je het opslagrecord verwijdert, vergeet de app alles wat hij over de PDF weet.</string>
     <string name="list_mode">Lijst-modus</string>
     <string name="filter_list_dialog_title">Bestanden filteren</string>
     <string name="status">Status</string>
@@ -204,7 +204,7 @@
     <string name="all_files">Alle bestanden</string>
     <string name="about_record">Over item</string>
     <string name="record_percentage_template">(%d%%)</string>
-    <string name="pages">pagina's</string>
+    <string name="pages">pagina\'s</string>
     <string name="exit">Afsluiten</string>
     <string name="rotate">Draaien</string>
     <string name="auto_scroll">Automatisch bladeren</string>
@@ -221,7 +221,7 @@
     <string name="dark_theme_for_app">UI volgt Systeemthema</string>
     <string name="app_dark_theme_summary">Maakt mogelijk dat de gebruikersinterface van de app (niet de PDF-inhoud) zich automatisch aanpast aan het lichte of donkere thema van het systeem.\n\nOpmerking: deze optie kan op sommige apparaten de achtergrondkleuren van PDF beïnvloeden.</string>
     <string name="dark_theme_for_pdf">PDF volgt Systeemthema</string>
-    <string name="pdf_dark_theme_summary">Hiermee kunnen de PDF-pagina's en inhoud zich automatisch aanpassen aan het lichte of donkere thema van het systeem.\n\nOpmerking: indien ingeschakeld, wordt \'PDF-thema schakelen\' in het hoofdmenu uitgeschakeld.</string>
+    <string name="pdf_dark_theme_summary">Hiermee kunnen de PDF-pagina\'s en inhoud zich automatisch aanpassen aan het lichte of donkere thema van het systeem.\n\nOpmerking: indien ingeschakeld, wordt \'PDF-thema schakelen\' in het hoofdmenu uitgeschakeld.</string>
     <string name="enable_reload_button">Knop Opnieuw laden in de app-balk weergeven</string>
     <string name="enable_reload_summary">Snelle verversing van inhoud waardoor eventuele updates van documenten onmiddellijk zichtbaar zijn.</string>
     <string name="save_password">Wachtwoord opslaan</string>
@@ -231,7 +231,7 @@
     <string name="no">Nee</string>
     <string name="toggle_shortcuts">Sneltoetsen schakelen</string>
     <string name="file_properties">Bestandseigenschappen</string>
-    <string name="pdf_pages">Pagina's</string>
+    <string name="pdf_pages">Pagina\'s</string>
     <string name="pdf_subject">Onderwerp</string>
     <string name="pdf_keywords">Sleutelwoorden</string>
     <string name="pdf_created">Aangemaakt</string>

@@ -91,7 +91,7 @@
     <string name="enter_password">Inserisci la password corretta per aprire il documento:</string>
     <string name="wrong_password">Password errata.</string>
 
-    <string name="keep_screen_on">Manteni lo schermo acceso</string>
+    <string name="keep_screen_on">Mantieni lo schermo acceso</string>
     <string name="space_between_pages">Spazio tra le pagine</string>
     <string name="privacy_info">Quest\'app non raccoglie alcun dato.\nLe seguenti autorizzazioni sono necessarie per fornire funzioni specifiche all\'interno dell\'app:\n- <b>Internet</b>: aprire i PDF tramite link\n- <b>Archiviazione</b>: aprire i file dall\'archivio, salvare i PDF aperti tramite link</string>
     <string name="switch_theme">Cambia il tema del PDF</string>
@@ -144,7 +144,7 @@
     <string name="dont_pop_up">Non apparire!</string>
     <string name="text_mode">Modalità testo</string>
     <string name="go_to_page">Vai alla pagina</string>
-    <string name="no_input">Nessun Input!</string>
+    <string name="no_input">Nessun input!</string>
     <string name="go_to">Vai a</string>
     <string name="search_field">Cerca…</string>
     <string name="expand_or_collapse_bookmark">espandi o chiudi il segnalibro</string>
@@ -167,7 +167,7 @@
     <string name="no_app_to_open_link">Non ho trovato un\'app appropriata per aprire il link</string>
     <string name="copy_link_url">Copia URL del link</string>
     <string name="failed_to_extract_text">Non è stato possibile estrarre il testo</string>
-    <string name="page_counter_label">Pagina: %d/%d</string>
+    <string name="page_counter_label">Pagina: %1$d/%2$d</string>
     <string name="next_page">Pagina successiva</string>
     <string name="prev_page">Pagina precedente</string>
     <string name="text_color">Colore del testo</string>
@@ -210,7 +210,7 @@
     <string name="app_dark_theme_summary">Consente all\'interfaccia utente dell\'app (non al contenuto del PDF) di adattarsi automaticamente al tema chiaro o scuro del sistema. \n\nNota: questa opzione può influire sui colori di sfondo dei PDF su alcuni dispositivi.</string>
     <string name="dark_theme_for_pdf">Il PDF segue il tema del sistema</string>
     <string name="pdf_dark_theme_summary">Consente alle pagine e ai contenuti del PDF di adattarsi automaticamente al tema chiaro o scuro del sistema. \n\nNota: l\'attivazione di questa opzione disabilita \'Cambia tema PDF\' nel menu principale.</string>
-    <string name="enable_reload_button">Mostra il pulsante di ricarica nella barra delle applicazioni</string>
+    <string name="enable_reload_button">Mostra il pulsante di ricarica nella barra dell\'app</string>
     <string name="enable_reload_summary">Aggiorna rapidamente i contenuti, assicurando che ogni aggiornamento dei documenti sia immediatamente visibile.</string>
     <string name="save_password">Salva password</string>
     <string name="send_crash_report_title">Inviare un rapporto anonimo sull\'arresto?</string>
