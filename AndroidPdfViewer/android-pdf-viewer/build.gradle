@@ -5,7 +5,7 @@ android {
 
     defaultConfig {
         minSdkVersion 23
-        targetSdkVersion 34
+        targetSdkVersion 36
     }
     namespace = 'com.github.barteksc.pdfviewer'
 
