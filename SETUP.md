@@ -78,3 +78,17 @@ PdfiumAndroid/src/main/jni/lib
 
 ## 5. Run it with Android Studio
 At this point Android Studio should be able to run it with no issues.
+
+## 6. Build the Debug APK
+
+From the project root:
+
+```bash
+./gradlew :app:assembleDebug
+```
+
+The APK will be generated at:
+
+```text
+app/build/outputs/apk/debug/app-debug.apk
+```

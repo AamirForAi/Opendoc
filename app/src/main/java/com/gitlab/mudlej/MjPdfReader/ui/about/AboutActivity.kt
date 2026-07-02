@@ -51,9 +51,6 @@ import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.DialogFragment
-import com.franmontiel.attributionpresenter.AttributionPresenter
-import com.franmontiel.attributionpresenter.entities.Attribution
-import com.franmontiel.attributionpresenter.entities.License
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityAboutBinding
 import com.gitlab.mudlej.MjPdfReader.ui.main.MainIntroActivity
@@ -116,70 +113,7 @@ class AboutActivity : AppCompatActivity() {
     }
 
     fun showLibraries(v: View?) {
-        val attributionPresenter = AttributionPresenter.Builder(this)
-            .addAttributions(
-                Attribution.Builder("AttributionPresenter")
-                    .addCopyrightNotice("Copyright 2017 Francisco José Montiel Navarro")
-                    .addLicense(License.APACHE)
-                    .setWebsite("https://github.com/franmontiel/AttributionPresenter")
-                    .build()
-            )
-            .addAttributions(
-                Attribution.Builder("MJ PDF's fork of Android PdfViewer")
-                    .addCopyrightNotice("Forked by Mudlej")
-                    .addLicense(License.APACHE)
-                    .setWebsite("https://gitlab.com/mudlej_android/mj_pdf_reader/-/tree/main/AndroidPdfViewer")
-                    .build()
-            )
-            .addAttributions(
-                Attribution.Builder("MJ PDF's fork of PdfiumAndroid")
-                    .addCopyrightNotice("Forked by Mudlej")
-                    .addLicense(License.APACHE)
-                    .setWebsite("https://gitlab.com/mudlej_android/mj_pdf_reader/-/tree/main/AndroidPdfViewer")
-                    .build()
-            )
-            .addAttributions(
-                Attribution.Builder("AppIntro")
-                    .addCopyrightNotice("Copyright 2018 Paolo Rotolo")
-                    .addLicense(License.APACHE)
-                    .setWebsite("https://github.com/paolorotolo/AppIntro")
-                    .build()
-            )
-            .addAttributions(
-                Attribution.Builder("Android Open Source Project")
-                    .addCopyrightNotice("Copyright 2016 The Android Open Source Project")
-                    .addLicense(License.APACHE)
-                    .setWebsite("http://developer.android.com/tools/support-library/index.html")
-                    .build()
-            )
-            .addAttributions(
-                Attribution.Builder("Android Support Libraries")
-                    .addCopyrightNotice("Copyright 2016 The Android Open Source Project")
-                    .addLicense(License.APACHE)
-                    .setWebsite("http://developer.android.com/tools/support-library/index.html")
-                    .build()
-            )
-            .addAttributions(
-                Attribution.Builder("Material Design Icons")
-                    .addCopyrightNotice("Copyright 2014, Austin Andrews")
-                    .addLicense(
-                        "SIL Open Font",
-                        "https://github.com/Templarian/MaterialDesign/blob/master/LICENSE"
-                    )
-                    .setWebsite("https://materialdesignicons.com/")
-                    .build()
-            )
-            .addAttributions(
-                Attribution.Builder(" ColorPicker")
-                    .addCopyrightNotice("Copyright 2018 Hong Duan")
-                    .addLicense(License.APACHE)
-                    .setWebsite("https://materialdesignicons.com/")
-                    .build()
-            )
-            .build()
-
-        //show license dialogue
-        attributionPresenter.showDialog("Open Source Libraries")
+        OpenSourceLibrariesDialog().show(supportFragmentManager, OpenSourceLibrariesDialog.TAG)
     }
 
     fun emailDev(v: View?) {

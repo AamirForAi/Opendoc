@@ -173,7 +173,7 @@
     <string name="no_app_to_open_link">लिंक खोलने के लिए उपयुक्त ऐप नहीं मिली</string>
     <string name="copy_link_url">लिंक का URL कॉपी करें</string>
     <string name="failed_to_extract_text">पाठ निकालने में विफल</string>
-    <string name="page_counter_label">पेज: %d/%d</string>
+    <string name="page_counter_label">पेज: %1$d/%2$d</string>
     <string name="next_page">अगला पृष्ठ</string>
     <string name="prev_page">पिछला पृष्ठ</string>
     <string name="text_color">पाठ का रंग</string>
