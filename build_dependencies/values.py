@@ -6,6 +6,7 @@ BUILD = "build"
 LIBPNG_BUILD = "libpng_build"
 FREETYPE_BUILD = "freetype_build"
 BUILD_TYPE = "Release"  # Release or Debug
+LINKER_FLAGS_16KB = "-Wl,-z,max-page-size=16384"
 LIB_DIR_PATH = "PdfiumAndroid/src/main/jni/lib"
 CMAKE_DIR_PATH = f"{os.getcwd()}/build_dependencies/cmake"
 
@@ -54,10 +55,10 @@ PDFIUM_URLS = {
     # Arch.x86_64: "https://github.com/bblanchon/pdfium-binaries/releases/latest/download/pdfium-android-x64.tgz",
     # Arch.arm64: "https://github.com/bblanchon/pdfium-binaries/releases/latest/download/pdfium-android-arm64.tgz",
     # Arch.armeabi: "https://github.com/bblanchon/pdfium-binaries/releases/latest/download/pdfium-android-arm.tgz",
-    Arch.x86: "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F5445/pdfium-android-x86.tgz",
-    Arch.x86_64: "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F5445/pdfium-android-x64.tgz",
-    Arch.arm64: "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F5445/pdfium-android-arm64.tgz",
-    Arch.armeabi: "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F5445/pdfium-android-arm.tgz",
+    Arch.x86: "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7920/pdfium-android-x86.tgz",
+    Arch.x86_64: "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7920/pdfium-android-x64.tgz",
+    Arch.arm64: "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7920/pdfium-android-arm64.tgz",
+    Arch.armeabi: "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7920/pdfium-android-arm.tgz",
 }
 
 PDFIUM_PATHS = {
@@ -80,4 +81,3 @@ FREETYPE_URL = "https://sourceforge.net/projects/freetype/files/latest/download"
 # LIBPNG_URL = "https://sourceforge.net/projects/libpng/files/libpng16/1.6.37/libpng-1.6.37.tar.xz/download"
 # FREETYPE_URL_TEMPLATE = "https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-{VERSION}/freetype-VER-{VERSION}.tar"
 # FREETYPE_URL = "https://gitlab.freedesktop.org/freetype/freetype/-/archive/master/freetype-master.tar.gz"
-
