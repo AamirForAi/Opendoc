@@ -41,9 +41,7 @@
 
 plugins {
     id 'com.android.application'
-    id 'kotlin-android'
-    id 'kotlin-kapt'
-    id 'com.google.devtools.ksp' version '1.9.23-1.0.20'
+    id 'com.google.devtools.ksp' version '2.3.9'
 }
 
 android {
@@ -67,6 +65,7 @@ android {
 
     buildFeatures {
         buildConfig = true
+        resValues true
         viewBinding true
     }
 
@@ -81,12 +80,12 @@ android {
             debuggable false
             minifyEnabled true
             shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
 
         debug {
             debuggable true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     compileOptions {
@@ -95,10 +94,6 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = '17'
-    }
-
     namespace 'com.gitlab.mudlej.MjPdfReader'
     lint {
         abortOnError false
@@ -106,15 +101,13 @@ android {
     }
 }
 
-kotlin {
-    ksp {
-        arg("room.schemaLocation", "$projectDir/schemas")
-    }
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
     // Kotlin
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.23"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.4.0"
     implementation 'androidx.preference:preference-ktx:1.2.1'
 
     // Activity
@@ -161,8 +154,4 @@ dependencies {
     // Area Crash Reporter
     implementation 'ch.acra:acra-dialog:5.9.0'
     implementation("ch.acra:acra-http:5.9.0")
-
-    // AutoService
-    kapt("com.google.auto.service:auto-service:1.0.1")
-    compileOnly("com.google.auto.service:auto-service-annotations:1.0.1")
 }
