@@ -3,6 +3,7 @@
 *.iml
 app/build/**
 .gitignore
+work/
 local.properties
 app/libs/**
 app/release/app-release.aab
@@ -36,4 +37,3 @@ AndroidPdfViewer/android-pdf-viewer/build/**
 AndroidPdfViewer/android-pdf-viewer/build/intermediates/**
 build_dependencies/libpng_build/**
 build_dependencies/freetype_build/**
-
