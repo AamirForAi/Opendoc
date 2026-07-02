@@ -5,7 +5,7 @@ import shutil
 from build_dependencies.common import download_file, extract_tar_file, log, delete_if_exists, \
     delete_file_if_exists, get_lib_path, run_cmd, get_toolchain
 from build_dependencies.values import Arch, FILE_NAMES, LIB_EXTENSION, Lib, ARCH_NAMES, LIBPNG_URL, LIBPNG_BUILD, BUILD, \
-    ANDROID_PLATFORM, BUILD_TYPE
+    ANDROID_PLATFORM, BUILD_TYPE, LINKER_FLAGS_16KB
 
 BUILT_LIB_NAME = "libpng16.so"
 
@@ -61,6 +61,7 @@ def build_libpng(arch, LIBPNG_DIR):
     cmd += ["-DANDROID_ABI=" + ARCH_NAMES[arch]]
     cmd += ["-DANDROID_PLATFORM=" + ANDROID_PLATFORM]
     cmd += ["-DCMAKE_INSTALL_PREFIX=" + INSTALL_PREFIX]
+    cmd += ["-DCMAKE_SHARED_LINKER_FLAGS=" + LINKER_FLAGS_16KB]
     cmd += ["-DPNG_TESTS=OFF -DHAVE_LD_VERSION_SCRIPT=OFF"]
 
     if BUILD_TYPE == "Debug":
