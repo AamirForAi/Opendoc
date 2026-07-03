@@ -6,7 +6,7 @@
 - [x] Update SDK and dependencies ([!24](https://gitlab.com/mudlej_android/mj_pdf_reader/-/merge_requests/24), [!25](https://gitlab.com/mudlej_android/mj_pdf_reader/-/merge_requests/25))
 - [x] Add Italian, Dutch, French, Simplified Chinese, Persian, and Polish translations. ([!26](https://gitlab.com/mudlej_android/mj_pdf_reader/-/merge_requests/26))
 - [ ] Add option to change/crop PDF margins.
-- [ ] Fix back button breaking when "volume key to turn page" is enabled.
+- [x] Fix back button breaking when "volume key to turn page" is enabled.
 - [ ] Fix password-protected PDFs opened from file managers not showing the password prompt.
 - [ ] Investigate PDF corruption/rendering issues after files stay open for several hours.
 - [ ] Fix or verify fullscreen labels reappearing after theme changes.
@@ -33,7 +33,6 @@
 - [ ] Remember per-document zoom lock.
 - [ ] Remember per-document horizontal scroll lock.
 - [ ] Remember per-document auto-scroll speed.
-- [ ] Add user-controlled "mark as read" state, independent from progress.
 - [ ] Add import/export for settings, reading progress, and app data.
 
 ## Navigation And Reading Flow
@@ -52,12 +51,13 @@
 - [ ] Add search in bookmarks activity.
 - [ ] Add expand/collapse all in bookmarks activity.
 - [ ] Add Home page.
+- [ ] Add user-controlled "mark as read" state, independent from progress.
 - [ ] Add recently opened files.
 - [ ] Add library sections such as folders, favorites, want-to-read, and finished.
 - [ ] Add file info cards for library items.
 
 ## Fullscreen And Controls
-- [ ] Show Android navigation bar with transparent background on tap in fullscreen mode.
+- [ ] Show some metadata like date and time in fullscreen mode.
 - [ ] Add fullscreen shortcuts for Table of Contents and Go To Page.
 - [ ] Make fullscreen shortcuts/custom buttons configurable.
 - [ ] Make the second top-bar button configurable instead of reload-only.
@@ -91,3 +91,4 @@
 ## Won't do
 - [ ] Add tap-for-next-page option.
 - [ ] Add tap or double-tap option for toggling fullscreen mode.
+- [ ] Show Android navigation bar with transparent background on tap in fullscreen mode.
