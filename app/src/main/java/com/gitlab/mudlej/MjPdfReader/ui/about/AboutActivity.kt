@@ -75,13 +75,13 @@ class AboutActivity : AppCompatActivity() {
             layoutInflater
         )
         setContentView(binding.root)
+        ColorUtil.colorize(this, window, supportActionBar)
         initUi()
     }
 
     private fun initUi() {
         setVersionText()
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        ColorUtil.colorize(this, window, supportActionBar)
     }
 
     private fun setVersionText() {

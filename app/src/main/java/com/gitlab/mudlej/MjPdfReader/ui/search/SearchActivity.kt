@@ -50,6 +50,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         super.onCreate(savedInstanceState)
         binding = ActivitySearchBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        ColorUtil.colorize(this, window, supportActionBar)
 
         lifecycleScope.launch {
             initPdfExtractor()
@@ -64,7 +65,6 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     }
 
     private fun initUi() {
-        ColorUtil.colorize(this, window, supportActionBar)
         initActionBar()
         initLoadingProgressBar()
         initRecyclerView()

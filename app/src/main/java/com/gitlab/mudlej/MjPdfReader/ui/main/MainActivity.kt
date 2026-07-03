@@ -104,7 +104,6 @@ import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
 import com.gitlab.mudlej.MjPdfReader.util.FileUtil.fileFromUri
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.elevation.SurfaceColors
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -157,6 +156,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setCustomActionBar()
+        ColorUtil.colorize(this, window, supportActionBar)
 
         // To avoid FileUriExposedException, (https://stackoverflow.com/questions/38200282/)
         StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
@@ -220,6 +220,7 @@ class MainActivity : AppCompatActivity() {
         // Disable the default and enable the custom
         actionBar?.setDisplayShowTitleEnabled(false)
         actionBar?.setDisplayShowCustomEnabled(true)
+        actionBar?.elevation = 0F
 
         val customView: View = layoutInflater.inflate(R.layout.actionbar_title, null)
         appTitlePageNumber = customView.findViewById(R.id.actionbarPageNumber)
@@ -869,7 +870,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun configureTheme() {
         ColorUtil.colorize(this, window, supportActionBar)
-        val color = SurfaceColors.SURFACE_2.getColor(this)
+        val color = ColorUtil.getBarColor(this)
         binding.secondBarLayout.setBackgroundColor(color)
 
         val pdfView = binding.pdfView
@@ -969,6 +970,7 @@ class MainActivity : AppCompatActivity() {
     private fun toggleFullscreen() {
         fun showUi() {
             supportActionBar?.show()
+            binding.appBarBottomShadow.visibility = View.VISIBLE
             if (pref.getSecondBarEnabled()) {
                 binding.secondBarLayout.visibility = View.VISIBLE
             }
@@ -977,6 +979,7 @@ class MainActivity : AppCompatActivity() {
 
         fun hideUi() {
             supportActionBar?.hide()
+            binding.appBarBottomShadow.visibility = View.GONE
             binding.secondBarLayout.visibility = View.GONE
             binding.pdfView.systemUiVisibility = (
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -1344,7 +1347,8 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 dialog.dismiss()
-            }.show()
+            }
+            .show()
     }
 
     private fun checkHasFile(): Boolean {

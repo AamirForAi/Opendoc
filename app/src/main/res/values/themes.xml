@@ -26,8 +26,15 @@
         <item name="colorOnSurfaceInverse">@color/md_theme_inverseOnSurface</item>
         <item name="colorSurfaceInverse">@color/md_theme_inverseSurface</item>
         <item name="colorPrimaryInverse">@color/md_theme_inversePrimary</item>
-        <item name="android:statusBarColor">?attr/colorSurface</item>
-        <item name="android:navigationBarColor">?attr/colorSurface</item>
+        <item name="android:statusBarColor">?attr/colorSurfaceVariant</item>
+        <item name="android:navigationBarColor">?attr/colorSurfaceVariant</item>
+        <item name="android:enforceStatusBarContrast" tools:targetApi="q">false</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
+        <item name="actionBarPopupTheme">@style/CustomPopupMenuTheme</item>
+        <item name="actionOverflowMenuStyle">@style/CustomOverflowMenuStyle</item>
+        <item name="popupMenuStyle">@style/CustomPopupMenuStyle</item>
+        <item name="materialAlertDialogTheme">@style/ChromeMaterialAlertDialog</item>
 <!--        <item name="actionBarStyle">@style/MyActionBarStyle</item>-->
     </style>
 
@@ -52,7 +59,23 @@
     </style>
 
     <style name="CustomPopupMenuTheme" parent="ThemeOverlay.Material3">
-        <item name="android:popupBackground">?attr/colorSurfaceVariant</item>
+        <item name="android:popupBackground">@drawable/chrome_popup_background</item>
+    </style>
+
+    <style name="CustomOverflowMenuStyle" parent="Widget.AppCompat.PopupMenu.Overflow">
+        <item name="android:popupBackground">@drawable/chrome_popup_background</item>
+    </style>
+
+    <style name="CustomPopupMenuStyle" parent="Widget.AppCompat.PopupMenu">
+        <item name="android:popupBackground">@drawable/chrome_popup_background</item>
+    </style>
+
+    <style name="ChromeMaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">?attr/colorSurfaceVariant</item>
+        <item name="colorSurfaceContainerHigh">?attr/colorSurfaceVariant</item>
+        <item name="android:colorBackground">?attr/colorSurfaceVariant</item>
+        <item name="backgroundTint">?attr/colorSurfaceVariant</item>
+        <item name="colorOnSurface">?attr/colorOnSurfaceVariant</item>
     </style>
 
 </resources>

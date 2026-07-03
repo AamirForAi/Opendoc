@@ -32,6 +32,7 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
         super.onCreate(savedInstanceState)
         binding = ActivityBookmarksBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        ColorUtil.colorize(this, window, supportActionBar)
 
         showProgressBar()
         lifecycleScope.launch {
@@ -95,7 +96,6 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
     }
 
     private fun initUi() {
-        ColorUtil.colorize(this, window, supportActionBar)
         title = getString(R.string.table_of_contents)
         bookmarkAdapter.submitList(bookmarks)
         binding.bookmarksRecyclerView.apply {

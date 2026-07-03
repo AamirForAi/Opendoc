@@ -36,6 +36,7 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
         super.onCreate(savedInstanceState)
         binding = ActivityLinkBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        ColorUtil.colorize(this, window, supportActionBar)
 
         showProgressBar()
 
@@ -111,7 +112,6 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
     }
 
     private fun initUi() {
-        ColorUtil.colorize(this, window, supportActionBar)
         title = getString(R.string.links_activity_title)
         linkAdapter.submitList(links)
         linkAdapter.progressBar = binding.progressBar

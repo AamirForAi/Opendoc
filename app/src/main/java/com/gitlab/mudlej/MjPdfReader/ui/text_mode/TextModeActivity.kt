@@ -58,6 +58,7 @@ class TextModeActivity  : AppCompatActivity() {
         binding = ActivityTextModeBinding.inflate(layoutInflater)
         prefManager = PreferenceManager.getDefaultSharedPreferences(this)
         setContentView(binding.root)
+        ColorUtil.colorize(this, window, supportActionBar)
 
         initPdfProperties()
 
@@ -143,7 +144,6 @@ class TextModeActivity  : AppCompatActivity() {
     }
 
     private fun initUi() {
-        ColorUtil.colorize(this, window, supportActionBar)
         binding.apply {
             nextButton.setOnClickListener { nextPage() }
             prevButton.setOnClickListener { prevPage() }
