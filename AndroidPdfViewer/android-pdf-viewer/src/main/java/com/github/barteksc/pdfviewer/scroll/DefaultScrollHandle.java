@@ -39,7 +39,7 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
     private PDFView pdfView;
     private float currentPos;
 
-    private boolean isClickEvent = false;
+    private final TapGestureDetector tapGestureDetector;
 
     public TextView readingProgressText;
 
@@ -52,7 +52,6 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
     };
     boolean permanentHidden = false;
     private View.OnTouchListener customOnTouchListener;
-    private View.OnClickListener customOnClickListener;
 
     public DefaultScrollHandle(Context context) {
         this(context, false);
@@ -62,6 +61,7 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
         super(context);
         this.context = context;
         this.inverted = inverted;
+        tapGestureDetector = new TapGestureDetector(context);
         textView = new TextView(context);
         setVisibility(INVISIBLE);
         setCustomColorForText(context);
@@ -151,7 +151,6 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
 
     @Override
     public void setOnClickListener(@Nullable OnClickListener onClickListener) {
-        customOnClickListener = onClickListener;
         super.setOnClickListener(onClickListener);
     }
 
@@ -273,7 +272,9 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
     @SuppressLint("SetTextI18n")
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        performClickIfClickEvent(event);
+        if (tapGestureDetector.isTap(event)) {
+            performClick();
+        }
 
         if (customOnTouchListener != null) {
             customOnTouchListener.onTouch(this, event);
@@ -336,18 +337,6 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
             return (int) result + "%";                 // 23%
         } else {
             return String.format(Locale.US, "%.1f%%", result);  // 23.5%
-        }
-    }
-
-    private void performClickIfClickEvent(MotionEvent event) {
-        if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            isClickEvent = false;
-        }
-        else if (event.getAction() == MotionEvent.ACTION_MOVE) {
-            isClickEvent = true;
-        }
-        else if (event.getAction() == MotionEvent.ACTION_UP && !isClickEvent) {
-            performClick();
         }
     }
 
