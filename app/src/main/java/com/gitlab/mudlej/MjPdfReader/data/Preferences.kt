@@ -73,6 +73,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val finishedExtractionDialogKey = "finishedExtraction"
         const val copyTextDialogKey = "copyTextDialog"
         const val turnPageByVolumeButtonsKey = "turnPageByVolumeButtons"
+        const val showScrollHandlePageCountKey = "showScrollHandlePageCount"
         const val secondBarEnabledKey = "secondBarEnabled"
         const val hideButtonsLabelsKey = "hideButtonsLabels"
         const val doubleTapToExitEnabledKey = "doubleTapToExitEnabled"
@@ -106,6 +107,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val pdfLengthDefault = 0
         const val copyTextDialogDefault = true
         const val turnPageByVolumeButtonsDefault = false
+        const val showScrollHandlePageCountDefault = false
         const val secondBarEnabledDefault = false
         const val hideButtonsLabelsDefault = false
         const val doubleTapToExitEnabledDefault = true
@@ -146,6 +148,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getMaxZoom() = prefMan.getFloat(maxZoomKey, maxZoomDefault)
     fun getCopyTextDialog() = prefMan.getBoolean(copyTextDialogKey, copyTextDialogDefault)
     fun getTurnPageByVolumeButtons() = prefMan.getBoolean(turnPageByVolumeButtonsKey, turnPageByVolumeButtonsDefault)
+    fun getShowScrollHandlePageCount() = prefMan.getBoolean(showScrollHandlePageCountKey, showScrollHandlePageCountDefault)
     fun getSecondBarEnabled() = prefMan.getBoolean(secondBarEnabledKey, secondBarEnabledDefault)
     fun getHideButtonsLabels() = prefMan.getBoolean(hideButtonsLabelsKey, hideButtonsLabelsDefault)
     fun getDoubleTapToExitEnabled() = prefMan.getBoolean(doubleTapToExitEnabledKey, doubleTapToExitEnabledDefault)
@@ -174,6 +177,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setMaxZoom(value: Float) = prefMan.edit().putFloat(maxZoomKey, value).apply()
     fun setCopyTextDialog(value: Boolean) = prefMan.edit().putBoolean(copyTextDialogKey, value).apply()
     fun setTurnPageByVolumeButtons(value: Boolean) = prefMan.edit().putBoolean(turnPageByVolumeButtonsKey, value).apply()
+    fun setShowScrollHandlePageCount(value: Boolean) = prefMan.edit().putBoolean(showScrollHandlePageCountKey, value).apply()
     fun setSecondBarEnabled(value: Boolean) = prefMan.edit().putBoolean(secondBarEnabledKey, value).apply()
     fun setDoubleTapToExitEnabled(value: Boolean) = prefMan.edit().putBoolean(doubleTapToExitEnabledKey, value).apply()
     fun setAutoFullScreen(value: Boolean) = prefMan.edit().putBoolean(autoFullScreenKey, value).apply()

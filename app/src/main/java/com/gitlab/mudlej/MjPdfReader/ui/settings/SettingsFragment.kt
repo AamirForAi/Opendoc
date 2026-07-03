@@ -93,6 +93,13 @@ class SettingsFragment : PreferenceFragmentCompat() {
             key = Preferences.spaceBetweenPagesKey
             isIconSpaceReserved = false
         }
+        val showScrollHandlePageCountSwitch = SwitchPreferenceCompat(requireContext()).apply {
+            title = getString(R.string.show_scroll_handle_page_count_title)
+            setDefaultValue(Preferences.showScrollHandlePageCountDefault)
+            key = Preferences.showScrollHandlePageCountKey
+            summary = getString(R.string.show_scroll_handle_page_count_summary)
+            isIconSpaceReserved = false
+        }
 
         val section: PreferenceCategory? = findPreference("visualSection")
         section?.apply {
@@ -101,6 +108,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
             addPreference(aliasSwitch)
             addPreference(screenOnSwitch)
             addPreference(spaceBetweenPages)
+            addPreference(showScrollHandlePageCountSwitch)
         }
     }
 

@@ -27,7 +27,7 @@ import java.util.Locale;
 
 public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle {
 
-    private final static int HANDLE_LONG = 65;
+    private final static int HANDLE_LONG = 78;
     private final static int HANDLE_SHORT = 40;
     private final static int DEFAULT_TEXT_SIZE = 16;
 
@@ -36,6 +36,7 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
     protected TextView textView;
     protected Context context;
     private boolean inverted;
+    private final boolean showPageCount;
     private PDFView pdfView;
     private float currentPos;
 
@@ -54,13 +55,18 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
     private View.OnTouchListener customOnTouchListener;
 
     public DefaultScrollHandle(Context context) {
-        this(context, false);
+        this(context, false, true);
     }
 
     public DefaultScrollHandle(Context context, boolean inverted) {
+        this(context, inverted, true);
+    }
+
+    public DefaultScrollHandle(Context context, boolean inverted, boolean showPageCount) {
         super(context);
         this.context = context;
         this.inverted = inverted;
+        this.showPageCount = showPageCount;
         tapGestureDetector = new TapGestureDetector(context);
         textView = new TextView(context);
         setVisibility(INVISIBLE);
@@ -225,10 +231,17 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
 
     @Override
     public void setPageNum(int pageNum) {
-        String text = String.valueOf(pageNum);
+        String text = getPageNumText(pageNum);
         if (!textView.getText().equals(text)) {
             textView.setText(text);
         }
+    }
+
+    private String getPageNumText(int pageNum) {
+        if (showPageCount && pdfView != null && pdfView.getPageCount() > 0) {
+            return pageNum + "/" + pdfView.getPageCount();
+        }
+        return String.valueOf(pageNum);
     }
 
     @Override

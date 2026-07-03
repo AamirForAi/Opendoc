@@ -419,7 +419,7 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("ClickableViewAccessibility")
     private fun createScrollHandle(): ScrollHandle {
         // hiding the handle if the pdf.length is 1 will happen when pdf.length is set in setPdfLength()
-        val handle = DefaultScrollHandle(this)
+        val handle = DefaultScrollHandle(this, false, pref.getShowScrollHandlePageCount())
         handle.setOnTouchListener(fullScreenOptionsManager.getOnTouchListener())
         handle.setOnClickListener { goToPage() }
         return handle
