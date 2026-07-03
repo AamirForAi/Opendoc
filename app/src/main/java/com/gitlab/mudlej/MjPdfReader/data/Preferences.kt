@@ -124,7 +124,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val maxMaxZoom = 100f
         const val minPartSize = 5f
         const val maxPartSize = 1000f
-        const val AUTO_SCROLL_UNIT = 0.25
+        const val AUTO_SCROLL_UNIT = 0.1
     }
 
     // get values saved in Shared Preferences or return the default values
