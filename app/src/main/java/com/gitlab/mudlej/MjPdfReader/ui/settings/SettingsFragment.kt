@@ -43,11 +43,11 @@
 
 package com.gitlab.mudlej.MjPdfReader.ui.settings
 
+import android.content.DialogInterface
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
 import androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode
-import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
@@ -192,21 +192,22 @@ class SettingsFragment : PreferenceFragmentCompat() {
             isIconSpaceReserved = false
         }
         val appPreferences = Preferences(requireNotNull(preferenceManager.sharedPreferences))
-        val primaryButtonActionPreference = actionListPreference(
+        val primaryButtonActionPreference = actionPreference(
             title = getString(R.string.primary_button_action),
             key = Preferences.primaryButtonActionKey,
             defaultValue = Preferences.primaryButtonActionDefault,
             currentValue = appPreferences.getPrimaryButtonAction(),
             actions = ConfigurableAction.toolbarActions,
-        )
-        val secondaryButtonActionPreference = actionListPreference(
+        ) { actionId -> appPreferences.setPrimaryButtonAction(actionId) }
+        val secondaryButtonActionPreference = actionPreference(
             title = getString(R.string.secondary_button_action),
             key = Preferences.secondaryButtonActionKey,
             defaultValue = Preferences.secondaryButtonActionDefault,
             currentValue = appPreferences.getSecondaryButtonAction(),
             actions = ConfigurableAction.toolbarActions,
-        )
+        ) { actionId -> appPreferences.setSecondaryButtonAction(actionId) }
         val fullScreenButtonsPreference = fullScreenButtonsPreference(appPreferences)
+        val shortcutBarButtonsPreference = shortcutBarButtonsPreference(appPreferences)
 
         val section: PreferenceCategory? = findPreference("behaviorSection")
         section?.apply {
@@ -218,40 +219,91 @@ class SettingsFragment : PreferenceFragmentCompat() {
             addPreference(primaryButtonActionPreference)
             addPreference(secondaryButtonActionPreference)
             addPreference(fullScreenButtonsPreference)
+            addPreference(shortcutBarButtonsPreference)
             addPreference(pageSnapSwitch)
             addPreference(pageFlingSwitch)
             addPreference(turnPageByVolumeButtonsSwitch)
         }
     }
 
-    private fun actionListPreference(
+    private fun actionPreference(
         title: String,
         key: String,
         defaultValue: String,
         currentValue: String,
         actions: List<ConfigurableAction>,
-    ): ListPreference {
-        return ListPreference(requireContext()).apply {
+        onActionSelected: (String) -> Unit,
+    ): Preference {
+        val resetActionId = defaultValue.takeIf { value -> actions.any { it.id == value } }
+            ?: actions.first().id
+        var selectedActionId = currentValue.takeIf { value -> actions.any { it.id == value } }
+            ?: resetActionId
+        return Preference(requireContext()).apply {
             this.title = title
             this.key = key
-            entries = actions.toEntryTitles()
-            entryValues = actions.toEntryValues()
-            setDefaultValue(defaultValue)
-            value = currentValue
-            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            updateActionSummary(selectedActionId)
             isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showActionPreferenceDialog(title, actions, selectedActionId, resetActionId) { actionId ->
+                    selectedActionId = actionId
+                    onActionSelected(actionId)
+                    updateActionSummary(actionId)
+                }
+                true
+            }
         }
+    }
+
+    private fun showActionPreferenceDialog(
+        title: String,
+        actions: List<ConfigurableAction>,
+        currentValue: String,
+        resetValue: String,
+        onActionSelected: (String) -> Unit,
+    ) {
+        val checkedIndex = actions.indexOfFirst { it.id == currentValue }
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(title)
+            .setSingleChoiceItems(actions.toEntryTitles(), checkedIndex) { dialog, which ->
+                onActionSelected(actions[which].id)
+                dialog.dismiss()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .setNeutralButton(R.string.reset, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(DialogInterface.BUTTON_NEUTRAL).setOnClickListener {
+                onActionSelected(resetValue)
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
     }
 
     private fun fullScreenButtonsPreference(appPreferences: Preferences): Preference {
         return Preference(requireContext()).apply {
             title = getString(R.string.fullscreen_buttons)
             key = Preferences.fullScreenOverlayActionsKey
-            updateSelectedActionsSummary(appPreferences)
+            updateFullScreenButtonsSummary(appPreferences)
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
                 showFullScreenButtonsPreferenceDialog(requireContext(), appPreferences) {
-                    updateSelectedActionsSummary(appPreferences)
+                    updateFullScreenButtonsSummary(appPreferences)
+                }
+                true
+            }
+        }
+    }
+
+    private fun shortcutBarButtonsPreference(appPreferences: Preferences): Preference {
+        return Preference(requireContext()).apply {
+            title = getString(R.string.shortcut_bar_buttons)
+            key = Preferences.shortcutBarActionsKey
+            updateShortcutBarButtonsSummary(appPreferences)
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showShortcutBarButtonsPreferenceDialog(requireContext(), appPreferences) {
+                    updateShortcutBarButtonsSummary(appPreferences)
                 }
                 true
             }
@@ -262,12 +314,16 @@ class SettingsFragment : PreferenceFragmentCompat() {
         return map { getString(it.titleRes) }.toTypedArray()
     }
 
-    private fun List<ConfigurableAction>.toEntryValues(): Array<String> {
-        return map { it.id }.toTypedArray()
+    private fun Preference.updateActionSummary(actionId: String) {
+        summary = getString(ConfigurableAction.fromId(actionId).titleRes)
     }
 
-    private fun Preference.updateSelectedActionsSummary(appPreferences: Preferences) {
+    private fun Preference.updateFullScreenButtonsSummary(appPreferences: Preferences) {
         summary = fullScreenButtonsSummary(requireContext(), appPreferences)
+    }
+
+    private fun Preference.updateShortcutBarButtonsSummary(appPreferences: Preferences) {
+        summary = shortcutBarButtonsSummary(requireContext(), appPreferences)
     }
 
     private fun setTextSection() {

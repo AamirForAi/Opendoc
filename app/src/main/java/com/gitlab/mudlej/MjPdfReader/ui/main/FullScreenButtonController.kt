@@ -8,6 +8,7 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
+import com.gitlab.mudlej.MjPdfReader.enums.orderedSelectedFullScreenOverlayActions
 import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManager
 import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManager
 import com.google.android.material.button.MaterialButton
@@ -25,9 +26,10 @@ class FullScreenButtonController(
     private val dynamicButtons = mutableMapOf<String, MaterialButton>()
 
     fun configure() {
-        val orderedActions = preferences.getFullScreenOverlayActionOrder()
-            .map(ConfigurableAction::fromId)
-            .filterNot { it == ConfigurableAction.NONE }
+        val orderedActions = orderedSelectedFullScreenOverlayActions(
+            selectedIds = preferences.getFullScreenOverlayActions(),
+            actionOrder = preferences.getFullScreenOverlayActionOrder(),
+        )
         val selectedIds = orderedActions.map { it.id }.toSet()
         val fixedButtons = fixedButtons()
 

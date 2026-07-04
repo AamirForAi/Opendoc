@@ -19,11 +19,13 @@ enum class ConfigurableAction(
     ZOOM_LOCK("zoom_lock", R.string.zoom_lock, R.drawable.ic_zoom_out),
     SCREENSHOT("screenshot", R.string.screenshot, R.drawable.ic_screenshot),
     TOGGLE_LABELS("toggle_labels", R.string.hide_labels, R.drawable.ic_double_arrow_left),
+    SWITCH_THEME("switch_theme", R.string.switch_theme, R.drawable.ic_toggle_theme),
     RELOAD("reload", R.string.reload_pdf, R.drawable.ic_refresh),
     OPEN_LOCAL("open_local", R.string.open_another_pdf, R.drawable.ic_folder),
     OPEN_ONLINE("open_online", R.string.open_online_pdf, R.drawable.ic_link),
     SEARCH("search", R.string.search, R.drawable.search_icon),
     GO_TO_PAGE("go_to_page", R.string.go_to_page, R.drawable.ic_shortcut),
+    EXTRACT_TEXT("extract_text", R.string.copy_page_text, R.drawable.ic_copy),
     TEXT_MODE("text_mode", R.string.text_mode, R.drawable.ic_text),
     SHARE("share", R.string.share_file, R.drawable.ic_share),
     SETTINGS("settings", R.string.settings, R.drawable.ic_settings),
@@ -31,7 +33,7 @@ enum class ConfigurableAction(
     ABOUT("about", R.string.action_about, R.drawable.info_icon),
     CONFIGURATION("configuration", R.string.advanced_config, R.drawable.ic_display_settings),
     TABLE_OF_CONTENTS("table_of_contents", R.string.table_of_contents, R.drawable.ic_book_bookmark),
-    LINKS_IN_FILE("links_in_file", R.string.links_in_file, R.drawable.ic_link),
+    LINKS_IN_FILE("links_in_file", R.string.links_in_file, R.drawable.ic_links_in_file),
     PRINT("print", R.string.print_file, R.drawable.ic_print);
 
     companion object {
@@ -42,6 +44,7 @@ enum class ConfigurableAction(
             HORIZONTAL_LOCK,
             ZOOM_LOCK,
             SCREENSHOT,
+            SWITCH_THEME,
             RELOAD,
             OPEN_LOCAL,
             OPEN_ONLINE,
@@ -66,12 +69,53 @@ enum class ConfigurableAction(
             ZOOM_LOCK,
             SCREENSHOT,
             TOGGLE_LABELS,
+            SWITCH_THEME,
             RELOAD,
             SEARCH,
             GO_TO_PAGE,
             TEXT_MODE,
             TABLE_OF_CONTENTS,
         )
+
+        val shortcutBarActions = listOf(
+            SWITCH_THEME,
+            FULLSCREEN,
+            ROTATE,
+            HORIZONTAL_LOCK,
+            ZOOM_LOCK,
+            SCREENSHOT,
+            RELOAD,
+            OPEN_LOCAL,
+            OPEN_ONLINE,
+            SEARCH,
+            GO_TO_PAGE,
+            EXTRACT_TEXT,
+            TEXT_MODE,
+            SHARE,
+            SETTINGS,
+            FILE_METADATA,
+            ABOUT,
+            CONFIGURATION,
+            TABLE_OF_CONTENTS,
+            LINKS_IN_FILE,
+            PRINT,
+        )
+
+        val defaultShortcutBarSelectedActions = listOf(
+            SWITCH_THEME,
+            OPEN_LOCAL,
+            EXTRACT_TEXT,
+            TABLE_OF_CONTENTS,
+            SHARE,
+            SEARCH,
+            GO_TO_PAGE,
+        )
+
+        val defaultShortcutBarOrder = defaultShortcutBarSelectedActions + shortcutBarActions.filterNot {
+            defaultShortcutBarSelectedActions.contains(it)
+        }
+
+        val defaultShortcutBarActionIds = defaultShortcutBarSelectedActions.map { it.id }.toSet()
 
         val requiredFullScreenOverlayActionIds = setOf(EXIT_FULLSCREEN.id)
 
@@ -88,6 +132,7 @@ enum class ConfigurableAction(
         ) + requiredFullScreenOverlayActionIds
 
         val dynamicFullScreenOverlayActions = listOf(
+            SWITCH_THEME,
             RELOAD,
             SEARCH,
             GO_TO_PAGE,

@@ -245,6 +245,7 @@
     <string name="primary_button_action">Primary Button Action</string>
     <string name="secondary_button_action">Secondary Button Action</string>
     <string name="fullscreen_buttons">Fullscreen Buttons</string>
+    <string name="shortcut_bar_buttons">Shortcut Bar Buttons</string>
     <string name="drag_to_reorder">Drag to reorder</string>
     <string name="save_password">Save password</string>
     <string name="send_crash_report_title">Send Anonymous Crash Report?</string>

@@ -15,11 +15,13 @@ class ConfigurableActionResolver(
         val toggleHorizontalLock: () -> Unit,
         val toggleZoomLock: () -> Unit,
         val screenshot: () -> Unit,
+        val switchTheme: () -> Unit,
         val reload: () -> Unit,
         val openLocal: () -> Unit,
         val openOnline: () -> Unit,
         val search: () -> Unit,
         val goToPage: () -> Unit,
+        val extractText: () -> Unit,
         val textMode: () -> Unit,
         val share: () -> Unit,
         val settings: () -> Unit,
@@ -75,6 +77,12 @@ class ConfigurableActionResolver(
                 visible = fileAvailable,
                 run = handlers.screenshot,
             )
+            ConfigurableAction.SWITCH_THEME -> ConfiguredAction(
+                R.string.switch_theme,
+                R.drawable.ic_toggle_theme,
+                visible = fileAvailable,
+                run = handlers.switchTheme,
+            )
             ConfigurableAction.RELOAD -> ConfiguredAction(
                 R.string.reload_pdf,
                 R.drawable.ic_refresh,
@@ -102,6 +110,12 @@ class ConfigurableActionResolver(
                 R.drawable.ic_shortcut,
                 visible = fileAvailable,
                 run = handlers.goToPage,
+            )
+            ConfigurableAction.EXTRACT_TEXT -> ConfiguredAction(
+                R.string.copy_page_text,
+                R.drawable.ic_copy,
+                visible = fileAvailable,
+                run = handlers.extractText,
             )
             ConfigurableAction.TEXT_MODE -> ConfiguredAction(
                 R.string.text_mode,
@@ -144,7 +158,7 @@ class ConfigurableActionResolver(
             )
             ConfigurableAction.LINKS_IN_FILE -> ConfiguredAction(
                 R.string.links_in_file,
-                R.drawable.ic_link,
+                R.drawable.ic_links_in_file,
                 visible = fileAvailable,
                 run = handlers.linksInFile,
             )

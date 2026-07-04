@@ -137,6 +137,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var actionResolver: ConfigurableActionResolver
     private lateinit var toolbarActionController: ToolbarActionController
     private lateinit var fullScreenButtonController: FullScreenButtonController
+    private lateinit var shortcutBarController: ShortcutBarController
     private lateinit var pref: Preferences
     private val pdf = PDF()
 
@@ -185,6 +186,12 @@ class MainActivity : AppCompatActivity() {
             fullScreenOptionsManager,
             autoScrollManager,
         ) { hideBrightnessControl(binding) }
+        shortcutBarController = ShortcutBarController(
+            this,
+            binding,
+            pref,
+            actionResolver,
+        ) { pdf.isFullScreenToggled }
         databaseManager = DatabaseManagerImpl(AppDatabase.getInstance(applicationContext))
         permissionManager = PermissionManager(this)
         brightness = Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 2
@@ -401,11 +408,13 @@ class MainActivity : AppCompatActivity() {
             toggleHorizontalLock = { horizontalSwipeButtonListener(binding) },
             toggleZoomLock = { zoomLockButtonListener(binding) },
             screenshot = ::takeScreenshot,
+            switchTheme = ::switchPdfTheme,
             reload = ::reloadPdf,
             openLocal = ::pickFile,
             openOnline = ::showOpenOnlinePdfDialog,
             search = { showSearchDialog(this, pdf) },
             goToPage = ::goToPage,
+            extractText = { copyPageText(bypass = true) },
             textMode = ::navToTextMode,
             share = { shareFile(pdf.uri, FileType.PDF) },
             settings = ::navToAppSettings,
@@ -521,62 +530,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setUpSecondBar() {
-        val buttons: MutableList<ImageView> = mutableListOf()
-
-        // padding values
-        val paddingHorDp = 16
-        val paddingVerDp = 8
-        val density = resources.displayMetrics.density
-        val paddingHorizontal = (paddingHorDp * density).toInt()    // convert to pixels
-        val paddingVertical = (paddingVerDp * density).toInt()      // convert to pixels
-
-        val toggleTheme = ImageView(this)
-        toggleTheme.setImageResource(R.drawable.ic_toggle_theme)
-        toggleTheme.setOnClickListener { switchPdfTheme() }
-        buttons.add(toggleTheme)
-
-        val openFile = ImageView(this)
-        openFile.setImageResource(R.drawable.ic_folder)
-        openFile.setOnClickListener { pickFile() }
-        buttons.add(openFile)
-
-        val copyPageText = ImageView(this)
-        copyPageText.setImageResource(R.drawable.ic_copy)
-        copyPageText.setOnClickListener { copyPageText(bypass = true) }
-        buttons.add(copyPageText)
-
-        val bookmarks = ImageView(this)
-        bookmarks.setImageResource(R.drawable.ic_book_bookmark)
-        bookmarks.setOnClickListener { showBookmarks() }
-        buttons.add(bookmarks)
-
-        val shareFile = ImageView(this)
-        shareFile.setImageResource(R.drawable.ic_share)
-        shareFile.setOnClickListener { shareFile(pdf.uri, FileType.PDF) }
-        buttons.add(shareFile)
-
-        val search = ImageView(this)
-        search.setImageResource(R.drawable.search_icon)
-        search.setOnClickListener { showSearchDialog(this, pdf) }
-        buttons.add(search)
-
-        val goToPage = ImageView(this)
-        goToPage.setImageResource(R.drawable.ic_shortcut)
-        goToPage.setOnClickListener { goToPage() }
-        buttons.add(goToPage)
-
-        for (button in buttons) {
-            button.setPadding(paddingHorizontal, paddingVertical, paddingHorizontal, paddingVertical)
-            binding.secondBarLayout.addView(button)
-        }
-
-        // show it or hide it based on preferences
-        if (pref.getSecondBarEnabled() && !pdf.isFullScreenToggled) {
-            binding.secondBarLayout.visibility = View.VISIBLE
-        }
-        else {
-            binding.secondBarLayout.visibility = View.GONE
-        }
+        shortcutBarController.configure()
     }
 
     @SuppressLint("SourceLockedOrientationActivity")
@@ -743,6 +697,11 @@ class MainActivity : AppCompatActivity() {
         }
         if (::pref.isInitialized) {
             fullScreenButtonController.configure()
+            if (hasFile()) {
+                shortcutBarController.configure()
+            } else {
+                binding.secondBarScrollView.visibility = View.GONE
+            }
         }
 
         // check if there is a pdf at first
@@ -810,7 +769,7 @@ class MainActivity : AppCompatActivity() {
     private fun configureTheme() {
         ColorUtil.colorize(this, window, supportActionBar)
         val color = ColorUtil.getBarColor(this)
-        binding.secondBarLayout.setBackgroundColor(color)
+        binding.secondBarScrollView.setBackgroundColor(color)
 
         val pdfView = binding.pdfView
 
@@ -912,14 +871,14 @@ class MainActivity : AppCompatActivity() {
             supportActionBar?.show()
             binding.appBarBottomShadow.visibility = View.VISIBLE
             if (pref.getSecondBarEnabled()) {
-                binding.secondBarLayout.visibility = View.VISIBLE
+                shortcutBarController.updateVisibility()
             }
         }
 
         fun hideUi() {
             supportActionBar?.hide()
             binding.appBarBottomShadow.visibility = View.GONE
-            binding.secondBarLayout.visibility = View.GONE
+            binding.secondBarScrollView.visibility = View.GONE
             ColorUtil.enterFullscreen(window)
         }
 
@@ -934,8 +893,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
         else {
-            showUi()
             pdf.isFullScreenToggled = false
+            showUi()
             fullScreenOptionsManager.showAllTemporarilyOrHide()
         }
     }
@@ -1097,13 +1056,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun toggleSecondBar() {
         binding.apply {
-            if (secondBarLayout.visibility == View.VISIBLE) {
-                secondBarLayout.visibility = View.GONE
+            if (secondBarScrollView.visibility == View.VISIBLE) {
                 pref.setSecondBarEnabled(false)
+                shortcutBarController.updateVisibility()
             }
             else {
-                secondBarLayout.visibility = View.VISIBLE
                 pref.setSecondBarEnabled(true)
+                shortcutBarController.updateVisibility()
             }
         }
     }
@@ -1166,25 +1125,22 @@ class MainActivity : AppCompatActivity() {
     private fun readerActions(): List<ReaderAction> {
         val hasFile = pdf.hasFile()
         return listOfNotNull(
-            ReaderAction(R.string.switch_theme, R.drawable.ic_toggle_theme, visible = hasFile) {
-                switchPdfTheme()
-            },
+            readerAction(ConfigurableAction.SWITCH_THEME),
             readerAction(ConfigurableAction.OPEN_LOCAL),
             readerAction(ConfigurableAction.OPEN_ONLINE),
             readerAction(ConfigurableAction.TABLE_OF_CONTENTS),
+            readerAction(ConfigurableAction.FULLSCREEN),
             readerAction(ConfigurableAction.SEARCH),
             readerAction(ConfigurableAction.GO_TO_PAGE),
-            ReaderAction(R.string.copy_page_text, R.drawable.ic_copy, visible = hasFile) {
-                copyPageText(true)
-            },
-            readerAction(ConfigurableAction.LINKS_IN_FILE),
+            readerAction(ConfigurableAction.EXTRACT_TEXT),
+            readerAction(ConfigurableAction.SETTINGS),
             ReaderAction(R.string.toggle_shortcuts, R.drawable.ic_awesome, visible = hasFile) {
                 toggleSecondBar()
             },
             readerAction(ConfigurableAction.TEXT_MODE),
-            readerAction(ConfigurableAction.PRINT),
+            readerAction(ConfigurableAction.LINKS_IN_FILE),
             readerAction(ConfigurableAction.SHARE),
-            readerAction(ConfigurableAction.SETTINGS),
+            readerAction(ConfigurableAction.PRINT),
             readerAction(ConfigurableAction.CONFIGURATION),
             readerAction(ConfigurableAction.FILE_METADATA),
             readerAction(ConfigurableAction.ABOUT),

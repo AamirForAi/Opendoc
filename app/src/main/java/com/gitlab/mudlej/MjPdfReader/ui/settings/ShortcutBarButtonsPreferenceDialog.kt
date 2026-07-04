@@ -1,0 +1,57 @@
+package com.gitlab.mudlej.MjPdfReader.ui.settings
+
+import android.content.Context
+import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
+import com.gitlab.mudlej.MjPdfReader.enums.filteredShortcutBarActionIds
+import com.gitlab.mudlej.MjPdfReader.enums.orderedSelectedShortcutBarActions
+import com.gitlab.mudlej.MjPdfReader.enums.orderedShortcutBarActions
+import com.gitlab.mudlej.MjPdfReader.enums.selectedShortcutBarActionIds
+
+fun showShortcutBarButtonsPreferenceDialog(
+    context: Context,
+    preferences: Preferences,
+    onSaved: () -> Unit,
+) {
+    val rows = shortcutBarButtonRows(preferences)
+    showActionSelectionPreferenceDialog(
+        context = context,
+        titleRes = R.string.shortcut_bar_buttons,
+        rows = rows,
+        defaultRows = defaultShortcutBarButtonRows(),
+    ) {
+        preferences.setShortcutBarActions(selectedShortcutBarActionIds(rows.enabledActionIds()))
+        preferences.setShortcutBarActionOrder(filteredShortcutBarActionIds(rows.actionIds()))
+        onSaved()
+    }
+}
+
+fun shortcutBarButtonsSummary(context: Context, preferences: Preferences): String {
+    val selectedTitles = orderedSelectedShortcutBarActions(
+        selectedIds = preferences.getShortcutBarActions(),
+        actionOrder = preferences.getShortcutBarActionOrder(),
+    )
+        .map { context.getString(it.titleRes) }
+    return selectedTitles.ifEmpty { listOf(context.getString(R.string.none)) }.joinToString(", ")
+}
+
+private fun shortcutBarButtonRows(preferences: Preferences): MutableList<ActionSelectionRow> {
+    val selectedIds = selectedShortcutBarActionIds(preferences.getShortcutBarActions())
+    val orderedActions = orderedShortcutBarActions(preferences.getShortcutBarActionOrder())
+    return orderedActions.map { action ->
+        ActionSelectionRow(
+            action,
+            enabled = selectedIds.contains(action.id),
+        )
+    }.toMutableList()
+}
+
+private fun defaultShortcutBarButtonRows(): List<ActionSelectionRow> {
+    return ConfigurableAction.defaultShortcutBarOrder.map { action ->
+        ActionSelectionRow(
+            action,
+            enabled = ConfigurableAction.defaultShortcutBarActionIds.contains(action.id),
+        )
+    }
+}

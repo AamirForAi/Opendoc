@@ -50,20 +50,28 @@
     tools:context="com.gitlab.mudlej.MjPdfReader.ui.main.MainActivity">
 
     <!-- Second Bar Layout -->
-    <androidx.appcompat.widget.LinearLayoutCompat
-        android:id="@+id/secondBarLayout"
+    <HorizontalScrollView
+        android:id="@+id/secondBarScrollView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="horizontal"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:fillViewport="true"
+        android:scrollbars="none"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:id="@+id/secondBarLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
 
     <!-- PDFView Layout -->
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/secondBarLayout">
+        app:layout_constraintTop_toBottomOf="@id/secondBarScrollView">
 
         <com.github.barteksc.pdfviewer.PDFView
             android:id="@+id/pdfView"
