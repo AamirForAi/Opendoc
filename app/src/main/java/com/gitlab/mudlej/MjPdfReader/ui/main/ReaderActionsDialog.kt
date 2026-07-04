@@ -41,6 +41,15 @@ fun showReaderActionsDialog(activity: MainActivity, actions: List<ReaderAction>)
             textView.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
             textView.text = activity.getString(action.titleRes)
             textView.compoundDrawablePadding = (10 * activity.resources.displayMetrics.density + 0.5f).toInt()
+            val verticalPadding = (14 * activity.resources.displayMetrics.density + 0.5f).toInt()
+            view.minimumHeight = 0
+            textView.minHeight = 0
+            textView.setPadding(
+                textView.paddingLeft,
+                verticalPadding,
+                textView.paddingRight,
+                verticalPadding
+            )
             return view
         }
     }

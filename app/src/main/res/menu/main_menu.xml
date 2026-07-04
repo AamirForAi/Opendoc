@@ -65,7 +65,7 @@
         android:id="@+id/readerActionsOption"
         android:orderInCategory="3"
         android:title="@string/actions"
-        android:icon="@drawable/ic_settings"
+        android:icon="@drawable/ic_burger_menu"
         app:showAsAction="always" />
 
 </menu>
