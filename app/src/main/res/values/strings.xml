@@ -79,6 +79,7 @@
     <string name="share_file">Share</string>
     <string name="print_file">Print</string>
     <string name="full_screen">Full Screen</string>
+    <string name="none">None</string>
     <string name="app_info">App Info</string>
     <string name="author_info">Author Info</string>
 
@@ -221,6 +222,7 @@
     <string name="rotate">Rotate</string>
     <string name="auto_scroll">Auto Scroll</string>
     <string name="horizontal_lock">Horiz. Lock</string>
+    <string name="horizontal_lock_action">Horizontal Lock</string>
     <string name="zoom_lock">Zoom Lock</string>
     <string name="screenshot">Screenshot</string>
     <string name="hide_labels">Hide Labels</string>
@@ -240,6 +242,9 @@
     <string name="pdf_dark_theme_summary">Allows the PDF pages and content to automatically adapt to your system’s light or dark theme. \n\nNote: Enabling this option disables \'Toggle PDF Theme\' in the main menu.</string>
     <string name="enable_reload_button">Show Reload Button in App Bar</string>
     <string name="enable_reload_summary">Swiftly refreshes your content, ensuring that any updates to documents are immediately visible.</string>
+    <string name="primary_button_action">Primary Button Action</string>
+    <string name="secondary_button_action">Secondary Button Action</string>
+    <string name="fullscreen_buttons">Fullscreen Buttons</string>
     <string name="save_password">Save password</string>
     <string name="send_crash_report_title">Send Anonymous Crash Report?</string>
     <string name="send_crash_report_message">The report contains the following: (STACK_TRACE, APP_VERSION_CODE, APP_VERSION_NAME, USER_CRASH_DATE, PACKAGE_NAME, ANDROID_VERSION, PHONE_MODEL, LOGCAT, AVAILABLE_MEM_SIZE)</string>

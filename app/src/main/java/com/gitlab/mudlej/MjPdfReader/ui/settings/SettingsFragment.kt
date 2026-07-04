@@ -47,11 +47,14 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
 import androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode
+import androidx.preference.ListPreference
+import androidx.preference.MultiSelectListPreference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class SettingsFragment : PreferenceFragmentCompat() {
@@ -188,6 +191,22 @@ class SettingsFragment : PreferenceFragmentCompat() {
             summary = getString(R.string.turn_page_by_volume_buttons_summary)
             isIconSpaceReserved = false
         }
+        val appPreferences = Preferences(requireNotNull(preferenceManager.sharedPreferences))
+        val primaryButtonActionPreference = actionListPreference(
+            title = getString(R.string.primary_button_action),
+            key = Preferences.primaryButtonActionKey,
+            defaultValue = Preferences.primaryButtonActionDefault,
+            currentValue = appPreferences.getPrimaryButtonAction(),
+            actions = ConfigurableAction.toolbarActions,
+        )
+        val secondaryButtonActionPreference = actionListPreference(
+            title = getString(R.string.secondary_button_action),
+            key = Preferences.secondaryButtonActionKey,
+            defaultValue = Preferences.secondaryButtonActionDefault,
+            currentValue = appPreferences.getSecondaryButtonAction(),
+            actions = ConfigurableAction.toolbarActions,
+        )
+        val fullScreenButtonsPreference = fullScreenButtonsPreference(appPreferences)
 
         val section: PreferenceCategory? = findPreference("behaviorSection")
         section?.apply {
@@ -196,11 +215,71 @@ class SettingsFragment : PreferenceFragmentCompat() {
             addPreference(horizontalScrollSwitch)
             addPreference(autoFullScreenSwitch)
             addPreference(autoFullScreenHorizontalSwitch)
+            addPreference(primaryButtonActionPreference)
+            addPreference(secondaryButtonActionPreference)
+            addPreference(fullScreenButtonsPreference)
             addPreference(pageSnapSwitch)
             addPreference(pageFlingSwitch)
             addPreference(turnPageByVolumeButtonsSwitch)
         }
     }
+
+    private fun actionListPreference(
+        title: String,
+        key: String,
+        defaultValue: String,
+        currentValue: String,
+        actions: List<ConfigurableAction>,
+    ): ListPreference {
+        return ListPreference(requireContext()).apply {
+            this.title = title
+            this.key = key
+            entries = actions.toEntryTitles()
+            entryValues = actions.toEntryValues()
+            setDefaultValue(defaultValue)
+            value = currentValue
+            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            isIconSpaceReserved = false
+        }
+    }
+
+    private fun fullScreenButtonsPreference(appPreferences: Preferences): MultiSelectListPreference {
+        val actions = ConfigurableAction.fullScreenOverlayActions
+        return MultiSelectListPreference(requireContext()).apply {
+            title = getString(R.string.fullscreen_buttons)
+            key = Preferences.fullScreenOverlayActionsKey
+            entries = actions.toEntryTitles()
+            entryValues = actions.toEntryValues()
+            setDefaultValue(Preferences.fullScreenOverlayActionsDefault - ConfigurableAction.requiredFullScreenOverlayActionIds)
+            values = appPreferences.getFullScreenOverlayActions() - ConfigurableAction.requiredFullScreenOverlayActionIds
+            updateSelectedActionsSummary(actions, values)
+            isIconSpaceReserved = false
+            setOnPreferenceChangeListener { _, newValue ->
+                @Suppress("UNCHECKED_CAST")
+                updateSelectedActionsSummary(actions, newValue as Set<String>)
+                true
+            }
+        }
+    }
+
+    private fun List<ConfigurableAction>.toEntryTitles(): Array<String> {
+        return map { getString(it.titleRes) }.toTypedArray()
+    }
+
+    private fun List<ConfigurableAction>.toEntryValues(): Array<String> {
+        return map { it.id }.toTypedArray()
+    }
+
+    private fun MultiSelectListPreference.updateSelectedActionsSummary(
+        actions: List<ConfigurableAction>,
+        selectedIds: Set<String>,
+    ) {
+        val selectedTitles = actions
+            .filter { selectedIds.contains(it.id) }
+            .map { getString(it.titleRes) }
+        summary = (listOf(getString(R.string.exit)) + selectedTitles).joinToString(", ")
+    }
+
     private fun setTextSection() {
         val defaultTextModeSwitch = SwitchPreferenceCompat(requireContext()).apply {
             title = getString(R.string.default_text_mode)
@@ -263,20 +342,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
             isIconSpaceReserved = false
         }
 
-        val enableReloadButtonSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.enable_reload_button)
-            setDefaultValue(Preferences.enableReloadButtonDefault)
-            key = Preferences.enableReloadButtonKey
-            summary = getString(R.string.enable_reload_summary)
-            isIconSpaceReserved = false
-        }
-
         val section: PreferenceCategory? = findPreference("experimentalSection")
         section?.apply {
             isIconSpaceReserved = false
             addPreference(appDarkThemeSwitch)
             addPreference(pdfDarkThemeSwitch)
-            addPreference(enableReloadButtonSwitch)
         }
     }
 }

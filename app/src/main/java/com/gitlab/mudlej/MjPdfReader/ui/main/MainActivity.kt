@@ -64,6 +64,8 @@ import android.view.*
 import android.widget.*
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts.*
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.content.res.AppCompatResources
@@ -83,6 +85,7 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.*
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
+import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
 import com.gitlab.mudlej.MjPdfReader.enums.FileType
 import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManager
 import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManagerImpl
@@ -105,6 +108,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
 import com.gitlab.mudlej.MjPdfReader.util.FileUtil.fileFromUri
 import com.google.android.material.color.MaterialColors
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
@@ -137,6 +141,7 @@ class MainActivity : AppCompatActivity() {
     private val pdf = PDF()
 
     private lateinit var actionBarMenu: Menu
+    private val dynamicFullScreenButtons = mutableMapOf<String, MaterialButton>()
 
     private val launchers = Launchers(
         Launcher(this, pdf).pdfPicker(),
@@ -351,6 +356,7 @@ class MainActivity : AppCompatActivity() {
                 if (pdf.uri != null) {
                     setUpSecondBar()
                 }
+                configureFullScreenButtons()
             }
             .load()
 
@@ -369,11 +375,147 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val hasFile = pdf.hasFile()
-        actionBarMenu.findItem(R.id.fullscreenOption)?.isVisible = hasFile
-        actionBarMenu.findItem(R.id.reloadOption)?.isVisible = hasFile && pref.getEnableReloadButton()
+        configureToolbarButton(actionBarMenu.findItem(R.id.toolbarPrimaryActionOption), pref.getPrimaryButtonAction())
+        configureToolbarButton(actionBarMenu.findItem(R.id.toolbarSecondaryActionOption), pref.getSecondaryButtonAction())
         actionBarMenu.findItem(R.id.readerActionsOption)?.isVisible = true
     }
+
+    private fun configureToolbarButton(menuItem: MenuItem?, actionId: String) {
+        val action = configuredAction(actionId)
+        if (menuItem == null || action == null || !action.visible) {
+            menuItem?.isVisible = false
+            return
+        }
+
+        menuItem.isVisible = true
+        menuItem.setTitle(action.titleRes)
+        menuItem.setIcon(action.iconRes)
+    }
+
+    private fun performConfiguredAction(actionId: String): Boolean {
+        val action = configuredAction(actionId) ?: return false
+        if (!action.visible) {
+            return false
+        }
+        action.run()
+        return true
+    }
+
+    private fun configuredAction(actionId: String): ConfiguredAction? {
+        return configuredAction(ConfigurableAction.fromId(actionId))
+    }
+
+    private fun configuredAction(action: ConfigurableAction): ConfiguredAction? {
+        val hasFile = pdf.hasFile()
+        return when (action) {
+            ConfigurableAction.NONE -> null
+            ConfigurableAction.FULLSCREEN -> ConfiguredAction(
+                R.string.full_screen,
+                R.drawable.ic_fullscreen_grey,
+                visible = hasFile,
+            ) { toggleFullscreen() }
+            ConfigurableAction.EXIT_FULLSCREEN -> ConfiguredAction(
+                R.string.exit,
+                R.drawable.close_icon,
+                visible = hasFile,
+            ) { exitFullscreen() }
+            ConfigurableAction.ROTATE -> ConfiguredAction(
+                R.string.rotate,
+                R.drawable.ic_screen_rotate,
+                visible = hasFile,
+            ) { rotateScreen() }
+            ConfigurableAction.HORIZONTAL_LOCK -> ConfiguredAction(
+                R.string.horizontal_lock_action,
+                R.drawable.ic_horizontal_swipe,
+                visible = hasFile,
+            ) { horizontalSwipeButtonListener(binding) }
+            ConfigurableAction.ZOOM_LOCK -> ConfiguredAction(
+                R.string.zoom_lock,
+                R.drawable.ic_zoom_out,
+                visible = hasFile,
+            ) { zoomLockButtonListener(binding) }
+            ConfigurableAction.SCREENSHOT -> ConfiguredAction(
+                R.string.screenshot,
+                R.drawable.ic_screenshot,
+                visible = hasFile,
+            ) { takeScreenshot() }
+            ConfigurableAction.RELOAD -> ConfiguredAction(
+                R.string.reload_pdf,
+                R.drawable.ic_refresh,
+                visible = hasFile,
+            ) { reloadPdf() }
+            ConfigurableAction.OPEN_LOCAL -> ConfiguredAction(
+                R.string.open_another_pdf,
+                R.drawable.ic_folder,
+            ) { pickFile() }
+            ConfigurableAction.OPEN_ONLINE -> ConfiguredAction(
+                R.string.open_online_pdf,
+                R.drawable.ic_link,
+            ) { showOpenOnlinePdfDialog() }
+            ConfigurableAction.SEARCH -> ConfiguredAction(
+                R.string.search,
+                R.drawable.search_icon,
+                visible = hasFile,
+            ) { showSearchDialog(this, pdf) }
+            ConfigurableAction.GO_TO_PAGE -> ConfiguredAction(
+                R.string.go_to_page,
+                R.drawable.ic_shortcut,
+                visible = hasFile,
+            ) { goToPage() }
+            ConfigurableAction.TEXT_MODE -> ConfiguredAction(
+                R.string.text_mode,
+                R.drawable.ic_text,
+                visible = hasFile,
+            ) { navToTextMode() }
+            ConfigurableAction.SHARE -> ConfiguredAction(
+                R.string.share_file,
+                R.drawable.ic_share,
+                visible = hasFile,
+            ) { shareFile(pdf.uri, FileType.PDF) }
+            ConfigurableAction.SETTINGS -> ConfiguredAction(
+                R.string.settings,
+                R.drawable.ic_settings,
+            ) { navToAppSettings() }
+            ConfigurableAction.FILE_METADATA -> ConfiguredAction(
+                R.string.file_metadata,
+                R.drawable.meta_info,
+                visible = hasFile,
+            ) { showFileMetadata() }
+            ConfigurableAction.ABOUT -> ConfiguredAction(
+                R.string.action_about,
+                R.drawable.info_icon,
+            ) { startActivity(navIntent(this, AboutActivity::class.java)) }
+            ConfigurableAction.CONFIGURATION -> ConfiguredAction(
+                R.string.advanced_config,
+                R.drawable.ic_display_settings,
+            ) { showPartSizeDialog(this, pref) }
+            ConfigurableAction.TABLE_OF_CONTENTS -> ConfiguredAction(
+                R.string.table_of_contents,
+                R.drawable.ic_book_bookmark,
+                visible = hasFile,
+            ) { showBookmarks() }
+            ConfigurableAction.LINKS_IN_FILE -> ConfiguredAction(
+                R.string.links_in_file,
+                R.drawable.ic_link,
+                visible = hasFile,
+            ) { showLinks() }
+            ConfigurableAction.PRINT -> ConfiguredAction(
+                R.string.print_file,
+                R.drawable.ic_print,
+                visible = hasFile,
+            ) { printFile() }
+            ConfigurableAction.BRIGHTNESS,
+            ConfigurableAction.AUTO_SCROLL,
+            ConfigurableAction.TOGGLE_LABELS -> null
+        }
+    }
+
+    private data class ConfiguredAction(
+        @StringRes val titleRes: Int,
+        @DrawableRes val iconRes: Int,
+        val visible: Boolean = true,
+        val run: () -> Unit,
+    )
 
     private fun checkAutoFullScreen() {
         if (pref.getAutoFullScreen() && !pdf.isFullScreenToggled) {
@@ -550,6 +692,72 @@ class MainActivity : AppCompatActivity() {
             toggleLabelButton.setOnClickListener { toggleLabelButtonListener() }
             pickFileButton.setOnClickListener { pickFile() }
         }
+        configureFullScreenButtons()
+    }
+
+    private fun configureFullScreenButtons() {
+        val selectedIds = pref.getFullScreenOverlayActions()
+        mapOf(
+            ConfigurableAction.EXIT_FULLSCREEN to binding.exitFullScreenButton,
+            ConfigurableAction.ROTATE to binding.rotateScreenButton,
+            ConfigurableAction.BRIGHTNESS to binding.brightnessButton,
+            ConfigurableAction.AUTO_SCROLL to binding.autoScrollButton,
+            ConfigurableAction.HORIZONTAL_LOCK to binding.toggleHorizontalSwipeButton,
+            ConfigurableAction.ZOOM_LOCK to binding.toggleZoomLockButton,
+            ConfigurableAction.SCREENSHOT to binding.screenshotButton,
+            ConfigurableAction.TOGGLE_LABELS to binding.toggleLabelButton,
+        ).forEach { (action, button) ->
+            button.visibility = if (selectedIds.contains(action.id)) View.VISIBLE else View.GONE
+        }
+
+        if (!selectedIds.contains(ConfigurableAction.BRIGHTNESS.id)) {
+            hideBrightnessControl(binding)
+        }
+        if (!selectedIds.contains(ConfigurableAction.AUTO_SCROLL.id)) {
+            autoScrollManager.stop()
+            autoScrollManager.hideControls()
+        }
+
+        configureDynamicFullScreenButtons(selectedIds)
+        fullScreenOptionsManager.refreshInfo()
+    }
+
+    private fun configureDynamicFullScreenButtons(selectedIds: Set<String>) {
+        ConfigurableAction.dynamicFullScreenOverlayActions.forEach { action ->
+            val button = dynamicFullScreenButtons.getOrPut(action.id) {
+                createFullScreenActionButton(action)
+            }
+            button.visibility = if (selectedIds.contains(action.id) && configuredAction(action)?.visible == true) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
+        }
+    }
+
+    private fun createFullScreenActionButton(action: ConfigurableAction): MaterialButton {
+        val button = MaterialButton(ContextThemeWrapper(this, R.style.CustomMaterialButton)).apply {
+            val margin = resources.getDimensionPixelSize(R.dimen.fs_button_vertical_margin)
+            val padding = resources.getDimensionPixelSize(R.dimen.fs_button_padding)
+            val paddingEnd = resources.getDimensionPixelSize(R.dimen.fs_button_padding_end)
+
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                setMargins(0, margin, 0, margin)
+            }
+            text = getString(action.titleRes)
+            contentDescription = getString(action.titleRes)
+            setIconResource(action.iconRes)
+            iconGravity = MaterialButton.ICON_GRAVITY_START
+            iconSize = resources.getDimensionPixelSize(R.dimen.fs_button_size)
+            setPaddingRelative(padding, padding, paddingEnd, padding)
+            setOnClickListener { performConfiguredAction(action.id) }
+        }
+        binding.fullScreenButtonsList.addView(button)
+        fullScreenOptionsManager.registerFullScreenButton(button, getString(action.titleRes))
+        return button
     }
 
     private fun configureButtonsLabels() {
@@ -664,20 +872,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun exitFullScreenListener(binding: ActivityMainBinding) {
-        binding.exitFullScreenButton.setOnClickListener {
-            if (!pref.getAlwaysHorizontal()) {
-                unlockScreenOrientation()
-            }
-            toggleFullscreen()
-            autoScrollManager.stop()
-            enableZooming(binding)
-            hideBrightnessControl(binding)
-            autoScrollManager.hideControls()
-            enableHorizontalSwiping(binding)
+        binding.exitFullScreenButton.setOnClickListener { exitFullscreen() }
+    }
 
-            // A try to give the brightness control back to the system but this won't work
-            // updateBrightness(brightness)
+    private fun exitFullscreen() {
+        if (!pref.getAlwaysHorizontal()) {
+            unlockScreenOrientation()
         }
+        toggleFullscreen()
+        autoScrollManager.stop()
+        enableZooming(binding)
+        hideBrightnessControl(binding)
+        autoScrollManager.hideControls()
+        enableHorizontalSwiping(binding)
+
+        // A try to give the brightness control back to the system but this won't work
+        // updateBrightness(brightness)
     }
 
     private fun unlockScreenOrientation() {
@@ -702,6 +912,9 @@ class MainActivity : AppCompatActivity() {
         }
         if (::actionBarMenu.isInitialized) {
             updateActionBarButtons()
+        }
+        if (::pref.isInitialized) {
+            configureFullScreenButtons()
         }
 
         // check if there is a pdf at first
@@ -899,6 +1112,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun reloadPdf() {
+        if (checkHasFile()) {
+            recreate()
+        }
+    }
+
     private fun downloadOrShowDownloadedFile(uri: Uri) {
         if (PdfBytesHolder.pdfByte == null) {
             PdfBytesHolder.pdfByte = lastCustomNonConfigurationInstance as ByteArray?
@@ -1040,8 +1259,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.reloadOption -> recreate()
-            R.id.fullscreenOption -> toggleFullscreen()
+            R.id.toolbarPrimaryActionOption -> {
+                if (!performConfiguredAction(pref.getPrimaryButtonAction())) return super.onOptionsItemSelected(item)
+            }
+            R.id.toolbarSecondaryActionOption -> {
+                if (!performConfiguredAction(pref.getSecondaryButtonAction())) return super.onOptionsItemSelected(item)
+            }
             R.id.readerActionsOption -> showReaderActions()
             else -> return super.onOptionsItemSelected(item)
         }
@@ -1118,56 +1341,41 @@ class MainActivity : AppCompatActivity() {
 
     private fun readerActions(): List<ReaderAction> {
         val hasFile = pdf.hasFile()
-        return listOf(
+        return listOfNotNull(
             ReaderAction(R.string.switch_theme, R.drawable.ic_toggle_theme, visible = hasFile) {
                 switchPdfTheme()
             },
-            ReaderAction(R.string.open_another_pdf, R.drawable.ic_folder) {
-                pickFile()
-            },
-            ReaderAction(R.string.open_online_pdf, R.drawable.ic_link) {
-                showOpenOnlinePdfDialog()
-            },
-            ReaderAction(R.string.table_of_contents, R.drawable.ic_book_bookmark, visible = hasFile) {
-                showBookmarks()
-            },
-            ReaderAction(R.string.search, R.drawable.search_icon, visible = hasFile) {
-                showSearchDialog(this, pdf)
-            },
-            ReaderAction(R.string.go_to_page, R.drawable.ic_shortcut, visible = hasFile) {
-                goToPage()
-            },
+            readerAction(ConfigurableAction.OPEN_LOCAL),
+            readerAction(ConfigurableAction.OPEN_ONLINE),
+            readerAction(ConfigurableAction.TABLE_OF_CONTENTS),
+            readerAction(ConfigurableAction.SEARCH),
+            readerAction(ConfigurableAction.GO_TO_PAGE),
             ReaderAction(R.string.copy_page_text, R.drawable.ic_copy, visible = hasFile) {
                 copyPageText(true)
             },
-            ReaderAction(R.string.links_in_file, R.drawable.ic_link, visible = hasFile) {
-                showLinks()
-            },
+            readerAction(ConfigurableAction.LINKS_IN_FILE),
             ReaderAction(R.string.toggle_shortcuts, R.drawable.ic_awesome, visible = hasFile) {
                 toggleSecondBar()
             },
-            ReaderAction(R.string.text_mode, R.drawable.ic_text, visible = hasFile) {
-                navToTextMode()
-            },
-            ReaderAction(R.string.print_file, R.drawable.ic_print, visible = hasFile) {
-                printFile()
-            },
-            ReaderAction(R.string.share_file, R.drawable.ic_share, visible = hasFile) {
-                shareFile(pdf.uri, FileType.PDF)
-            },
-            ReaderAction(R.string.settings, R.drawable.ic_settings) {
-                navToAppSettings()
-            },
-            ReaderAction(R.string.advanced_config, R.drawable.ic_display_settings) {
-                showPartSizeDialog(this, pref)
-            },
-            ReaderAction(R.string.file_metadata, R.drawable.meta_info, visible = hasFile) {
-                showFileMetadata()
-            },
-            ReaderAction(R.string.action_about, R.drawable.info_icon) {
-                startActivity(navIntent(this, AboutActivity::class.java))
-            },
+            readerAction(ConfigurableAction.TEXT_MODE),
+            readerAction(ConfigurableAction.PRINT),
+            readerAction(ConfigurableAction.SHARE),
+            readerAction(ConfigurableAction.SETTINGS),
+            readerAction(ConfigurableAction.CONFIGURATION),
+            readerAction(ConfigurableAction.FILE_METADATA),
+            readerAction(ConfigurableAction.ABOUT),
         )
+    }
+
+    private fun readerAction(action: ConfigurableAction): ReaderAction? {
+        val configuredAction = configuredAction(action) ?: return null
+        return ReaderAction(
+            configuredAction.titleRes,
+            configuredAction.iconRes,
+            visible = configuredAction.visible,
+        ) {
+            configuredAction.run()
+        }
     }
 
     private fun showFileMetadata() {

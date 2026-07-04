@@ -32,7 +32,7 @@ class FullScreenOptionsManagerImpl(
     private var visibility: VisibilityState = VisibilityState.INVISIBLE
     private var labelVisibility: VisibilityState = VisibilityState.VISIBLE
 
-    private val viewsList: List<View> = listOf(
+    private val viewsList: MutableList<View> = mutableListOf(
         binding.fullScreenButtonsLayout,
         binding.fullScreenInfoLayout,
         binding.exitFullScreenButton,
@@ -55,6 +55,7 @@ class FullScreenOptionsManagerImpl(
         binding.screenshotButton,
         binding.toggleLabelButton,
     )
+    private val registeredButtonLabels = linkedMapOf<MaterialButton, String?>()
 
     init {
         setOnTouchListenerForAll()
@@ -129,6 +130,18 @@ class FullScreenOptionsManagerImpl(
         binding.pdfView.scrollHandle?.setReadingProgressTextEnabled(!shouldShowInfo)
     }
 
+    override fun registerFullScreenButton(button: MaterialButton, label: String?) {
+        if (!viewsList.contains(button)) {
+            viewsList.add(button)
+        }
+        registeredButtonLabels[button] = label
+        button.setOnTouchListener(getOnTouchListener())
+        if (labelVisibility == VisibilityState.INVISIBLE) {
+            button.text = ""
+            makeButtonCircular(button.context, button)
+        }
+    }
+
     private fun updateInfoContent(): Boolean {
         val context = binding.root.context
         val settings = FullScreenInfoSettings.from(preferences)
@@ -189,7 +202,7 @@ class FullScreenOptionsManagerImpl(
 
     override fun toggleLabelVisibility(context: Context, drawableOf: KFunction1<Int, Drawable?>, getLabel: KFunction1<Int, String?>) {
         binding.apply {
-            val buttons = mapOf(
+            val buttons = linkedMapOf(
                 exitFullScreenButton to getLabel(R.string.exit),
                 rotateScreenButton to getLabel(R.string.rotate),
                 brightnessButton to getLabel(R.string.brightness),
@@ -199,6 +212,7 @@ class FullScreenOptionsManagerImpl(
                 screenshotButton to getLabel(R.string.screenshot),
                 toggleLabelButton to getLabel(R.string.hide_labels)
             )
+            buttons.putAll(registeredButtonLabels)
             if (labelVisibility == VisibilityState.VISIBLE) {
                 buttons.keys.forEach { button ->
                     button.text = ""
@@ -208,7 +222,7 @@ class FullScreenOptionsManagerImpl(
             }
             else {
                 buttons.forEach { (button, text) ->
-                    button.text = text
+                    button.text = text.orEmpty()
                     resetButtonShape(button)
                 }
                 toggleLabelButton.icon = drawableOf(R.drawable.ic_double_arrow_left)

@@ -3,6 +3,7 @@ package com.gitlab.mudlej.MjPdfReader.manager.fullscreen
 import android.content.Context
 import android.graphics.drawable.Drawable
 import android.view.View
+import com.google.android.material.button.MaterialButton
 import kotlin.reflect.KFunction1
 
 interface FullScreenOptionsManager {
@@ -34,6 +35,8 @@ interface FullScreenOptionsManager {
     fun permanentlyHidePageHandle()
 
     fun refreshInfo()
+
+    fun registerFullScreenButton(button: MaterialButton, label: String?)
 
     fun getOnTouchListener(): View.OnTouchListener
 

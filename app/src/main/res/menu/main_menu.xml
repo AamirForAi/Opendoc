@@ -44,7 +44,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/reloadOption"
+        android:id="@+id/toolbarSecondaryActionOption"
         android:orderInCategory="1"
         android:title="@string/reload_pdf"
         android:icon="@drawable/ic_refresh"
@@ -53,7 +53,7 @@
         />
 
     <item
-        android:id="@+id/fullscreenOption"
+        android:id="@+id/toolbarPrimaryActionOption"
         android:orderInCategory="2"
         android:title="@string/full_screen"
         android:icon="@drawable/ic_fullscreen_grey"

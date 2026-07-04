@@ -44,6 +44,7 @@
 package com.gitlab.mudlej.MjPdfReader.data
 
 import android.content.SharedPreferences
+import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
 import com.gitlab.mudlej.MjPdfReader.enums.ListFilter
 
 class Preferences(private val prefMan: SharedPreferences) {
@@ -61,6 +62,9 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val appFollowSystemThemeKey = "appFollowSystemTheme"
         const val pdfFollowSystemThemeKey = "pdfFollowSystemTheme"
         const val enableReloadButtonKey = "enableReloadButton"
+        const val primaryButtonActionKey = "primaryButtonAction"
+        const val secondaryButtonActionKey = "secondaryButtonAction"
+        const val fullScreenOverlayActionsKey = "fullScreenOverlayActions"
         const val screenOnKey = "screenOn"
         const val spaceBetweenPagesKey = "spaceBetweenPagesKey"
         const val hideDelayKey = "hideDelay"
@@ -99,6 +103,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val appFollowSystemThemeDefault = true    // NEW: for version v2.1 M3 Theme
         const val pdfFollowSystemThemeDefault = false
         const val enableReloadButtonDefault = false
+        const val primaryButtonActionDefault = "fullscreen"
+        const val secondaryButtonActionDefault = "none"
         const val annotationRenderingDefault = true
         const val screenOnDefault = false
         const val spaceBetweenPagesDefault = true
@@ -126,6 +132,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val autoFullScreenHorizontalDefault = false
         const val scrollSpeedDefault = 3
         const val listFilterDefault = "RECENT"  // ListFilter.RECENT.name
+        val fullScreenOverlayActionsDefault = ConfigurableAction.defaultFullScreenOverlayActionIds
 
         // Colors
         const val pdfDarkBackgroundColor = -0x313132          // -0x313132 = 0xffcecece
@@ -170,6 +177,21 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getAutoFullScreen() = prefMan.getBoolean(autoFullScreenKey, autoFullScreenDefault)
     fun getAlwaysHorizontal() = prefMan.getBoolean(alwaysHorizontalKey, alwaysHorizontalDefault)
     fun getEnableReloadButton() = prefMan.getBoolean(enableReloadButtonKey, enableReloadButtonDefault)
+    fun getPrimaryButtonAction() = prefMan.getString(
+        primaryButtonActionKey,
+        primaryButtonActionDefault,
+    ) ?: primaryButtonActionDefault
+    fun getSecondaryButtonAction(): String {
+        if (prefMan.contains(secondaryButtonActionKey)) {
+            return prefMan.getString(secondaryButtonActionKey, secondaryButtonActionDefault) ?: secondaryButtonActionDefault
+        }
+        return if (getEnableReloadButton()) ConfigurableAction.RELOAD.id else secondaryButtonActionDefault
+    }
+    fun getFullScreenOverlayActions(): Set<String> {
+        val selected = prefMan.getStringSet(fullScreenOverlayActionsKey, fullScreenOverlayActionsDefault)?.toSet()
+            ?: fullScreenOverlayActionsDefault
+        return selected + ConfigurableAction.requiredFullScreenOverlayActionIds
+    }
     fun getScrollSpeed() = prefMan.getInt(scrollSpeedKey, scrollSpeedDefault)
     fun getListFilter() = ListFilter.valueOf(prefMan.getString(listFilterKey, listFilterDefault) as String)
 
@@ -204,6 +226,9 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setFullScreenInfoShowPageNumber(value: Boolean) = prefMan.edit().putBoolean(fullScreenInfoShowPageNumberKey, value).apply()
     fun setFullScreenInfoShowReadingPercentage(value: Boolean) = prefMan.edit().putBoolean(fullScreenInfoShowReadingPercentageKey, value).apply()
     fun setEnableReloadButton(value: Boolean) = prefMan.edit().putBoolean(enableReloadButtonKey, value).apply()
+    fun setPrimaryButtonAction(value: String) = prefMan.edit().putString(primaryButtonActionKey, value).apply()
+    fun setSecondaryButtonAction(value: String) = prefMan.edit().putString(secondaryButtonActionKey, value).apply()
+    fun setFullScreenOverlayActions(value: Set<String>) = prefMan.edit().putStringSet(fullScreenOverlayActionsKey, value).apply()
     fun setScrollSpeed(value: Int) = prefMan.edit().putInt(scrollSpeedKey, value).apply()
     fun setListFilter(value: ListFilter) = prefMan.edit().putString(listFilterKey, value.name).apply()
 
