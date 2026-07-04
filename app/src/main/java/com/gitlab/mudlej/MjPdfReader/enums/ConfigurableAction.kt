@@ -75,6 +75,8 @@ enum class ConfigurableAction(
 
         val requiredFullScreenOverlayActionIds = setOf(EXIT_FULLSCREEN.id)
 
+        val defaultFullScreenOverlayOrder = listOf(EXIT_FULLSCREEN) + fullScreenOverlayActions
+
         val defaultFullScreenOverlayActionIds = setOf(
             ROTATE.id,
             BRIGHTNESS.id,

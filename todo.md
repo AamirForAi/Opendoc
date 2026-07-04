@@ -16,8 +16,8 @@
 - [x] Show reading percentage when tapping in fullscreen mode.
 - [x] Make fullscreen mode truly edge-to-edge, including notch/cutout areas.
 - [x] Show some metadata like time in fullscreen mode.
-- [ ] Add fullscreen shortcuts for Table of Contents and Go To Page.
-- [ ] Make fullscreen shortcuts/custom buttons configurable.
+- [x] Add fullscreen shortcuts for Table of Contents and Go To Page.
+- [x] Make fullscreen shortcuts/custom buttons configurable.
 - [ ] Make the second top-bar button configurable instead of reload-only.
 - [ ] Remember per-document zoom.
 - [ ] Add way to return to Table of Contents after navigation.
@@ -27,7 +27,6 @@
 - [ ] Support RTL reading direction in horizontal mode.
 - [ ] Add search in TOC activity.
 - [ ] Improve text mode a little
-- [ ] Improve stability for very large files open for long sessions, especially 400MB+ files.
 - [ ] Investigate missing form checkboxes when printing.
 
 ## Reading State And Persistence

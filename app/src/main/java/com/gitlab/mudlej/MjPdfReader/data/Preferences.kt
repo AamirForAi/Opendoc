@@ -65,6 +65,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val primaryButtonActionKey = "primaryButtonAction"
         const val secondaryButtonActionKey = "secondaryButtonAction"
         const val fullScreenOverlayActionsKey = "fullScreenOverlayActions"
+        const val fullScreenOverlayActionOrderKey = "fullScreenOverlayActionOrder"
         const val screenOnKey = "screenOn"
         const val spaceBetweenPagesKey = "spaceBetweenPagesKey"
         const val hideDelayKey = "hideDelay"
@@ -192,6 +193,18 @@ class Preferences(private val prefMan: SharedPreferences) {
             ?: fullScreenOverlayActionsDefault
         return selected + ConfigurableAction.requiredFullScreenOverlayActionIds
     }
+    fun getFullScreenOverlayActionOrder(): List<String> {
+        val selectedIds = getFullScreenOverlayActions()
+        val savedOrder = prefMan.getString(fullScreenOverlayActionOrderKey, null)
+            ?.split(",")
+            ?.filter { it.isNotBlank() }
+            .orEmpty()
+        val defaultOrder = ConfigurableAction.defaultFullScreenOverlayOrder.map { it.id }
+        return (savedOrder + defaultOrder)
+            .distinct()
+            .filter { selectedIds.contains(it) }
+            .ensureRequiredFullScreenActionsFirst()
+    }
     fun getScrollSpeed() = prefMan.getInt(scrollSpeedKey, scrollSpeedDefault)
     fun getListFilter() = ListFilter.valueOf(prefMan.getString(listFilterKey, listFilterDefault) as String)
 
@@ -228,8 +241,19 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setEnableReloadButton(value: Boolean) = prefMan.edit().putBoolean(enableReloadButtonKey, value).apply()
     fun setPrimaryButtonAction(value: String) = prefMan.edit().putString(primaryButtonActionKey, value).apply()
     fun setSecondaryButtonAction(value: String) = prefMan.edit().putString(secondaryButtonActionKey, value).apply()
-    fun setFullScreenOverlayActions(value: Set<String>) = prefMan.edit().putStringSet(fullScreenOverlayActionsKey, value).apply()
+    fun setFullScreenOverlayActions(value: Set<String>) = prefMan.edit()
+        .putStringSet(fullScreenOverlayActionsKey, value + ConfigurableAction.requiredFullScreenOverlayActionIds)
+        .apply()
+    fun setFullScreenOverlayActionOrder(value: List<String>) = prefMan.edit()
+        .putString(fullScreenOverlayActionOrderKey, value.ensureRequiredFullScreenActionsFirst().joinToString(","))
+        .apply()
     fun setScrollSpeed(value: Int) = prefMan.edit().putInt(scrollSpeedKey, value).apply()
     fun setListFilter(value: ListFilter) = prefMan.edit().putString(listFilterKey, value.name).apply()
+
+    private fun List<String>.ensureRequiredFullScreenActionsFirst(): List<String> {
+        return ConfigurableAction.requiredFullScreenOverlayActionIds.toList() + filterNot {
+            ConfigurableAction.requiredFullScreenOverlayActionIds.contains(it)
+        }
+    }
 
 }

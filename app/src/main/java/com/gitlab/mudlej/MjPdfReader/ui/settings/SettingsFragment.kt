@@ -48,7 +48,7 @@ import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
 import androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode
 import androidx.preference.ListPreference
-import androidx.preference.MultiSelectListPreference
+import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
@@ -243,20 +243,16 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
     }
 
-    private fun fullScreenButtonsPreference(appPreferences: Preferences): MultiSelectListPreference {
-        val actions = ConfigurableAction.fullScreenOverlayActions
-        return MultiSelectListPreference(requireContext()).apply {
+    private fun fullScreenButtonsPreference(appPreferences: Preferences): Preference {
+        return Preference(requireContext()).apply {
             title = getString(R.string.fullscreen_buttons)
             key = Preferences.fullScreenOverlayActionsKey
-            entries = actions.toEntryTitles()
-            entryValues = actions.toEntryValues()
-            setDefaultValue(Preferences.fullScreenOverlayActionsDefault - ConfigurableAction.requiredFullScreenOverlayActionIds)
-            values = appPreferences.getFullScreenOverlayActions() - ConfigurableAction.requiredFullScreenOverlayActionIds
-            updateSelectedActionsSummary(actions, values)
+            updateSelectedActionsSummary(appPreferences)
             isIconSpaceReserved = false
-            setOnPreferenceChangeListener { _, newValue ->
-                @Suppress("UNCHECKED_CAST")
-                updateSelectedActionsSummary(actions, newValue as Set<String>)
+            setOnPreferenceClickListener {
+                showFullScreenButtonsPreferenceDialog(requireContext(), appPreferences) {
+                    updateSelectedActionsSummary(appPreferences)
+                }
                 true
             }
         }
@@ -270,14 +266,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
         return map { it.id }.toTypedArray()
     }
 
-    private fun MultiSelectListPreference.updateSelectedActionsSummary(
-        actions: List<ConfigurableAction>,
-        selectedIds: Set<String>,
-    ) {
-        val selectedTitles = actions
-            .filter { selectedIds.contains(it.id) }
-            .map { getString(it.titleRes) }
-        summary = (listOf(getString(R.string.exit)) + selectedTitles).joinToString(", ")
+    private fun Preference.updateSelectedActionsSummary(appPreferences: Preferences) {
+        summary = fullScreenButtonsSummary(requireContext(), appPreferences)
     }
 
     private fun setTextSection() {

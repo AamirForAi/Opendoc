@@ -266,203 +266,190 @@
             </LinearLayout>
         </ScrollView>
 
-        <!-- Fullscreen Info Card-->
         <androidx.appcompat.widget.LinearLayoutCompat
-            android:id="@+id/fullScreenInfoLayout"
-            android:layout_width="wrap_content"
+            android:id="@+id/fullScreenBottomControlsLayout"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
             android:layout_marginBottom="24dp"
-            android:background="@drawable/seekbar_background"
-            android:clickable="false"
-            android:focusable="false"
             android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="8dp"
-            android:visibility="gone"
-            app:layout_constrainedWidth="true"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toStartOf="parent">
 
+            <!-- Auto Scroll Speed Text -->
             <TextView
-                android:id="@+id/fullScreenInfoTime"
+                android:id="@+id/autoScrollSpeedText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/seekbar_background"
                 android:fontFamily="monospace"
-                android:textAlignment="center"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                tools:text="14:32" />
-
-            <TextView
-                android:id="@+id/fullScreenInfoTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxWidth="@dimen/fullscreen_info_max_width"
-                android:singleLine="true"
-                android:textAlignment="center"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                tools:text="Clean Architecture" />
-
-            <TextView
-                android:id="@+id/fullScreenInfoPage"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAlignment="center"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="14sp"
-                tools:text="Page 42 / 318 · 13%" />
-        </androidx.appcompat.widget.LinearLayoutCompat>
-
-        <androidx.constraintlayout.widget.Barrier
-            android:id="@+id/fullScreenBottomControlsBarrier"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:barrierDirection="top"
-            app:constraint_referenced_ids="brightnessLayout,fullScreenInfoLayout" />
-
-        <!-- Auto Scroll Speed Text -->
-        <TextView
-            android:id="@+id/autoScrollSpeedText"
-            android:layout_height="wrap_content"
-            android:layout_width="wrap_content"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="5dp"
-            android:layout_marginBottom="16dp"
-            tools:text="122"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface"
-            android:minEms="2"
-            android:background="@drawable/seekbar_background"
-            android:padding="4dp"
-            android:textAlignment="center"
-            android:fontFamily="monospace"
-            android:visibility="gone"
-            app:layout_constraintBottom_toTopOf="@id/autoScrollLayout"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            />
-
-        <!-- Auto Scroll Layout -->
-        <androidx.appcompat.widget.LinearLayoutCompat
-            android:id="@+id/autoScrollLayout"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="26dp"
-            android:visibility="gone"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/fullScreenBottomControlsBarrier">
-
-            <com.google.android.material.button.MaterialButton
-                style="@style/CustomMaterialButton"
-                android:id="@+id/reverseScrollDirectionButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:contentDescription=""
-                android:padding="@dimen/fs_button_padding"
-                app:icon="@drawable/ic_reverse_direction"
-                app:iconGravity="textStart"
-                app:iconSize="@dimen/as_button_size"
-                app:iconPadding="0dp"
-                android:insetLeft="20dp"
-                android:insetRight="20dp"
-                tools:ignore="RtlSymmetry" />
-
-            <com.google.android.material.button.MaterialButton
-                style="@style/CustomMaterialButton"
-                android:id="@+id/toggleAutoScrollButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:contentDescription=""
-                android:padding="@dimen/fs_button_padding"
-                app:icon="@drawable/ic_play_arrow"
-                app:iconGravity="textStart"
-                app:iconSize="@dimen/as_button_size"
-                app:iconPadding="0dp"
-                android:insetLeft="20dp"
-                android:insetRight="20dp"
-                tools:ignore="RtlSymmetry" />
-
-            <com.google.android.material.button.MaterialButton
-                style="@style/CustomMaterialButton"
-                android:id="@+id/decScrollSpeedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:contentDescription=""
-                android:padding="@dimen/fs_button_padding"
-                app:icon="@drawable/ic_decrease"
-                app:iconGravity="textStart"
-                app:iconSize="@dimen/as_button_size"
-                app:iconPadding="0dp"
-                android:insetLeft="20dp"
-                android:insetRight="20dp"
-                tools:ignore="RtlSymmetry" />
-
-            <com.google.android.material.button.MaterialButton
-                style="@style/CustomMaterialButton"
-                android:id="@+id/incScrollSpeedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:contentDescription=""
-                android:padding="@dimen/fs_button_padding"
-                app:icon="@drawable/ic_increase"
-                app:iconGravity="textStart"
-                app:iconSize="@dimen/as_button_size"
-                app:iconPadding="0dp"
-                android:insetLeft="20dp"
-                android:insetRight="20dp"
-                tools:ignore="RtlSymmetry" />
-        </androidx.appcompat.widget.LinearLayoutCompat>
-
-        <!-- Brightness Layout -->
-        <androidx.appcompat.widget.LinearLayoutCompat
-            android:id="@+id/brightnessLayout"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="26dp"
-            android:layout_marginHorizontal="8dp"
-            android:visibility="gone"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent">
-
-            <androidx.appcompat.widget.AppCompatSeekBar
-                android:id="@+id/brightnessSeekBar"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:minWidth="200dp"
-                android:layout_gravity="center"
+                android:minEms="2"
                 android:padding="4dp"
-                android:layout_marginHorizontal="8dp"
-                android:background="@drawable/seekbar_background"
-                android:progressTint="?attr/colorOnSurface"
-                android:thumbTint="?attr/colorOnSurface"
-                />
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="5dp"
+                android:textAlignment="center"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="122" />
 
-            <TextView
-                android:id="@+id/brightnessPercentage"
+            <!-- Auto Scroll Layout -->
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:id="@+id/autoScrollLayout"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:layout_marginHorizontal="8dp"
-                android:background="@drawable/seekbar_background"
-                android:padding="5dp"
-                tools:text="35%"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:textColor="?attr/colorOnSurface"
-                />
+                android:layout_marginBottom="12dp"
+                android:visibility="gone">
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/reverseScrollDirectionButton"
+                    style="@style/CustomMaterialButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription=""
+                    android:insetLeft="20dp"
+                    android:insetRight="20dp"
+                    android:padding="@dimen/fs_button_padding"
+                    app:icon="@drawable/ic_reverse_direction"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="@dimen/as_button_size"
+                    tools:ignore="RtlSymmetry" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/toggleAutoScrollButton"
+                    style="@style/CustomMaterialButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription=""
+                    android:insetLeft="20dp"
+                    android:insetRight="20dp"
+                    android:padding="@dimen/fs_button_padding"
+                    app:icon="@drawable/ic_play_arrow"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="@dimen/as_button_size"
+                    tools:ignore="RtlSymmetry" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/decScrollSpeedButton"
+                    style="@style/CustomMaterialButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription=""
+                    android:insetLeft="20dp"
+                    android:insetRight="20dp"
+                    android:padding="@dimen/fs_button_padding"
+                    app:icon="@drawable/ic_decrease"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="@dimen/as_button_size"
+                    tools:ignore="RtlSymmetry" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/incScrollSpeedButton"
+                    style="@style/CustomMaterialButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription=""
+                    android:insetLeft="20dp"
+                    android:insetRight="20dp"
+                    android:padding="@dimen/fs_button_padding"
+                    app:icon="@drawable/ic_increase"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="@dimen/as_button_size"
+                    tools:ignore="RtlSymmetry" />
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+            <!-- Brightness Layout -->
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:id="@+id/brightnessLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="8dp"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone">
+
+                <androidx.appcompat.widget.AppCompatSeekBar
+                    android:id="@+id/brightnessSeekBar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginHorizontal="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/seekbar_background"
+                    android:minWidth="200dp"
+                    android:padding="4dp"
+                    android:progressTint="?attr/colorOnSurface"
+                    android:thumbTint="?attr/colorOnSurface" />
+
+                <TextView
+                    android:id="@+id/brightnessPercentage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginHorizontal="8dp"
+                    android:background="@drawable/seekbar_background"
+                    android:padding="5dp"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    tools:text="35%" />
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+            <!-- Fullscreen Info Card-->
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:id="@+id/fullScreenInfoLayout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:background="@drawable/seekbar_background"
+                android:clickable="false"
+                android:focusable="false"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="8dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/fullScreenInfoTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:textAlignment="center"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    tools:text="14:32" />
+
+                <TextView
+                    android:id="@+id/fullScreenInfoTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxWidth="@dimen/fullscreen_info_max_width"
+                    android:singleLine="true"
+                    android:textAlignment="center"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="Clean Architecture" />
+
+                <TextView
+                    android:id="@+id/fullScreenInfoPage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAlignment="center"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="14sp"
+                    tools:text="Page 42 / 318 · 13%" />
+            </androidx.appcompat.widget.LinearLayoutCompat>
         </androidx.appcompat.widget.LinearLayoutCompat>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
