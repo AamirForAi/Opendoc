@@ -66,7 +66,6 @@ import androidx.activity.result.contract.ActivityResultContracts.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.*
@@ -83,7 +82,6 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.*
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
-import com.gitlab.mudlej.MjPdfReader.enums.AdditionalOptions
 import com.gitlab.mudlej.MjPdfReader.enums.FileType
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManagerImpl
@@ -104,7 +102,6 @@ import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
 import com.gitlab.mudlej.MjPdfReader.util.FileUtil.fileFromUri
 import com.google.android.material.color.MaterialColors
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -147,7 +144,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var appTitle: TextView
     private lateinit var appTitlePageNumber: TextView
-    private lateinit var showSearchBar: () -> Unit
     private var brightness: Int = -1
 
 
@@ -264,10 +260,12 @@ class MainActivity : AppCompatActivity() {
 
     fun displayFromUri(uri: Uri?, savePassword: Boolean = false) {
         if (uri == null) {
+            updateActionBarButtons()
             return
         }
 
         pdf.name = getFileName(this, uri)
+        updateActionBarButtons()
         updateAppTitle()
         pdf.resetLength()
 
@@ -353,21 +351,15 @@ class MainActivity : AppCompatActivity() {
         pdfView.performTap()
     }
 
-    private fun showBarButtonsThatNeedFile() {
-        val barButtonsThatNeedFile = listOf(
-            R.id.fullscreenOption,
-            R.id.copyPageTextOption,
-            R.id.bookmarksListOption,
-            R.id.linksListOption,
-            R.id.goToPageOption,
-            R.id.shareFileOption,
-            R.id.printFileOption,
-            R.id.searchOption,
-            R.id.toggleSecondBarOption
-        )
-        barButtonsThatNeedFile.forEach { actionBarMenu.findItem(it)?.isVisible = true }
+    private fun updateActionBarButtons() {
+        if (!::actionBarMenu.isInitialized) {
+            return
+        }
 
-        actionBarMenu.findItem(R.id.reloadOption)?.isVisible = pref.getEnableReloadButton()
+        val hasFile = pdf.hasFile()
+        actionBarMenu.findItem(R.id.fullscreenOption)?.isVisible = hasFile
+        actionBarMenu.findItem(R.id.reloadOption)?.isVisible = hasFile && pref.getEnableReloadButton()
+        actionBarMenu.findItem(R.id.readerActionsOption)?.isVisible = true
     }
 
     private fun checkAutoFullScreen() {
@@ -505,7 +497,7 @@ class MainActivity : AppCompatActivity() {
 
         val search = ImageView(this)
         search.setImageResource(R.drawable.search_icon)
-        search.setOnClickListener { showSearchBar() }
+        search.setOnClickListener { showSearchDialog(this, pdf) }
         buttons.add(search)
 
         val goToPage = ImageView(this)
@@ -804,7 +796,7 @@ class MainActivity : AppCompatActivity() {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
         if (::actionBarMenu.isInitialized) {
-            showBarButtonsThatNeedFile()
+            updateActionBarButtons()
         }
 
         // check if there is a pdf at first
@@ -1141,7 +1133,7 @@ class MainActivity : AppCompatActivity() {
         menuInflater.inflate(R.menu.main_menu, menu)
         this.actionBarMenu = menu
         menu.showOptionalIcons(this)
-        showBarButtonsThatNeedFile()
+        updateActionBarButtons()
         return true
     }
 
@@ -1149,63 +1141,10 @@ class MainActivity : AppCompatActivity() {
         when (item.itemId) {
             R.id.reloadOption -> recreate()
             R.id.fullscreenOption -> toggleFullscreen()
-            R.id.switchThemeOption -> switchPdfTheme()
-            R.id.openFileOption -> pickFile()
-            R.id.copyPageTextOption -> copyPageText(true)
-            R.id.bookmarksListOption -> showBookmarks()
-            R.id.goToPageOption -> goToPage()
-            R.id.linksListOption -> showLinks()
-            R.id.shareFileOption -> shareFile(pdf.uri, FileType.PDF)
-            R.id.printFileOption -> printFile()
-            //R.id.searchOption -> searchFileClicked()
-            R.id.toggleSecondBarOption -> toggleSecondBar()
-            R.id.additionalOptionsOption -> showAdditionalOptions()
+            R.id.readerActionsOption -> showReaderActions()
             else -> return super.onOptionsItemSelected(item)
         }
         return true
-    }
-
-    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        // set search functionality
-        val searchView = menu.findItem(R.id.searchOption).actionView as SearchView
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String): Boolean {
-                fun startSearchActivity() {
-                    pdf.lastQuery = query
-                    Intent(this@MainActivity, SearchActivity::class.java).also { searchIntent ->
-                        searchIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
-                        searchIntent.putExtra(PDF.passwordKey, pdf.password)
-                        searchIntent.putExtra(PDF.searchQueryKey, query.trim())
-                        startActivityForResult(searchIntent, PDF.startSearchActivity)
-                        supportActionBar?.collapseActionView()  // close it after searching
-                    }
-                }
-
-                if (query.isBlank() || query.length < 3) {
-                    MaterialAlertDialogBuilder(this@MainActivity)
-                        .setTitle(getString(R.string.too_short_query))
-                        .setMessage(getString(R.string.too_short_query_message).format(query))
-                        .setNeutralButton(getString(R.string.proceed_anyway)) { _, _ ->
-                            startSearchActivity()
-                        }
-                        .setPositiveButton(getText(R.string.ok)) { badQueryDialog, _ ->
-                            badQueryDialog.dismiss()
-                        }
-                        .show()
-                }
-                else {
-                    startSearchActivity()
-                }
-                return false
-            }
-
-            override fun onQueryTextChange(query: String) = false
-        })
-
-        // create a lambda to trigger the search
-        showSearchBar = { menu.performIdentifierAction(R.id.searchOption, 0) }
-
-        return super.onPrepareOptionsMenu(menu)
     }
 
     private fun toggleSecondBar() {
@@ -1272,94 +1211,77 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showAdditionalOptions() {
+    private fun showReaderActions() {
+        showReaderActionsDialog(this, readerActions())
+    }
 
-        data class Item(val title: String, val icon: Int)
-
-        val settingsMap = mapOf(
-            AdditionalOptions.APP_SETTINGS to Item(getString(R.string.app_settings), R.drawable.ic_settings),
-            AdditionalOptions.TEXT_MODE to Item(getString(R.string.text_mode), R.drawable.ic_text),
-            AdditionalOptions.METADATA to Item(getString(R.string.file_metadata), R.drawable.meta_info),
-            AdditionalOptions.ADVANCED_CONFIG to Item(
-                getString(R.string.advanced_config),
-                R.drawable.ic_display_settings
-            ),
-            AdditionalOptions.ABOUT to Item(getString(R.string.action_about), R.drawable.info_icon),
+    private fun readerActions(): List<ReaderAction> {
+        val hasFile = pdf.hasFile()
+        return listOf(
+            ReaderAction(R.string.switch_theme, R.drawable.ic_toggle_theme, visible = hasFile) {
+                switchPdfTheme()
+            },
+            ReaderAction(R.string.open_another_pdf, R.drawable.ic_folder) {
+                pickFile()
+            },
+            ReaderAction(R.string.table_of_contents, R.drawable.ic_book_bookmark, visible = hasFile) {
+                showBookmarks()
+            },
+            ReaderAction(R.string.search, R.drawable.search_icon, visible = hasFile) {
+                showSearchDialog(this, pdf)
+            },
+            ReaderAction(R.string.go_to_page, R.drawable.ic_shortcut, visible = hasFile) {
+                goToPage()
+            },
+            ReaderAction(R.string.copy_page_text, R.drawable.ic_copy, visible = hasFile) {
+                copyPageText(true)
+            },
+            ReaderAction(R.string.links_in_file, R.drawable.ic_link, visible = hasFile) {
+                showLinks()
+            },
+            ReaderAction(R.string.toggle_shortcuts, R.drawable.ic_awesome, visible = hasFile) {
+                toggleSecondBar()
+            },
+            ReaderAction(R.string.text_mode, R.drawable.ic_text, visible = hasFile) {
+                navToTextMode()
+            },
+            ReaderAction(R.string.print_file, R.drawable.ic_print, visible = hasFile) {
+                printFile()
+            },
+            ReaderAction(R.string.share_file, R.drawable.ic_share, visible = hasFile) {
+                shareFile(pdf.uri, FileType.PDF)
+            },
+            ReaderAction(R.string.settings, R.drawable.ic_settings) {
+                navToAppSettings()
+            },
+            ReaderAction(R.string.advanced_config, R.drawable.ic_display_settings) {
+                showPartSizeDialog(this, pref)
+            },
+            ReaderAction(R.string.file_metadata, R.drawable.meta_info, visible = hasFile) {
+                showFileMetadata()
+            },
+            ReaderAction(R.string.action_about, R.drawable.info_icon) {
+                startActivity(navIntent(this, AboutActivity::class.java))
+            },
         )
+    }
 
-        // create a dialog for additional options and set their functionalities
-
-        // Custom Adapter for the dialog so we can use icons for the items
-        val items = settingsMap.values.toTypedArray()
-        val adapter: ListAdapter = object : ArrayAdapter<Item>(
-            this,
-            android.R.layout.select_dialog_item,
-            android.R.id.text1,
-            items
-        ) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                // Use super class to create the View
-                val view = super.getView(position, convertView, parent)
-                val textView = view.findViewById(android.R.id.text1) as TextView
-
-                val itemColor = MaterialColors.getColor(
-                    parent,
-                    R.attr.colorOnSurface
-                )
-                val icon = AppCompatResources
-                    .getDrawable(this@MainActivity, items[position].icon)
-                    ?.mutate()
-                icon?.setTint(itemColor)
-
-                textView.setTextColor(itemColor)
-                textView.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
-                textView.text = items[position].title
-
-                val padding = (10 * resources.displayMetrics.density + 0.5f).toInt()
-                textView.compoundDrawablePadding = padding
-                return view
-            }
+    private fun showFileMetadata() {
+        if (!checkHasFile()) {
+            return
         }
 
-        MaterialAlertDialogBuilder(this)
-            .setTitle(getString(R.string.settings))
-            .setAdapter(adapter) { dialog, item ->
-                when (item) {
-                    AdditionalOptions.APP_SETTINGS.ordinal -> {
-                        navToAppSettings()
-                    }
-
-                    AdditionalOptions.TEXT_MODE.ordinal -> {
-                        navToTextMode()
-                    }
-
-                    AdditionalOptions.METADATA.ordinal -> {
-                        if (checkHasFile()) {
-                            val uri = pdf.uri
-                            var file: File? = null
-                            if (uri != null) {
-                                try {
-                                    file = fileFromUri(this@MainActivity, uri, pdf.name)
-                                }
-                                catch (throwable: Throwable) {
-                                    Log.e(TAG, "showAdditionalOptions: Failed to createFileFromUri", throwable)
-                                }
-                            }
-                            showMetaDialog(this, binding.pdfView.documentMeta, file)
-                        }
-                    }
-
-                    AdditionalOptions.ADVANCED_CONFIG.ordinal -> {
-                        showPartSizeDialog(this, pref)
-                    }
-
-                    AdditionalOptions.ABOUT.ordinal -> {
-                        startActivity(navIntent(this, AboutActivity::class.java))
-                    }
-                }
-                dialog.dismiss()
+        val uri = pdf.uri
+        var file: File? = null
+        if (uri != null) {
+            try {
+                file = fileFromUri(this@MainActivity, uri, pdf.name)
             }
-            .show()
+            catch (throwable: Throwable) {
+                Log.e(TAG, "showFileMetadata: Failed to createFileFromUri", throwable)
+            }
+        }
+        showMetaDialog(this, binding.pdfView.documentMeta, file)
     }
 
     private fun checkHasFile(): Boolean {
@@ -1585,12 +1507,3 @@ class MainActivity : AppCompatActivity() {
     }
 
 }
-
-
-/*
-    * pdf.pageNumber && pdf.length:
-        will be set by PDFView::onPageChange() -> setCurrentPage()
-
-    * pdf.password:
-        will be set by PDFView::onError() -> handleFileOpeningError() -> askForPdfPassword()
- */

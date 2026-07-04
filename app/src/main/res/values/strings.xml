@@ -76,8 +76,8 @@
     <string name="code">Source Code</string>
 
     <string name="share">Share</string>
-    <string name="share_file">Share File</string>
-    <string name="print_file">Print File</string>
+    <string name="share_file">Share</string>
+    <string name="print_file">Print</string>
     <string name="full_screen">Full Screen</string>
     <string name="app_info">App Info</string>
     <string name="author_info">Author Info</string>
@@ -121,12 +121,13 @@
     <string name="cannot_load_page">\"Cannot load page \"</string>
 
     <string name="experimental">Experimental</string>
+    <string name="actions">Actions</string>
     <string name="caution">Caution</string>
     <string name="app_dark_dialog_message">On some devices, this option may cause black rectangles to show when reading PDFs. If that happens, just turn this option off.</string>
     <string name="restore">Restore</string>
     <string name="no_pdf_in_app">There is no PDF open in the app</string>
     <string name="advanced">Advanced</string>
-    <string name="advanced_config">Advanced Configuration</string>
+    <string name="advanced_config">Configuration</string>
     <string name="part_size_value">PART SIZE value</string>
     <string name="max_zoom_value">MAX ZOOM value</string>
     <string name="apply">Apply</string>

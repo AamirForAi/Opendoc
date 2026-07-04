@@ -306,17 +306,20 @@ fun showSearchDialog(activity: Activity, pdf: PDF) {
         .setView(searchLayout)
         .setPositiveButton(activity.getText(R.string.search)) { searchDialog, _ ->
             val query = searchLayout.editText?.text ?: return@setPositiveButton
+            val queryText = query.toString().trim()
             fun startSearchActivity() {
                 Intent(activity, SearchActivity::class.java).also { searchIntent ->
                     searchIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
-                    searchIntent.putExtra(PDF.searchQueryKey, query.toString())
+                    searchIntent.putExtra(PDF.passwordKey, pdf.password)
+                    searchIntent.putExtra(PDF.searchQueryKey, queryText)
+                    pdf.lastQuery = queryText
                     activity.startActivityForResult(searchIntent, PDF.startSearchActivity)
                 }
             }
-            if (query.isBlank() || query.length < PDF.MIN_SEARCH_QUERY) {
+            if (queryText.isBlank() || queryText.length < PDF.MIN_SEARCH_QUERY) {
                 MaterialAlertDialogBuilder(activity)
                     .setTitle(activity.getString(R.string.too_short_query))
-                    .setMessage(activity.getString(R.string.too_short_query_message).format(query))
+                    .setMessage(activity.getString(R.string.too_short_query_message).format(queryText))
                     .setNeutralButton(activity.getString(R.string.proceed_anyway)) { _, _ ->
                         startSearchActivity()
                     }
