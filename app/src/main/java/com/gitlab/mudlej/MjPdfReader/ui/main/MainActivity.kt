@@ -344,6 +344,7 @@ class MainActivity : AppCompatActivity() {
                 createPdfRecord(savePassword, pdf)
                 checkAutoFullScreen()
                 checkAlwaysHorizontal()
+                openTextModeByDefault()
                 configureButtonsLabels()
                 if (pdf.uri != null) {
                     setUpSecondBar()
@@ -353,6 +354,12 @@ class MainActivity : AppCompatActivity() {
 
         // Show the page scroll handler for a while when the pdf is loaded then hide it.
         pdfView.performTap()
+    }
+
+    private fun openTextModeByDefault() {
+        if (pref.getDefaultTextMode()) {
+            navToTextMode()
+        }
     }
 
     private fun updateActionBarButtons() {

@@ -202,6 +202,13 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
     }
     private fun setTextSection() {
+        val defaultTextModeSwitch = SwitchPreferenceCompat(requireContext()).apply {
+            title = getString(R.string.default_text_mode)
+            setDefaultValue(Preferences.defaultTextModeDefault)
+            key = Preferences.defaultTextModeKey
+            summary = getString(R.string.default_text_mode_summary)
+            isIconSpaceReserved = false
+        }
         val showCopyTextDialogSwitch = SwitchPreferenceCompat(requireContext()).apply {
             title = getString(R.string.show_copy_dialog_title)
             setDefaultValue(Preferences.copyTextDialogDefault)
@@ -213,6 +220,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         val section: PreferenceCategory? = findPreference("textSection")
         section?.apply {
             isIconSpaceReserved = false
+            addPreference(defaultTextModeSwitch)
             addPreference(showCopyTextDialogSwitch)
         }
     }

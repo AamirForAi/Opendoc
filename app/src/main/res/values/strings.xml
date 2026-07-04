@@ -155,6 +155,8 @@
     <string name="selectable_text">Selectable Text of Page</string>
     <string name="show_copy_dialog_summary">Show a pop up that has the extracted text of the page when pressing and hold.</string>
     <string name="show_copy_dialog_title">Show Copy Text Dialog</string>
+    <string name="default_text_mode">Default to Text Mode</string>
+    <string name="default_text_mode_summary">Open PDFs in Text Mode by default.</string>
     <string name="copy_page_text">Extract Text</string>
     <string name="turn_page_by_volume_buttons_title">Turn Page by Volume Buttons</string>
     <string name="turn_page_by_volume_buttons_summary">Go to the next or previous page using the physical volume buttons</string>

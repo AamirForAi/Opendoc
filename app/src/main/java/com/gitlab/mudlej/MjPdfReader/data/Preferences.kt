@@ -72,6 +72,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val uriKey = "uri"
         const val finishedExtractionDialogKey = "finishedExtraction"
         const val copyTextDialogKey = "copyTextDialog"
+        const val defaultTextModeKey = "defaultTextMode"
         const val turnPageByVolumeButtonsKey = "turnPageByVolumeButtons"
         const val showScrollHandlePageCountKey = "showScrollHandlePageCount"
         const val secondBarEnabledKey = "secondBarEnabled"
@@ -110,6 +111,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val thumbnailRatioDefault = 0.3f
         const val pdfLengthDefault = 0
         const val copyTextDialogDefault = true
+        const val defaultTextModeDefault = false
         const val turnPageByVolumeButtonsDefault = false
         const val showScrollHandlePageCountDefault = false
         const val secondBarEnabledDefault = false
@@ -155,6 +157,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getThumbnailRation() = prefMan.getFloat(thumbnailRatioKey, thumbnailRatioDefault)
     fun getMaxZoom() = prefMan.getFloat(maxZoomKey, maxZoomDefault)
     fun getCopyTextDialog() = prefMan.getBoolean(copyTextDialogKey, copyTextDialogDefault)
+    fun getDefaultTextMode() = prefMan.getBoolean(defaultTextModeKey, defaultTextModeDefault)
     fun getTurnPageByVolumeButtons() = prefMan.getBoolean(turnPageByVolumeButtonsKey, turnPageByVolumeButtonsDefault)
     fun getShowScrollHandlePageCount() = prefMan.getBoolean(showScrollHandlePageCountKey, showScrollHandlePageCountDefault)
     fun getSecondBarEnabled() = prefMan.getBoolean(secondBarEnabledKey, secondBarEnabledDefault)
@@ -188,6 +191,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setThumbnailRatio(value: Float) = prefMan.edit().putFloat(thumbnailRatioKey, value).apply()
     fun setMaxZoom(value: Float) = prefMan.edit().putFloat(maxZoomKey, value).apply()
     fun setCopyTextDialog(value: Boolean) = prefMan.edit().putBoolean(copyTextDialogKey, value).apply()
+    fun setDefaultTextMode(value: Boolean) = prefMan.edit().putBoolean(defaultTextModeKey, value).apply()
     fun setTurnPageByVolumeButtons(value: Boolean) = prefMan.edit().putBoolean(turnPageByVolumeButtonsKey, value).apply()
     fun setShowScrollHandlePageCount(value: Boolean) = prefMan.edit().putBoolean(showScrollHandlePageCountKey, value).apply()
     fun setSecondBarEnabled(value: Boolean) = prefMan.edit().putBoolean(secondBarEnabledKey, value).apply()
