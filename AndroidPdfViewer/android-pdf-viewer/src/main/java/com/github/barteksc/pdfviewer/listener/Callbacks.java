@@ -53,7 +53,7 @@ public class Callbacks {
     private OnPageScrollListener onPageScrollListener;
 
     /**
-     * Call back object to call when the user starts interacting with the document.
+     * Call back object to call when the user interacts with the document.
      */
     private OnDocumentInteractionListener onDocumentInteractionListener;
 

@@ -270,12 +270,12 @@
             android:id="@+id/fullScreenInfoLayout"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
+            android:layout_marginHorizontal="16dp"
             android:layout_marginBottom="24dp"
             android:background="@drawable/seekbar_background"
             android:clickable="false"
             android:focusable="false"
-            android:gravity="start"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
             android:paddingHorizontal="12dp"
             android:paddingVertical="8dp"
@@ -283,7 +283,7 @@
             app:layout_constrainedWidth="true"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0"
+            app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toStartOf="parent">
 
             <TextView
@@ -291,6 +291,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="monospace"
+                android:textAlignment="center"
                 android:textColor="?attr/colorOnSurface"
                 android:textSize="14sp"
                 android:textStyle="bold"
@@ -303,7 +304,7 @@
                 android:ellipsize="end"
                 android:maxWidth="@dimen/fullscreen_info_max_width"
                 android:singleLine="true"
-                android:textAlignment="viewStart"
+                android:textAlignment="center"
                 android:textColor="?attr/colorOnSurface"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -313,6 +314,7 @@
                 android:id="@+id/fullScreenInfoPage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textAlignment="center"
                 android:textColor="?attr/colorOnSurface"
                 android:textSize="14sp"
                 tools:text="Page 42 / 318 · 13%" />

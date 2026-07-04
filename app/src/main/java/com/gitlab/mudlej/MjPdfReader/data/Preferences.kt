@@ -116,7 +116,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val showScrollHandlePageCountDefault = false
         const val secondBarEnabledDefault = false
         const val hideButtonsLabelsDefault = false
-        const val fullScreenInfoShowTimeDefault = true
+        const val fullScreenInfoShowTimeDefault = false
         const val fullScreenInfoShowPdfNameDefault = false
         const val fullScreenInfoShowPageNumberDefault = true
         const val fullScreenInfoShowReadingPercentageDefault = true

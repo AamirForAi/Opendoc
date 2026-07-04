@@ -3,7 +3,7 @@ package com.github.barteksc.pdfviewer.listener;
 import android.view.MotionEvent;
 
 /**
- * Called when the user starts interacting directly with the PDF document.
+ * Called when the user interacts directly with the PDF document.
  */
 public interface OnDocumentInteractionListener {
 

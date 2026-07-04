@@ -84,6 +84,8 @@ import com.gitlab.mudlej.MjPdfReader.data.*
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
 import com.gitlab.mudlej.MjPdfReader.enums.FileType
+import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManager
+import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManagerImpl
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManagerImpl
 import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManager
@@ -117,8 +119,6 @@ import kotlinx.coroutines.withContext
 import java.io.*
 import java.time.LocalDateTime
 import java.util.*
-import kotlin.math.absoluteValue
-import kotlin.math.sign
 import kotlin.system.exitProcess
 
 
@@ -129,7 +129,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
     private var doubleBackToExitPressedOnce = false
-    private val autoScrollHandler = Handler(Looper.getMainLooper())
+    private lateinit var autoScrollManager: AutoScrollManager
     private lateinit var fullScreenOptionsManager: FullScreenOptionsManager
     private lateinit var permissionManager: PermissionManager
     private lateinit var databaseManager: DatabaseManager
@@ -163,6 +163,7 @@ class MainActivity : AppCompatActivity() {
 
         // init
         pref = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
+        autoScrollManager = AutoScrollManagerImpl(binding, pdf, pref)
         fullScreenOptionsManager = FullScreenOptionsManagerImpl(
             binding, pdf, pref.getHideDelay().toLong(), pref
         )
@@ -325,7 +326,7 @@ class MainActivity : AppCompatActivity() {
             .onPageChange { page: Int, pageCount: Int -> setCurrentPage(page, pageCount) }
             .enableAnnotationRendering(Preferences.annotationRenderingDefault)
             .enableAntialiasing(pref.getAntiAliasing())
-            .onDocumentInteraction { stopAutoScrollingOnUserInteraction() }
+            .onDocumentInteraction { motionEvent -> autoScrollManager.handleUserInteraction(motionEvent) }
             .onTap { fullScreenOptionsManager.showAllTemporarilyOrHide(); true }
             .onLongPress { copyPageText(false) }
             .scrollHandle(createScrollHandle())
@@ -428,9 +429,7 @@ class MainActivity : AppCompatActivity() {
         val handle = DefaultScrollHandle(this, false, pref.getShowScrollHandlePageCount())
         val fullScreenTouchListener = fullScreenOptionsManager.getOnTouchListener()
         handle.setOnTouchListener { view, motionEvent ->
-            if (motionEvent.actionMasked == MotionEvent.ACTION_DOWN) {
-                stopAutoScrollingOnUserInteraction()
-            }
+            autoScrollManager.handleUserInteraction(motionEvent)
             fullScreenTouchListener.onTouch(view, motionEvent)
         }
         handle.setOnClickListener { goToPage() }
@@ -540,12 +539,11 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SourceLockedOrientationActivity")
     private fun setButtonsFunctionalities() {
         exitFullScreenListener(binding)
-        setAutoScrollButtons(binding)
+        autoScrollManager.setup()
         setBrightnessSeekbarListener(binding)
         binding.apply {
             rotateScreenButton.setOnClickListener { rotateScreen() }
             brightnessButton.setOnClickListener { setBrightnessButtonListeners(binding) }
-            autoScrollButton.setOnClickListener { autoScrollButtonListener(binding) }
             screenshotButton.setOnClickListener { takeScreenshot() }
             toggleHorizontalSwipeButton.setOnClickListener { horizontalSwipeButtonListener(binding) }
             toggleZoomLockButton.setOnClickListener { zoomLockButtonListener(binding) }
@@ -628,121 +626,6 @@ class MainActivity : AppCompatActivity() {
         binding.pdfView.isHorizontalSwipeDisabled = true
     }
 
-    private fun setAutoScrollButtons(binding: ActivityMainBinding) {
-        val delay = 1L
-        val scrollUnit = Preferences.AUTO_SCROLL_UNIT
-        var scrollBy = -scrollUnit * pref.getScrollSpeed()
-
-        binding.autoScrollSpeedText.text = simplifySpeed(scrollBy).toString()
-
-        binding.incScrollSpeedButton.setOnClickListener {
-            scrollBy = changeScrollingSpeed(scrollBy, scrollUnit, isIncreasing = true)
-            saveScrollSpeed(scrollBy)
-        }
-        binding.decScrollSpeedButton.setOnClickListener {
-            if (scrollBy.absoluteValue > scrollUnit) {
-                scrollBy = changeScrollingSpeed(scrollBy, scrollUnit, isIncreasing = false)
-                saveScrollSpeed(scrollBy)
-            }
-        }
-
-        // check this out: https://stackoverflow.com/questions/7938516/continuously-increase-integer-value-as-the-button-is-pressed
-        val handler = Handler(mainLooper)
-        lateinit var runnable: Runnable
-        val HANDLER_DELAY = 100L
-
-        fun createUpdatingSpeedRunnable(isIncreasing: Boolean): Boolean {
-            runnable = Runnable {
-                if (!binding.incScrollSpeedButton.isPressed && !binding.decScrollSpeedButton.isPressed) {
-                    return@Runnable
-                }
-
-                scrollBy = changeScrollingSpeed(scrollBy, scrollUnit, isIncreasing)
-                handler.postDelayed(runnable, HANDLER_DELAY)
-            }
-            handler.postDelayed(runnable, HANDLER_DELAY)
-            return true
-        }
-
-        binding.incScrollSpeedButton.setOnLongClickListener { createUpdatingSpeedRunnable(isIncreasing = true) }
-        binding.decScrollSpeedButton.setOnLongClickListener { createUpdatingSpeedRunnable(isIncreasing = false) }
-
-        binding.reverseScrollDirectionButton.setOnClickListener { scrollBy = -scrollBy }
-
-        binding.toggleAutoScrollButton.setOnClickListener {
-            pdf.isAutoScrolling = !pdf.isAutoScrolling
-
-            if (!pdf.isAutoScrolling) {
-                stopAutoScrolling(binding)
-                return@setOnClickListener
-            }
-            else {
-                binding.toggleAutoScrollButton.setIconResource(R.drawable.ic_pause)
-            }
-
-            fun startAutoScrolling() {
-                autoScrollHandler.postDelayed({
-                    if (pref.getHorizontalScroll()) {
-                        binding.pdfView.moveRelativeTo(scrollBy.toFloat(), 0F)
-                    }
-                    else {
-                        binding.pdfView.moveRelativeTo(0F, scrollBy.toFloat())
-                    }
-                    binding.pdfView.loadPages()
-
-                    if (pdf.isAutoScrolling && shouldContinueAutoScrolling(scrollBy)) {
-                        startAutoScrolling()
-                    }
-                    else if (pdf.isAutoScrolling) {
-                        stopAutoScrolling(binding)
-                    }
-                }, delay)
-            }
-            startAutoScrolling()
-        }
-    }
-
-    private fun saveScrollSpeed(scrollBy: Double) {
-        pref.setScrollSpeed(simplifySpeed(scrollBy))
-    }
-
-    private fun stopAutoScrolling(binding: ActivityMainBinding) {
-        binding.toggleAutoScrollButton.setIconResource(R.drawable.ic_play_arrow)
-        autoScrollHandler.removeCallbacksAndMessages(null)
-        pdf.isAutoScrolling = false
-    }
-
-    private fun stopAutoScrollingOnUserInteraction() {
-        if (pdf.isAutoScrolling) {
-            stopAutoScrolling(binding)
-        }
-    }
-
-    private fun shouldContinueAutoScrolling(scrollBy: Double): Boolean {
-        return if (scrollBy < 0) {
-            binding.pdfView.positionOffset < 1F
-        }
-        else {
-            binding.pdfView.positionOffset > 0F
-        }
-    }
-
-    private fun autoScrollButtonListener(binding: ActivityMainBinding) {
-        if (binding.autoScrollLayout.isVisible) hideAutoScroll(binding) else showAutoScroll(binding)
-    }
-
-    private fun hideAutoScroll(binding: ActivityMainBinding) {
-        binding.autoScrollLayout.visibility = View.GONE
-        binding.autoScrollSpeedText.visibility = View.GONE
-        pdf.isAutoScrollClicked = false
-    }
-
-    private fun showAutoScroll(binding: ActivityMainBinding) {
-        binding.autoScrollLayout.visibility = View.VISIBLE
-        binding.autoScrollSpeedText.visibility = View.VISIBLE
-        pdf.isAutoScrollClicked = true
-    }
-
     private fun setBrightnessButtonListeners(binding: ActivityMainBinding) {
         if (binding.brightnessLayout.isVisible) hideBrightnessControl(binding) else showBrightnessControl(binding)
     }
@@ -786,10 +669,10 @@ class MainActivity : AppCompatActivity() {
                 unlockScreenOrientation()
             }
             toggleFullscreen()
-            stopAutoScrolling(binding)
+            autoScrollManager.stop()
             enableZooming(binding)
             hideBrightnessControl(binding)
-            hideAutoScroll(binding)
+            autoScrollManager.hideControls()
             enableHorizontalSwiping(binding)
 
             // A try to give the brightness control back to the system but this won't work
@@ -801,27 +684,6 @@ class MainActivity : AppCompatActivity() {
         // set orientation to unspecified so that the screen rotation will be unlocked
         // this is because PORTRAIT / LANDSCAPE modes will lock the app in them
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-    }
-
-    private fun simplifySpeed(scrollBy: Double): Int {
-        return (scrollBy.absoluteValue * (1 / Preferences.AUTO_SCROLL_UNIT)).toInt()
-    }
-
-    private fun changeScrollingSpeed(scrollBy: Double, interval: Double, isIncreasing: Boolean): Double {
-        val newSpeed = if (isIncreasing) {
-            (scrollBy.absoluteValue + interval) * scrollBy.sign
-        }
-        else {
-            if (scrollBy.absoluteValue > interval) {
-                (scrollBy.absoluteValue - interval) * scrollBy.sign
-            }
-            else {
-                scrollBy
-            }
-        }
-
-        binding.autoScrollSpeedText.text = simplifySpeed(newSpeed).toString()
-        return newSpeed
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
