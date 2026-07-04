@@ -76,6 +76,10 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val showScrollHandlePageCountKey = "showScrollHandlePageCount"
         const val secondBarEnabledKey = "secondBarEnabled"
         const val hideButtonsLabelsKey = "hideButtonsLabels"
+        const val fullScreenInfoShowTimeKey = "fullScreenInfoShowTime"
+        const val fullScreenInfoShowPdfNameKey = "fullScreenInfoShowPdfName"
+        const val fullScreenInfoShowPageNumberKey = "fullScreenInfoShowPageNumber"
+        const val fullScreenInfoShowReadingPercentageKey = "fullScreenInfoShowReadingPercentage"
         const val doubleTapToExitEnabledKey = "doubleTapToExitEnabled"
         const val autoFullScreenKey = "autoFullScreenSwitch"
         const val alwaysHorizontalKey = "alwaysHorizontalKey"
@@ -110,6 +114,10 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val showScrollHandlePageCountDefault = false
         const val secondBarEnabledDefault = false
         const val hideButtonsLabelsDefault = false
+        const val fullScreenInfoShowTimeDefault = true
+        const val fullScreenInfoShowPdfNameDefault = false
+        const val fullScreenInfoShowPageNumberDefault = true
+        const val fullScreenInfoShowReadingPercentageDefault = true
         const val doubleTapToExitEnabledDefault = true
         const val autoFullScreenDefault = false
         const val alwaysHorizontalDefault = false
@@ -151,6 +159,10 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getShowScrollHandlePageCount() = prefMan.getBoolean(showScrollHandlePageCountKey, showScrollHandlePageCountDefault)
     fun getSecondBarEnabled() = prefMan.getBoolean(secondBarEnabledKey, secondBarEnabledDefault)
     fun getHideButtonsLabels() = prefMan.getBoolean(hideButtonsLabelsKey, hideButtonsLabelsDefault)
+    fun getFullScreenInfoShowTime() = prefMan.getBoolean(fullScreenInfoShowTimeKey, fullScreenInfoShowTimeDefault)
+    fun getFullScreenInfoShowPdfName() = prefMan.getBoolean(fullScreenInfoShowPdfNameKey, fullScreenInfoShowPdfNameDefault)
+    fun getFullScreenInfoShowPageNumber() = prefMan.getBoolean(fullScreenInfoShowPageNumberKey, fullScreenInfoShowPageNumberDefault)
+    fun getFullScreenInfoShowReadingPercentage() = prefMan.getBoolean(fullScreenInfoShowReadingPercentageKey, fullScreenInfoShowReadingPercentageDefault)
     fun getDoubleTapToExitEnabled() = prefMan.getBoolean(doubleTapToExitEnabledKey, doubleTapToExitEnabledDefault)
     fun getAutoFullScreen() = prefMan.getBoolean(autoFullScreenKey, autoFullScreenDefault)
     fun getAlwaysHorizontal() = prefMan.getBoolean(alwaysHorizontalKey, alwaysHorizontalDefault)
@@ -183,6 +195,10 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setAutoFullScreen(value: Boolean) = prefMan.edit().putBoolean(autoFullScreenKey, value).apply()
     fun setAlwaysHorizontal(value: Boolean) = prefMan.edit().putBoolean(alwaysHorizontalKey, value).apply()
     fun setHideButtonsLabels(value: Boolean) = prefMan.edit().putBoolean(hideButtonsLabelsKey, value).apply()
+    fun setFullScreenInfoShowTime(value: Boolean) = prefMan.edit().putBoolean(fullScreenInfoShowTimeKey, value).apply()
+    fun setFullScreenInfoShowPdfName(value: Boolean) = prefMan.edit().putBoolean(fullScreenInfoShowPdfNameKey, value).apply()
+    fun setFullScreenInfoShowPageNumber(value: Boolean) = prefMan.edit().putBoolean(fullScreenInfoShowPageNumberKey, value).apply()
+    fun setFullScreenInfoShowReadingPercentage(value: Boolean) = prefMan.edit().putBoolean(fullScreenInfoShowReadingPercentageKey, value).apply()
     fun setEnableReloadButton(value: Boolean) = prefMan.edit().putBoolean(enableReloadButtonKey, value).apply()
     fun setScrollSpeed(value: Int) = prefMan.edit().putInt(scrollSpeedKey, value).apply()
     fun setListFilter(value: ListFilter) = prefMan.edit().putString(listFilterKey, value.name).apply()

@@ -5,14 +5,18 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import android.os.Handler
 import android.os.Looper
+import android.text.format.DateFormat
 import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManager.VisibilityState
+import com.gitlab.mudlej.MjPdfReader.util.divideToPercent
 import com.google.android.material.button.MaterialButton
+import java.util.Date
 import kotlin.reflect.KFunction1
 
 
@@ -20,6 +24,7 @@ class FullScreenOptionsManagerImpl(
     private val binding: ActivityMainBinding,
     private val pdf: PDF,
     private val delay: Long,
+    private val preferences: Preferences,
 ) : FullScreenOptionsManager {
 
     private val delayHandler = Handler(Looper.getMainLooper())
@@ -29,6 +34,7 @@ class FullScreenOptionsManagerImpl(
 
     private val viewsList: List<View> = listOf(
         binding.fullScreenButtonsLayout,
+        binding.fullScreenInfoLayout,
         binding.exitFullScreenButton,
         binding.rotateScreenButton,
 
@@ -115,6 +121,55 @@ class FullScreenOptionsManagerImpl(
         binding.pdfView.scrollHandle?.permanentHide()
     }
 
+    override fun refreshInfo() {
+        val shouldShowInfo = updateInfoContent()
+            && binding.fullScreenButtonsLayout.visibility == View.VISIBLE
+
+        binding.fullScreenInfoLayout.visibility = if (shouldShowInfo) View.VISIBLE else View.GONE
+        binding.pdfView.scrollHandle?.setReadingProgressTextEnabled(!shouldShowInfo)
+    }
+
+    private fun updateInfoContent(): Boolean {
+        val context = binding.root.context
+        val settings = FullScreenInfoSettings.from(preferences)
+        val titleVisible = settings.showPdfName && pdf.name.isNotBlank()
+        val pageInfo = getPageInfo(context, settings)
+
+        binding.fullScreenInfoTime.text = DateFormat.getTimeFormat(context).format(Date())
+        binding.fullScreenInfoTime.visibility = if (settings.showTime) View.VISIBLE else View.GONE
+        binding.fullScreenInfoTitle.text = pdf.getTitle()
+        binding.fullScreenInfoTitle.visibility = if (titleVisible) View.VISIBLE else View.GONE
+        binding.fullScreenInfoPage.text = pageInfo.orEmpty()
+        binding.fullScreenInfoPage.visibility = if (pageInfo != null) View.VISIBLE else View.GONE
+
+        return settings.showTime || titleVisible || pageInfo != null
+    }
+
+    private fun getPageInfo(context: Context, settings: FullScreenInfoSettings): String? {
+        val pageNumber = pdf.pageNumber + 1
+        val pageCount = pdf.length.coerceAtLeast(pageNumber)
+        val percentage = pageNumber.divideToPercent(pageCount)
+
+        return when {
+            settings.showPageNumber && settings.showReadingPercentage -> context.getString(
+                R.string.fullscreen_page_info,
+                pageNumber,
+                pageCount,
+                percentage,
+            )
+            settings.showPageNumber -> context.getString(
+                R.string.fullscreen_page_number_info,
+                pageNumber,
+                pageCount,
+            )
+            settings.showReadingPercentage -> context.getString(
+                R.string.fullscreen_percentage_info,
+                percentage,
+            )
+            else -> null
+        }
+    }
+
 
     @SuppressLint("ClickableViewAccessibility")
     override fun getOnTouchListener(): View.OnTouchListener {
@@ -199,6 +254,13 @@ class FullScreenOptionsManagerImpl(
     private fun changeFullScreenButtonsVisibility(isVisible: Boolean) {
         val visibility = if (isVisible) View.VISIBLE else View.GONE
         binding.fullScreenButtonsLayout.visibility = visibility
+        if (isVisible) {
+            refreshInfo()
+        }
+        else {
+            binding.fullScreenInfoLayout.visibility = View.GONE
+            binding.pdfView.scrollHandle?.setReadingProgressTextEnabled(true)
+        }
     }
 
     private fun showPageHandle() {
@@ -247,6 +309,24 @@ class FullScreenOptionsManagerImpl(
     private fun inverseVisibility(visibility: VisibilityState): VisibilityState {
         return if (visibility == VisibilityState.VISIBLE) VisibilityState.INVISIBLE
         else VisibilityState.VISIBLE
+    }
+
+    private data class FullScreenInfoSettings(
+        val showTime: Boolean,
+        val showPdfName: Boolean,
+        val showPageNumber: Boolean,
+        val showReadingPercentage: Boolean,
+    ) {
+        companion object {
+            fun from(preferences: Preferences): FullScreenInfoSettings {
+                return FullScreenInfoSettings(
+                    showTime = preferences.getFullScreenInfoShowTime(),
+                    showPdfName = preferences.getFullScreenInfoShowPdfName(),
+                    showPageNumber = preferences.getFullScreenInfoShowPageNumber(),
+                    showReadingPercentage = preferences.getFullScreenInfoShowReadingPercentage(),
+                )
+            }
+        }
     }
 
 }

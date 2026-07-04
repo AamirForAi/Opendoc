@@ -71,6 +71,7 @@ public interface ScrollHandle {
     void cancelHideRunner();
     void activateHandlerHideDelayed();
     TextView getReadingProgressText();
+    void setReadingProgressTextEnabled(boolean enabled);
 
     void setOnTouchListener(View.OnTouchListener onTouchListener);
 

@@ -57,6 +57,7 @@ import android.os.*
 import android.print.PrintManager
 import android.provider.MediaStore
 import android.provider.Settings
+import android.text.InputType
 import android.text.format.DateFormat
 import android.util.Log
 import android.view.*
@@ -102,7 +103,9 @@ import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
 import com.gitlab.mudlej.MjPdfReader.util.FileUtil.fileFromUri
 import com.google.android.material.color.MaterialColors
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputLayout
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.shockwave.pdfium.PdfPasswordException
@@ -161,7 +164,7 @@ class MainActivity : AppCompatActivity() {
         // init
         pref = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
         fullScreenOptionsManager = FullScreenOptionsManagerImpl(
-            binding, pdf, pref.getHideDelay().toLong()
+            binding, pdf, pref.getHideDelay().toLong(), pref
         )
         databaseManager = DatabaseManagerImpl(AppDatabase.getInstance(applicationContext))
         permissionManager = PermissionManager(this)
@@ -284,6 +287,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateAppTitle() {
         appTitle.text = pdf.getTitleWithPageNumber()
+        fullScreenOptionsManager.refreshInfo()
     }
 
     private fun initPdfViewAndLoad(viewConfigurator: Configurator, savePassword: Boolean = false) {
@@ -788,6 +792,13 @@ class MainActivity : AppCompatActivity() {
         return newSpeed
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus && pdf.isFullScreenToggled) {
+            ColorUtil.enterFullscreen(window)
+        }
+    }
+
     public override fun onResume() {
         Log.i(TAG, "-----------onResume: ${pdf.name} ")
         super.onResume()
@@ -962,23 +973,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun toggleFullscreen() {
         fun showUi() {
+            ColorUtil.exitFullscreen(this, window, supportActionBar)
             supportActionBar?.show()
             binding.appBarBottomShadow.visibility = View.VISIBLE
             if (pref.getSecondBarEnabled()) {
                 binding.secondBarLayout.visibility = View.VISIBLE
             }
-            binding.pdfView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
         }
 
         fun hideUi() {
             supportActionBar?.hide()
             binding.appBarBottomShadow.visibility = View.GONE
             binding.secondBarLayout.visibility = View.GONE
-            binding.pdfView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                or View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-            )
+            ColorUtil.enterFullscreen(window)
         }
 
         if (!pdf.isFullScreenToggled) {
@@ -1224,6 +1231,9 @@ class MainActivity : AppCompatActivity() {
             ReaderAction(R.string.open_another_pdf, R.drawable.ic_folder) {
                 pickFile()
             },
+            ReaderAction(R.string.open_online_pdf, R.drawable.ic_link) {
+                showOpenOnlinePdfDialog()
+            },
             ReaderAction(R.string.table_of_contents, R.drawable.ic_book_bookmark, visible = hasFile) {
                 showBookmarks()
             },
@@ -1282,6 +1292,55 @@ class MainActivity : AppCompatActivity() {
             }
         }
         showMetaDialog(this, binding.pdfView.documentMeta, file)
+    }
+
+    private fun showOpenOnlinePdfDialog() {
+        val inputLayout = layoutInflater.inflate(R.layout.input_layout, null) as TextInputLayout
+        inputLayout.hint = getString(R.string.online_pdf_link)
+        inputLayout.setStartIconDrawable(R.drawable.ic_link)
+        inputLayout.editText?.apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            setSingleLine(true)
+        }
+
+        var confirmedHttpLink: String? = null
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.open_online_pdf)
+            .setView(inputLayout)
+            .setPositiveButton(R.string.open_online_pdf, null)
+            .setNegativeButton(R.string.cancel) { dialog, _ -> dialog.dismiss() }
+            .create()
+
+        dialog.setOnShowListener {
+            val openButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
+            openButton.setOnClickListener {
+                val link = inputLayout.editText?.text?.toString()?.trim().orEmpty()
+                val uri = link.toUri()
+                inputLayout.error = null
+
+                if (!uri.scheme.isOnlinePdfScheme() || uri.host.isNullOrBlank()) {
+                    confirmedHttpLink = null
+                    openButton.setText(R.string.open_online_pdf)
+                    inputLayout.error = getString(R.string.invalid_online_pdf_link)
+                    return@setOnClickListener
+                }
+
+                if (uri.scheme.equals("http", ignoreCase = true) && confirmedHttpLink != link) {
+                    confirmedHttpLink = link
+                    openButton.setText(R.string.proceed_anyway)
+                    inputLayout.error = getString(R.string.http_online_pdf_warning)
+                    return@setOnClickListener
+                }
+
+                dialog.dismiss()
+                displayFromUri(uri, savePassword = true)
+            }
+        }
+        dialog.show()
+    }
+
+    private fun String?.isOnlinePdfScheme(): Boolean {
+        return equals("http", ignoreCase = true) || equals("https", ignoreCase = true)
     }
 
     private fun checkHasFile(): Boolean {

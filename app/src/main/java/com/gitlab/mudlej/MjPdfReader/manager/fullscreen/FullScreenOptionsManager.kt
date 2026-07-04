@@ -33,10 +33,11 @@ interface FullScreenOptionsManager {
 
     fun permanentlyHidePageHandle()
 
+    fun refreshInfo()
+
     fun getOnTouchListener(): View.OnTouchListener
 
     fun toggleLabelVisibility(context: Context, drawableOf: KFunction1<Int, Drawable?>, getLabel: KFunction1<Int, String?>)
 
     fun isLabelsVisible(): Boolean
 }
-

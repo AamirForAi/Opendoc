@@ -100,6 +100,30 @@ class SettingsFragment : PreferenceFragmentCompat() {
             summary = getString(R.string.show_scroll_handle_page_count_summary)
             isIconSpaceReserved = false
         }
+        val showFullScreenInfoTimeSwitch = SwitchPreferenceCompat(requireContext()).apply {
+            title = getString(R.string.fullscreen_info_show_time)
+            setDefaultValue(Preferences.fullScreenInfoShowTimeDefault)
+            key = Preferences.fullScreenInfoShowTimeKey
+            isIconSpaceReserved = false
+        }
+        val showFullScreenInfoPdfNameSwitch = SwitchPreferenceCompat(requireContext()).apply {
+            title = getString(R.string.fullscreen_info_show_pdf_name)
+            setDefaultValue(Preferences.fullScreenInfoShowPdfNameDefault)
+            key = Preferences.fullScreenInfoShowPdfNameKey
+            isIconSpaceReserved = false
+        }
+        val showFullScreenInfoPageNumberSwitch = SwitchPreferenceCompat(requireContext()).apply {
+            title = getString(R.string.fullscreen_info_show_page_number)
+            setDefaultValue(Preferences.fullScreenInfoShowPageNumberDefault)
+            key = Preferences.fullScreenInfoShowPageNumberKey
+            isIconSpaceReserved = false
+        }
+        val showFullScreenInfoReadingPercentageSwitch = SwitchPreferenceCompat(requireContext()).apply {
+            title = getString(R.string.fullscreen_info_show_reading_percentage)
+            setDefaultValue(Preferences.fullScreenInfoShowReadingPercentageDefault)
+            key = Preferences.fullScreenInfoShowReadingPercentageKey
+            isIconSpaceReserved = false
+        }
 
         val section: PreferenceCategory? = findPreference("visualSection")
         section?.apply {
@@ -109,6 +133,10 @@ class SettingsFragment : PreferenceFragmentCompat() {
             addPreference(screenOnSwitch)
             addPreference(spaceBetweenPages)
             addPreference(showScrollHandlePageCountSwitch)
+            addPreference(showFullScreenInfoTimeSwitch)
+            addPreference(showFullScreenInfoPdfNameSwitch)
+            addPreference(showFullScreenInfoPageNumberSwitch)
+            addPreference(showFullScreenInfoReadingPercentageSwitch)
         }
     }
 

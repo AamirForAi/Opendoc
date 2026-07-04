@@ -106,7 +106,11 @@
     <string name="space_between_pages">Space between Pages</string>
     <string name="privacy_info">This app does not collect any data.\nThe following permissions are required to provide specific features in the app:\n- <b>Internet</b>: open PDFs through links\n- <b>Storage</b>: open files from storage, save PDFs opened through links</string>
     <string name="switch_theme">Toggle PDF Theme</string>
-    <string name="open_another_pdf">Open Another PDF</string>
+    <string name="open_another_pdf">Open Local PDF</string>
+    <string name="open_online_pdf">Open Online PDF</string>
+    <string name="online_pdf_link">Online PDF Link</string>
+    <string name="invalid_online_pdf_link">Enter a valid HTTP or HTTPS link.</string>
+    <string name="http_online_pdf_warning">HTTP links are not encrypted. Other people on the network may be able to see or modify the file. Tap Proceed Anyway to open it.</string>
     <string name="close">Close</string>
     <string name="exit_fullscreen_button">Exit Fullscreen Button</string>
     <string name="ask_restore_zoom">Restore zoom?</string>
@@ -183,6 +187,9 @@
     <string name="copy_link_url">Copy link URL</string>
     <string name="failed_to_extract_text">Failed to extract text</string>
     <string name="page_counter_label">Page: %1$d/%2$d</string>
+    <string name="fullscreen_page_info">Page %1$d / %2$d · %3$d%%</string>
+    <string name="fullscreen_page_number_info">Page %1$d / %2$d</string>
+    <string name="fullscreen_percentage_info">%1$d%%</string>
     <string name="next_page">Next Page</string>
     <string name="prev_page">Prev Page</string>
     <string name="text_color">Text Color</string>
@@ -216,6 +223,10 @@
     <string name="screenshot">Screenshot</string>
     <string name="hide_labels">Hide Labels</string>
     <string name="brightness">Brightness</string>
+    <string name="fullscreen_info_show_time">Show time in full screen</string>
+    <string name="fullscreen_info_show_pdf_name">Show PDF name in full screen</string>
+    <string name="fullscreen_info_show_page_number">Show page number in full screen</string>
+    <string name="fullscreen_info_show_reading_percentage">Show reading percentage in full screen</string>
     <string name="behavior_settings">Behavior</string>
     <string name="auto_full_screen">Auto Full Screen</string>
     <string name="auto_full_screen_summary">When a document is opened, automatically toggle Full Screen mode.</string>

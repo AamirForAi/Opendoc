@@ -265,6 +265,56 @@
             </LinearLayout>
         </ScrollView>
 
+        <!-- Fullscreen Info Card-->
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:id="@+id/fullScreenInfoLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/seekbar_background"
+            android:clickable="false"
+            android:focusable="false"
+            android:gravity="start"
+            android:orientation="vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <TextView
+                android:id="@+id/fullScreenInfoTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                tools:text="14:32" />
+
+            <TextView
+                android:id="@+id/fullScreenInfoTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxWidth="@dimen/fullscreen_info_max_width"
+                android:singleLine="true"
+                android:textAlignment="viewStart"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="Clean Architecture" />
+
+            <TextView
+                android:id="@+id/fullScreenInfoPage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="14sp"
+                tools:text="Page 42 / 318 · 13%" />
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
         <!-- Auto Scroll Speed Text -->
         <TextView
             android:id="@+id/autoScrollSpeedText"

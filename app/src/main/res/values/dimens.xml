@@ -6,6 +6,7 @@
     <dimen name="fs_button_vertical_margin">2dp</dimen>
     <dimen name="fs_button_padding">6dp</dimen>
     <dimen name="fs_button_padding_end">16dp</dimen>
+    <dimen name="fullscreen_info_max_width">280dp</dimen>
 
     <dimen name="properties_padding">5dp</dimen>
 </resources>

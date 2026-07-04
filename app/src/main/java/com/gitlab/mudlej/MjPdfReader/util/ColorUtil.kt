@@ -28,6 +28,7 @@ object ColorUtil {
         WindowCompat.setDecorFitsSystemWindows(window, true)
         window.statusBarColor = color
         window.navigationBarColor = color
+        showSystemBars(window)
         drawSystemBarBackgrounds(window, color)
         setSystemBarIconColors(window, color)
         fitContentBelowSystemBars(window)
@@ -35,6 +36,19 @@ object ColorUtil {
         actionBar?.setBackgroundDrawable(ColorDrawable(color))
         // Flatten the app bar so it blends into the status bar.
         actionBar?.elevation = 0f
+    }
+
+    fun enterFullscreen(window: Window) {
+        setSystemBarBackgroundsVisible(window, false)
+        setContentFitsSystemBars(window, false)
+
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.hide(WindowInsetsCompat.Type.systemBars())
+    }
+
+    fun exitFullscreen(context: Context, window: Window, actionBar: ActionBar?) {
+        colorize(context, window, actionBar)
     }
 
     fun getBarColor(context: Context): Int {
@@ -99,6 +113,9 @@ object ColorUtil {
         }
 
         background.setBackgroundColor(color)
+        if ((background.layoutParams?.height ?: 0) > 0) {
+            background.visibility = View.VISIBLE
+        }
         ViewCompat.setOnApplyWindowInsetsListener(background) { view, insets ->
             setSystemBarBackgroundHeight(view, getHeight(insets))
             insets
@@ -128,10 +145,33 @@ object ColorUtil {
             return
         }
 
+        setContentFitsSystemBars(window, true)
+    }
+
+    private fun setContentFitsSystemBars(window: Window, fitsSystemWindows: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            return
+        }
+
         val content = window.decorView.findViewById<ViewGroup>(android.R.id.content) ?: return
         val root = content.getChildAt(0) ?: return
-        root.fitsSystemWindows = true
+        root.fitsSystemWindows = fitsSystemWindows
+        if (!fitsSystemWindows) {
+            root.setPadding(0, 0, 0, 0)
+        }
         ViewCompat.requestApplyInsets(root)
+    }
+
+    private fun showSystemBars(window: Window) {
+        WindowInsetsControllerCompat(window, window.decorView)
+            .show(WindowInsetsCompat.Type.systemBars())
+    }
+
+    private fun setSystemBarBackgroundsVisible(window: Window, visible: Boolean) {
+        val decor = window.decorView as? ViewGroup ?: return
+        val visibility = if (visible) View.VISIBLE else View.GONE
+        decor.findViewWithTag<View>(STATUS_BAR_BACKGROUND_TAG)?.visibility = visibility
+        decor.findViewWithTag<View>(NAVIGATION_BAR_BACKGROUND_TAG)?.visibility = visibility
     }
 
 }

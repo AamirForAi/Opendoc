@@ -52,6 +52,7 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
         }
     };
     boolean permanentHidden = false;
+    private boolean readingProgressTextEnabled = true;
     private View.OnTouchListener customOnTouchListener;
 
     public DefaultScrollHandle(Context context) {
@@ -148,6 +149,14 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
     @Override
     public TextView getReadingProgressText() {
         return readingProgressText;
+    }
+
+    @Override
+    public void setReadingProgressTextEnabled(boolean enabled) {
+        readingProgressTextEnabled = enabled;
+        if (!enabled && readingProgressText != null) {
+            readingProgressText.setVisibility(GONE);
+        }
     }
 
     @Override
@@ -308,8 +317,10 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
                 else {
                     currentPos = event.getRawX() - getX();
                 }
-                readingProgressText.setVisibility(VISIBLE);
-                readingProgressText.setText(getProgressText());
+                if (readingProgressTextEnabled) {
+                    readingProgressText.setVisibility(VISIBLE);
+                    readingProgressText.setText(getProgressText());
+                }
             case MotionEvent.ACTION_MOVE:
                 if (pdfView.isSwipeVertical()) {
                     setPosition(event.getRawY() - currentPos + relativeHandlerMiddle);
@@ -318,7 +329,9 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
                     setPosition(event.getRawX() - currentPos + relativeHandlerMiddle);
                     pdfView.setPositionOffset(relativeHandlerMiddle / (float) getWidth(), false);
                 }
-                readingProgressText.setText(getProgressText());
+                if (readingProgressTextEnabled) {
+                    readingProgressText.setText(getProgressText());
+                }
                 return true;
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
