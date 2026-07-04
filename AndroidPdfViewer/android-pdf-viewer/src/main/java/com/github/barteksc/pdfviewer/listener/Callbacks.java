@@ -53,6 +53,11 @@ public class Callbacks {
     private OnPageScrollListener onPageScrollListener;
 
     /**
+     * Call back object to call when the user starts interacting with the document.
+     */
+    private OnDocumentInteractionListener onDocumentInteractionListener;
+
+    /**
      * Call back object to call when the above layer is to drawn
      */
     private OnDrawListener onDrawListener;
@@ -131,6 +136,16 @@ public class Callbacks {
     public void callOnPageScroll(int currentPage, float offset) {
         if (onPageScrollListener != null) {
             onPageScrollListener.onPageScrolled(currentPage, offset);
+        }
+    }
+
+    public void setOnDocumentInteraction(OnDocumentInteractionListener onDocumentInteractionListener) {
+        this.onDocumentInteractionListener = onDocumentInteractionListener;
+    }
+
+    public void callOnDocumentInteraction(MotionEvent event) {
+        if (onDocumentInteractionListener != null) {
+            onDocumentInteractionListener.onDocumentInteraction(event);
         }
     }
 

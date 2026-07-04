@@ -307,6 +307,10 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             return false;
         }
 
+        if (isInteractionStart(event)) {
+            pdfView.callbacks.callOnDocumentInteraction(event);
+        }
+
         boolean retVal = scaleGestureDetector.onTouchEvent(event);
         retVal = gestureDetector.onTouchEvent(event) || retVal;
 
@@ -317,6 +321,11 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             }
         }
         return retVal;
+    }
+
+    private boolean isInteractionStart(MotionEvent event) {
+        int action = event.getActionMasked();
+        return action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN;
     }
 
     private void hideHandle() {

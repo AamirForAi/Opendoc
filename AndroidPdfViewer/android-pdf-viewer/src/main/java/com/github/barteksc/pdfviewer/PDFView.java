@@ -42,6 +42,7 @@ import com.github.barteksc.pdfviewer.exception.PageRenderingException;
 import com.github.barteksc.pdfviewer.link.DefaultLinkHandler;
 import com.github.barteksc.pdfviewer.link.LinkHandler;
 import com.github.barteksc.pdfviewer.listener.Callbacks;
+import com.github.barteksc.pdfviewer.listener.OnDocumentInteractionListener;
 import com.github.barteksc.pdfviewer.listener.OnDrawListener;
 import com.github.barteksc.pdfviewer.listener.OnErrorListener;
 import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener;
@@ -1606,6 +1607,8 @@ public class PDFView extends RelativeLayout {
 
         private OnPageScrollListener onPageScrollListener;
 
+        private OnDocumentInteractionListener onDocumentInteractionListener;
+
         private OnRenderListener onRenderListener;
 
         private OnTapListener onTapListener;
@@ -1695,6 +1698,11 @@ public class PDFView extends RelativeLayout {
 
         public Configurator onPageScroll(OnPageScrollListener onPageScrollListener) {
             this.onPageScrollListener = onPageScrollListener;
+            return this;
+        }
+
+        public Configurator onDocumentInteraction(OnDocumentInteractionListener onDocumentInteractionListener) {
+            this.onDocumentInteractionListener = onDocumentInteractionListener;
             return this;
         }
 
@@ -1815,6 +1823,7 @@ public class PDFView extends RelativeLayout {
             PDFView.this.callbacks.setOnDrawAll(onDrawAllListener);
             PDFView.this.callbacks.setOnPageChange(onPageChangeListener);
             PDFView.this.callbacks.setOnPageScroll(onPageScrollListener);
+            PDFView.this.callbacks.setOnDocumentInteraction(onDocumentInteractionListener);
             PDFView.this.callbacks.setOnRender(onRenderListener);
             PDFView.this.callbacks.setOnTap(onTapListener);
             PDFView.this.callbacks.setOnLongPress(onLongPressListener);

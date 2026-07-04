@@ -9,6 +9,8 @@ import android.text.format.DateFormat
 import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
@@ -58,6 +60,7 @@ class FullScreenOptionsManagerImpl(
 
     init {
         setOnTouchListenerForAll()
+        updateInfoPositionOnLayoutChanges()
     }
 
     override fun isVisible() = visibility == VisibilityState.VISIBLE
@@ -126,6 +129,12 @@ class FullScreenOptionsManagerImpl(
             && binding.fullScreenButtonsLayout.visibility == View.VISIBLE
 
         binding.fullScreenInfoLayout.visibility = if (shouldShowInfo) View.VISIBLE else View.GONE
+        if (shouldShowInfo) {
+            updateInfoPositionAfterLayout()
+        }
+        else {
+            setInfoAfterFullScreenButtons(false)
+        }
         binding.pdfView.scrollHandle?.setReadingProgressTextEnabled(!shouldShowInfo)
     }
 
@@ -215,6 +224,7 @@ class FullScreenOptionsManagerImpl(
             }
         }
         labelVisibility = inverseVisibility(labelVisibility)
+        updateInfoPositionAfterLayout()
     }
 
     private fun makeButtonCircular(context: Context, button: MaterialButton) {
@@ -233,6 +243,41 @@ class FullScreenOptionsManagerImpl(
 
     private fun resetButtonShape(button: MaterialButton) {
         button.layoutParams.width = LinearLayout.LayoutParams.WRAP_CONTENT
+    }
+
+    private fun updateInfoPositionAfterLayout() {
+        binding.viewActionsLayout.post {
+            val buttons = binding.fullScreenButtonsLayout
+            val info = binding.fullScreenInfoLayout
+            val shouldMoveInfo = buttons.visibility == View.VISIBLE
+                && info.visibility == View.VISIBLE
+                && buttons.top < info.bottom
+                && buttons.bottom > info.top
+
+            setInfoAfterFullScreenButtons(shouldMoveInfo)
+        }
+    }
+
+    private fun updateInfoPositionOnLayoutChanges() {
+        binding.viewActionsLayout.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            if (binding.fullScreenInfoLayout.visibility == View.VISIBLE) {
+                updateInfoPositionAfterLayout()
+            }
+        }
+    }
+
+    private fun setInfoAfterFullScreenButtons(afterButtons: Boolean) {
+        val params = binding.fullScreenInfoLayout.layoutParams as ConstraintLayout.LayoutParams
+        val startToStart = if (afterButtons) ConstraintSet.UNSET else ConstraintSet.PARENT_ID
+        val startToEnd = if (afterButtons) binding.fullScreenButtonsLayout.id else ConstraintSet.UNSET
+
+        if (params.startToStart == startToStart && params.startToEnd == startToEnd) {
+            return
+        }
+
+        params.startToStart = startToStart
+        params.startToEnd = startToEnd
+        binding.fullScreenInfoLayout.layoutParams = params
     }
 
     // -------------

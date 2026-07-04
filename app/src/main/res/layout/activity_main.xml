@@ -280,7 +280,10 @@
             android:paddingHorizontal="12dp"
             android:paddingVertical="8dp"
             android:visibility="gone"
+            app:layout_constrainedWidth="true"
             app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0"
             app:layout_constraintStart_toStartOf="parent">
 
             <TextView
@@ -315,6 +318,13 @@
                 tools:text="Page 42 / 318 · 13%" />
         </androidx.appcompat.widget.LinearLayoutCompat>
 
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/fullScreenBottomControlsBarrier"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:barrierDirection="top"
+            app:constraint_referenced_ids="brightnessLayout,fullScreenInfoLayout" />
+
         <!-- Auto Scroll Speed Text -->
         <TextView
             android:id="@+id/autoScrollSpeedText"
@@ -347,7 +357,7 @@
             android:visibility="gone"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/brightnessLayout">
+            app:layout_constraintBottom_toTopOf="@id/fullScreenBottomControlsBarrier">
 
             <com.google.android.material.button.MaterialButton
                 style="@style/CustomMaterialButton"

@@ -325,6 +325,7 @@ class MainActivity : AppCompatActivity() {
             .onPageChange { page: Int, pageCount: Int -> setCurrentPage(page, pageCount) }
             .enableAnnotationRendering(Preferences.annotationRenderingDefault)
             .enableAntialiasing(pref.getAntiAliasing())
+            .onDocumentInteraction { stopAutoScrollingOnUserInteraction() }
             .onTap { fullScreenOptionsManager.showAllTemporarilyOrHide(); true }
             .onLongPress { copyPageText(false) }
             .scrollHandle(createScrollHandle())
@@ -425,7 +426,13 @@ class MainActivity : AppCompatActivity() {
     private fun createScrollHandle(): ScrollHandle {
         // hiding the handle if the pdf.length is 1 will happen when pdf.length is set in setPdfLength()
         val handle = DefaultScrollHandle(this, false, pref.getShowScrollHandlePageCount())
-        handle.setOnTouchListener(fullScreenOptionsManager.getOnTouchListener())
+        val fullScreenTouchListener = fullScreenOptionsManager.getOnTouchListener()
+        handle.setOnTouchListener { view, motionEvent ->
+            if (motionEvent.actionMasked == MotionEvent.ACTION_DOWN) {
+                stopAutoScrollingOnUserInteraction()
+            }
+            fullScreenTouchListener.onTouch(view, motionEvent)
+        }
         handle.setOnClickListener { goToPage() }
         return handle
     }
@@ -683,8 +690,11 @@ class MainActivity : AppCompatActivity() {
                     }
                     binding.pdfView.loadPages()
 
-                    if (pdf.isAutoScrolling || pdf.pageNumber < pdf.length) {
+                    if (pdf.isAutoScrolling && shouldContinueAutoScrolling(scrollBy)) {
                         startAutoScrolling()
+                    }
+                    else if (pdf.isAutoScrolling) {
+                        stopAutoScrolling(binding)
                     }
                 }, delay)
             }
@@ -700,6 +710,21 @@ class MainActivity : AppCompatActivity() {
         binding.toggleAutoScrollButton.setIconResource(R.drawable.ic_play_arrow)
         autoScrollHandler.removeCallbacksAndMessages(null)
         pdf.isAutoScrolling = false
+    }
+
+    private fun stopAutoScrollingOnUserInteraction() {
+        if (pdf.isAutoScrolling) {
+            stopAutoScrolling(binding)
+        }
+    }
+
+    private fun shouldContinueAutoScrolling(scrollBy: Double): Boolean {
+        return if (scrollBy < 0) {
+            binding.pdfView.positionOffset < 1F
+        }
+        else {
+            binding.pdfView.positionOffset > 0F
+        }
     }
 
     private fun autoScrollButtonListener(binding: ActivityMainBinding) {
