@@ -222,7 +222,7 @@ class HomeActivity : AppCompatActivity(), RecordFunctions {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.home_menu, menu)
-        menu.showOptionalIcons()
+        menu.showOptionalIcons(this)
         return true
     }
 

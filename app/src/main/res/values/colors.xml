@@ -21,6 +21,7 @@
     <color name="md_theme_onBackground">#191C1D</color>
     <color name="md_theme_surface">#FAFDFD</color>
     <color name="md_theme_onSurface">#191C1D</color>
+    <color name="md_theme_surfaceContainerHigh">#E9EEEE</color>
     <color name="md_theme_surfaceVariant">#DBE4E6</color>
     <color name="md_theme_onSurfaceVariant">#3F484A</color>
     <color name="md_theme_outline">#6F797A</color>

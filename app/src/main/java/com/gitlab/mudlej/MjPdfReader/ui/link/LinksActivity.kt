@@ -20,6 +20,7 @@ import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.util.configureSearchIcon
 import com.gitlab.mudlej.MjPdfReader.util.copyToClipboard
 import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
+import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -123,6 +124,7 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.search_menu, menu)
+        menu.tintIconsForChrome(this)
         configureSearchIcon(menu, links.isNotEmpty())
         return true
     }

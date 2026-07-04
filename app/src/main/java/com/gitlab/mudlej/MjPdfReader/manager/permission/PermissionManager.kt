@@ -6,10 +6,10 @@ import android.os.Build
 import android.os.Environment
 import android.provider.Settings
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.ui.main.MainActivity
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 
 class PermissionManager(private val activity: AppCompatActivity) {
@@ -43,7 +43,7 @@ class PermissionManager(private val activity: AppCompatActivity) {
     val requestPermissionLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ ->
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
-                AlertDialog.Builder(activity)
+                MaterialAlertDialogBuilder(activity)
                     .setCancelable(false)
                     .setTitle("Really?")
                     .setMessage("For real? How can I work right now?!")

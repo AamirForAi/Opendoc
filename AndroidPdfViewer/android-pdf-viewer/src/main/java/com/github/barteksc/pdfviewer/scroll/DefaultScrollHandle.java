@@ -78,10 +78,10 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
 
     private void setCustomColorForText(Context context) {
         TypedValue typedValue = new TypedValue();
-        boolean found = context.getTheme().resolveAttribute(com.google.android.material.R.attr.colorOnBackground, typedValue, true);
+        boolean found = context.getTheme().resolveAttribute(R.attr.colorOnSurface, typedValue, true);
         if (found) {
-            int colorOnBackground = typedValue.data;
-            setTextColor(colorOnBackground);
+            int colorOnSurface = typedValue.data;
+            setTextColor(colorOnSurface);
         }
     }
 

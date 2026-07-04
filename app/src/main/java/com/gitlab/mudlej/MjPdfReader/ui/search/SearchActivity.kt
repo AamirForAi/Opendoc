@@ -24,6 +24,7 @@ import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.util.configureSearchIcon
 import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
 import com.gitlab.mudlej.MjPdfReader.util.indexesOf
+import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
@@ -255,6 +256,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.search_menu, menu)
+        menu.tintIconsForChrome(this)
         actionBarMenu = menu
         return true
     }

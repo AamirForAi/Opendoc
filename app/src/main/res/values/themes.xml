@@ -16,25 +16,38 @@
         <item name="colorErrorContainer">@color/md_theme_errorContainer</item>
         <item name="colorOnError">@color/md_theme_onError</item>
         <item name="colorOnErrorContainer">@color/md_theme_onErrorContainer</item>
-        <item name="android:colorBackground">@color/md_theme_background</item>
+        <item name="android:colorBackground">@color/md_theme_surfaceContainerHigh</item>
         <item name="colorOnBackground">@color/md_theme_onBackground</item>
-        <item name="colorSurface">@color/md_theme_surface</item>
+        <item name="colorSurface">@color/md_theme_surfaceContainerHigh</item>
         <item name="colorOnSurface">@color/md_theme_onSurface</item>
+        <item name="colorSurfaceContainer">@color/md_theme_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerLow">@color/md_theme_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerLowest">@color/md_theme_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHigh">@color/md_theme_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/md_theme_surfaceContainerHigh</item>
+        <item name="colorSurfaceBright">@color/md_theme_surfaceContainerHigh</item>
+        <item name="colorSurfaceDim">@color/md_theme_surfaceContainerHigh</item>
         <item name="colorSurfaceVariant">@color/md_theme_surfaceVariant</item>
         <item name="colorOnSurfaceVariant">@color/md_theme_onSurfaceVariant</item>
         <item name="colorOutline">@color/md_theme_outline</item>
         <item name="colorOnSurfaceInverse">@color/md_theme_inverseOnSurface</item>
         <item name="colorSurfaceInverse">@color/md_theme_inverseSurface</item>
         <item name="colorPrimaryInverse">@color/md_theme_inversePrimary</item>
-        <item name="android:statusBarColor">?attr/colorSurfaceVariant</item>
-        <item name="android:navigationBarColor">?attr/colorSurfaceVariant</item>
+        <item name="android:statusBarColor">?attr/colorSurfaceContainerHigh</item>
+        <item name="android:navigationBarColor">?attr/colorSurfaceContainerHigh</item>
         <item name="android:enforceStatusBarContrast" tools:targetApi="q">false</item>
         <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
         <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
+        <item name="elevationOverlayEnabled">false</item>
+        <item name="materialButtonStyle">@style/ChromeMaterialButton</item>
+        <item name="actionBarTheme">@style/ChromeActionBarTheme</item>
         <item name="actionBarPopupTheme">@style/CustomPopupMenuTheme</item>
         <item name="actionOverflowMenuStyle">@style/CustomOverflowMenuStyle</item>
         <item name="popupMenuStyle">@style/CustomPopupMenuStyle</item>
+        <item name="popupMenuBackground">@drawable/chrome_popup_background</item>
         <item name="materialAlertDialogTheme">@style/ChromeMaterialAlertDialog</item>
+        <item name="snackbarStyle">@style/ChromeSnackbar</item>
+        <item name="snackbarButtonStyle">@style/ChromeSnackbarButton</item>
 <!--        <item name="actionBarStyle">@style/MyActionBarStyle</item>-->
     </style>
 
@@ -47,19 +60,36 @@
         <item name="cornerSize">5%</item>
     </style>
 
-    <style name="CustomMaterialButton" parent="Widget.Material3.Button">
+    <style name="ChromeMaterialButton" parent="Widget.Material3.Button">
         <item name="strokeWidth">1dp</item>
-        <item name="strokeColor">?attr/colorOnBackground</item>
-        <item name="android:textColor">?attr/colorOnBackground</item>
-        <item name="iconTint">?attr/colorOnBackground</item>
-        <item name="android:backgroundTint">?attr/colorSurfaceVariant</item>
+        <item name="strokeColor">?attr/colorOnSurface</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="iconTint">?attr/colorOnSurface</item>
+        <item name="backgroundTint">?attr/colorSurfaceContainerHigh</item>
+        <item name="android:backgroundTint">?attr/colorSurfaceContainerHigh</item>
+        <item name="elevation">0dp</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+
+    <style name="CustomMaterialButton" parent="@style/ChromeMaterialButton">
         <item name="android:maxWidth">160dp</item>
         <item name="android:maxLines">2</item>
         <item name="android:ellipsize">end</item>
     </style>
 
+    <style name="ChromeActionBarTheme" parent="ThemeOverlay.Material3">
+        <item name="android:textColorPrimary">?attr/colorOnSurface</item>
+        <item name="colorOnBackground">?attr/colorOnSurface</item>
+        <item name="colorControlNormal">?attr/colorOnSurface</item>
+    </style>
+
     <style name="CustomPopupMenuTheme" parent="ThemeOverlay.Material3">
+        <item name="android:textColorPrimary">?attr/colorOnSurface</item>
+        <item name="android:textColorSecondary">?attr/colorOnSurface</item>
+        <item name="colorOnBackground">?attr/colorOnSurface</item>
+        <item name="colorControlNormal">?attr/colorOnSurface</item>
         <item name="android:popupBackground">@drawable/chrome_popup_background</item>
+        <item name="popupMenuBackground">@drawable/chrome_popup_background</item>
     </style>
 
     <style name="CustomOverflowMenuStyle" parent="Widget.AppCompat.PopupMenu.Overflow">
@@ -70,12 +100,36 @@
         <item name="android:popupBackground">@drawable/chrome_popup_background</item>
     </style>
 
+    <style name="ChromeDialogButton" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="iconTint">?attr/colorOnSurface</item>
+        <item name="rippleColor">?attr/colorOnSurface</item>
+    </style>
+
+
     <style name="ChromeMaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
-        <item name="colorSurface">?attr/colorSurfaceVariant</item>
-        <item name="colorSurfaceContainerHigh">?attr/colorSurfaceVariant</item>
-        <item name="android:colorBackground">?attr/colorSurfaceVariant</item>
-        <item name="backgroundTint">?attr/colorSurfaceVariant</item>
-        <item name="colorOnSurface">?attr/colorOnSurfaceVariant</item>
+        <item name="buttonBarButtonStyle">@style/ChromeDialogButton</item>
+        <item name="buttonBarPositiveButtonStyle">@style/ChromeDialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/ChromeDialogButton</item>
+        <item name="buttonBarNeutralButtonStyle">@style/ChromeDialogButton</item>
+        <item name="android:buttonBarButtonStyle">@style/ChromeDialogButton</item>
+        <item name="android:buttonBarPositiveButtonStyle">@style/ChromeDialogButton</item>
+        <item name="android:buttonBarNegativeButtonStyle">@style/ChromeDialogButton</item>
+        <item name="android:buttonBarNeutralButtonStyle">@style/ChromeDialogButton</item>
+    </style>
+
+    <style name="ChromeSnackbar" parent="Widget.Material3.Snackbar">
+        <item name="materialThemeOverlay">@style/ChromeSnackbarThemeOverlay</item>
+    </style>
+
+    <style name="ChromeSnackbarThemeOverlay" parent="ThemeOverlay.Material3.Snackbar">
+        <item name="colorOnSurface">@color/md_theme_onSurface</item>
+    </style>
+
+    <style name="ChromeSnackbarButton" parent="Widget.Material3.Button.TextButton.Snackbar">
+        <item name="strokeWidth">0dp</item>
+        <item name="strokeColor">@android:color/transparent</item>
+        <item name="android:backgroundTint">@android:color/transparent</item>
     </style>
 
 </resources>

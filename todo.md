@@ -72,9 +72,10 @@
 - [ ] Add live inline text selection.
 - [ ] Add next/previous search-result navigation from the main reader.
 - [ ] Improve expanding search results after filtering.
+- [ ] Search for words ignoring accents/diacritics. (`èéÈÉ=e`, `òóÒÓ=o`, `çč=c`, `ž=z`)
 
 ## PDF Features
-- [ ] Add PDF metadata such as page size and embedded fonts.
+- [ ] Add PDF metadata such as page size (mm, A4, etc) and embedded fonts.
 - [ ] Add forms support.
 - [ ] Add fillable forms support.
 - [ ] Add handwritten/image signature support.

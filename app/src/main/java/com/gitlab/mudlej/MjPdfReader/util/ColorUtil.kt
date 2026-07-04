@@ -13,6 +13,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.gitlab.mudlej.MjPdfReader.R
 import com.google.android.material.color.MaterialColors
 
 
@@ -32,13 +33,15 @@ object ColorUtil {
         fitContentBelowSystemBars(window)
 
         actionBar?.setBackgroundDrawable(ColorDrawable(color))
+        // Flatten the app bar so it blends into the status bar.
+        actionBar?.elevation = 0f
     }
 
     fun getBarColor(context: Context): Int {
         return MaterialColors.getColor(
             context,
-            com.google.android.material.R.attr.colorSurfaceVariant,
-            MaterialColors.getColor(context, com.google.android.material.R.attr.colorSurface, 0)
+            R.attr.colorSurfaceContainerHigh,
+            0
         )
     }
 
@@ -80,12 +83,19 @@ object ColorUtil {
             view.tag = tag
             decor.addView(
                 view,
+                0,
                 FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     getSystemBarHeight(decor, fallbackResourceName),
                     gravity
                 )
             )
+        }
+
+        if (decor.indexOfChild(background) > 0) {
+            val layoutParams = background.layoutParams
+            decor.removeView(background)
+            decor.addView(background, 0, layoutParams)
         }
 
         background.setBackgroundColor(color)

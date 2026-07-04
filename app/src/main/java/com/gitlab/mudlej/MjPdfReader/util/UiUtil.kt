@@ -2,6 +2,7 @@ package com.gitlab.mudlej.MjPdfReader.util
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.graphics.Color
 import android.util.Log
 import android.view.Menu
@@ -10,13 +11,22 @@ import androidx.appcompat.widget.LinearLayoutCompat
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
 import com.gitlab.mudlej.MjPdfReader.R
+import com.google.android.material.color.MaterialColors
 import top.defaults.colorpicker.ColorPickerPopup
 
 
 @SuppressLint("RestrictedApi")
-fun Menu.showOptionalIcons() {
+fun Menu.showOptionalIcons(context: Context? = null) {
     if (this is MenuBuilder) {
         setOptionalIconsVisible(true)
+    }
+    context?.let(::tintIconsForChrome)
+}
+
+fun Menu.tintIconsForChrome(context: Context) {
+    val color = MaterialColors.getColor(context, R.attr.colorOnSurface, 0)
+    for (index in 0 until size()) {
+        getItem(index).icon?.mutate()?.setTint(color)
     }
 }
 

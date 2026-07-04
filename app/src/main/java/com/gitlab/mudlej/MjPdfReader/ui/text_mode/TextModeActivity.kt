@@ -307,7 +307,7 @@ class TextModeActivity  : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.text_mode_menu, menu)
-        menu.showOptionalIcons()
+        menu.showOptionalIcons(this)
         return true
     }
 

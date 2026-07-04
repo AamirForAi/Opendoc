@@ -15,7 +15,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
-        app:cardBackgroundColor="@android:color/white"
+        app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
         app:cardPreventCornerOverlap="true"
         app:cardUseCompatPadding="true"
         card_view:cardCornerRadius="5dp"
@@ -36,7 +36,7 @@
                 android:gravity="center"
                 android:padding="10dp"
                 android:text="@string/file_properties"
-                android:textColor="@android:color/black"
+                android:textColor="?attr/colorOnSurface"
                 android:textStyle="bold"
                 android:textSize="18sp"
                 />
@@ -51,7 +51,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/properties_padding"
                     android:text="@string/pdf_title"
-                    android:textColor="@android:color/black"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
 
                 <TextView
@@ -61,7 +61,7 @@
                     android:layout_marginStart="@dimen/properties_padding"
                     android:layout_weight="1"
                     android:maxLines="2"
-                    android:textColor="@android:color/black" />
+                    android:textColor="?attr/colorOnSurface" />
             </TableRow>
 
             <TableRow
@@ -74,7 +74,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/properties_padding"
                     android:text="@string/pdf_file_name"
-                    android:textColor="@android:color/black"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
 
                 <TextView
@@ -84,7 +84,7 @@
                     android:layout_marginStart="@dimen/properties_padding"
                     android:layout_weight="1"
                     android:maxLines="4"
-                    android:textColor="@android:color/black" />
+                    android:textColor="?attr/colorOnSurface" />
             </TableRow>
 
             <TableRow
@@ -97,7 +97,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/properties_padding"
                     android:text="@string/pdf_author"
-                    android:textColor="@android:color/black"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
 
                 <TextView
@@ -107,7 +107,7 @@
                     android:layout_marginStart="@dimen/properties_padding"
                     android:layout_weight="1"
                     android:maxLines="2"
-                    android:textColor="@android:color/black" />
+                    android:textColor="?attr/colorOnSurface" />
             </TableRow>
 
             <TableRow
@@ -120,7 +120,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/properties_padding"
                     android:text="@string/pdf_pages"
-                    android:textColor="@android:color/black"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
 
                 <TextView
@@ -130,7 +130,7 @@
                     android:layout_marginStart="@dimen/properties_padding"
                     android:layout_weight="1"
                     android:maxLines="1"
-                    android:textColor="@android:color/black" />
+                    android:textColor="?attr/colorOnSurface" />
             </TableRow>
 
             <TableRow
@@ -143,7 +143,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/properties_padding"
                     android:text="@string/pdf_subject"
-                    android:textColor="@android:color/black"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
 
                 <TextView
@@ -153,7 +153,7 @@
                     android:layout_marginStart="@dimen/properties_padding"
                     android:layout_weight="1"
                     android:maxLines="2"
-                    android:textColor="@android:color/black" />
+                    android:textColor="?attr/colorOnSurface" />
             </TableRow>
 
             <TableRow
@@ -166,7 +166,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/properties_padding"
                     android:text="@string/pdf_keywords"
-                    android:textColor="@android:color/black"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
 
                 <TextView
@@ -176,7 +176,7 @@
                     android:layout_marginStart="@dimen/properties_padding"
                     android:layout_weight="1"
                     android:maxLines="3"
-                    android:textColor="@android:color/black" />
+                    android:textColor="?attr/colorOnSurface" />
             </TableRow>
 
             <TableRow
@@ -189,7 +189,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/properties_padding"
                     android:text="@string/pdf_created"
-                    android:textColor="@android:color/black"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
 
                 <TextView
@@ -199,7 +199,7 @@
                     android:layout_marginStart="@dimen/properties_padding"
                     android:layout_weight="1"
                     android:maxLines="2"
-                    android:textColor="@android:color/black" />
+                    android:textColor="?attr/colorOnSurface" />
             </TableRow>
 
             <TableRow
@@ -212,7 +212,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/properties_padding"
                     android:text="@string/pdf_modified"
-                    android:textColor="@android:color/black"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
 
                 <TextView
@@ -222,7 +222,7 @@
                     android:layout_marginStart="@dimen/properties_padding"
                     android:layout_weight="1"
                     android:maxLines="2"
-                    android:textColor="@android:color/black" />
+                    android:textColor="?attr/colorOnSurface" />
             </TableRow>
 
             <TableRow
@@ -235,7 +235,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/properties_padding"
                     android:text="@string/pdf_created_by"
-                    android:textColor="@android:color/black"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
 
                 <TextView
@@ -246,7 +246,7 @@
                     android:layout_weight="1"
                     android:maxLines="3"
                     android:singleLine="false"
-                    android:textColor="@android:color/black" />
+                    android:textColor="?attr/colorOnSurface" />
             </TableRow>
 
             <TableRow
@@ -259,7 +259,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/properties_padding"
                     android:text="@string/pdf_produced_by"
-                    android:textColor="@android:color/black"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
 
                 <TextView
@@ -269,7 +269,7 @@
                     android:layout_marginStart="@dimen/properties_padding"
                     android:layout_weight="1"
                     android:maxLines="3"
-                    android:textColor="@android:color/black" />
+                    android:textColor="?attr/colorOnSurface" />
             </TableRow>
 
             <TableRow
@@ -282,7 +282,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/properties_padding"
                     android:text="@string/pdf_file_size"
-                    android:textColor="@android:color/black"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
 
                 <TextView
@@ -292,7 +292,7 @@
                     android:layout_marginStart="@dimen/properties_padding"
                     android:layout_weight="1"
                     android:maxLines="1"
-                    android:textColor="@android:color/black" />
+                    android:textColor="?attr/colorOnSurface" />
             </TableRow>
 
 <!--            <TableRow-->
@@ -326,7 +326,7 @@
                 android:gravity="end">
 
                 <com.google.android.material.button.MaterialButton
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    style="@style/ChromeDialogButton"
                     android:id="@+id/okButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

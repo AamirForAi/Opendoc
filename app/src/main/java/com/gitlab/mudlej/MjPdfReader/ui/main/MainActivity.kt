@@ -103,6 +103,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
 import com.gitlab.mudlej.MjPdfReader.util.FileUtil.fileFromUri
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
@@ -1139,7 +1140,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         this.actionBarMenu = menu
-        menu.showOptionalIcons()
+        menu.showOptionalIcons(this)
         showBarButtonsThatNeedFile()
         return true
     }
@@ -1301,7 +1302,17 @@ class MainActivity : AppCompatActivity() {
                 val view = super.getView(position, convertView, parent)
                 val textView = view.findViewById(android.R.id.text1) as TextView
 
-                textView.setCompoundDrawablesWithIntrinsicBounds(items[position].icon, 0, 0, 0)
+                val itemColor = MaterialColors.getColor(
+                    parent,
+                    R.attr.colorOnSurface
+                )
+                val icon = AppCompatResources
+                    .getDrawable(this@MainActivity, items[position].icon)
+                    ?.mutate()
+                icon?.setTint(itemColor)
+
+                textView.setTextColor(itemColor)
+                textView.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
                 textView.text = items[position].title
 
                 val padding = (10 * resources.displayMetrics.density + 0.5f).toInt()
@@ -1527,7 +1538,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     val snackBarView = snackbar.view
                     val textView = snackBarView.findViewById<View>(com.google.android.material.R.id.snackbar_text) as TextView
-                    textView.setTextColor(ContextCompat.getColor(this,R.color.search))
+                    textView.setTextColor(MaterialColors.getColor(snackBarView, com.google.android.material.R.attr.colorPrimaryInverse))
                     textView.setOnClickListener {
                         //binding.pdfView.resetZoomWithAnimation()
                         binding.pdfView.clearSearchResultsHighlight(searchResult.pageNumber)

@@ -21,7 +21,7 @@
         tools:text="241/500 (35%)"
         android:textSize="26sp"
         android:textStyle="bold"
-        android:textColor="?attr/colorOnBackground"
+        android:textColor="?attr/colorOnSurface"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
