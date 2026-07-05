@@ -61,8 +61,8 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         lifecycleScope.launch {
             initPdfExtractor()
             if (::pdfExtractor.isInitialized) {
-                initSearchResults()
                 initUi()
+                initSearchResults()
             }
             else {
                 finish()
@@ -82,8 +82,10 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     }
 
     private fun initLoadingProgressBar() {
-        binding.searchProgressBar.show()
         binding.searchProgressBar.max = pdfExtractor.getPageCount()
+        binding.searchProgressBar.progress = 0
+        binding.searchProgressBar.visibility = View.GONE
+        hideProgressBar()
         lastPageLiveData.observe(this@SearchActivity) { pageNumber ->
             binding.searchProgressBar.progress = pageNumber
         }
@@ -161,6 +163,12 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             restoredListPosition = cachedSession.listPosition
             restoredListOffsetPx = cachedSession.listOffsetPx
             restoredNestedQuery = cachedSession.nestedQuery
+            showProgressBar()
+            binding.searchProgressBar.visibility = View.GONE
+        } else {
+            hideProgressBar()
+            binding.searchProgressBar.progress = 0
+            binding.searchProgressBar.visibility = View.VISIBLE
         }
 
         lifecycleScope.launch(Dispatchers.Default) {
@@ -173,7 +181,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
                 searchResultAdapter.nestedQuery = restoredNestedQuery
                 searchResultAdapter.submitList(visibleSearchResults())
                 hideProgressBar()
-                binding.searchProgressBar.hide()
+                binding.searchProgressBar.visibility = View.GONE
                 postSearch()
                 if (!restoredNestedQuery.isNullOrBlank()) {
                     invalidateOptionsMenu()
