@@ -146,6 +146,7 @@ class MainActivity : AppCompatActivity() {
     private val pdf = PDF()
     private var documentLoadToken = 0L
     private var cropMarginsEnabledForCurrentDocument = false
+    private var activeSearchResultsSnackbar: Snackbar? = null
 
     private lateinit var actionBarMenu: Menu
 
@@ -1621,8 +1622,18 @@ class MainActivity : AppCompatActivity() {
                         binding.pdfView.reloadPages()   // to show the highlighting
                     }
 
+                    activeSearchResultsSnackbar?.dismiss()
+
                     // show a snackbar with a button that will remove the highlight (it wills still be cached for a bit)
                     val snackbar = Snackbar.make(binding.root, getString(R.string.results), Snackbar.LENGTH_INDEFINITE)
+                    activeSearchResultsSnackbar = snackbar
+                    snackbar.addCallback(object : Snackbar.Callback() {
+                        override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                            if (activeSearchResultsSnackbar === transientBottomBar) {
+                                activeSearchResultsSnackbar = null
+                            }
+                        }
+                    })
                     snackbar.setAction(getString(R.string.done)) {
                         binding.pdfView.clearSearchResultsHighlight(searchResult.pageNumber)
                         snackbar.dismiss()
@@ -1632,7 +1643,6 @@ class MainActivity : AppCompatActivity() {
                     textView.setTextColor(MaterialColors.getColor(snackBarView, com.google.android.material.R.attr.colorPrimaryInverse))
                     textView.setOnClickListener {
                         //binding.pdfView.resetZoomWithAnimation()
-                        binding.pdfView.clearSearchResultsHighlight(searchResult.pageNumber)
                         //Handler(Looper.getMainLooper()).postDelayed({
                         Intent(this@MainActivity, SearchActivity::class.java).also { searchIntent ->
                             searchIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
@@ -1640,7 +1650,6 @@ class MainActivity : AppCompatActivity() {
                             pdf.lastQuery?.let { searchIntent.putExtra(PDF.searchQueryKey, it.trim()) }
                             searchIntent.putExtra(PDF.resultPositionInListKey, searchResult.searchResultIndexInList)
                             startActivityForResult(searchIntent, PDF.startSearchActivity)
-                            snackbar.dismiss()
                         }
                         //}, 400) // same as zoom-out animation duration (not a good way to do it, I know)
                     }

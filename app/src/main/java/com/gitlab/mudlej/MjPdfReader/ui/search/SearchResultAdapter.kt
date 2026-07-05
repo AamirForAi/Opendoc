@@ -25,7 +25,6 @@ class SearchResultAdapter(
 
     override fun onBindViewHolder(holder: SearchResultViewHolder, index: Int) {
         getItem(index)?.let {
-            it.searchResultIndexInList = index
             holder.bind(it)
         }
     }

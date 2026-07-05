@@ -123,7 +123,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         val position: Int = intent.getIntExtra(PDF.resultPositionInListKey, -1)
         if (position == -1) return
 
-        if (position > 0 || position < searchResultAdapter.itemCount) {
+        if (position in 0 until searchResultAdapter.itemCount) {
             Log.d(SearchActivity::class.simpleName, "restorePositionInList: $position")
             val layoutManager = binding.searchRecyclerView.layoutManager as? LinearLayoutManager ?: return
             //layoutManager.smoothScrollToPosition(binding.searchRecyclerView, RecyclerView.State(), position)
@@ -143,9 +143,10 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         }
 
         CoroutineScope(Dispatchers.Default).launch {
-            searchResults = search(query)
-            searchResultAdapter.submitList(searchResults)
+            val results = search(query)
             withContext(Dispatchers.Main) {
+                searchResults = results
+                searchResultAdapter.submitList(searchResults.toList())
                 hideProgressBar()
                 binding.searchProgressBar.hide()
                 postSearch()
@@ -170,13 +171,26 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
 //                            min(indexInPage + 10, pdfExtractor.getPageCount() + indexInPage + 10)
 //                        )}"
 //                    )
-                    searchResults.add(getPageResult(query, indexInPage, pageText, pageNumber))
+                    searchResults.add(
+                        getPageResult(query, indexInPage, pageText, pageNumber).apply {
+                            searchResultIndexInList = searchResults.size
+                        }
+                    )
                 }
                 lastPageLiveData.postValue(pageNumber)
             }
         }
         Log.d(tag, "getSearchResults: elapsed time: ${time / 1000F}s")
         return searchResults
+    }
+
+    private fun visibleSearchResults(): List<SearchResult> {
+        val query = searchResultAdapter.nestedQuery
+        return if (query.isNullOrBlank()) {
+            searchResults.toList()
+        } else {
+            searchResults.filter { it.text.contains(query, true) }
+        }
     }
 
     private fun getPageResult(
@@ -251,7 +265,9 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             return SearchResult(originalIndex = start, start, end, texts[index], pageNumber = Random.nextInt())
         }
 
-        searchResults = MutableList(size) { _ -> createSearchResult() }
+        searchResults = MutableList(size) { index ->
+            createSearchResult().apply { searchResultIndexInList = index }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -278,7 +294,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             override fun onQueryTextChange(query: String): Boolean {
                 searchResultAdapter.nestedQuery = query
                 showProgressBar()
-                val filteredList = searchResults.filter { it.text.contains(query, true) }
+                val filteredList = visibleSearchResults()
                 searchResultAdapter.submitList(filteredList)
                 searchResultAdapter.notifyDataSetChanged() // because the comparator doesn't see the difference in text style
                 Snackbar.make(
@@ -290,7 +306,9 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             }
         })
         searchView.setOnCloseListener {
-            searchResultAdapter.submitList(searchResults)
+            searchResultAdapter.nestedQuery = null
+            searchResultAdapter.submitList(searchResults.toList())
+            searchResultAdapter.notifyDataSetChanged()
             true
         }
 
@@ -323,8 +341,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             return searchResult
         }
         searchResults[searchResultIndex] = newSearchResult
-        searchResultAdapter.notifyItemChanged(searchResultIndex)
-        //searchResultAdapter.notifyItemChanged(searchResultIndex)
+        searchResultAdapter.submitList(visibleSearchResults())
 
         return newSearchResult
     }
