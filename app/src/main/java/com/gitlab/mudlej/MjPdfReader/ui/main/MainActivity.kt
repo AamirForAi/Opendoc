@@ -99,6 +99,7 @@ import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.ui.*
 import com.gitlab.mudlej.MjPdfReader.ui.about.AboutActivity
 import com.gitlab.mudlej.MjPdfReader.ui.bookmark.BookmarksActivity
+import com.gitlab.mudlej.MjPdfReader.ui.bookmark.BookmarkState
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeActivity
 import com.gitlab.mudlej.MjPdfReader.ui.link.LinksActivity
 import com.gitlab.mudlej.MjPdfReader.ui.search.SearchActivity
@@ -147,6 +148,9 @@ class MainActivity : AppCompatActivity() {
     private var documentLoadToken = 0L
     private var cropMarginsEnabledForCurrentDocument = false
     private var activeSearchResultsSnackbar: Snackbar? = null
+    private var activeSearchResultPageNumber: Int? = null
+    private var activeBookmarksSnackbar: Snackbar? = null
+    private var bookmarkState = BookmarkState()
 
     private lateinit var actionBarMenu: Menu
 
@@ -276,7 +280,21 @@ class MainActivity : AppCompatActivity() {
         pdf.pageNumber = 0
         pdf.zoom = 1F
         cropMarginsEnabledForCurrentDocument = pref.getAlwaysHideMargins()
+        resetSearchResultState()
+        resetBookmarkState()
         PdfBytesHolder.clear()
+    }
+
+    private fun resetSearchResultState() {
+        clearActiveSearchResultHighlight()
+        activeSearchResultsSnackbar?.dismiss()
+        activeSearchResultsSnackbar = null
+    }
+
+    private fun resetBookmarkState() {
+        activeBookmarksSnackbar?.dismiss()
+        activeBookmarksSnackbar = null
+        bookmarkState = BookmarkState()
     }
 
     private fun isCropMarginsEnabled() = cropMarginsEnabledForCurrentDocument
@@ -1303,7 +1321,51 @@ class MainActivity : AppCompatActivity() {
         Intent(this@MainActivity, BookmarksActivity::class.java).also { bookmarkIntent ->
             bookmarkIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
             bookmarkIntent.putExtra(PDF.passwordKey, pdf.password)
+            bookmarkState.putInto(bookmarkIntent)
             startActivityForResult(bookmarkIntent, PDF.startBookmarksActivity)
+        }
+    }
+
+    private fun saveBookmarkState(intent: Intent?) {
+        if (intent == null) return
+
+        bookmarkState = BookmarkState.from(intent)
+    }
+
+    private fun showBookmarkNavigationSnackbar() {
+        resetSearchResultState()
+        activeBookmarksSnackbar?.dismiss()
+
+        val snackbar = Snackbar.make(binding.root, getString(R.string.back_to_table_of_contents), Snackbar.LENGTH_INDEFINITE)
+        activeBookmarksSnackbar = snackbar
+        snackbar.addCallback(object : Snackbar.Callback() {
+            override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                if (activeBookmarksSnackbar === transientBottomBar) {
+                    activeBookmarksSnackbar = null
+                }
+            }
+        })
+        snackbar.setAction(getString(R.string.done)) {
+            snackbar.dismiss()
+        }
+        setSnackbarTextAction(snackbar) {
+            snackbar.dismiss()
+            showBookmarks()
+        }
+        snackbar.show()
+    }
+
+    private fun setSnackbarTextAction(snackbar: Snackbar, onClick: () -> Unit) {
+        val snackbarView = snackbar.view
+        val textView = snackbarView.findViewById<View>(com.google.android.material.R.id.snackbar_text) as TextView
+        textView.setTextColor(MaterialColors.getColor(snackbarView, com.google.android.material.R.attr.colorPrimaryInverse))
+        textView.setOnClickListener { onClick() }
+    }
+
+    private fun clearActiveSearchResultHighlight() {
+        activeSearchResultPageNumber?.let { pageNumber ->
+            binding.pdfView.clearSearchResultsHighlight(pageNumber)
+            activeSearchResultPageNumber = null
         }
     }
 
@@ -1562,6 +1624,7 @@ class MainActivity : AppCompatActivity() {
         outState.putBoolean(PDF.cropMarginsEnabledKey, isCropMarginsEnabled())
         outState.putFloat(PDF.zoomKey, binding.pdfView.zoom)
         outState.putBoolean(PDF.isExtractingTextFinishedKey, pdf.isExtractingTextFinished)
+        bookmarkState.putInto(outState)
         super.onSaveInstanceState(outState)
     }
 
@@ -1575,6 +1638,7 @@ class MainActivity : AppCompatActivity() {
         cropMarginsEnabledForCurrentDocument = savedState.getBoolean(PDF.cropMarginsEnabledKey, pref.getAlwaysHideMargins())
         pdf.zoom = savedState.getFloat(PDF.zoomKey)
         pdf.isExtractingTextFinished = savedState.getBoolean(PDF.isExtractingTextFinishedKey)
+        bookmarkState = BookmarkState.from(savedState)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
@@ -1582,9 +1646,11 @@ class MainActivity : AppCompatActivity() {
         hideProgressBar()
         when (requestCode) {
             PDF.startBookmarksActivity -> {
+                saveBookmarkState(intent)
                 if (resultCode == PDF.BOOKMARK_RESULT_OK) {
                     val pageIndex = intent?.getIntExtra(PDF.chosenBookmarkKey, pdf.pageNumber) ?: return
                     binding.pdfView.jumpTo(pageIndex)
+                    showBookmarkNavigationSnackbar()
                 }
             }
             PDF.startLinksActivity -> {
@@ -1599,6 +1665,9 @@ class MainActivity : AppCompatActivity() {
                     val searchResultJson = intent?.getStringExtra(PDF.searchResultKey) ?: return
                     val searchResultType = object : TypeToken<SearchResult>() {}.type
                     val searchResult = Gson().fromJson<SearchResult>(searchResultJson, searchResultType)
+
+                    clearActiveSearchResultHighlight()
+                    activeSearchResultsSnackbar?.dismiss()
 
                     // highlight the result text
                     val textBound = binding.pdfView.createHighlightText(
@@ -1617,12 +1686,11 @@ class MainActivity : AppCompatActivity() {
                     //     binding.pdfView.reloadPages()    // to show the highlighting
                     //}
                     else {
+                        activeSearchResultPageNumber = searchResult.pageNumber
                         // because the user may not see the highlight if it was zoomed in before searching
                         binding.pdfView.resetZoomWithAnimation()
                         binding.pdfView.reloadPages()   // to show the highlighting
                     }
-
-                    activeSearchResultsSnackbar?.dismiss()
 
                     // show a snackbar with a button that will remove the highlight (it wills still be cached for a bit)
                     val snackbar = Snackbar.make(binding.root, getString(R.string.results), Snackbar.LENGTH_INDEFINITE)
@@ -1635,13 +1703,10 @@ class MainActivity : AppCompatActivity() {
                         }
                     })
                     snackbar.setAction(getString(R.string.done)) {
-                        binding.pdfView.clearSearchResultsHighlight(searchResult.pageNumber)
+                        clearActiveSearchResultHighlight()
                         snackbar.dismiss()
                     }
-                    val snackBarView = snackbar.view
-                    val textView = snackBarView.findViewById<View>(com.google.android.material.R.id.snackbar_text) as TextView
-                    textView.setTextColor(MaterialColors.getColor(snackBarView, com.google.android.material.R.attr.colorPrimaryInverse))
-                    textView.setOnClickListener {
+                    setSnackbarTextAction(snackbar) {
                         //binding.pdfView.resetZoomWithAnimation()
                         //Handler(Looper.getMainLooper()).postDelayed({
                         Intent(this@MainActivity, SearchActivity::class.java).also { searchIntent ->

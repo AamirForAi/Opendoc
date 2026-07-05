@@ -2,7 +2,7 @@ package com.gitlab.mudlej.MjPdfReader.data
 
 import com.shockwave.pdfium.PdfDocument
 
-class Bookmark(bookmark:PdfDocument.Bookmark, val level: Int) : PdfDocument.Bookmark() {
+class Bookmark(bookmark: PdfDocument.Bookmark, val level: Int, val path: String) : PdfDocument.Bookmark() {
     val subBookmarks: MutableList<Bookmark> = mutableListOf()
 
     init {
@@ -13,8 +13,8 @@ class Bookmark(bookmark:PdfDocument.Bookmark, val level: Int) : PdfDocument.Book
 
         // add all children recursively
         if (hasChildren())
-            for (child in children)
-                subBookmarks.add(Bookmark(child, level + 1))
+            for ((index, child) in children.withIndex())
+                subBookmarks.add(Bookmark(child, level + 1, "$path.$index"))
     }
 
     fun hasSubBookmarks() = subBookmarks.isNotEmpty()

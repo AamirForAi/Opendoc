@@ -7,7 +7,6 @@ import android.widget.TextView
 import androidx.appcompat.widget.LinearLayoutCompat
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.get
-import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Bookmark
@@ -18,6 +17,7 @@ import com.google.android.material.card.MaterialCardView
 class BookmarkViewHolder(
     private val binding: BookmarksListItemBinding,
     private val bookmarkFunctions: BookmarkFunctions,
+    private val bookmarkAdapter: BookmarkAdapter,
     private val activity: BookmarksActivity
 ) : RecyclerView.ViewHolder(binding.root) {
 
@@ -50,21 +50,20 @@ class BookmarkViewHolder(
 //            if (subBookmark.level != 0)
 //                subBookmarkLayout.setBackgroundResource(R.drawable.transparent_background)
 
-        if (subBookmark.hasSubBookmarks()) {
+        val visibleChildren = bookmarkAdapter.visibleChildren(subBookmark)
+        if (visibleChildren.isNotEmpty()) {
             subChildrenLayout.removeAllViews()
-            for (child in subBookmark.subBookmarks) {
+            for (child in visibleChildren) {
                 val layout = createSubBookmarkLayout(child)
                 subChildrenLayout.addView(layout)
             }
 
-            subToggleButton.setOnClickListener {
-                if (subChildrenLayout.isVisible) {
-                    subChildrenLayout.visibility = View.GONE
-                    subToggleButton.setImageResource(R.drawable.ic_small_arrow_right)
-                }
-                else {
-                    subChildrenLayout.visibility = View.VISIBLE
-                    subToggleButton.setImageResource(R.drawable.ic_small_arrow_down)
+            setExpansionState(subChildrenLayout, subToggleButton, bookmarkAdapter.isExpanded(subBookmark))
+
+            if (!bookmarkAdapter.isFiltering()) {
+                subToggleButton.setOnClickListener {
+                    val expanded = bookmarkAdapter.toggleExpanded(subBookmark)
+                    setExpansionState(subChildrenLayout, subToggleButton, expanded)
                 }
             }
         }
@@ -72,5 +71,16 @@ class BookmarkViewHolder(
             subToggleButton.setImageResource(R.drawable.ic_bullet_point)
         }
         return cardView
+    }
+
+    private fun setExpansionState(
+        childrenLayout: LinearLayoutCompat,
+        toggleButton: ImageView,
+        expanded: Boolean
+    ) {
+        childrenLayout.visibility = if (expanded) View.VISIBLE else View.GONE
+        toggleButton.setImageResource(
+            if (expanded) R.drawable.ic_small_arrow_down else R.drawable.ic_small_arrow_right
+        )
     }
 }

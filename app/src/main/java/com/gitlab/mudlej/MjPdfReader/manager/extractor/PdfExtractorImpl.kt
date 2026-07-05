@@ -38,7 +38,7 @@ class PdfExtractorImpl(
 
     override fun getAllBookmarks(): List<Bookmark> {
         val tableOfContents = pdfiumCore.getTableOfContents(pdfDocument)
-        return tableOfContents.map { bookmark -> Bookmark(bookmark, level = 0) }
+        return tableOfContents.mapIndexed { index, bookmark -> Bookmark(bookmark, level = 0, path = index.toString()) }
     }
 
     override fun getAllLinks(): List<Link> {

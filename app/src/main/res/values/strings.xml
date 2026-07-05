@@ -153,6 +153,7 @@
     <string name="this_is_experimental">This is experimental</string>
     <string name="this_is_experimental_message">This feature of the app is still under development and is not stable or fully correct.</string>
     <string name="go_back">Go Back</string>
+    <string name="back_to_table_of_contents">Back to Table of Contents</string>
     <string name="selectable_text">Selectable Text of Page</string>
     <string name="show_copy_dialog_summary">Show a pop up that has the extracted text of the page when pressing and hold.</string>
     <string name="show_copy_dialog_title">Show Copy Text Dialog</string>
