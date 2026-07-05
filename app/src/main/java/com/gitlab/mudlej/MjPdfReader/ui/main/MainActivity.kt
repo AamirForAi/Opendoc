@@ -1977,11 +1977,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setPdfTheme(darkTheme: Boolean) {
-        if (pref.getPdfDarkTheme() != darkTheme) {
-            pref.setPdfDarkTheme(darkTheme)
-            flushPendingAnnotationAutosave()
-            recreate()
+        if (pref.getPdfDarkTheme() == darkTheme) {
+            return
         }
+        pref.setPdfDarkTheme(darkTheme)
+        binding.pdfView.setNightMode(darkTheme)
+        if (!darkTheme) {
+            binding.pdfView.setBackgroundColor(Preferences.pdfDarkBackgroundColor)
+        } else {
+            binding.pdfView.setBackgroundColor(Preferences.pdfLightBackgroundColor)
+        }
+        binding.pdfView.reloadPages()
     }
 
     private fun screenShot(view: View): Bitmap {
