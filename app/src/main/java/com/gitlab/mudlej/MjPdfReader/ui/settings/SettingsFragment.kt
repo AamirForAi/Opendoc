@@ -103,6 +103,13 @@ class SettingsFragment : PreferenceFragmentCompat() {
             summary = getString(R.string.show_scroll_handle_page_count_summary)
             isIconSpaceReserved = false
         }
+        val alwaysHideMarginsSwitch = SwitchPreferenceCompat(requireContext()).apply {
+            title = getString(R.string.always_hide_margins)
+            setDefaultValue(Preferences.alwaysHideMarginsDefault)
+            key = Preferences.alwaysHideMarginsKey
+            summary = getString(R.string.always_hide_margins_summary)
+            isIconSpaceReserved = false
+        }
         val showFullScreenInfoTimeSwitch = SwitchPreferenceCompat(requireContext()).apply {
             title = getString(R.string.fullscreen_info_show_time)
             setDefaultValue(Preferences.fullScreenInfoShowTimeDefault)
@@ -136,6 +143,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
             addPreference(screenOnSwitch)
             addPreference(spaceBetweenPages)
             addPreference(showScrollHandlePageCountSwitch)
+            addPreference(alwaysHideMarginsSwitch)
             addPreference(showFullScreenInfoTimeSwitch)
             addPreference(showFullScreenInfoPdfNameSwitch)
             addPreference(showFullScreenInfoPageNumberSwitch)

@@ -5,6 +5,7 @@ import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
 
 class ConfigurableActionResolver(
     private val hasFile: () -> Boolean,
+    private val cropMarginsEnabled: () -> Boolean,
     private val handlers: Handlers,
 ) {
 
@@ -14,6 +15,7 @@ class ConfigurableActionResolver(
         val rotate: () -> Unit,
         val toggleHorizontalLock: () -> Unit,
         val toggleZoomLock: () -> Unit,
+        val toggleCropMargins: () -> Unit,
         val screenshot: () -> Unit,
         val switchTheme: () -> Unit,
         val reload: () -> Unit,
@@ -70,6 +72,12 @@ class ConfigurableActionResolver(
                 R.drawable.ic_zoom_out,
                 visible = fileAvailable,
                 run = handlers.toggleZoomLock,
+            )
+            ConfigurableAction.CROP_MARGINS -> ConfiguredAction(
+                if (cropMarginsEnabled()) R.string.show_margins else R.string.crop_margins,
+                if (cropMarginsEnabled()) R.drawable.ic_show_margins else R.drawable.ic_crop_margins,
+                visible = fileAvailable,
+                run = handlers.toggleCropMargins,
             )
             ConfigurableAction.SCREENSHOT -> ConfiguredAction(
                 R.string.screenshot,

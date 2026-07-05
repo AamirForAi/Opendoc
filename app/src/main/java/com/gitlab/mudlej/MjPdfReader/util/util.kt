@@ -102,7 +102,7 @@ suspend fun computeHash(context: Context, pdf: PDF): String? {
     if (pdf.uri == null) return null
     return try {
         val digester = MessageDigest.getInstance("MD5")
-        if (PdfBytesHolder.pdfByte != null) {
+        if (PdfBytesHolder.pdfByte != null && PdfBytesHolder.uri == pdf.uri?.toString()) {
             val size = min(PDF.HASH_SIZE, PdfBytesHolder.pdfByte!!.size)
             digester.update(PdfBytesHolder.pdfByte as ByteArray, 0, size)
         } else {
@@ -118,7 +118,6 @@ suspend fun computeHash(context: Context, pdf: PDF): String? {
             }
         }
         val hash = String.format("%032x", BigInteger(1, digester.digest()))
-        pdf.fileHash = hash
         hash
     } catch (e: NoSuchAlgorithmException) {
         Log.e("util.kt", "NoSuchAlgorithmException: computeHash failed!", e)
@@ -292,7 +291,7 @@ fun createPdfExtractor(activity: Activity, uri: Uri, password: String?): PdfExtr
     }
     try {
         Log.d(activity::class.simpleName, "createPdfExtractor: Trying to use PdfBytesHolder.pdfByte")
-        if (PdfBytesHolder.pdfByte != null) {
+        if (PdfBytesHolder.pdfByte != null && PdfBytesHolder.uri == uri.toString()) {
             return PdfExtractorFactory.create(activity, PdfBytesHolder.pdfByte!!, password)
         }
         else {

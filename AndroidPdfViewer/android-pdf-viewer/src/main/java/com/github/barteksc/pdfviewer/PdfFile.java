@@ -21,6 +21,8 @@ import android.graphics.RectF;
 import android.util.SparseBooleanArray;
 
 import com.github.barteksc.pdfviewer.exception.PageRenderingException;
+import com.github.barteksc.pdfviewer.model.CropBounds;
+import com.github.barteksc.pdfviewer.model.CropMargins;
 import com.github.barteksc.pdfviewer.util.FitPolicy;
 import com.github.barteksc.pdfviewer.util.PageSizeCalculator;
 import com.shockwave.pdfium.PdfDocument;
@@ -40,6 +42,8 @@ class PdfFile {
     private int pagesCount = 0;
     /** Original page sizes */
     private List<Size> originalPageSizes = new ArrayList<>();
+    /** Full page sizes before optional margin cropping */
+    private List<Size> originalFullPageSizes = new ArrayList<>();
     /** Scaled page sizes */
     private List<SizeF> pageSizes = new ArrayList<>();
     /** Opened pages with indicator whether opening was successful */
@@ -68,8 +72,10 @@ class PdfFile {
     /**
      * True if every page should fit separately according to the FitPolicy,
      * else the largest page fits and other pages scale relatively
-     */
+    */
     private final boolean fitEachPage;
+    private final boolean cropMarginsEnabled;
+    private CropMargins cropMargins;
     /**
      * The pages the user want to display in order
      * (ex: 0, 2, 2, 8, 8, 1, 1, 1)
@@ -77,7 +83,8 @@ class PdfFile {
     private int[] originalUserPages;
 
     PdfFile(PdfiumCore pdfiumCore, PdfDocument pdfDocument, FitPolicy pageFitPolicy, Size viewSize, int[] originalUserPages,
-            boolean isVertical, int spacing, boolean autoSpacing, boolean fitEachPage) {
+            boolean isVertical, int spacing, boolean autoSpacing, boolean fitEachPage,
+            boolean cropMarginsEnabled, CropMargins cachedCropMargins) {
         this.pdfiumCore = pdfiumCore;
         this.pdfDocument = pdfDocument;
         this.pageFitPolicy = pageFitPolicy;
@@ -86,6 +93,8 @@ class PdfFile {
         this.spacingPx = spacing;
         this.autoSpacing = autoSpacing;
         this.fitEachPage = fitEachPage;
+        this.cropMarginsEnabled = cropMarginsEnabled;
+        this.cropMargins = cachedCropMargins == null ? CropMargins.fullPage() : cachedCropMargins;
         setup(viewSize);
     }
 
@@ -97,7 +106,11 @@ class PdfFile {
         }
 
         for (int i = 0; i < pagesCount; i++) {
-            Size pageSize = pdfiumCore.getPageSize(pdfDocument, documentPage(i));
+            originalFullPageSizes.add(pdfiumCore.getPageSize(pdfDocument, documentPage(i)));
+        }
+
+        for (int i = 0; i < pagesCount; i++) {
+            Size pageSize = getOriginalPageSize(i);
             if (pageSize.getWidth() > originalMaxWidthPageSize.getWidth()) {
                 originalMaxWidthPageSize = pageSize;
             }
@@ -110,6 +123,19 @@ class PdfFile {
         recalculatePageSizes(viewSize);
     }
 
+    private Size getOriginalPageSize(int pageIndex) {
+        Size fullSize = originalFullPageSizes.get(pageIndex);
+        if (!cropMarginsEnabled) {
+            return fullSize;
+        }
+
+        int docPage = documentPage(pageIndex);
+        CropBounds crop = cropMargins.forDocumentPage(docPage);
+        int width = Math.max(1, Math.round(fullSize.getWidth() * crop.getWidth()));
+        int height = Math.max(1, Math.round(fullSize.getHeight() * crop.getHeight()));
+        return new Size(width, height);
+    }
+
     /**
      * Call after view size change to recalculate page sizes, offsets and document length
      *
@@ -117,8 +143,9 @@ class PdfFile {
      */
     public void recalculatePageSizes(Size viewSize) {
         pageSizes.clear();
+        boolean effectiveFitEachPage = fitEachPage || cropMarginsEnabled;
         PageSizeCalculator calculator = new PageSizeCalculator(pageFitPolicy, originalMaxWidthPageSize,
-                originalMaxHeightPageSize, viewSize, fitEachPage);
+                originalMaxHeightPageSize, viewSize, effectiveFitEachPage);
         maxWidthPageSize = calculator.getOptimalMaxWidthPageSize();
         maxHeightPageSize = calculator.getOptimalMaxHeightPageSize();
 
@@ -293,8 +320,34 @@ class PdfFile {
 
     public void renderPageBitmap(Bitmap bitmap, int pageIndex, Rect bounds, boolean annotationRendering) {
         int docPage = documentPage(pageIndex);
+        Rect renderBounds = mapCropRenderBoundsToFullPage(pageIndex, bounds.left, bounds.top, bounds.width(), bounds.height());
         pdfiumCore.renderPageBitmap(pdfDocument, bitmap, docPage,
-                bounds.left, bounds.top, bounds.width(), bounds.height(), annotationRendering);
+                renderBounds.left, renderBounds.top, renderBounds.width(), renderBounds.height(), annotationRendering);
+    }
+
+    private Rect mapCropRenderBoundsToFullPage(int pageIndex, int startX, int startY, int width, int height) {
+        Rect original = new Rect(startX, startY, startX + width, startY + height);
+        if (!cropMarginsEnabled || width <= 0 || height <= 0) {
+            return original;
+        }
+
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return original;
+        }
+
+        CropBounds crop = cropMargins.forDocumentPage(docPage);
+        if (crop.isFullPage()) {
+            return original;
+        }
+
+        float fullWidth = width / crop.getWidth();
+        float fullHeight = height / crop.getHeight();
+        int fullStartX = Math.round(startX - crop.getLeft() * fullWidth);
+        int fullStartY = Math.round(startY - crop.getTop() * fullHeight);
+        int fullDrawWidth = Math.round(fullWidth);
+        int fullDrawHeight = Math.round(fullHeight);
+        return new Rect(fullStartX, fullStartY, fullStartX + fullDrawWidth, fullStartY + fullDrawHeight);
     }
 
     public PdfDocument.Meta getMetaData() {
@@ -337,9 +390,37 @@ class PdfFile {
     }
 
     public RectF mapRectToDevice(int pageIndex, int startX, int startY, int sizeX, int sizeY,
-                                 RectF rect) {
+                                  RectF rect) {
         int docPage = documentPage(pageIndex);
-        return pdfiumCore.mapRectToDevice(pdfDocument, docPage, startX, startY, sizeX, sizeY, 0, rect);
+        Rect renderBounds = mapCropRenderBoundsToFullPage(pageIndex, startX, startY, sizeX, sizeY);
+        RectF mapped = pdfiumCore.mapRectToDevice(pdfDocument, docPage,
+                renderBounds.left, renderBounds.top, renderBounds.width(), renderBounds.height(), 0, rect);
+        if (mapped == null) {
+            return null;
+        }
+        if (cropMarginsEnabled) {
+            return clipToViewport(mapped, startX, startY, sizeX, sizeY);
+        }
+        return mapped;
+    }
+
+    private RectF clipToViewport(RectF rect, int startX, int startY, int width, int height) {
+        RectF sorted = new RectF(rect);
+        sorted.sort();
+        float viewportRight = startX + width;
+        float viewportBottom = startY + height;
+        if (sorted.right <= startX
+                || sorted.left >= viewportRight
+                || sorted.bottom <= startY
+                || sorted.top >= viewportBottom) {
+            return null;
+        }
+
+        sorted.left = Math.max(sorted.left, startX);
+        sorted.top = Math.max(sorted.top, startY);
+        sorted.right = Math.min(sorted.right, viewportRight);
+        sorted.bottom = Math.min(sorted.bottom, viewportBottom);
+        return sorted;
     }
 
     public void dispose() {
@@ -349,6 +430,7 @@ class PdfFile {
 
         pdfDocument = null;
         originalUserPages = null;
+        originalFullPageSizes.clear();
     }
 
     /**

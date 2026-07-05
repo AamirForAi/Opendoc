@@ -183,6 +183,15 @@ public class PdfiumCore {
 
     }
 
+    public void closePage(PdfDocument doc, int pageIndex) {
+        synchronized (lock) {
+            Long pagePtr = doc.mNativePagesPtr.remove(pageIndex);
+            if (pagePtr != null) {
+                nativeClosePage(pagePtr);
+            }
+        }
+    }
+
     /** Open range of pages and store native pointers in {@link PdfDocument} */
     public long[] openPages(PdfDocument doc, int fromIndex, int toIndex) {
         long[] pagesPtr;

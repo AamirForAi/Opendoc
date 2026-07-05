@@ -55,12 +55,13 @@ import com.gitlab.mudlej.MjPdfReader.util.DataConverter
 
 @Database(
     entities = [PdfRecord::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = AppDatabase.MyAutoMigration::class),
         AutoMigration(from = 1, to = 3, spec = AppDatabase.MyAutoMigration::class),
-        AutoMigration(from = 2, to = 3)
+        AutoMigration(from = 2, to = 3),
+        AutoMigration(from = 3, to = 4)
     ]
 )
 @TypeConverters(DataConverter::class)

@@ -91,6 +91,7 @@ class PDF(
         const val zoomKey = "zoom"
         const val isPortraitKey = "isPortrait"
         const val isFullScreenToggledKey = "isFullScreenToggled"
+        const val cropMarginsEnabledKey = "cropMarginsEnabled"
         const val isExtractingTextFinishedKey = "isExtractingTextFinished"
         const val pdfBookmarksKey = "PDF_BOOKMARKS"
         const val chosenBookmarkKey = "chosenBookmarkKey"

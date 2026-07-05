@@ -73,6 +73,7 @@ import androidx.core.view.*
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.github.barteksc.pdfviewer.PDFView.Configurator
+import com.github.barteksc.pdfviewer.model.CropMargins
 import com.github.barteksc.pdfviewer.scroll.DefaultScrollHandle
 import com.github.barteksc.pdfviewer.scroll.ScrollHandle
 import com.github.barteksc.pdfviewer.util.Constants
@@ -125,6 +126,8 @@ import kotlin.system.exitProcess
 
 class MainActivity : AppCompatActivity() {
 
+    private data class RetainedPdfBytes(val uri: String?, val bytes: ByteArray?)
+
     private val shouldStopExtracting: MutableMap<Int, Boolean> = mutableMapOf()
     private val TAG = "MainActivity"
     private lateinit var binding: ActivityMainBinding
@@ -138,8 +141,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var toolbarActionController: ToolbarActionController
     private lateinit var fullScreenButtonController: FullScreenButtonController
     private lateinit var shortcutBarController: ShortcutBarController
+    private lateinit var cropMarginsController: CropMarginsController
     private lateinit var pref: Preferences
     private val pdf = PDF()
+    private var documentLoadToken = 0L
+    private var cropMarginsEnabledForCurrentDocument = false
 
     private lateinit var actionBarMenu: Menu
 
@@ -172,7 +178,7 @@ class MainActivity : AppCompatActivity() {
         fullScreenOptionsManager = FullScreenOptionsManagerImpl(
             binding, pdf, pref.getHideDelay().toLong(), pref
         )
-        actionResolver = ConfigurableActionResolver(::hasFile, createActionHandlers())
+        actionResolver = ConfigurableActionResolver(::hasFile, ::isCropMarginsEnabled, createActionHandlers())
         toolbarActionController = ToolbarActionController(
             actionResolver,
             pref::getPrimaryButtonAction,
@@ -193,6 +199,17 @@ class MainActivity : AppCompatActivity() {
             actionResolver,
         ) { pdf.isFullScreenToggled }
         databaseManager = DatabaseManagerImpl(AppDatabase.getInstance(applicationContext))
+        cropMarginsController = CropMarginsController(
+            this,
+            binding,
+            databaseManager,
+            pdf,
+            lifecycleScope,
+            ::isCropMarginsEnabled,
+            ::setCropMarginsEnabled,
+            ::isCurrentDocument,
+            ::reloadWithCropMargins,
+        )
         permissionManager = PermissionManager(this)
         brightness = Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 2
 
@@ -214,10 +231,12 @@ class MainActivity : AppCompatActivity() {
             restoreInstanceState(savedInstanceState)
         }
         else {
-            pdf.uri = intent.data
-            if (pdf.uri == null) {
+            val intentUri = intent.data
+            if (intentUri == null) {
                 pickFile()
                 //goToHomePage()
+            } else {
+                prepareNewDocument(intentUri)
             }
         }
 
@@ -235,10 +254,43 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun initPdf(pdf: PDF, uri: Uri) {
-        pdf.uri = uri
+        prepareNewDocument(uri)
+        val loadToken = documentLoadToken
         lifecycleScope.launch {
-            pdf.fileHash = computeHash(this@MainActivity, pdf)
+            val hash = computeHash(this@MainActivity, pdf)
+            if (isCurrentDocument(loadToken, uri)) {
+                pdf.fileHash = hash
+            }
         }
+    }
+
+    private fun prepareNewDocument(uri: Uri) {
+        if (pdf.uri == uri) {
+            return
+        }
+        cropMarginsController.cancel()
+        documentLoadToken++
+        pdf.uri = uri
+        pdf.fileHash = null
+        pdf.pageNumber = 0
+        pdf.zoom = 1F
+        cropMarginsEnabledForCurrentDocument = pref.getAlwaysHideMargins()
+        PdfBytesHolder.clear()
+    }
+
+    private fun isCropMarginsEnabled() = cropMarginsEnabledForCurrentDocument
+
+    private fun setCropMarginsEnabled(enabled: Boolean) {
+        cropMarginsEnabledForCurrentDocument = enabled
+        refreshConfiguredActions()
+    }
+
+    private fun isCurrentDocument(loadToken: Long, uri: Uri?): Boolean {
+        return documentLoadToken == loadToken && pdf.uri == uri
+    }
+
+    fun isDisplayingUri(uri: String): Boolean {
+        return pdf.uri?.toString() == uri
     }
 
     private fun setCustomActionBar() {
@@ -293,6 +345,8 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        prepareNewDocument(uri)
+
         pdf.name = getFileName(this, uri)
         updateActionBarButtons()
         updateAppTitle()
@@ -317,27 +371,56 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initPdfViewAndLoad(viewConfigurator: Configurator, savePassword: Boolean = false) {
-        // attempt to find a saved location for the pdf else assign zero
-        if (pdf.pageNumber == 0) {
-            lifecycleScope.launch {
-                val hash = computeHash(this@MainActivity, pdf)
-                if (hash == null) {
-                    showFailedToComputeHashError()
-                    return@launch
-                }
-                val pageNumber = databaseManager.findPageNumber(hash)
+        val loadToken = documentLoadToken
+        val documentUri = pdf.uri
+        lifecycleScope.launch {
+            val hash = pdf.fileHash ?: computeHash(this@MainActivity, pdf)
+            if (!isCurrentDocument(loadToken, documentUri)) {
+                return@launch
+            }
+            if (hash == null && pdf.pageNumber == 0) {
+                showFailedToComputeHashError()
+                return@launch
+            }
 
+            if (hash != null) {
                 pdf.fileHash = hash
-                pdf.pageNumber = pageNumber
-                withContext(Dispatchers.Main) {
-                    initPdfViewAndLoad(viewConfigurator, pageNumber, savePassword)
+            }
+
+            val pageNumber = if (pdf.pageNumber == 0 && hash != null) {
+                databaseManager.findPageNumber(hash)
+            } else {
+                pdf.pageNumber
+            }
+            if (!isCurrentDocument(loadToken, documentUri)) {
+                return@launch
+            }
+
+            val cachedCropMargins = cropMarginsController.findCached(hash)
+            if (!isCurrentDocument(loadToken, documentUri)) {
+                return@launch
+            }
+            pdf.pageNumber = pageNumber
+            withContext(Dispatchers.Main) {
+                if (isCurrentDocument(loadToken, documentUri)) {
+                    initPdfViewAndLoad(viewConfigurator, pageNumber, savePassword, cachedCropMargins, hash, loadToken, documentUri)
                 }
             }
         }
-        else initPdfViewAndLoad(viewConfigurator, pdf.pageNumber, savePassword)
     }
 
-    private fun initPdfViewAndLoad(viewConfigurator: Configurator, pageNumber: Int, savePassword: Boolean) {
+    private fun initPdfViewAndLoad(
+        viewConfigurator: Configurator,
+        pageNumber: Int,
+        savePassword: Boolean,
+        cachedCropMargins: CropMargins?,
+        fileHash: String?,
+        loadToken: Long,
+        documentUri: Uri?,
+        applyDocumentLoadDefaults: Boolean = true,
+        zoomDisabled: Boolean = false,
+        horizontalSwipeDisabled: Boolean = false,
+    ) {
         val pdfView = binding.pdfView
         pdfView.useBestQuality(pref.getHighQuality())
         pdfView.minZoom = Preferences.minZoomDefault
@@ -348,7 +431,7 @@ class MainActivity : AppCompatActivity() {
 
         viewConfigurator   // creates a PDFView.Configurator
             .defaultPage(pageNumber)
-            .onPageChange { page: Int, pageCount: Int -> setCurrentPage(page, pageCount) }
+            .onPageChange { page: Int, pageCount: Int -> setCurrentPage(page, pageCount, fileHash, loadToken, documentUri) }
             .enableAnnotationRendering(Preferences.annotationRenderingDefault)
             .enableAntialiasing(pref.getAntiAliasing())
             .onDocumentInteraction { motionEvent -> autoScrollManager.handleUserInteraction(motionEvent) }
@@ -356,32 +439,62 @@ class MainActivity : AppCompatActivity() {
             .onLongPress { copyPageText(false) }
             .scrollHandle(createScrollHandle())
             .spacing(spacing)
-            .onError { exception: Throwable -> handleFileOpeningError(exception) }
+            .onError { exception: Throwable ->
+                hideProgressBar(loadToken, documentUri)
+                handleFileOpeningError(exception)
+            }
             .onPageError { page: Int, error: Throwable -> reportLoadPageError(page, error) }
             .pageFitPolicy(FitPolicy.WIDTH)
             .password(pdf.password)
             .swipeHorizontal(pref.getHorizontalScroll())
-            .zoomDisabled(false)
+            .disableHorizontalSwipe(horizontalSwipeDisabled)
+            .zoomDisabled(zoomDisabled)
             .autoSpacing(pref.getHorizontalScroll())
             .pageSnap(pref.getPageSnap())
             .pageFling(pref.getPageFling())
             .nightMode(pref.getPdfDarkTheme())
-            .onLoad {
+            .cropMargins(isCropMarginsEnabled())
+            .cachedCropMargins(cachedCropMargins)
+            .onLoad { pageCount ->
+                hideProgressBar(loadToken, documentUri)
                 configureTheme()
-                createPdfRecord(savePassword, pdf)
-                checkAutoFullScreen()
-                checkAlwaysHorizontal()
-                openTextModeByDefault()
-                configureButtonsLabels()
+                createPdfRecord(savePassword, pdf, fileHash, loadToken, documentUri)
+                if (applyDocumentLoadDefaults) {
+                    checkAutoFullScreen()
+                    checkAlwaysHorizontal()
+                    openTextModeByDefault()
+                    configureButtonsLabels()
+                }
                 if (pdf.uri != null) {
                     setUpSecondBar()
                 }
                 fullScreenButtonController.configure()
+                reapplyFullscreenStateAfterLoad()
+                cropMarginsController.startIfNeeded(cachedCropMargins, fileHash, loadToken, documentUri, pageCount)
             }
             .load()
 
+        pdfView.zoomTo(pdf.zoom)
+
         // Show the page scroll handler for a while when the pdf is loaded then hide it.
         pdfView.performTap()
+    }
+
+    private fun reloadWithCropMargins(configurator: Configurator, pageNumber: Int, cropMargins: CropMargins) {
+        val zoomDisabled = binding.pdfView.isZoomDisabled
+        val horizontalSwipeDisabled = binding.pdfView.isHorizontalSwipeDisabled
+        initPdfViewAndLoad(
+            configurator,
+            pageNumber,
+            savePassword = false,
+            cachedCropMargins = cropMargins,
+            fileHash = pdf.fileHash,
+            loadToken = documentLoadToken,
+            documentUri = pdf.uri,
+            applyDocumentLoadDefaults = false,
+            zoomDisabled = zoomDisabled,
+            horizontalSwipeDisabled = horizontalSwipeDisabled,
+        )
     }
 
     private fun openTextModeByDefault() {
@@ -398,6 +511,20 @@ class MainActivity : AppCompatActivity() {
         toolbarActionController.update(actionBarMenu)
     }
 
+    private fun refreshConfiguredActions() {
+        updateActionBarButtons()
+        if (::fullScreenButtonController.isInitialized) {
+            fullScreenButtonController.configure()
+        }
+        if (::shortcutBarController.isInitialized) {
+            if (hasFile()) {
+                shortcutBarController.configure()
+            } else {
+                binding.secondBarScrollView.visibility = View.GONE
+            }
+        }
+    }
+
     private fun hasFile() = pdf.hasFile()
 
     private fun createActionHandlers(): ConfigurableActionResolver.Handlers {
@@ -407,6 +534,7 @@ class MainActivity : AppCompatActivity() {
             rotate = ::rotateScreen,
             toggleHorizontalLock = { horizontalSwipeButtonListener(binding) },
             toggleZoomLock = { zoomLockButtonListener(binding) },
+            toggleCropMargins = ::toggleCropMargins,
             screenshot = ::takeScreenshot,
             switchTheme = ::switchPdfTheme,
             reload = ::reloadPdf,
@@ -442,35 +570,64 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun createPdfRecord(savePassword: Boolean, pdf: PDF) {
+    private fun createPdfRecord(
+        savePassword: Boolean,
+        pdf: PDF,
+        expectedFileHash: String?,
+        loadToken: Long,
+        documentUri: Uri?,
+    ) {
         val password = if (savePassword) pdf.password else null
         lifecycleScope.launch {
-            if (databaseManager.hasRecord(this@MainActivity.pdf.fileHash as String)) {
-                // cannot use elvis operator ?: with a suspend function, it won't wait
-                if (pdf.fileHash == null) {
-                    pdf.fileHash = computeHash(this@MainActivity, this@MainActivity.pdf)
+            if (!isCurrentDocument(loadToken, documentUri)) {
+                return@launch
+            }
+
+            // cannot use elvis operator ?: with a suspend function, it won't wait
+            if (pdf.fileHash == null && expectedFileHash == null) {
+                val computedHash = computeHash(this@MainActivity, pdf)
+                if (!isCurrentDocument(loadToken, documentUri)) {
+                    return@launch
                 }
-                val fileHash = pdf.fileHash
-                if (fileHash == null) {
-                    Log.e(TAG, "createPdfRecord: Failed to compute fileHash while creating PdfRecord")
+                pdf.fileHash = computedHash
+            }
+            if (!isCurrentDocument(loadToken, documentUri)) {
+                return@launch
+            }
+
+            val fileHash = expectedFileHash ?: pdf.fileHash
+            if (fileHash == null) {
+                Log.e(TAG, "createPdfRecord: Failed to compute fileHash while creating PdfRecord")
+                return@launch
+            }
+            pdf.fileHash = fileHash
+
+            if (databaseManager.hasRecord(fileHash)) {
+                if (!isCurrentDocument(loadToken, documentUri)) {
                     return@launch
                 }
                 databaseManager.setLastOpened(fileHash, LocalDateTime.now())
+                if (!isCurrentDocument(loadToken, documentUri)) {
+                    return@launch
+                }
                 if (password != null) {
                     databaseManager.setPassword(fileHash, password)
                 }
+                if (!isCurrentDocument(loadToken, documentUri)) {
+                    return@launch
+                }
+                cropMarginsController.onRecordAvailable(fileHash)
             }
             else {
-                if (pdf.fileHash == null) {
-                    pdf.fileHash = computeHash(this@MainActivity, pdf)
-                }
-                val fileHash = pdf.fileHash
-                if (fileHash == null) {
-                    showFailedToComputeHashError()
+                if (!isCurrentDocument(loadToken, documentUri)) {
                     return@launch
                 }
                 val record = PdfRecord.from(fileHash, this@MainActivity.pdf, password)
                 databaseManager.saveRecordInBackground(record)
+                if (!isCurrentDocument(loadToken, documentUri)) {
+                    return@launch
+                }
+                cropMarginsController.onRecordAvailable(fileHash)
             }
         }
     }
@@ -551,7 +708,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun configureButtonsLabels() {
-        if (pref.getHideButtonsLabels()) {
+        if (pref.getHideButtonsLabels() == fullScreenOptionsManager.isLabelsVisible()) {
             fullScreenOptionsManager.toggleLabelVisibility(this@MainActivity, ::drawableOf, ::getString)
         }
     }
@@ -865,25 +1022,25 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun showSystemUi() {
+        ColorUtil.exitFullscreen(this, window, supportActionBar)
+        supportActionBar?.show()
+        binding.appBarBottomShadow.visibility = View.VISIBLE
+        if (pref.getSecondBarEnabled()) {
+            shortcutBarController.updateVisibility()
+        }
+    }
+
+    private fun hideSystemUi() {
+        supportActionBar?.hide()
+        binding.appBarBottomShadow.visibility = View.GONE
+        binding.secondBarScrollView.visibility = View.GONE
+        ColorUtil.enterFullscreen(window)
+    }
+
     private fun toggleFullscreen() {
-        fun showUi() {
-            ColorUtil.exitFullscreen(this, window, supportActionBar)
-            supportActionBar?.show()
-            binding.appBarBottomShadow.visibility = View.VISIBLE
-            if (pref.getSecondBarEnabled()) {
-                shortcutBarController.updateVisibility()
-            }
-        }
-
-        fun hideUi() {
-            supportActionBar?.hide()
-            binding.appBarBottomShadow.visibility = View.GONE
-            binding.secondBarScrollView.visibility = View.GONE
-            ColorUtil.enterFullscreen(window)
-        }
-
         if (!pdf.isFullScreenToggled) {
-            hideUi()
+            hideSystemUi()
             pdf.isFullScreenToggled = true
             fullScreenOptionsManager.hideAll()
 
@@ -894,8 +1051,14 @@ class MainActivity : AppCompatActivity() {
         }
         else {
             pdf.isFullScreenToggled = false
-            showUi()
+            showSystemUi()
             fullScreenOptionsManager.showAllTemporarilyOrHide()
+        }
+    }
+
+    private fun reapplyFullscreenStateAfterLoad() {
+        if (pdf.isFullScreenToggled) {
+            hideSystemUi()
         }
     }
 
@@ -905,32 +1068,74 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun toggleCropMargins() {
+        if (!checkHasFile()) {
+            return
+        }
+        val enableCropMargins = !isCropMarginsEnabled()
+        setCropMarginsEnabled(enableCropMargins)
+        if (enableCropMargins) {
+            cropMarginsController.startOrApply(
+                pdf.fileHash,
+                documentLoadToken,
+                pdf.uri,
+                binding.pdfView.pageCount,
+            )
+        } else {
+            cropMarginsController.cancel()
+            recreate()
+        }
+    }
+
     private fun downloadOrShowDownloadedFile(uri: Uri) {
         if (PdfBytesHolder.pdfByte == null) {
-            PdfBytesHolder.pdfByte = lastCustomNonConfigurationInstance as ByteArray?
+            val retained = lastCustomNonConfigurationInstance as? RetainedPdfBytes
+            if (retained?.uri == uri.toString()) {
+                PdfBytesHolder.set(retained.uri, retained.bytes)
+            }
+        }
+        if (PdfBytesHolder.pdfByte != null && PdfBytesHolder.uri != uri.toString()) {
+            PdfBytesHolder.clear()
         }
         if (PdfBytesHolder.pdfByte != null) {
             initPdfViewAndLoad(binding.pdfView.fromBytes(PdfBytesHolder.pdfByte))
         }
         else {
             // we will get the pdf asynchronously with the DownloadPDFFile object
+            binding.progressBar.isIndeterminate = true
+            binding.progressBar.progress = 0
             binding.progressBar.visibility = View.VISIBLE
-            val downloadPDFFile = DownloadPDFFile(this, binding)
+            val downloadPDFFile = DownloadPDFFile(this, binding, uri.toString())
             downloadPDFFile.execute(uri.toString())
         }
     }
 
     override fun onRetainCustomNonConfigurationInstance(): Any? {
-        return PdfBytesHolder.pdfByte
+        return RetainedPdfBytes(PdfBytesHolder.uri, PdfBytesHolder.pdfByte)
+    }
+
+    override fun onDestroy() {
+        if (::cropMarginsController.isInitialized) {
+            cropMarginsController.cancel()
+        }
+        super.onDestroy()
     }
 
     fun hideProgressBar() {
         binding.progressBar.visibility = View.GONE
+        binding.progressBar.isIndeterminate = true
+        binding.progressBar.progress = 0
+    }
+
+    private fun hideProgressBar(loadToken: Long, documentUri: Uri?) {
+        if (isCurrentDocument(loadToken, documentUri)) {
+            hideProgressBar()
+        }
     }
 
     fun saveToFileAndDisplay(pdfFileContent: ByteArray?) {
         Log.d(TAG, "saveToFileAndDisplay pdfFileContent is set to: $pdfFileContent: ")
-        PdfBytesHolder.pdfByte = pdfFileContent
+        PdfBytesHolder.set(pdf.uri?.toString(), pdfFileContent)
         saveToDownloadFolderIfAllowed(pdfFileContent)
         initPdfViewAndLoad(binding.pdfView.fromBytes(pdfFileContent))
     }
@@ -963,7 +1168,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun saveDownloadedFileAfterPermissionRequest(isPermissionGranted: Boolean) {
         if (isPermissionGranted) {
-            trySaveToDownloads(PdfBytesHolder.pdfByte, true)
+            val bytes = if (PdfBytesHolder.uri == pdf.uri?.toString()) PdfBytesHolder.pdfByte else null
+            if (bytes != null) {
+                trySaveToDownloads(bytes, true)
+            } else {
+                Snackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
+            }
         }
         else {
             //Toast.makeText(this, R.string.save_to_download_failed, Toast.LENGTH_SHORT).show()
@@ -975,18 +1185,31 @@ class MainActivity : AppCompatActivity() {
         launchers.settings.launch(Intent(this, SettingsActivity::class.java))
     }
 
-    private fun setCurrentPage(pageNumber: Int, pageCount: Int) {
+    private fun setCurrentPage(
+        pageNumber: Int,
+        pageCount: Int,
+        expectedFileHash: String?,
+        loadToken: Long,
+        documentUri: Uri?,
+    ) {
+        if (!isCurrentDocument(loadToken, documentUri)) {
+            return
+        }
         pdf.pageNumber = pageNumber
         setPdfLength(pageCount)
         updateAppTitle()
 
         lifecycleScope.launch {
-            // cannot use elvis operator ?: with a suspend function, it won't wait
-            if (pdf.fileHash == null) {
-                pdf.fileHash = computeHash(this@MainActivity, pdf)
+            if (!isCurrentDocument(loadToken, documentUri)) {
+                return@launch
             }
-            val hash = pdf.fileHash
+            // cannot use elvis operator ?: with a suspend function, it won't wait
+            val hash = expectedFileHash ?: pdf.fileHash ?: computeHash(this@MainActivity, pdf)
+            if (!isCurrentDocument(loadToken, documentUri)) {
+                return@launch
+            }
             if (hash != null) {  // Ensure hash is not null
+                pdf.fileHash = hash
                 databaseManager.setPageNumber(hash, pageNumber)  // Set the page number in the database
             }
             else {
@@ -1132,6 +1355,7 @@ class MainActivity : AppCompatActivity() {
             readerAction(ConfigurableAction.FULLSCREEN),
             readerAction(ConfigurableAction.SEARCH),
             readerAction(ConfigurableAction.GO_TO_PAGE),
+            readerAction(ConfigurableAction.CROP_MARGINS),
             readerAction(ConfigurableAction.EXTRACT_TEXT),
             readerAction(ConfigurableAction.SETTINGS),
             ReaderAction(R.string.toggle_shortcuts, R.drawable.ic_awesome, visible = hasFile) {
@@ -1332,7 +1556,9 @@ class MainActivity : AppCompatActivity() {
         outState.putString(PDF.fileHashKey, pdf.fileHash)
         outState.putInt(PDF.pageNumberKey, pdf.pageNumber)
         outState.putString(PDF.passwordKey, pdf.password)
+        outState.putBoolean(PDF.isPortraitKey, pdf.isPortrait)
         outState.putBoolean(PDF.isFullScreenToggledKey, pdf.isFullScreenToggled)
+        outState.putBoolean(PDF.cropMarginsEnabledKey, isCropMarginsEnabled())
         outState.putFloat(PDF.zoomKey, binding.pdfView.zoom)
         outState.putBoolean(PDF.isExtractingTextFinishedKey, pdf.isExtractingTextFinished)
         super.onSaveInstanceState(outState)
@@ -1343,14 +1569,16 @@ class MainActivity : AppCompatActivity() {
         pdf.fileHash = savedState.getString(PDF.fileHashKey)
         pdf.pageNumber = savedState.getInt(PDF.pageNumberKey)
         pdf.password = savedState.getString(PDF.passwordKey)
+        pdf.isPortrait = savedState.getBoolean(PDF.isPortraitKey, true)
         pdf.isFullScreenToggled = savedState.getBoolean(PDF.isFullScreenToggledKey)
+        cropMarginsEnabledForCurrentDocument = savedState.getBoolean(PDF.cropMarginsEnabledKey, pref.getAlwaysHideMargins())
         pdf.zoom = savedState.getFloat(PDF.zoomKey)
         pdf.isExtractingTextFinished = savedState.getBoolean(PDF.isExtractingTextFinishedKey)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
         super.onActivityResult(requestCode, resultCode, intent)
-        binding.progressBar.visibility = View.GONE
+        hideProgressBar()
         when (requestCode) {
             PDF.startBookmarksActivity -> {
                 if (resultCode == PDF.BOOKMARK_RESULT_OK) {

@@ -3,9 +3,7 @@ package com.gitlab.mudlej.MjPdfReader.manager.database
 import com.gitlab.mudlej.MjPdfReader.enums.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
@@ -18,7 +16,7 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
     }
 
     override suspend fun saveRecordInBackground(pdfRecord: PdfRecord) {
-        CoroutineScope(Dispatchers.IO).launch {
+        withContext(Dispatchers.IO) {
             database.pdfRecordDao().insert(pdfRecord)
         }
     }
@@ -32,6 +30,12 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
     override suspend fun findPdfPassword(fileHash: String): String? {
         return withContext(Dispatchers.IO) {
             database.pdfRecordDao().findPdfPassword(fileHash)
+        }
+    }
+
+    override suspend fun findCropMargins(fileHash: String, version: Int): String? {
+        return withContext(Dispatchers.IO) {
+            database.pdfRecordDao().findCropMargins(fileHash, version)
         }
     }
 
@@ -74,6 +78,12 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
     override suspend fun setPassword(fileHash: String, password: String) {
         withContext(Dispatchers.IO) {
             database.pdfRecordDao().updatePassword(fileHash, password)
+        }
+    }
+
+    override suspend fun setCropMargins(fileHash: String, cropMargins: String, version: Int) {
+        withContext(Dispatchers.IO) {
+            database.pdfRecordDao().updateCropMargins(fileHash, cropMargins, version)
         }
     }
 

@@ -52,6 +52,7 @@ import com.github.barteksc.pdfviewer.listener.OnPageErrorListener;
 import com.github.barteksc.pdfviewer.listener.OnPageScrollListener;
 import com.github.barteksc.pdfviewer.listener.OnRenderListener;
 import com.github.barteksc.pdfviewer.listener.OnTapListener;
+import com.github.barteksc.pdfviewer.model.CropMargins;
 import com.github.barteksc.pdfviewer.model.PagePart;
 import com.github.barteksc.pdfviewer.scroll.ScrollHandle;
 import com.github.barteksc.pdfviewer.source.AssetSource;
@@ -225,6 +226,10 @@ public class PDFView extends RelativeLayout {
     private FitPolicy pageFitPolicy = FitPolicy.WIDTH;
 
     private boolean fitEachPage = false;
+
+    private boolean cropMargins = false;
+
+    private CropMargins cachedCropMargins = null;
 
     private int defaultPage = 0;
 
@@ -1295,12 +1300,17 @@ public class PDFView extends RelativeLayout {
 
         int pageX, pageY;
         SizeF pageSize = pdfFile.getScaledPageSize(pageNumber, zoom);
-        pageX = (int) pdfFile.getSecondaryPageOffset(pageNumber, zoom);
-        pageY = (int) pdfFile.getPageOffset(pageNumber, zoom);
+        if (swipeVertical) {
+            pageX = (int) pdfFile.getSecondaryPageOffset(pageNumber, zoom);
+            pageY = (int) pdfFile.getPageOffset(pageNumber, zoom);
+        } else {
+            pageX = (int) pdfFile.getPageOffset(pageNumber, zoom);
+            pageY = (int) pdfFile.getSecondaryPageOffset(pageNumber, zoom);
+        }
 
         Log.d(TAG, "zoomWithAnimation: pageNumber=" + pageNumber + ", pageX: " + pageX + ", pageY: " + pageY);
 
-        RectF mappedRectF = pdfFile.mapRectToDevice(pageNumber, pageX, (int) previousY, (int) pageSize.getWidth(), (int) pageSize.getHeight(), rect);
+        RectF mappedRectF = pdfFile.mapRectToDevice(pageNumber, pageX, pageY, (int) pageSize.getWidth(), (int) pageSize.getHeight(), rect);
         if (mappedRectF == null) {
             Log.e(TAG, "zoomWithAnimation: mappedRectF is null!");
             return;
@@ -1313,8 +1323,8 @@ public class PDFView extends RelativeLayout {
         Log.d(TAG, "zoomWithAnimation: pageX= " + pageX + ", pageY=" + pageY);
         Log.d(TAG, "zoomWithAnimation: getWidth=" + getWidth() + ", getHeight()=" + getHeight());
 
-        float x = mappedRectF.centerX();
-        float y = (mappedRectF.centerY() - previousY);
+        float x = mappedRectF.centerX() + currentXOffset;
+        float y = mappedRectF.centerY() + currentYOffset;
         Log.d(TAG, "zoomWithAnimation: x=" + x + ", y=" + y);
         animationManager.startZoomAnimation(x, y, zoom, scaleTo);
     }
@@ -1451,6 +1461,22 @@ public class PDFView extends RelativeLayout {
 
     public boolean isFitEachPage() {
         return fitEachPage;
+    }
+
+    private void setCropMargins(boolean cropMargins) {
+        this.cropMargins = cropMargins;
+    }
+
+    public boolean isCropMarginsEnabled() {
+        return cropMargins;
+    }
+
+    private void setCachedCropMargins(CropMargins cachedCropMargins) {
+        this.cachedCropMargins = cachedCropMargins;
+    }
+
+    CropMargins getCachedCropMargins() {
+        return cachedCropMargins;
     }
 
     public boolean isPageSnap() {
@@ -1641,6 +1667,10 @@ public class PDFView extends RelativeLayout {
 
         private boolean fitEachPage = false;
 
+        private boolean cropMargins = false;
+
+        private CropMargins cachedCropMargins = null;
+
         private boolean pageFling = false;
 
         private boolean pageSnap = false;
@@ -1791,6 +1821,16 @@ public class PDFView extends RelativeLayout {
             return this;
         }
 
+        public Configurator cropMargins(boolean cropMargins) {
+            this.cropMargins = cropMargins;
+            return this;
+        }
+
+        public Configurator cachedCropMargins(CropMargins cachedCropMargins) {
+            this.cachedCropMargins = cachedCropMargins;
+            return this;
+        }
+
         public Configurator pageSnap(boolean pageSnap) {
             this.pageSnap = pageSnap;
             return this;
@@ -1845,6 +1885,8 @@ public class PDFView extends RelativeLayout {
             PDFView.this.setAutoReleasingWhenDetachedFromWindow(autoReleasingWhenDetachedFromWindow);
             PDFView.this.setPageFitPolicy(pageFitPolicy);
             PDFView.this.setFitEachPage(fitEachPage);
+            PDFView.this.setCropMargins(cropMargins);
+            PDFView.this.setCachedCropMargins(cachedCropMargins);
             PDFView.this.setPageSnap(pageSnap);
             PDFView.this.setPageFling(pageFling);
 

@@ -23,7 +23,9 @@ class StorageManager {
                     .filter { file -> file.extension == PDF_EXTENSION }
                     .forEach { file ->
                         val hash = computeHash(activity, PDF(uri = file.toUri()))
-                        filesMap[hash] = file
+                        if (hash != null) {
+                            filesMap[hash] = file
+                        }
                     }
             }
             Log.d(TAG, "scanPdfFilesWithHash: timeElapsed: ${time / 1000F}s")

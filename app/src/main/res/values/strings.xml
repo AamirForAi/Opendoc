@@ -246,6 +246,11 @@
     <string name="secondary_button_action">Secondary Button Action</string>
     <string name="fullscreen_buttons">Fullscreen Buttons</string>
     <string name="shortcut_bar_buttons">Shortcut Bar Buttons</string>
+    <string name="crop_margins">Hide Margins</string>
+    <string name="show_margins">Show Margins</string>
+    <string name="always_hide_margins">Always hide margins for all PDFs</string>
+    <string name="always_hide_margins_summary">Automatically hide detected empty margins whenever a PDF is opened.</string>
+    <string name="analyzing_margins_progress">Analyzing margins… %1$d/%2$d</string>
     <string name="drag_to_reorder">Drag to reorder</string>
     <string name="save_password">Save password</string>
     <string name="send_crash_report_title">Send Anonymous Crash Report?</string>

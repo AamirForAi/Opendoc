@@ -81,6 +81,12 @@ data class PdfRecord(
 
     @ColumnInfo(defaultValue = UNSET_FAVORITE)
     var favorite: Boolean,
+
+    @ColumnInfo(defaultValue = UNSET_CROP_MARGINS)
+    val cropMargins: String? = null,
+
+    @ColumnInfo(defaultValue = UNSET_CROP_MARGINS_VERSION)
+    val cropMarginsVersion: Int = 0,
 ) {
 
     companion object {
@@ -120,5 +126,7 @@ data class PdfRecord(
         const val UNSET_PAGE_NUMBER = "0"
         const val UNSET_READING_STATUS = "UNSET"
         const val UNSET_FAVORITE = false.toString()
+        const val UNSET_CROP_MARGINS = "NULL"
+        const val UNSET_CROP_MARGINS_VERSION = "0"
     }
 }

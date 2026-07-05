@@ -68,7 +68,11 @@ class FullScreenButtonController(
             val button = dynamicButtons.getOrPut(action.id) {
                 createActionButton(action)
             }
-            button.visibility = if (selectedIds.contains(action.id) && actionResolver.action(action)?.visible == true) {
+            val configuredAction = actionResolver.action(action)
+            if (configuredAction != null) {
+                configureActionButton(button, configuredAction)
+            }
+            button.visibility = if (selectedIds.contains(action.id) && configuredAction?.visible == true) {
                 View.VISIBLE
             } else {
                 View.GONE
@@ -99,9 +103,6 @@ class FullScreenButtonController(
             ).apply {
                 setMargins(0, margin, 0, margin)
             }
-            text = context.getString(action.titleRes)
-            contentDescription = context.getString(action.titleRes)
-            setIconResource(action.iconRes)
             iconGravity = MaterialButton.ICON_GRAVITY_START
             iconSize = resources.getDimensionPixelSize(R.dimen.fs_button_size)
             setPaddingRelative(padding, padding, paddingEnd, padding)
@@ -110,5 +111,13 @@ class FullScreenButtonController(
         binding.fullScreenButtonsList.addView(button)
         fullScreenOptionsManager.registerFullScreenButton(button, context.getString(action.titleRes))
         return button
+    }
+
+    private fun configureActionButton(button: MaterialButton, configuredAction: ConfiguredAction) {
+        val title = context.getString(configuredAction.titleRes)
+        button.text = title
+        button.contentDescription = title
+        button.setIconResource(configuredAction.iconRes)
+        fullScreenOptionsManager.registerFullScreenButton(button, title)
     }
 }
