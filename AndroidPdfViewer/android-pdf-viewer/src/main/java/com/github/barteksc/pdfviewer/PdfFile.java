@@ -19,6 +19,7 @@ import android.graphics.Bitmap;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.os.ParcelFileDescriptor;
 import android.util.SparseBooleanArray;
 
 import com.github.barteksc.pdfviewer.exception.PageRenderingException;
@@ -31,6 +32,8 @@ import com.shockwave.pdfium.PdfiumCore;
 import com.shockwave.pdfium.util.Size;
 import com.shockwave.pdfium.util.SizeF;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -687,6 +690,76 @@ class PdfFile {
             return new Rect[0];
         }
         return pdfiumCore.createHighlightText(pdfDocument, docPage, start, end, padding);
+    }
+
+    public boolean createHighlightAnnotation(int pageIndex, List<RectF> pdfRects,
+                                              int color, String contents) {
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0 || pdfRects == null || pdfRects.isEmpty()) {
+            return false;
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return false;
+        }
+        return pdfiumCore.createHighlightAnnotation(pdfDocument, docPage, pdfRects, color, contents);
+    }
+
+    public PdfDocument.HighlightAnnotation findHighlightAnnotationAt(int pageIndex, float pdfX,
+                                                                     float pdfY, float tolerance) {
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return null;
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return null;
+        }
+        return pdfiumCore.findHighlightAnnotationAt(pdfDocument, docPage, pdfX, pdfY, tolerance);
+    }
+
+    public boolean setHighlightAnnotationColor(int pageIndex, int annotationIndex,
+                                               String groupKey, int color) {
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return false;
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return false;
+        }
+        return pdfiumCore.setHighlightAnnotationColor(pdfDocument, docPage, annotationIndex, groupKey, color);
+    }
+
+    public boolean removeHighlightAnnotation(int pageIndex, int annotationIndex, String groupKey) {
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return false;
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return false;
+        }
+        return pdfiumCore.removeHighlightAnnotation(pdfDocument, docPage, annotationIndex, groupKey);
+    }
+
+    public boolean saveAsCopy(File outputFile) throws IOException {
+        if (pdfDocument == null || outputFile == null) {
+            return false;
+        }
+        ParcelFileDescriptor fd = ParcelFileDescriptor.open(outputFile,
+                ParcelFileDescriptor.MODE_CREATE
+                        | ParcelFileDescriptor.MODE_TRUNCATE
+                        | ParcelFileDescriptor.MODE_WRITE_ONLY);
+        try {
+            return pdfiumCore.saveAsCopy(pdfDocument, fd);
+        } finally {
+            fd.close();
+        }
     }
 
     public void clearSearchResultsAnnot(int pageIndex) {

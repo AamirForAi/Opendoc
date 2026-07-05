@@ -109,6 +109,36 @@ public class PdfDocument {
         }
     }
 
+    public static class HighlightAnnotation {
+        private int annotationIndex;
+        private String groupKey;
+        private RectF bounds;
+        private String contents;
+
+        public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String contents) {
+            this.annotationIndex = annotationIndex;
+            this.groupKey = groupKey == null ? "" : groupKey;
+            this.bounds = bounds;
+            this.contents = contents == null ? "" : contents;
+        }
+
+        public int getAnnotationIndex() {
+            return annotationIndex;
+        }
+
+        public String getGroupKey() {
+            return groupKey;
+        }
+
+        public RectF getBounds() {
+            return bounds;
+        }
+
+        public String getContents() {
+            return contents;
+        }
+    }
+
     /*package*/ PdfDocument() {
     }
 

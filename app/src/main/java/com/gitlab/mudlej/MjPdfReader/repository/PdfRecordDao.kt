@@ -57,6 +57,9 @@ interface PdfRecordDao {
     @Query("SELECT * FROM PdfRecord")
     fun findAll(): List<PdfRecord>
 
+    @Query("SELECT * FROM PdfRecord WHERE hash = :fileHash LIMIT 1")
+    fun findByHash(fileHash: String): PdfRecord?
+
     @Query("SELECT pageNumber FROM PdfRecord WHERE hash = :fileHash")
     fun findSavedPage(fileHash: String?): Int?
 
@@ -80,6 +83,9 @@ interface PdfRecordDao {
 
     @Query("UPDATE PdfRecord SET lastOpened = :lastOpened WHERE hash = :fileHash")
     fun updateLastOpened(fileHash: String?, lastOpened: LocalDateTime)
+
+    @Query("UPDATE PdfRecord SET uri = :uri, fileName = :fileName, lastOpened = :lastOpened WHERE hash = :fileHash")
+    fun updateIdentity(fileHash: String, uri: android.net.Uri, fileName: String, lastOpened: LocalDateTime): Int
 
     @Query("UPDATE PdfRecord SET favorite = :favorite WHERE hash = :fileHash")
     fun updateFavorite(fileHash: String?, favorite: Boolean)
@@ -110,4 +116,7 @@ interface PdfRecordDao {
 
     @Delete()
     fun delete(record: PdfRecord)
+
+    @Query("DELETE FROM PdfRecord WHERE hash = :fileHash")
+    fun deleteByHash(fileHash: String): Int
 }

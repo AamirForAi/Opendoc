@@ -73,6 +73,7 @@ import com.shockwave.pdfium.util.Size;
 import com.shockwave.pdfium.util.SizeF;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -125,6 +126,36 @@ public class PDFView extends RelativeLayout {
             this.horizontalReadingDirectionRtl = horizontalReadingDirectionRtl;
             this.relativeCrossAxisCenter = relativeCrossAxisCenter;
             this.pageCenterOffsetRatio = pageCenterOffsetRatio;
+        }
+    }
+
+    public static final class HighlightRequest {
+        public final int pageIndex;
+        public final List<RectF> pdfRects;
+        public final String selectedText;
+
+        public HighlightRequest(int pageIndex, List<RectF> pdfRects, String selectedText) {
+            List<RectF> safeRects = pdfRects == null ? Collections.<RectF>emptyList() : pdfRects;
+            this.pageIndex = pageIndex;
+            this.pdfRects = Collections.unmodifiableList(new ArrayList<>(safeRects));
+            this.selectedText = selectedText == null ? "" : selectedText;
+        }
+    }
+
+    public static final class HighlightAnnotation {
+        public final int pageIndex;
+        public final int annotationIndex;
+        public final String groupKey;
+        public final RectF viewBounds;
+        public final String contents;
+
+        public HighlightAnnotation(int pageIndex, int annotationIndex, String groupKey,
+                                   RectF viewBounds, String contents) {
+            this.pageIndex = pageIndex;
+            this.annotationIndex = annotationIndex;
+            this.groupKey = groupKey == null ? "" : groupKey;
+            this.viewBounds = viewBounds == null ? null : new RectF(viewBounds);
+            this.contents = contents == null ? "" : contents;
         }
     }
 
@@ -242,6 +273,12 @@ public class PDFView extends RelativeLayout {
      * Paint object for drawing debug stuff
      */
     private Paint debugPaint;
+
+    private Paint selectedHighlightFillPaint;
+
+    private Paint selectedHighlightStrokePaint;
+
+    private HighlightAnnotation selectedHighlightAnnotation;
 
     /**
      * Policy for fitting pages to screen
@@ -372,6 +409,12 @@ public class PDFView extends RelativeLayout {
         paint = new Paint();
         debugPaint = new Paint();
         debugPaint.setStyle(Style.STROKE);
+        selectedHighlightFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        selectedHighlightFillPaint.setStyle(Style.FILL);
+        selectedHighlightStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        selectedHighlightStrokePaint.setStyle(Style.STROKE);
+        selectedHighlightStrokePaint.setStrokeWidth(2f * getResources().getDisplayMetrics().density);
+        setSelectedHighlightColor(0xFF3F51B5);
 
         pdfiumCore = new PdfiumCore(context);
         setWillNotDraw(false);
@@ -601,6 +644,7 @@ public class PDFView extends RelativeLayout {
         if (textSelectionManager != null) {
             textSelectionManager.recycle();
         }
+        selectedHighlightAnnotation = null;
 
         if (pdfFile != null) {
             pdfFile.dispose();
@@ -823,8 +867,16 @@ public class PDFView extends RelativeLayout {
             textSelectionManager.draw(canvas);
         }
 
-        // Restores the canvas position
         canvas.translate(-currentXOffset, -currentYOffset);
+        drawSelectedHighlightAnnotation(canvas);
+    }
+
+    private void drawSelectedHighlightAnnotation(Canvas canvas) {
+        if (selectedHighlightAnnotation == null || selectedHighlightAnnotation.viewBounds == null) {
+            return;
+        }
+        canvas.drawRect(selectedHighlightAnnotation.viewBounds, selectedHighlightFillPaint);
+        canvas.drawRect(selectedHighlightAnnotation.viewBounds, selectedHighlightStrokePaint);
     }
 
     private void drawWithListener(Canvas canvas, int page, OnDrawListener listener) {
@@ -1442,6 +1494,28 @@ public class PDFView extends RelativeLayout {
         if (textSelectionManager != null) {
             textSelectionManager.setSelectionColor(color);
         }
+        setSelectedHighlightColor(color);
+    }
+
+    private void setSelectedHighlightColor(int color) {
+        if (selectedHighlightFillPaint == null || selectedHighlightStrokePaint == null) {
+            return;
+        }
+        selectedHighlightFillPaint.setColor((0x33 << 24) | (color & 0x00FFFFFF));
+        selectedHighlightStrokePaint.setColor((0xCC << 24) | (color & 0x00FFFFFF));
+    }
+
+    public void setSelectedHighlightAnnotation(HighlightAnnotation annotation) {
+        selectedHighlightAnnotation = annotation;
+        invalidate();
+    }
+
+    public void clearSelectedHighlightAnnotation() {
+        if (selectedHighlightAnnotation == null) {
+            return;
+        }
+        selectedHighlightAnnotation = null;
+        invalidate();
     }
 
     public boolean hasTextSelection() {
@@ -1453,6 +1527,131 @@ public class PDFView extends RelativeLayout {
             return "";
         }
         return textSelectionManager.getSelectedText();
+    }
+
+    public HighlightRequest getHighlightRequest() {
+        if (textSelectionManager == null) {
+            return null;
+        }
+        return textSelectionManager.getHighlightRequest();
+    }
+
+    public boolean addHighlight(HighlightRequest request, int color) {
+        if (request == null) {
+            return false;
+        }
+        return addHighlightAnnotation(request.pageIndex, request.pdfRects, color, request.selectedText);
+    }
+
+    public boolean addHighlightAnnotation(int pageIndex, List<RectF> pdfRects, int color, String contents) {
+        if (pdfFile == null || pdfRects == null || pdfRects.isEmpty()) {
+            return false;
+        }
+        try {
+            boolean created = pdfFile.createHighlightAnnotation(pageIndex, pdfRects, color, contents);
+            if (created) {
+                reloadPages();
+            }
+            return created;
+        } catch (Throwable throwable) {
+            Log.e(TAG, "addHighlightAnnotation: failed to create highlight", throwable);
+            return false;
+        }
+    }
+
+    public HighlightAnnotation findHighlightAnnotationAt(float viewX, float viewY) {
+        if (pdfFile == null) {
+            return null;
+        }
+        float docX = -getCurrentXOffset() + viewX;
+        float docY = -getCurrentYOffset() + viewY;
+        int page = pdfFile.getPageAtOffset(isSwipeVertical() ? docY : docX, getZoom());
+        if (page < 0 || page >= pdfFile.getPagesCount()) {
+            return null;
+        }
+
+        PointF point = pdfFile.documentToPdf(page, getZoom(), docX, docY);
+        PdfDocument.HighlightAnnotation annotation;
+        try {
+            annotation = pdfFile.findHighlightAnnotationAt(page, point.x, point.y, 2.5f);
+        } catch (Throwable throwable) {
+            Log.e(TAG, "findHighlightAnnotationAt: failed to hit-test highlight", throwable);
+            return null;
+        }
+        if (annotation == null) {
+            return null;
+        }
+
+        RectF bounds = annotation.getBounds();
+        RectF viewBounds = null;
+        if (bounds != null) {
+            viewBounds = pdfFile.pdfRectToDocument(
+                    page,
+                    getZoom(),
+                    bounds.left,
+                    bounds.bottom,
+                    bounds.right,
+                    bounds.top
+            );
+            if (viewBounds != null) {
+                viewBounds.offset(getCurrentXOffset(), getCurrentYOffset());
+            }
+        }
+        return new HighlightAnnotation(
+                page,
+                annotation.getAnnotationIndex(),
+                annotation.getGroupKey(),
+                viewBounds,
+                annotation.getContents()
+        );
+    }
+
+    public boolean setHighlightAnnotationColor(HighlightAnnotation annotation, int color) {
+        if (pdfFile == null || annotation == null) {
+            return false;
+        }
+        try {
+            boolean updated = pdfFile.setHighlightAnnotationColor(
+                    annotation.pageIndex,
+                    annotation.annotationIndex,
+                    annotation.groupKey,
+                    color
+            );
+            if (updated) {
+                reloadPages();
+            }
+            return updated;
+        } catch (Throwable throwable) {
+            Log.e(TAG, "setHighlightAnnotationColor: failed to update highlight", throwable);
+            return false;
+        }
+    }
+
+    public boolean removeHighlightAnnotation(HighlightAnnotation annotation) {
+        if (pdfFile == null || annotation == null) {
+            return false;
+        }
+        try {
+            boolean removed = pdfFile.removeHighlightAnnotation(
+                    annotation.pageIndex,
+                    annotation.annotationIndex,
+                    annotation.groupKey
+            );
+            if (removed) {
+                reloadPages();
+            }
+            return removed;
+        } catch (Throwable throwable) {
+            Log.e(TAG, "removeHighlightAnnotation: failed to remove highlight", throwable);
+            return false;
+        }
+    }
+
+    public boolean saveAsCopy(File outputFile) throws IOException {
+        if (pdfFile == null || outputFile == null) {
+            return false;
+        }
+        return pdfFile.saveAsCopy(outputFile);
     }
 
     public void clearTextSelection() {

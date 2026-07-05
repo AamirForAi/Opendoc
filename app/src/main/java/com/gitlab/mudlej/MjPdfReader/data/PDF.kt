@@ -108,6 +108,7 @@ class PDF(
         const val readingDirectionOverrideKey = "readingDirectionOverride"
         const val detectedReadingDirectionKey = "detectedReadingDirection"
         const val effectiveReadingDirectionKey = "effectiveReadingDirection"
+        const val hasUnsavedAnnotationsKey = "hasUnsavedAnnotations"
         const val isExtractingTextFinishedKey = "isExtractingTextFinished"
         const val pdfBookmarksKey = "PDF_BOOKMARKS"
         const val chosenBookmarkKey = "chosenBookmarkKey"

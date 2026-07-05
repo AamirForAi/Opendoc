@@ -161,6 +161,17 @@ final class TextSelectionManager {
         return normalizeCopiedText(raw);
     }
 
+    PDFView.HighlightRequest getHighlightRequest() {
+        if (selection == null || selection.isEmpty() || pdfRunRects.isEmpty()) {
+            return null;
+        }
+        List<RectF> rects = new ArrayList<>(pdfRunRects.size());
+        for (RectF pdfRect : pdfRunRects) {
+            rects.add(new RectF(pdfRect));
+        }
+        return new PDFView.HighlightRequest(selection.pageIndex, rects, getSelectedText());
+    }
+
     RectF getSelectionViewBounds() {
         if (selection == null || pdfRunRects.isEmpty() || pdfView.pdfFile == null) {
             return null;

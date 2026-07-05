@@ -54,8 +54,8 @@ import androidx.room.migration.AutoMigrationSpec
 import com.gitlab.mudlej.MjPdfReader.util.DataConverter
 
 @Database(
-    entities = [PdfRecord::class],
-    version = 6,
+    entities = [PdfRecord::class, PdfAnnotationSaveDestination::class],
+    version = 8,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = AppDatabase.MyAutoMigration::class),
@@ -63,12 +63,14 @@ import com.gitlab.mudlej.MjPdfReader.util.DataConverter
         AutoMigration(from = 2, to = 3),
         AutoMigration(from = 3, to = 4),
         AutoMigration(from = 4, to = 5),
-        AutoMigration(from = 5, to = 6)
+        AutoMigration(from = 5, to = 6),
+        AutoMigration(from = 6, to = 7)
     ]
 )
 @TypeConverters(DataConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun pdfRecordDao(): PdfRecordDao
+    abstract fun pdfAnnotationSaveDestinationDao(): PdfAnnotationSaveDestinationDao
 
     companion object {
         private var INSTANCE: AppDatabase? = null
@@ -78,7 +80,9 @@ abstract class AppDatabase : RoomDatabase() {
                 return INSTANCE as AppDatabase
             }
             val location = context.cacheDir.absolutePath + "/" + DATABASE_NAME
-            INSTANCE = Room.databaseBuilder(context, AppDatabase::class.java, location).build()
+            INSTANCE = Room.databaseBuilder(context, AppDatabase::class.java, location)
+                .addMigrations(AppDatabaseMigrations.MIGRATION_7_TO_8)
+                .build()
             return INSTANCE as AppDatabase
         }
     }

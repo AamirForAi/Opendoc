@@ -2,6 +2,7 @@ package com.shockwave.pdfium;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -43,6 +44,8 @@ public class PdfiumCore {
     private native long nativeOpenMemDocument(byte[] data, String password);
 
     private native void nativeCloseDocument(long docPtr);
+
+    private native boolean nativeSaveAsCopy(long docPtr, int fd);
 
     private native int nativeGetPageCount(long docPtr);
 
@@ -113,6 +116,21 @@ public class PdfiumCore {
 
 
     private native boolean nativeCreateAnnotInPage(long pagePtr, int l, int r, int t, int b, int dpi, boolean padding);
+
+    private native boolean nativeCreateHighlightAnnotation(long pagePtr, float[][] rects,
+                                                           int r, int g, int b, int a,
+                                                           String contents);
+
+    private native PdfDocument.HighlightAnnotation nativeGetHighlightAnnotationAt(long pagePtr,
+                                                                                  float x,
+                                                                                  float y,
+                                                                                  float tolerance);
+
+    private native boolean nativeSetHighlightAnnotationColor(long pagePtr, int annotationIndex,
+                                                             String groupKey, int r, int g, int b);
+
+    private native boolean nativeRemoveHighlightAnnotation(long pagePtr, int annotationIndex,
+                                                           String groupKey);
 
     private native int nativeClearSearchResultAnnot(long pagePtr, int pageIndex);
 
@@ -190,6 +208,15 @@ public class PdfiumCore {
     public int getPageCount(PdfDocument doc) {
         synchronized (lock) {
             return nativeGetPageCount(doc.mNativeDocPtr);
+        }
+    }
+
+    public boolean saveAsCopy(PdfDocument doc, ParcelFileDescriptor fd) {
+        synchronized (lock) {
+            if (doc == null || fd == null) {
+                return false;
+            }
+            return nativeSaveAsCopy(doc.mNativeDocPtr, getNumFd(fd));
         }
     }
 
@@ -608,6 +635,62 @@ public class PdfiumCore {
                 nativeCreateAnnotInPage(nativePagePtr, rect.left, rect.right, rect.top, rect.bottom, mCurrentDpi, padding);
             }
             return rects;
+        }
+    }
+
+    public boolean createHighlightAnnotation(PdfDocument doc, int pageIndex, List<RectF> rects,
+                                              int color, String contents) {
+        synchronized (lock) {
+            Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (nativePagePtr == null || rects == null || rects.isEmpty()) {
+                return false;
+            }
+
+            float[][] nativeRects = new float[rects.size()][4];
+            for (int i = 0; i < rects.size(); i++) {
+                RectF rect = rects.get(i);
+                nativeRects[i][0] = rect.left;
+                nativeRects[i][1] = rect.top;
+                nativeRects[i][2] = rect.right;
+                nativeRects[i][3] = rect.bottom;
+            }
+            return nativeCreateHighlightAnnotation(nativePagePtr, nativeRects,
+                    Color.red(color), Color.green(color), Color.blue(color), Color.alpha(color),
+                    contents == null ? "" : contents);
+        }
+    }
+
+    public PdfDocument.HighlightAnnotation findHighlightAnnotationAt(PdfDocument doc, int pageIndex,
+                                                                     float x, float y, float tolerance) {
+        synchronized (lock) {
+            Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (nativePagePtr == null) {
+                return null;
+            }
+            return nativeGetHighlightAnnotationAt(nativePagePtr, x, y, tolerance);
+        }
+    }
+
+    public boolean setHighlightAnnotationColor(PdfDocument doc, int pageIndex, int annotationIndex,
+                                               String groupKey, int color) {
+        synchronized (lock) {
+            Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (nativePagePtr == null) {
+                return false;
+            }
+            return nativeSetHighlightAnnotationColor(nativePagePtr, annotationIndex, groupKey,
+                    Color.red(color), Color.green(color), Color.blue(color));
+        }
+    }
+
+    public boolean removeHighlightAnnotation(PdfDocument doc, int pageIndex, int annotationIndex,
+                                             String groupKey) {
+        synchronized (lock) {
+            Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (nativePagePtr == null) {
+                return false;
+            }
+            return nativeRemoveHighlightAnnotation(nativePagePtr, annotationIndex, groupKey);
         }
     }
 

@@ -146,7 +146,7 @@
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/textSelectionActionCard"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
         android:visibility="gone"
@@ -159,40 +159,192 @@
         app:layout_constraintTop_toBottomOf="@id/secondBarScrollView"
         app:layout_constraintVertical_bias="1">
 
-        <LinearLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
             android:padding="12dp">
 
-            <TextView
-                android:id="@+id/textSelectionActionText"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/selected_text"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="14sp" />
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/textSelectionHighlightYellowButton"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:clickable="true"
+                android:contentDescription="@string/highlight_yellow"
+                android:focusable="true"
+                app:cardBackgroundColor="#FFF176"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/textSelectionHighlightOrangeButton"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:clickable="true"
+                android:contentDescription="@string/highlight_orange"
+                android:focusable="true"
+                app:cardBackgroundColor="#FFB74D"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/textSelectionHighlightRedButton"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:clickable="true"
+                android:contentDescription="@string/highlight_pink_red"
+                android:focusable="true"
+                app:cardBackgroundColor="#F06292"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/textSelectionHighlightBlueButton"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:clickable="true"
+                android:contentDescription="@string/highlight_blue"
+                android:focusable="true"
+                app:cardBackgroundColor="#64B5F6"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/textSelectionHighlightGreenButton"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:clickable="true"
+                android:contentDescription="@string/highlight_green"
+                android:focusable="true"
+                app:cardBackgroundColor="#81C784"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/textSelectionDeleteHighlightButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:backgroundTint="?attr/colorSurfaceContainerHigh"
+                android:contentDescription="@string/delete"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="40dp"
+                android:minHeight="40dp"
+                android:padding="8dp"
+                android:text=""
+                android:visibility="gone"
+                app:icon="@drawable/ic_delete"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="22dp"
+                app:iconTint="?attr/colorError" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/textSelectionCopyButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:backgroundTint="?attr/colorSurfaceContainerHigh"
-                android:text="@string/copy"
-                android:textColor="?attr/colorOnSurface" />
+                android:contentDescription="@string/copy"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="40dp"
+                android:minHeight="40dp"
+                android:padding="8dp"
+                android:text=""
+                app:icon="@drawable/ic_copy"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="22dp"
+                app:iconTint="?attr/colorOnSurface" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/textSelectionSearchWebButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:backgroundTint="?attr/colorSurfaceContainerHigh"
-                android:text="@string/search_web"
-                android:textColor="?attr/colorOnSurface" />
-        </LinearLayout>
+                android:contentDescription="@string/search_web"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="40dp"
+                android:minHeight="40dp"
+                android:padding="8dp"
+                android:text=""
+                app:icon="@drawable/ic_web"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="22dp"
+                app:iconTint="?attr/colorOnSurface" />
+
+            <androidx.constraintlayout.helper.widget.Flow
+                android:id="@+id/textSelectionActionFlow"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:constraint_referenced_ids="textSelectionHighlightYellowButton,textSelectionHighlightOrangeButton,textSelectionHighlightRedButton,textSelectionHighlightBlueButton,textSelectionHighlightGreenButton,textSelectionDeleteHighlightButton,textSelectionCopyButton,textSelectionSearchWebButton"
+                app:flow_horizontalAlign="center"
+                app:flow_horizontalGap="16dp"
+                app:flow_horizontalStyle="packed"
+                app:flow_verticalGap="16dp"
+                app:flow_wrapMode="chain"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/unsavedHighlightsChip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="6dp"
+        app:layout_constraintBottom_toTopOf="@id/saveAnnotationsFab"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="14dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="8dp"
+            android:text="@string/unsaved_highlights"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="14sp" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/saveAnnotationsFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="24dp"
+        android:contentDescription="@string/save_highlights"
+        android:visibility="gone"
+        app:backgroundTint="?attr/colorPrimaryContainer"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:srcCompat="@drawable/ic_save"
+        app:tint="?attr/colorOnPrimaryContainer" />
 
     <View
         android:id="@+id/appBarBottomShadow"

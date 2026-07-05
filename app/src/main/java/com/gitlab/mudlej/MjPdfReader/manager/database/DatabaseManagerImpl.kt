@@ -2,6 +2,7 @@ package com.gitlab.mudlej.MjPdfReader.manager.database
 
 import com.gitlab.mudlej.MjPdfReader.enums.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
+import com.gitlab.mudlej.MjPdfReader.repository.PdfAnnotationSaveDestination
 import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,9 +16,68 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
         }
     }
 
+    override suspend fun findAnnotationSaveDestinationBySourceKey(sourceKey: String): PdfAnnotationSaveDestination? {
+        return withContext(Dispatchers.IO) {
+            database.pdfAnnotationSaveDestinationDao().findBySourceKey(sourceKey)
+        }
+    }
+
+    override suspend fun findAnnotationSaveDestinationByDestinationUri(destinationUri: String): PdfAnnotationSaveDestination? {
+        return withContext(Dispatchers.IO) {
+            database.pdfAnnotationSaveDestinationDao().findByDestinationUri(destinationUri)
+        }
+    }
+
+    override suspend fun findAnnotationSaveDestinationByLastSavedHash(hash: String): PdfAnnotationSaveDestination? {
+        return withContext(Dispatchers.IO) {
+            database.pdfAnnotationSaveDestinationDao().findByLastSavedHash(hash)
+        }
+    }
+
+    override suspend fun saveAnnotationSaveDestination(destination: PdfAnnotationSaveDestination) {
+        withContext(Dispatchers.IO) {
+            database.pdfAnnotationSaveDestinationDao().upsert(destination)
+        }
+    }
+
     override suspend fun saveRecordInBackground(pdfRecord: PdfRecord) {
         withContext(Dispatchers.IO) {
             database.pdfRecordDao().insert(pdfRecord)
+        }
+    }
+
+    override suspend fun copyOrUpdateRecordIdentity(
+        oldHash: String,
+        newHash: String,
+        sourceUri: android.net.Uri,
+        destinationUri: android.net.Uri,
+        fileName: String,
+    ) {
+        withContext(Dispatchers.IO) {
+            val dao = database.pdfRecordDao()
+            val now = LocalDateTime.now()
+            val replacingSourceFile = sourceUri.toString() == destinationUri.toString()
+            if (oldHash == newHash) {
+                if (replacingSourceFile) {
+                    dao.updateIdentity(oldHash, destinationUri, fileName, now)
+                }
+                return@withContext
+            }
+
+            val source = dao.findByHash(oldHash)
+            if (source != null) {
+                dao.insert(
+                    source.copy(
+                        hash = newHash,
+                        uri = destinationUri,
+                        fileName = fileName,
+                        lastOpened = now,
+                    )
+                )
+                if (replacingSourceFile) {
+                    dao.deleteByHash(oldHash)
+                }
+            }
         }
     }
 
