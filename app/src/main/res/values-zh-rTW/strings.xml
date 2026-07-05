@@ -142,7 +142,7 @@
     <string name="copy_page_text">複製頁面文字</string>
     <string name="turn_page_by_volume_buttons_title">用音量鍵翻頁</string>
     <string name="turn_page_by_volume_buttons_summary">使用實體音量鍵前往下一頁或上一頁</string>
-    <string name="dont_pop_up">不要彈出！</string><string name="text_mode">文字模式</string>
+    <string name="dont_pop_up">不要彈出！</string>
     <string name="go_to_page">前往頁面</string>
     <string name="no_input">無輸入！</string>
     <string name="go_to">前往</string>

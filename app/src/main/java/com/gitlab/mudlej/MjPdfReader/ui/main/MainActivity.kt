@@ -749,8 +749,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openTextModeByDefault() {
-        if (pref.getDefaultTextMode()) {
-            navToTextMode()
+        if (pref.getDefaultTextReader()) {
+            navToTextReader()
         }
     }
 
@@ -795,7 +795,7 @@ class MainActivity : AppCompatActivity() {
             search = { showSearchDialog(this, pdf) },
             goToPage = ::goToPage,
             extractText = { copyPageText(bypass = true) },
-            textMode = ::navToTextMode,
+            textReader = ::navToTextReader,
             share = { shareFile(pdf.uri, FileType.PDF) },
             settings = ::navToAppSettings,
             fileMetadata = ::showFileMetadata,
@@ -1822,7 +1822,7 @@ class MainActivity : AppCompatActivity() {
         return super.onKeyDown(keyCode, event)
     }
 
-    private fun navToTextMode() {
+    private fun navToTextReader() {
         if (!checkHasFile()) {
             return
         }
@@ -1865,7 +1865,7 @@ class MainActivity : AppCompatActivity() {
             ReaderAction(R.string.toggle_shortcuts, R.drawable.ic_awesome, visible = hasFile) {
                 toggleSecondBar()
             },
-            readerAction(ConfigurableAction.TEXT_MODE),
+            readerAction(ConfigurableAction.TEXT_READER),
             readerAction(ConfigurableAction.LINKS_IN_FILE),
             readerAction(ConfigurableAction.SHARE),
             readerAction(ConfigurableAction.PRINT),

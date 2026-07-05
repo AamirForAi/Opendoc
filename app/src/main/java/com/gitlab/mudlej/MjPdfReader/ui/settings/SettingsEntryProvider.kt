@@ -203,10 +203,10 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
         return listOf(
             switchEntry(
                 page = SettingsPage.TEXT,
-                titleRes = R.string.default_text_mode,
-                key = Preferences.defaultTextModeKey,
-                defaultValue = Preferences.defaultTextModeDefault,
-                summaryRes = R.string.default_text_mode_summary,
+                titleRes = R.string.default_text_reader,
+                key = Preferences.defaultTextReaderKey,
+                defaultValue = Preferences.defaultTextReaderDefault,
+                summaryRes = R.string.default_text_reader_summary,
                 keywords = listOf("text", "extract", "mode"),
             ),
             switchEntry(

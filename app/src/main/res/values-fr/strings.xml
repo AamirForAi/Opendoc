@@ -146,7 +146,6 @@
     <string name="turn_page_by_volume_buttons_title">Tourner la page par les boutons de volume</string>
     <string name="turn_page_by_volume_buttons_summary">Aller à la page suivante ou précédente en utilisant les boutons physiques de volume</string>
     <string name="dont_pop_up">Ne pas surgir!</string>
-    <string name="text_mode">Mode texte</string>
     <string name="go_to_page">Aller à la page</string>
     <string name="no_input">Pas de saisie!</string>
     <string name="go_to">Aller à</string>

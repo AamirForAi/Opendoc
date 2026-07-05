@@ -152,7 +152,6 @@
     <string name="turn_page_by_volume_buttons_title">Листать страницы кнопками громкости</string>
     <string name="turn_page_by_volume_buttons_summary">Перелистывайте на следующую или предыдущую страницу с помощью физических кнопок громкости</string>
     <string name="dont_pop_up">Не всплывать!</string>
-    <string name="text_mode">Текстовый режим</string>
     <string name="go_to_page">Перейти на страницу</string>
     <string name="no_input">Нет ввода!</string>
     <string name="go_to">Перейти</string>

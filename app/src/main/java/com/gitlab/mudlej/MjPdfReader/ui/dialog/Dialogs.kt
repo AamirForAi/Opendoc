@@ -69,7 +69,6 @@ import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
 import com.gitlab.mudlej.MjPdfReader.ui.dialog.PropertiesDialog
 import com.gitlab.mudlej.MjPdfReader.ui.main.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.search.SearchActivity
-import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.util.copyToClipboard
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -221,18 +220,6 @@ fun showCopyPageTextDialog(
         }
         .show()
 }
-
-fun showUnderDevelopmentDialog(activity: TextModeActivity) {
-    MaterialAlertDialogBuilder(activity)
-        .setTitle(activity.getString(R.string.this_is_experimental))
-        .setMessage(activity.getString(R.string.this_is_experimental_message))
-        .setPositiveButton(activity.getString(R.string.ok)) { dialog, _ -> dialog.dismiss()}
-        .setNegativeButton(activity.getString(R.string.go_back)) { dialog, _ ->
-            dialog.dismiss(); activity.finish()
-        }
-        .show()
-}
-
 
 fun showSearchDialog(activity: Activity, pdf: PDF) {
     val searchLayout = LayoutInflater.from(activity).inflate(R.layout.input_layout, null) as TextInputLayout

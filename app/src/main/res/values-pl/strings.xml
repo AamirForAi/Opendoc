@@ -153,7 +153,6 @@
     <string name="turn_page_by_volume_buttons_title">Przewracaj strony przyciskami głośności</string>
     <string name="turn_page_by_volume_buttons_summary">Przejdź do następnej lub poprzedniej strony za pomocą fizycznych przycisków głośności</string>
     <string name="dont_pop_up">Nie wyskakuj!</string>
-    <string name="text_mode">Tryb tekstowy</string>
     <string name="go_to_page">Idź do strony</string>
     <string name="no_input">Brak danych!</string>
     <string name="go_to">Idź do</string>

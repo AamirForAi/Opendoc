@@ -141,7 +141,6 @@
     <string name="turn_page_by_volume_buttons_title">Gira pagina con i pulsanti del volume</string>
     <string name="turn_page_by_volume_buttons_summary">Passare alla pagina successiva o precedente utilizzando i pulsanti fisici del volume</string>
     <string name="dont_pop_up">Non apparire!</string>
-    <string name="text_mode">Modalità testo</string>
     <string name="go_to_page">Vai alla pagina</string>
     <string name="no_input">Nessun input!</string>
     <string name="go_to">Vai a</string>

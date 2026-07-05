@@ -151,7 +151,6 @@
     <string name="turn_page_by_volume_buttons_title">Sayfa Çevirme Ses Düğmeleri ile</string>
     <string name="turn_page_by_volume_buttons_summary">Fiziksel ses düğmelerini kullanarak bir sonraki veya önceki sayfaya geçin</string>
     <string name="dont_pop_up">Açılır pencere gösterme!</string>
-    <string name="text_mode">Metin Modu</string>
     <string name="go_to_page">Sayfaya Git</string>
 
     <string name="no_input">Girdi Yok!</string>

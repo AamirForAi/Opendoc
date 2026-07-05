@@ -149,7 +149,6 @@
     <string name="turn_page_by_volume_buttons_title">Seite mit Lautstärketasten umblättern</string>
     <string name="turn_page_by_volume_buttons_summary">Mit den physischen Lautstärketasten zur nächsten oder vorherigen Seite gehen</string>
     <string name="dont_pop_up">Nicht aufpoppen!</string>
-    <string name="text_mode">Textmodus</string>
     <string name="go_to_page">Gehe zu Seite</string>
     <string name="no_input">Keine Eingabe!</string>
     <string name="go_to">Gehe zu</string>

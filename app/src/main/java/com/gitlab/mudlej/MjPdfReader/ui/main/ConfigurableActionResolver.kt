@@ -26,7 +26,7 @@ class ConfigurableActionResolver(
         val search: () -> Unit,
         val goToPage: () -> Unit,
         val extractText: () -> Unit,
-        val textMode: () -> Unit,
+        val textReader: () -> Unit,
         val share: () -> Unit,
         val settings: () -> Unit,
         val fileMetadata: () -> Unit,
@@ -132,11 +132,11 @@ class ConfigurableActionResolver(
                 visible = fileAvailable,
                 run = handlers.extractText,
             )
-            ConfigurableAction.TEXT_MODE -> ConfiguredAction(
+            ConfigurableAction.TEXT_READER -> ConfiguredAction(
                 R.string.text_reader,
                 R.drawable.ic_text,
                 visible = fileAvailable,
-                run = handlers.textMode,
+                run = handlers.textReader,
             )
             ConfigurableAction.SHARE -> ConfiguredAction(
                 R.string.share_file,

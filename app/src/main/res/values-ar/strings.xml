@@ -149,7 +149,6 @@
     <string name="turn_page_by_volume_buttons_title">تقليب الصفحات باستخدام أزرار الصوت</string>
     <string name="turn_page_by_volume_buttons_summary">الانتقال إلى الصفحة التالية أو السابقة باستخدام أزرار الصوت على جانب الهاتف</string>
     <string name="dont_pop_up">لا تظهر ثانية!</string>
-    <string name="text_mode">الوضعية النصية</string>
     <string name="go_to_page">الذهاب إلى الصفحة</string>
     <string name="no_input">لم تدخل شيئا!</string>
     <string name="go_to">اذهب إلى</string>

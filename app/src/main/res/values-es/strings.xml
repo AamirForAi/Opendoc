@@ -149,7 +149,6 @@
     <string name="turn_page_by_volume_buttons_title">Cambiar Página con Botones de Volumen</string>
     <string name="turn_page_by_volume_buttons_summary">Ir a la página siguiente o anterior usando los botones físicos de volumen</string>
     <string name="dont_pop_up">¡No mostrar!</string>
-    <string name="text_mode">Modo de Texto</string>
     <string name="go_to_page">Ir a la Página</string>
     <string name="no_input">¡Sin Entrada!</string>
     <string name="go_to">Ir a</string>

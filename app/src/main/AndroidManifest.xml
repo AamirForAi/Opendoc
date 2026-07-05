@@ -36,9 +36,6 @@
                 android:value="" />
         </activity>
         <activity
-            android:name=".ui.text_mode.TextModeActivity"
-            android:exported="false" />
-        <activity
             android:name=".ui.text_reader.TextReaderActivity"
             android:exported="false"
             android:theme="@style/TextReaderTheme" />

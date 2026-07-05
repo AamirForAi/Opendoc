@@ -80,7 +80,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val finishedExtractionDialogKey = "finishedExtraction"
         const val copyTextDialogKey = "copyTextDialog"
         const val inlineTextSelectionKey = "inlineTextSelection"
-        const val defaultTextModeKey = "defaultTextMode"
+        const val defaultTextReaderKey = "defaultTextReader"
         const val turnPageByVolumeButtonsKey = "turnPageByVolumeButtons"
         const val showScrollHandlePageCountKey = "showScrollHandlePageCount"
         const val alwaysHideMarginsKey = "alwaysHideMargins"
@@ -123,7 +123,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val pdfLengthDefault = 0
         const val copyTextDialogDefault = true
         const val inlineTextSelectionDefault = true
-        const val defaultTextModeDefault = false
+        const val defaultTextReaderDefault = false
         const val turnPageByVolumeButtonsDefault = false
         const val showScrollHandlePageCountDefault = false
         const val alwaysHideMarginsDefault = false
@@ -173,7 +173,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getMaxZoom() = prefMan.getFloat(maxZoomKey, maxZoomDefault)
     fun getCopyTextDialog() = prefMan.getBoolean(copyTextDialogKey, copyTextDialogDefault)
     fun getInlineTextSelection() = prefMan.getBoolean(inlineTextSelectionKey, inlineTextSelectionDefault)
-    fun getDefaultTextMode() = prefMan.getBoolean(defaultTextModeKey, defaultTextModeDefault)
+    fun getDefaultTextReader() = prefMan.getBoolean(defaultTextReaderKey, defaultTextReaderDefault)
     fun getTurnPageByVolumeButtons() = prefMan.getBoolean(turnPageByVolumeButtonsKey, turnPageByVolumeButtonsDefault)
     fun getShowScrollHandlePageCount() = prefMan.getBoolean(showScrollHandlePageCountKey, showScrollHandlePageCountDefault)
     fun getAlwaysHideMargins() = prefMan.getBoolean(alwaysHideMarginsKey, alwaysHideMarginsDefault)
@@ -239,7 +239,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setMaxZoom(value: Float) = prefMan.edit().putFloat(maxZoomKey, value).apply()
     fun setCopyTextDialog(value: Boolean) = prefMan.edit().putBoolean(copyTextDialogKey, value).apply()
     fun setInlineTextSelection(value: Boolean) = prefMan.edit().putBoolean(inlineTextSelectionKey, value).apply()
-    fun setDefaultTextMode(value: Boolean) = prefMan.edit().putBoolean(defaultTextModeKey, value).apply()
+    fun setDefaultTextReader(value: Boolean) = prefMan.edit().putBoolean(defaultTextReaderKey, value).apply()
     fun setTurnPageByVolumeButtons(value: Boolean) = prefMan.edit().putBoolean(turnPageByVolumeButtonsKey, value).apply()
     fun setShowScrollHandlePageCount(value: Boolean) = prefMan.edit().putBoolean(showScrollHandlePageCountKey, value).apply()
     fun setAlwaysHideMargins(value: Boolean) = prefMan.edit().putBoolean(alwaysHideMarginsKey, value).apply()
