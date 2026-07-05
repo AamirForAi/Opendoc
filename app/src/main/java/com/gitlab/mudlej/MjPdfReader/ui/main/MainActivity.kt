@@ -729,23 +729,24 @@ class MainActivity : AppCompatActivity() {
         cropMargins: CropMargins,
         viewState: PDFView.ViewState?,
     ) {
-        flushPendingAnnotationAutosave()
-        val zoomDisabled = binding.pdfView.isZoomDisabled
-        val horizontalSwipeDisabled = binding.pdfView.isHorizontalSwipeDisabled
-        initPdfViewAndLoad(
-            configurator,
-            pageNumber,
-            savePassword = false,
-            cachedCropMargins = cropMargins,
-            fileHash = pdf.fileHash,
-            loadToken = documentLoadToken,
-            documentUri = pdf.uri,
-            readingDirection = pdf.effectiveReadingDirection,
-            viewState = viewState,
-            applyDocumentLoadDefaults = false,
-            zoomDisabled = zoomDisabled,
-            horizontalSwipeDisabled = horizontalSwipeDisabled,
-        )
+        runAfterAnnotationFlush {
+            val zoomDisabled = binding.pdfView.isZoomDisabled
+            val horizontalSwipeDisabled = binding.pdfView.isHorizontalSwipeDisabled
+            initPdfViewAndLoad(
+                configurator,
+                pageNumber,
+                savePassword = false,
+                cachedCropMargins = cropMargins,
+                fileHash = pdf.fileHash,
+                loadToken = documentLoadToken,
+                documentUri = pdf.uri,
+                readingDirection = pdf.effectiveReadingDirection,
+                viewState = viewState,
+                applyDocumentLoadDefaults = false,
+                zoomDisabled = zoomDisabled,
+                horizontalSwipeDisabled = horizontalSwipeDisabled,
+            )
+        }
     }
 
     private fun openTextModeByDefault() {
@@ -998,6 +999,18 @@ class MainActivity : AppCompatActivity() {
         cancelPendingAnnotationAutosave()
         runBlocking {
             annotationController.saveWorkingCopy()
+        }
+    }
+
+    private fun runAfterAnnotationFlush(action: () -> Unit) {
+        if (!::annotationController.isInitialized || !annotationController.hasUnsavedAnnotations) {
+            action()
+            return
+        }
+        cancelPendingAnnotationAutosave()
+        lifecycleScope.launch {
+            annotationController.saveWorkingCopy()
+            action()
         }
     }
 
@@ -1408,8 +1421,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun reloadPdf() {
         if (checkHasFile()) {
-            flushPendingAnnotationAutosave()
-            recreate()
+            runAfterAnnotationFlush { recreate() }
         }
     }
 
@@ -1417,19 +1429,20 @@ class MainActivity : AppCompatActivity() {
         if (!checkHasFile()) {
             return
         }
-        flushPendingAnnotationAutosave()
-        val enableCropMargins = !isCropMarginsEnabled()
-        setCropMarginsEnabled(enableCropMargins)
-        if (enableCropMargins) {
-            cropMarginsController.startOrApply(
-                pdf.fileHash,
-                documentLoadToken,
-                pdf.uri,
-                binding.pdfView.pageCount,
-            )
-        } else {
-            cropMarginsController.cancel()
-            recreate()
+        runAfterAnnotationFlush {
+            val enableCropMargins = !isCropMarginsEnabled()
+            setCropMarginsEnabled(enableCropMargins)
+            if (enableCropMargins) {
+                cropMarginsController.startOrApply(
+                    pdf.fileHash,
+                    documentLoadToken,
+                    pdf.uri,
+                    binding.pdfView.pageCount,
+                )
+            } else {
+                cropMarginsController.cancel()
+                recreate()
+            }
         }
     }
 
@@ -1800,8 +1813,7 @@ class MainActivity : AppCompatActivity() {
             pdf.detectedReadingDirection = detectedDirection
             pdf.effectiveReadingDirection = ReadingDirection.effective(direction, detectedDirection)
             if (pref.getHorizontalScroll() && pdf.effectiveReadingDirection != oldEffectiveDirection) {
-                flushPendingAnnotationAutosave()
-                recreate()
+                runAfterAnnotationFlush { recreate() }
             }
         }
     }
