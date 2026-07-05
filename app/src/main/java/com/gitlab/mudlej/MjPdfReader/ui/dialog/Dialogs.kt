@@ -311,6 +311,7 @@ fun showSearchDialog(activity: Activity, pdf: PDF) {
                 Intent(activity, SearchActivity::class.java).also { searchIntent ->
                     searchIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
                     searchIntent.putExtra(PDF.passwordKey, pdf.password)
+                    pdf.fileHash?.let { searchIntent.putExtra(PDF.fileHashKey, it) }
                     searchIntent.putExtra(PDF.searchQueryKey, queryText)
                     pdf.lastQuery = queryText
                     activity.startActivityForResult(searchIntent, PDF.startSearchActivity)

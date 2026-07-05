@@ -1647,6 +1647,7 @@ class MainActivity : AppCompatActivity() {
                         Intent(this@MainActivity, SearchActivity::class.java).also { searchIntent ->
                             searchIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
                             searchIntent.putExtra(PDF.passwordKey, pdf.password)
+                            pdf.fileHash?.let { searchIntent.putExtra(PDF.fileHashKey, it) }
                             pdf.lastQuery?.let { searchIntent.putExtra(PDF.searchQueryKey, it.trim()) }
                             searchIntent.putExtra(PDF.resultPositionInListKey, searchResult.searchResultIndexInList)
                             startActivityForResult(searchIntent, PDF.startSearchActivity)

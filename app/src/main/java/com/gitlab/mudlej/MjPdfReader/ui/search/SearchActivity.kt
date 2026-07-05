@@ -27,7 +27,6 @@ import com.gitlab.mudlej.MjPdfReader.util.indexesOf
 import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -44,6 +43,12 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     private var searchResults: MutableList<SearchResult> = mutableListOf()
     private lateinit var pdfExtractor: PdfExtractor
     private lateinit var actionBarMenu: Menu
+    private var fileHash: String? = null
+    private var searchQuery: String = ""
+    private var restoredListPosition: Int = -1
+    private var restoredListOffsetPx: Int = 0
+    private var restoredNestedQuery: String? = null
+    private var restoredNestedQueryApplied = false
 
     private val lastPageLiveData = MutableLiveData<Int>()
 
@@ -63,6 +68,11 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
                 finish()
             }
         }
+    }
+
+    override fun onPause() {
+        saveSearchSessionState()
+        super.onPause()
     }
 
     private fun initUi() {
@@ -120,14 +130,18 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     }
 
     private fun restorePositionInList() {
-        val position: Int = intent.getIntExtra(PDF.resultPositionInListKey, -1)
+        val position = if (restoredListPosition != -1) {
+            restoredListPosition
+        } else {
+            intent.getIntExtra(PDF.resultPositionInListKey, -1)
+        }
         if (position == -1) return
 
         if (position in 0 until searchResultAdapter.itemCount) {
             Log.d(SearchActivity::class.simpleName, "restorePositionInList: $position")
             val layoutManager = binding.searchRecyclerView.layoutManager as? LinearLayoutManager ?: return
             //layoutManager.smoothScrollToPosition(binding.searchRecyclerView, RecyclerView.State(), position)
-            layoutManager.scrollToPositionWithOffset(position, 0)
+            layoutManager.scrollToPositionWithOffset(position, restoredListOffsetPx)
         } else {
             Log.e(
                 SearchActivity::class.simpleName,
@@ -137,19 +151,33 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     }
 
     private fun initSearchResults() {
-        val query: String? = intent.getStringExtra(PDF.searchQueryKey)
-        if (query.isNullOrEmpty() || query.isBlank()) {
+        searchQuery = intent.getStringExtra(PDF.searchQueryKey)?.trim().orEmpty()
+        fileHash = intent.getStringExtra(PDF.fileHashKey)
+        if (searchQuery.isBlank()) {
             return
         }
+        val cachedSession = SearchSessionCache.get(fileHash, searchQuery)
+        if (cachedSession != null) {
+            restoredListPosition = cachedSession.listPosition
+            restoredListOffsetPx = cachedSession.listOffsetPx
+            restoredNestedQuery = cachedSession.nestedQuery
+        }
 
-        CoroutineScope(Dispatchers.Default).launch {
-            val results = search(query)
+        lifecycleScope.launch(Dispatchers.Default) {
+            val results = cachedSession?.let { cachedSearchResults(searchQuery, it.hits) }
+                ?: search(searchQuery).also { results ->
+                    SearchSessionCache.put(fileHash, searchQuery, cacheHits(results))
+                }
             withContext(Dispatchers.Main) {
                 searchResults = results
-                searchResultAdapter.submitList(searchResults.toList())
+                searchResultAdapter.nestedQuery = restoredNestedQuery
+                searchResultAdapter.submitList(visibleSearchResults())
                 hideProgressBar()
                 binding.searchProgressBar.hide()
                 postSearch()
+                if (!restoredNestedQuery.isNullOrBlank()) {
+                    invalidateOptionsMenu()
+                }
             }
         }
         return
@@ -182,6 +210,37 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         }
         Log.d(tag, "getSearchResults: elapsed time: ${time / 1000F}s")
         return searchResults
+    }
+
+    private fun cachedSearchResults(query: String, hits: List<SearchSessionCache.Hit>): MutableList<SearchResult> {
+        val pageTextCache = mutableMapOf<Int, String>()
+        return hits.sortedBy { it.resultIndex }.mapNotNull { hit ->
+            val pageText = pageTextCache.getOrPut(hit.pageNumber) { pdfExtractor.getPageText(hit.pageNumber) }
+            if (hit.originalIndex !in pageText.indices || hit.originalIndex + query.length > pageText.length) {
+                return@mapNotNull null
+            }
+            getPageResult(
+                query,
+                hit.originalIndex,
+                pageText,
+                hit.pageNumber,
+                textOffset = if (hit.expanded) 200 else null,
+                expanded = hit.expanded,
+            ).apply {
+                searchResultIndexInList = hit.resultIndex
+            }
+        }.toMutableList()
+    }
+
+    private fun cacheHits(results: List<SearchResult>): List<SearchSessionCache.Hit> {
+        return results.map { result ->
+            SearchSessionCache.Hit(
+                pageNumber = result.pageNumber,
+                originalIndex = result.originalIndex,
+                resultIndex = result.searchResultIndexInList,
+                expanded = result.expanded,
+            )
+        }
     }
 
     private fun visibleSearchResults(): List<SearchResult> {
@@ -311,11 +370,18 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             searchResultAdapter.notifyDataSetChanged()
             true
         }
+        val nestedQuery = restoredNestedQuery
+        if (!restoredNestedQueryApplied && !nestedQuery.isNullOrBlank()) {
+            restoredNestedQueryApplied = true
+            menu.findItem(R.id.search_in_search_activity).expandActionView()
+            searchView.setQuery(nestedQuery, false)
+        }
 
         return super.onPrepareOptionsMenu(menu)
     }
 
     override fun onSearchResultClicked(searchResult: SearchResult) {
+        saveSearchSessionState()
         val resultIntent = Intent()
         resultIntent.putExtra(PDF.searchResultKey, Gson().toJson(searchResult))
         setResult(PDF.SEARCH_RESULT_OK, resultIntent)
@@ -323,7 +389,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     }
 
     override fun onShowMoreResultTextClicked(searchResult: SearchResult, index: Int): SearchResult {
-        val query = searchResult.text.substring(searchResult.inputStart, searchResult.inputEnd)
+        val query = searchQuery.ifBlank { searchResult.text.substring(searchResult.inputStart, searchResult.inputEnd) }
         val pageText = pdfExtractor.getPageText(searchResult.pageNumber)
 
         val newSearchResult = getPageResult(
@@ -335,14 +401,35 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             expanded = true
         )
         newSearchResult.searchResultIndexInList = searchResult.searchResultIndexInList
-        val searchResultIndex = searchResults.indexOf(searchResult)
-        if (searchResultIndex == -1) {
+        val searchResultIndex = searchResult.searchResultIndexInList
+        if (searchResultIndex !in searchResults.indices) {
             //throw RuntimeException("index is -1!!")
             return searchResult
         }
         searchResults[searchResultIndex] = newSearchResult
+        SearchSessionCache.setExpanded(fileHash, searchQuery, searchResultIndex, expanded = true)
         searchResultAdapter.submitList(visibleSearchResults())
 
         return newSearchResult
+    }
+
+    private fun saveSearchSessionState() {
+        if (!::binding.isInitialized || searchQuery.isBlank()) {
+            return
+        }
+        val layoutManager = binding.searchRecyclerView.layoutManager as? LinearLayoutManager ?: return
+        val position = layoutManager.findFirstVisibleItemPosition()
+        if (position == -1) {
+            return
+        }
+        val firstVisibleView = layoutManager.findViewByPosition(position)
+        val offsetPx = firstVisibleView?.top?.minus(binding.searchRecyclerView.paddingTop) ?: 0
+        SearchSessionCache.updateUiState(
+            fileHash,
+            searchQuery,
+            position,
+            offsetPx,
+            searchResultAdapter.nestedQuery,
+        )
     }
 }
