@@ -6,409 +6,113 @@
  *   it under the terms of the GNU General Public License as published by
  *   the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *  --------------------------
- *  This code was previously licensed under
- *
- *  MIT License
- *
- *  Copyright (c) 2018 Gokul Swaminathan
- *  Copyright (c) 2023 Mudlej
- *
- *  Permission is hereby granted, free of charge, to any person obtaining a copy
- *  of this software and associated documentation files (the "Software"), to deal
- *  in the Software without restriction, including without limitation the rights
- *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *  copies of the Software, and to permit persons to whom the Software is
- *  furnished to do so, subject to the following conditions:
- *
- *  The above copyright notice and this permission notice shall be included in all
- *  copies or substantial portions of the Software.
- *
- *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- *  SOFTWARE.
  */
 
 package com.gitlab.mudlej.MjPdfReader.ui.settings
 
-import android.content.DialogInterface
+import android.content.Context
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
-import androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode
-import androidx.preference.Preference
-import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
-import androidx.preference.SwitchPreferenceCompat
+import androidx.preference.PreferenceScreen
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
-import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class SettingsFragment : PreferenceFragmentCompat() {
 
+    interface Navigation {
+        fun onSettingsPageSelected(page: SettingsPage)
+    }
+
+    private var navigation: Navigation? = null
+    private lateinit var preferenceFactory: SettingsPreferenceFactory
+    private var searchQuery = ""
+
+    private val page: SettingsPage?
+        get() = arguments?.getString(ARG_PAGE)?.let(SettingsPage::valueOf)
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        navigation = context as? Navigation
+    }
+
+    override fun onDetach() {
+        navigation = null
+        super.onDetach()
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        searchQuery = arguments?.getString(ARG_SEARCH_QUERY).orEmpty()
+    }
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        setPreferencesFromResource(R.xml.settings, rootKey)
-        setUpSwitches()
+        val preferences = Preferences(requireNotNull(preferenceManager.sharedPreferences))
+        preferenceFactory = SettingsPreferenceFactory(this, preferences)
+        rebuildPreferences()
     }
 
-    private fun setUpSwitches() {
-        setVisualSection()
-        setBehaviorSection()
-        setTextSection()
-        setExperimentalSection()
-    }
-
-    private fun setVisualSection() {
-        val qualitySwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.quality)
-            setDefaultValue(Preferences.highQualityDefault)
-            key = Preferences.highQualityKey
-            isIconSpaceReserved = false
-        }
-        val aliasSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.anti_aliasing)
-            setDefaultValue(Preferences.antiAliasingDefault)
-            key = Preferences.antiAliasingKey
-            isIconSpaceReserved = false
-        }
-        val screenOnSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.keep_screen_on)
-            setDefaultValue(Preferences.screenOnDefault)
-            key = Preferences.screenOnKey
-            isIconSpaceReserved = false
-        }
-        val spaceBetweenPages = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.space_between_pages)
-            setDefaultValue(Preferences.spaceBetweenPagesDefault)
-            key = Preferences.spaceBetweenPagesKey
-            isIconSpaceReserved = false
-        }
-        val showScrollHandlePageCountSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.show_scroll_handle_page_count_title)
-            setDefaultValue(Preferences.showScrollHandlePageCountDefault)
-            key = Preferences.showScrollHandlePageCountKey
-            summary = getString(R.string.show_scroll_handle_page_count_summary)
-            isIconSpaceReserved = false
-        }
-        val alwaysHideMarginsSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.always_hide_margins)
-            setDefaultValue(Preferences.alwaysHideMarginsDefault)
-            key = Preferences.alwaysHideMarginsKey
-            summary = getString(R.string.always_hide_margins_summary)
-            isIconSpaceReserved = false
-        }
-        val showFullScreenInfoTimeSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.fullscreen_info_show_time)
-            setDefaultValue(Preferences.fullScreenInfoShowTimeDefault)
-            key = Preferences.fullScreenInfoShowTimeKey
-            isIconSpaceReserved = false
-        }
-        val showFullScreenInfoPdfNameSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.fullscreen_info_show_pdf_name)
-            setDefaultValue(Preferences.fullScreenInfoShowPdfNameDefault)
-            key = Preferences.fullScreenInfoShowPdfNameKey
-            isIconSpaceReserved = false
-        }
-        val showFullScreenInfoPageNumberSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.fullscreen_info_show_page_number)
-            setDefaultValue(Preferences.fullScreenInfoShowPageNumberDefault)
-            key = Preferences.fullScreenInfoShowPageNumberKey
-            isIconSpaceReserved = false
-        }
-        val showFullScreenInfoReadingPercentageSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.fullscreen_info_show_reading_percentage)
-            setDefaultValue(Preferences.fullScreenInfoShowReadingPercentageDefault)
-            key = Preferences.fullScreenInfoShowReadingPercentageKey
-            isIconSpaceReserved = false
-        }
-
-        val section: PreferenceCategory? = findPreference("visualSection")
-        section?.apply {
-            isIconSpaceReserved = false
-            addPreference(qualitySwitch)
-            addPreference(aliasSwitch)
-            addPreference(screenOnSwitch)
-            addPreference(spaceBetweenPages)
-            addPreference(showScrollHandlePageCountSwitch)
-            addPreference(alwaysHideMarginsSwitch)
-            addPreference(showFullScreenInfoTimeSwitch)
-            addPreference(showFullScreenInfoPdfNameSwitch)
-            addPreference(showFullScreenInfoPageNumberSwitch)
-            addPreference(showFullScreenInfoReadingPercentageSwitch)
+    fun setSearchQuery(query: String) {
+        searchQuery = query
+        if (isAdded && ::preferenceFactory.isInitialized && page == null) {
+            rebuildPreferences()
         }
     }
 
-    private fun setBehaviorSection() {
-        val doubleTapToExitSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.double_tap_to_exit)
-            setDefaultValue(Preferences.doubleTapToExitEnabledDefault)
-            key = Preferences.doubleTapToExitEnabledKey
-            isIconSpaceReserved = false
+    private fun rebuildPreferences() {
+        val screen = preferenceManager.createPreferenceScreen(requireContext())
+        val currentPage = page
+        if (currentPage == null) {
+            buildRootScreen(screen)
+        } else {
+            buildPageScreen(screen, currentPage)
         }
-        val horizontalScrollSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.horizontal_scrolling_mode)
-            setDefaultValue(Preferences.horizontalScrollDefault)
-            key = Preferences.horizontalScrollKey
-            isIconSpaceReserved = false
-        }
-        val autoFullScreenSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.auto_full_screen)
-            setDefaultValue(Preferences.autoFullScreenDefault)
-            key = Preferences.autoFullScreenKey
-            summary = getString(R.string.auto_full_screen_summary)
-            isIconSpaceReserved = false
-        }
-        val autoFullScreenHorizontalSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.always_horizontal)
-            setDefaultValue(Preferences.alwaysHorizontalDefault)
-            key = Preferences.alwaysHorizontalKey
-            summary = getString(R.string.always_horizontal_summary)
-            isIconSpaceReserved = false
-        }
-        val pageSnapSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.snap)
-            setDefaultValue(Preferences.pageSnapDefault)
-            key = Preferences.pageSnapKey
-            summary = getString(R.string.snap_summary)
-            isIconSpaceReserved = false
-        }
-        val pageFlingSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.fling)
-            setDefaultValue(Preferences.pageFlingDefault)
-            key = Preferences.pageFlingKey
-            summary = getString(R.string.fling_summary)
-            isIconSpaceReserved = false
-        }
-        val turnPageByVolumeButtonsSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.turn_page_by_volume_buttons_title)
-            setDefaultValue(Preferences.turnPageByVolumeButtonsDefault)
-            key = Preferences.turnPageByVolumeButtonsKey
-            summary = getString(R.string.turn_page_by_volume_buttons_summary)
-            isIconSpaceReserved = false
-        }
-        val appPreferences = Preferences(requireNotNull(preferenceManager.sharedPreferences))
-        val primaryButtonActionPreference = actionPreference(
-            title = getString(R.string.primary_button_action),
-            key = Preferences.primaryButtonActionKey,
-            defaultValue = Preferences.primaryButtonActionDefault,
-            currentValue = appPreferences.getPrimaryButtonAction(),
-            actions = ConfigurableAction.toolbarActions,
-        ) { actionId -> appPreferences.setPrimaryButtonAction(actionId) }
-        val secondaryButtonActionPreference = actionPreference(
-            title = getString(R.string.secondary_button_action),
-            key = Preferences.secondaryButtonActionKey,
-            defaultValue = Preferences.secondaryButtonActionDefault,
-            currentValue = appPreferences.getSecondaryButtonAction(),
-            actions = ConfigurableAction.toolbarActions,
-        ) { actionId -> appPreferences.setSecondaryButtonAction(actionId) }
-        val fullScreenButtonsPreference = fullScreenButtonsPreference(appPreferences)
-        val shortcutBarButtonsPreference = shortcutBarButtonsPreference(appPreferences)
+        preferenceScreen = screen
+    }
 
-        val section: PreferenceCategory? = findPreference("behaviorSection")
-        section?.apply {
-            isIconSpaceReserved = false
-            addPreference(doubleTapToExitSwitch)
-            addPreference(horizontalScrollSwitch)
-            addPreference(autoFullScreenSwitch)
-            addPreference(autoFullScreenHorizontalSwitch)
-            addPreference(primaryButtonActionPreference)
-            addPreference(secondaryButtonActionPreference)
-            addPreference(fullScreenButtonsPreference)
-            addPreference(shortcutBarButtonsPreference)
-            addPreference(pageSnapSwitch)
-            addPreference(pageFlingSwitch)
-            addPreference(turnPageByVolumeButtonsSwitch)
+    private fun buildRootScreen(screen: PreferenceScreen) {
+        val query = searchQuery.trim()
+        if (query.isBlank()) {
+            SettingsPage.values().forEach { page ->
+                screen.addPreference(preferenceFactory.navigationPreference(page, ::selectPage))
+            }
+            return
+        }
+
+        val results = preferenceFactory.entries().filter { it.matches(requireContext(), query) }
+        if (results.isEmpty()) {
+            screen.addPreference(preferenceFactory.noSearchResultsPreference())
+            return
+        }
+
+        results.forEach { entry ->
+            screen.addPreference(entry.createPreference(preferenceFactory, getString(entry.page.titleRes)))
         }
     }
 
-    private fun actionPreference(
-        title: String,
-        key: String,
-        defaultValue: String,
-        currentValue: String,
-        actions: List<ConfigurableAction>,
-        onActionSelected: (String) -> Unit,
-    ): Preference {
-        val resetActionId = defaultValue.takeIf { value -> actions.any { it.id == value } }
-            ?: actions.first().id
-        var selectedActionId = currentValue.takeIf { value -> actions.any { it.id == value } }
-            ?: resetActionId
-        return Preference(requireContext()).apply {
-            this.title = title
-            this.key = key
-            updateActionSummary(selectedActionId)
-            isIconSpaceReserved = false
-            setOnPreferenceClickListener {
-                showActionPreferenceDialog(title, actions, selectedActionId, resetActionId) { actionId ->
-                    selectedActionId = actionId
-                    onActionSelected(actionId)
-                    updateActionSummary(actionId)
-                }
-                true
+    private fun buildPageScreen(screen: PreferenceScreen, page: SettingsPage) {
+        preferenceFactory.entriesFor(page).forEach { entry ->
+            screen.addPreference(entry.createPreference(preferenceFactory, breadcrumb = null))
+        }
+    }
+
+    private fun selectPage(page: SettingsPage) {
+        navigation?.onSettingsPageSelected(page)
+    }
+
+    companion object {
+        private const val ARG_PAGE = "settingsPage"
+        private const val ARG_SEARCH_QUERY = "settingsSearchQuery"
+
+        fun root(searchQuery: String = ""): SettingsFragment {
+            return SettingsFragment().apply {
+                arguments = Bundle().apply { putString(ARG_SEARCH_QUERY, searchQuery) }
             }
         }
-    }
 
-    private fun showActionPreferenceDialog(
-        title: String,
-        actions: List<ConfigurableAction>,
-        currentValue: String,
-        resetValue: String,
-        onActionSelected: (String) -> Unit,
-    ) {
-        val checkedIndex = actions.indexOfFirst { it.id == currentValue }
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(title)
-            .setSingleChoiceItems(actions.toEntryTitles(), checkedIndex) { dialog, which ->
-                onActionSelected(actions[which].id)
-                dialog.dismiss()
+        fun page(page: SettingsPage): SettingsFragment {
+            return SettingsFragment().apply {
+                arguments = Bundle().apply { putString(ARG_PAGE, page.name) }
             }
-            .setNegativeButton(R.string.cancel, null)
-            .setNeutralButton(R.string.reset, null)
-            .create()
-        dialog.setOnShowListener {
-            dialog.getButton(DialogInterface.BUTTON_NEUTRAL).setOnClickListener {
-                onActionSelected(resetValue)
-                dialog.dismiss()
-            }
-        }
-        dialog.show()
-    }
-
-    private fun fullScreenButtonsPreference(appPreferences: Preferences): Preference {
-        return Preference(requireContext()).apply {
-            title = getString(R.string.fullscreen_buttons)
-            key = Preferences.fullScreenOverlayActionsKey
-            updateFullScreenButtonsSummary(appPreferences)
-            isIconSpaceReserved = false
-            setOnPreferenceClickListener {
-                showFullScreenButtonsPreferenceDialog(requireContext(), appPreferences) {
-                    updateFullScreenButtonsSummary(appPreferences)
-                }
-                true
-            }
-        }
-    }
-
-    private fun shortcutBarButtonsPreference(appPreferences: Preferences): Preference {
-        return Preference(requireContext()).apply {
-            title = getString(R.string.shortcut_bar_buttons)
-            key = Preferences.shortcutBarActionsKey
-            updateShortcutBarButtonsSummary(appPreferences)
-            isIconSpaceReserved = false
-            setOnPreferenceClickListener {
-                showShortcutBarButtonsPreferenceDialog(requireContext(), appPreferences) {
-                    updateShortcutBarButtonsSummary(appPreferences)
-                }
-                true
-            }
-        }
-    }
-
-    private fun List<ConfigurableAction>.toEntryTitles(): Array<String> {
-        return map { getString(it.titleRes) }.toTypedArray()
-    }
-
-    private fun Preference.updateActionSummary(actionId: String) {
-        summary = getString(ConfigurableAction.fromId(actionId).titleRes)
-    }
-
-    private fun Preference.updateFullScreenButtonsSummary(appPreferences: Preferences) {
-        summary = fullScreenButtonsSummary(requireContext(), appPreferences)
-    }
-
-    private fun Preference.updateShortcutBarButtonsSummary(appPreferences: Preferences) {
-        summary = shortcutBarButtonsSummary(requireContext(), appPreferences)
-    }
-
-    private fun setTextSection() {
-        val defaultTextModeSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.default_text_mode)
-            setDefaultValue(Preferences.defaultTextModeDefault)
-            key = Preferences.defaultTextModeKey
-            summary = getString(R.string.default_text_mode_summary)
-            isIconSpaceReserved = false
-        }
-        val showCopyTextDialogSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.show_copy_dialog_title)
-            setDefaultValue(Preferences.copyTextDialogDefault)
-            key = Preferences.copyTextDialogKey
-            summary = getString(R.string.show_copy_dialog_summary)
-            isIconSpaceReserved = false
-        }
-        val inlineTextSelectionSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.inline_text_selection_title)
-            setDefaultValue(Preferences.inlineTextSelectionDefault)
-            key = Preferences.inlineTextSelectionKey
-            summary = getString(R.string.inline_text_selection_summary)
-            isIconSpaceReserved = false
-        }
-
-        val section: PreferenceCategory? = findPreference("textSection")
-        section?.apply {
-            isIconSpaceReserved = false
-            addPreference(defaultTextModeSwitch)
-            addPreference(inlineTextSelectionSwitch)
-            addPreference(showCopyTextDialogSwitch)
-        }
-    }
-
-    private fun setExperimentalSection() {
-        val appDarkThemeSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.dark_theme_for_app)
-            setDefaultValue(Preferences.appFollowSystemThemeDefault)
-            key = Preferences.appFollowSystemThemeKey
-            summary = getString(R.string.app_dark_theme_summary)
-            isIconSpaceReserved = false
-
-            // set a caution dialog to show for this option
-            setOnPreferenceClickListener {
-                // don't show the dialog when turning it off
-                if (!isChecked) {
-                    setDefaultNightMode(MODE_NIGHT_NO)
-                    return@setOnPreferenceClickListener true
-                }
-
-                MaterialAlertDialogBuilder(requireContext())
-                    .setTitle(getString(R.string.caution))
-                    .setMessage(getString(R.string.app_dark_dialog_message))
-                    .setPositiveButton(getString(R.string.ok)) { dialog, _ ->
-                        dialog.dismiss()
-                        setDefaultNightMode(MODE_NIGHT_FOLLOW_SYSTEM)
-                    }
-                    .setNegativeButton(getString(R.string.cancel)) { _, _ ->
-                        isChecked = false
-                    }
-                    .create().show()
-                return@setOnPreferenceClickListener true
-            }
-        }
-        val pdfDarkThemeSwitch = SwitchPreferenceCompat(requireContext()).apply {
-            title = getString(R.string.dark_theme_for_pdf)
-            setDefaultValue(Preferences.pdfFollowSystemThemeDefault)
-            key = Preferences.pdfFollowSystemThemeKey
-            summary = getString(R.string.pdf_dark_theme_summary)
-            isIconSpaceReserved = false
-        }
-
-        val section: PreferenceCategory? = findPreference("experimentalSection")
-        section?.apply {
-            isIconSpaceReserved = false
-            addPreference(appDarkThemeSwitch)
-            addPreference(pdfDarkThemeSwitch)
         }
     }
 }

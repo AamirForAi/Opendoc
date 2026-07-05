@@ -444,6 +444,7 @@ class MainActivity : AppCompatActivity() {
         horizontalSwipeDisabled: Boolean = false,
     ) {
         val pdfView = binding.pdfView
+        Constants.PART_SIZE = pref.getPartSize()
         pdfView.useBestQuality(pref.getHighQuality())
         pdfView.minZoom = Preferences.minZoomDefault
         pdfView.midZoom = Preferences.midZoomDefault
@@ -580,7 +581,6 @@ class MainActivity : AppCompatActivity() {
             settings = ::navToAppSettings,
             fileMetadata = ::showFileMetadata,
             about = { startActivity(navIntent(this, AboutActivity::class.java)) },
-            configuration = { showPartSizeDialog(this, pref) },
             tableOfContents = ::showBookmarks,
             linksInFile = ::showLinks,
             print = ::printFile,
@@ -1527,7 +1527,6 @@ class MainActivity : AppCompatActivity() {
             readerAction(ConfigurableAction.LINKS_IN_FILE),
             readerAction(ConfigurableAction.SHARE),
             readerAction(ConfigurableAction.PRINT),
-            readerAction(ConfigurableAction.CONFIGURATION),
             readerAction(ConfigurableAction.FILE_METADATA),
             readerAction(ConfigurableAction.ABOUT),
         )

@@ -32,7 +32,6 @@ enum class ConfigurableAction(
     SETTINGS("settings", R.string.settings, R.drawable.ic_settings),
     FILE_METADATA("file_metadata", R.string.file_metadata, R.drawable.meta_info),
     ABOUT("about", R.string.action_about, R.drawable.info_icon),
-    CONFIGURATION("configuration", R.string.advanced_config, R.drawable.ic_display_settings),
     TABLE_OF_CONTENTS("table_of_contents", R.string.table_of_contents, R.drawable.ic_book_bookmark),
     LINKS_IN_FILE("links_in_file", R.string.links_in_file, R.drawable.ic_links_in_file),
     PRINT("print", R.string.print_file, R.drawable.ic_print);
@@ -57,7 +56,6 @@ enum class ConfigurableAction(
             SETTINGS,
             FILE_METADATA,
             ABOUT,
-            CONFIGURATION,
             TABLE_OF_CONTENTS,
             LINKS_IN_FILE,
             PRINT,
@@ -99,7 +97,6 @@ enum class ConfigurableAction(
             SETTINGS,
             FILE_METADATA,
             ABOUT,
-            CONFIGURATION,
             TABLE_OF_CONTENTS,
             LINKS_IN_FILE,
             PRINT,

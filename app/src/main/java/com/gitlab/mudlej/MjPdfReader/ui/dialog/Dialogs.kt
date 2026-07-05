@@ -44,9 +44,7 @@
 package com.gitlab.mudlej.MjPdfReader.ui
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Context
-import android.content.Context.LAYOUT_INFLATER_SERVICE
 import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Color
@@ -58,7 +56,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
 import android.widget.ScrollView
-import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.text.isDigitsOnly
@@ -155,67 +152,6 @@ fun showAskForPasswordDialog(
 
     alert.setCanceledOnTouchOutside(false)
     alert.show()
-}
-
-fun showPartSizeDialog(activity: MainActivity, pref: Preferences) {
-    // min values for the seekbars or sliders
-    val minPartSize = Preferences.minPartSize
-    val minMaxZoom = Preferences.minMaxZoom
-
-    // create dialog layout
-    val builder = MaterialAlertDialogBuilder(activity)
-    builder.setTitle(R.string.advanced)
-    val inflater = activity.getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
-    val layout: View = inflater.inflate(R.layout.advanced_dialog,
-        activity.findViewById(R.id.partSizeSeekbar))
-    builder.setView(layout)
-
-    // set partSize TextView and Seekbar
-    val partSizeText = layout.findViewById(R.id.partSizeText) as TextView
-    partSizeText.text = pref.getPartSize().toInt().toString()
-
-    val partSizeBar = layout.findViewById(R.id.partSizeSeekbar) as SeekBar
-    partSizeBar.max = Preferences.maxPartSize.toInt()
-    partSizeBar.progress = pref.getPartSize().toInt()
-    partSizeBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-        override fun onProgressChanged(p0: SeekBar?, p1: Int, p2: Boolean) {
-            partSizeText.text = if(p1 > minPartSize) p1.toString() else minPartSize.toString()
-        }
-        override fun onStartTrackingTouch(p0: SeekBar?) {}
-        override fun onStopTrackingTouch(p0: SeekBar?) {}
-    })
-
-    // set maxZoom TextView and Seekbar
-    val maxZoomText = layout.findViewById(R.id.maxZoomText) as TextView
-    maxZoomText.text = pref.getMaxZoom().toInt().toString()
-
-    val maxZoomBar = layout.findViewById(R.id.maxZoomSeekbar) as SeekBar
-    maxZoomBar.max = Preferences.maxMaxZoom.toInt()
-    maxZoomBar.progress = pref.getMaxZoom().toInt()
-    maxZoomBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-        override fun onProgressChanged(p0: SeekBar?, p1: Int, p2: Boolean) {
-            maxZoomText.text = if(p1 > minMaxZoom) p1.toString() else minMaxZoom.toString()
-        }
-        override fun onStartTrackingTouch(p0: SeekBar?) {}
-        override fun onStopTrackingTouch(p0: SeekBar?) {}
-    })
-
-    builder.setPositiveButton(R.string.apply, null)
-    builder.setNeutralButton(R.string.reset, null)
-    builder.setNegativeButton(R.string.cancel, null)
-
-    val dialog = builder.create()
-    dialog.show()
-    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-        pref.setPartSize(partSizeText.text.toString().toFloat())
-        pref.setMaxZoom(maxZoomText.text.toString().toFloat())
-        activity.recreate()
-    }
-    dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-        pref.setPartSize(Preferences.partSizeDefault)
-        pref.setMaxZoom(Preferences.maxZoomDefault)
-        activity.recreate()
-    }
 }
 
 fun showBookmarksDialog(activity: MainActivity, pdfView: PDFView) {

@@ -280,7 +280,7 @@ final class TextSelectionManager {
         if (glyph < 0) {
             return -1;
         }
-        if (!pdfFile.looseCharBox(page, glyph, boxScratch)) {
+        if (!charBox(page, glyph, boxScratch)) {
             return glyph;
         }
 
@@ -434,6 +434,17 @@ final class TextSelectionManager {
         return false;
     }
 
+    private boolean charBox(int page, int index, float[] out) {
+        PdfFile pdfFile = pdfView.pdfFile;
+        if (pdfFile == null) {
+            return false;
+        }
+        if (pdfFile.looseCharBox(page, index, out) && out[2] > out[0] && out[3] > out[1]) {
+            return true;
+        }
+        return pdfFile.tightCharBox(page, index, out) && out[2] > out[0] && out[3] > out[1];
+    }
+
     private int[] expandWord(int page, int glyph) {
         PdfFile pdfFile = pdfView.pdfFile;
         int charCount = pdfFile.pageCharCount(page);
@@ -469,7 +480,7 @@ final class TextSelectionManager {
         RectF run = null;
 
         for (int i = start; i < end; i++) {
-            if (!pdfFile.looseCharBox(page, i, boxScratch)) {
+            if (!charBox(page, i, boxScratch)) {
                 continue;
             }
             float left = Math.min(boxScratch[0], boxScratch[2]);

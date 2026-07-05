@@ -29,7 +29,6 @@ class ConfigurableActionResolver(
         val settings: () -> Unit,
         val fileMetadata: () -> Unit,
         val about: () -> Unit,
-        val configuration: () -> Unit,
         val tableOfContents: () -> Unit,
         val linksInFile: () -> Unit,
         val print: () -> Unit,
@@ -152,11 +151,6 @@ class ConfigurableActionResolver(
                 R.string.action_about,
                 R.drawable.info_icon,
                 run = handlers.about,
-            )
-            ConfigurableAction.CONFIGURATION -> ConfiguredAction(
-                R.string.advanced_config,
-                R.drawable.ic_display_settings,
-                run = handlers.configuration,
             )
             ConfigurableAction.TABLE_OF_CONTENTS -> ConfiguredAction(
                 R.string.table_of_contents,
