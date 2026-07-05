@@ -214,13 +214,7 @@ fun showCopyPageTextDialog(
     binding: ActivityMainBinding,
     pageNumber: Int,
     pageText: String,
-    pref: Preferences,
-    bypass: Boolean = false
 ) {
-    if (!bypass && !pref.getCopyTextDialog()) {
-        return
-    }
-
     // create a custom view to make the text selectable
     val pageTextView = TextView(activity)
     pageTextView.setPadding(30, 20, 30, 0)
@@ -245,15 +239,6 @@ fun showCopyPageTextDialog(
             //Toast.makeText(activity, activity.getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT).show()
             Snackbar.make(binding.root, activity.getString(R.string.copied_to_clipboard), Snackbar.LENGTH_SHORT).show()
             dialog.dismiss()
-        }
-        .also {
-            // don't show this button if the click came from the action bar
-            if (!bypass) {
-                it.setNeutralButton(activity.getString(R.string.dont_pop_up)) { dialog, _ ->
-                    pref.setCopyTextDialog(false)
-                    dialog.dismiss()
-                }
-            }
         }
         .show()
 }

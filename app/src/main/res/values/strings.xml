@@ -96,7 +96,7 @@
     <string name="customize_controls">Customize Controls</string>
     <string name="customize_controls_summary">Toolbar, shortcuts, fullscreen buttons, and fullscreen info</string>
     <string name="settings_text">Text</string>
-    <string name="settings_text_summary">Text mode, text selection, and copy behavior</string>
+    <string name="settings_text_summary">Text Reader, text selection, and copy behavior</string>
     <string name="advanced_summary">Rendering limits and technical reader options</string>
     <string name="anti_aliasing">Anti-Aliasing</string>
     <string name="horizontal_scrolling_mode">Horizontal Scrolling</string>
@@ -193,8 +193,6 @@
     <string name="go_back">Go Back</string>
     <string name="back_to_table_of_contents">Back to Table of Contents</string>
     <string name="selectable_text">Selectable Text of Page</string>
-    <string name="show_copy_dialog_summary">Show a pop up with the extracted text of the current page when page text extraction is triggered.</string>
-    <string name="show_copy_dialog_title">Show Copy Text Dialog</string>
     <string name="inline_text_selection_title">Inline Text Selection</string>
     <string name="inline_text_selection_summary">Select and copy text directly from the rendered PDF page.</string>
     <string name="default_text_reader">Default to Text Reader</string>
@@ -205,7 +203,6 @@
     <string name="turn_page_by_volume_buttons_summary">Go to the next or previous page using the physical volume buttons</string>
     <string name="show_scroll_handle_page_count_title">Show Page Count in Scroll Handle</string>
     <string name="show_scroll_handle_page_count_summary">Show the scroll handle as current page/total pages instead of current page only.</string>
-    <string name="dont_pop_up">Don\'t pop up!</string>
     <string name="text_reader">Text Reader</string>
     <string name="back_to_pdf">Back to PDF</string>
     <string name="text_reader_appearance">Reader Settings</string>

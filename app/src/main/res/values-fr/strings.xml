@@ -141,11 +141,9 @@
     <string name="this_is_experimental_message">Cette fonctionnalité de l\'application est toujours en cours de développement et n\'est ni stable ni entièrement correcte.</string>
     <string name="go_back">Revenir en arrière</string>
     <string name="selectable_text">Texte sélectionnable de la page</string>
-    <string name="show_copy_dialog_title">Afficher une fenêtre de copie de texte</string>
     <string name="copy_page_text">Copier le texte de la page</string>
     <string name="turn_page_by_volume_buttons_title">Tourner la page par les boutons de volume</string>
     <string name="turn_page_by_volume_buttons_summary">Aller à la page suivante ou précédente en utilisant les boutons physiques de volume</string>
-    <string name="dont_pop_up">Ne pas surgir!</string>
     <string name="go_to_page">Aller à la page</string>
     <string name="no_input">Pas de saisie!</string>
     <string name="go_to">Aller à</string>

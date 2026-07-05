@@ -144,11 +144,9 @@
     <string name="this_is_experimental_message">Esta característica de la aplicación aún está en desarrollo y no es estable ni completamente correcta.</string>
     <string name="go_back">Regresar</string>
     <string name="selectable_text">Texto Seleccionable de la Página</string>
-    <string name="show_copy_dialog_title">Mostrar Diálogo de Copiar Texto</string>
     <string name="copy_page_text">Copiar Texto de la Página</string>
     <string name="turn_page_by_volume_buttons_title">Cambiar Página con Botones de Volumen</string>
     <string name="turn_page_by_volume_buttons_summary">Ir a la página siguiente o anterior usando los botones físicos de volumen</string>
-    <string name="dont_pop_up">¡No mostrar!</string>
     <string name="go_to_page">Ir a la Página</string>
     <string name="no_input">¡Sin Entrada!</string>
     <string name="go_to">Ir a</string>

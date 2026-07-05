@@ -217,14 +217,6 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 summaryRes = R.string.inline_text_selection_summary,
                 keywords = listOf("inline", "selection", "copy", "text"),
             ),
-            switchEntry(
-                page = SettingsPage.TEXT,
-                titleRes = R.string.show_copy_dialog_title,
-                key = Preferences.copyTextDialogKey,
-                defaultValue = Preferences.copyTextDialogDefault,
-                summaryRes = R.string.show_copy_dialog_summary,
-                keywords = listOf("copy", "text", "extract", "dialog"),
-            ),
         )
     }
 

@@ -78,7 +78,6 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val pdfLengthKey = "pdfLength"
         const val uriKey = "uri"
         const val finishedExtractionDialogKey = "finishedExtraction"
-        const val copyTextDialogKey = "copyTextDialog"
         const val inlineTextSelectionKey = "inlineTextSelection"
         const val defaultTextReaderKey = "defaultTextReader"
         const val turnPageByVolumeButtonsKey = "turnPageByVolumeButtons"
@@ -121,7 +120,6 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val partSizeDefault = 256f
         const val thumbnailRatioDefault = 0.3f
         const val pdfLengthDefault = 0
-        const val copyTextDialogDefault = true
         const val inlineTextSelectionDefault = true
         const val defaultTextReaderDefault = false
         const val turnPageByVolumeButtonsDefault = false
@@ -171,7 +169,6 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getPartSize() = prefMan.getFloat(partSizeKey, partSizeDefault)
     fun getThumbnailRation() = prefMan.getFloat(thumbnailRatioKey, thumbnailRatioDefault)
     fun getMaxZoom() = prefMan.getFloat(maxZoomKey, maxZoomDefault)
-    fun getCopyTextDialog() = prefMan.getBoolean(copyTextDialogKey, copyTextDialogDefault)
     fun getInlineTextSelection() = prefMan.getBoolean(inlineTextSelectionKey, inlineTextSelectionDefault)
     fun getDefaultTextReader() = prefMan.getBoolean(defaultTextReaderKey, defaultTextReaderDefault)
     fun getTurnPageByVolumeButtons() = prefMan.getBoolean(turnPageByVolumeButtonsKey, turnPageByVolumeButtonsDefault)
@@ -237,7 +234,6 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setPartSize(value: Float) = prefMan.edit().putFloat(partSizeKey, value).apply()
     fun setThumbnailRatio(value: Float) = prefMan.edit().putFloat(thumbnailRatioKey, value).apply()
     fun setMaxZoom(value: Float) = prefMan.edit().putFloat(maxZoomKey, value).apply()
-    fun setCopyTextDialog(value: Boolean) = prefMan.edit().putBoolean(copyTextDialogKey, value).apply()
     fun setInlineTextSelection(value: Boolean) = prefMan.edit().putBoolean(inlineTextSelectionKey, value).apply()
     fun setDefaultTextReader(value: Boolean) = prefMan.edit().putBoolean(defaultTextReaderKey, value).apply()
     fun setTurnPageByVolumeButtons(value: Boolean) = prefMan.edit().putBoolean(turnPageByVolumeButtonsKey, value).apply()

@@ -795,7 +795,7 @@ class MainActivity : AppCompatActivity() {
             openOnline = ::showOpenOnlinePdfDialog,
             search = { showSearchDialog(this, pdf) },
             goToPage = ::goToPage,
-            extractText = { copyPageText(bypass = true) },
+            extractText = ::copyPageText,
             textReader = ::navToTextReader,
             share = { shareFile(pdf.uri, FileType.PDF) },
             settings = ::navToAppSettings,
@@ -950,7 +950,7 @@ class MainActivity : AppCompatActivity() {
         return handle
     }
 
-    private fun copyPageText(bypass: Boolean) {
+    private fun copyPageText() {
         val pageNumber = pdf.pageNumber
         if (shouldStopExtracting.getOrElse(pageNumber) { false }) {
             return
@@ -971,7 +971,7 @@ class MainActivity : AppCompatActivity() {
                     showNoTextInPageMessage()
                 }
                 else {
-                    showCopyPageTextDialog(this@MainActivity, binding, pageNumber, pageText, pref, bypass)
+                    showCopyPageTextDialog(this@MainActivity, binding, pageNumber, pageText)
                 }
             }
         }

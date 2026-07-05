@@ -141,11 +141,9 @@
 <string name="this_is_experimental_message">ऐप की यह सुविधा अभी विकास के अधीन है और स्थिर या पूरी तरह सही नहीं है।</string>
 <string name="go_back">वापस जाएं</string>
 <string name="selectable_text">पृष्ठ का चयन योग्य पाठ</string>
-<string name="show_copy_dialog_title">पाठ कॉपी डायलॉग दिखाएं</string>
 <string name="copy_page_text">पृष्ठ का पाठ कॉपी करें</string>
 <string name="turn_page_by_volume_buttons_title">वॉल्यूम बटन से पृष्ठ पलटें</string>
 <string name="turn_page_by_volume_buttons_summary">शारीरिक वॉल्यूम बटन का उपयोग करके अगले या पिछले पृष्ठ पर जाएं</string>
-<string name="dont_pop_up">पॉप अप न करें!</string>
 <string name="go_to_page">पृष्ठ पर जाएं</string>
 <string name="no_input">कोई इनपुट नहीं!</string>
 <string name="go_to">जाएं</string>
