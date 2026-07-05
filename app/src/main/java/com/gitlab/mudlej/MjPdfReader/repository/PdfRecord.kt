@@ -87,6 +87,9 @@ data class PdfRecord(
 
     @ColumnInfo(defaultValue = UNSET_CROP_MARGINS_VERSION)
     val cropMarginsVersion: Int = 0,
+
+    @ColumnInfo(defaultValue = UNSET_AUTO_SCROLL_SPEED)
+    val autoScrollSpeed: Int? = null,
 ) {
 
     companion object {
@@ -115,7 +118,8 @@ data class PdfRecord(
                 password,
                 LocalDateTime.now(),
                 ReadingStatus.UNSET,
-                false
+                false,
+                autoScrollSpeed = pdf.autoScrollSpeed,
             )
         }
 
@@ -128,5 +132,6 @@ data class PdfRecord(
         const val UNSET_FAVORITE = false.toString()
         const val UNSET_CROP_MARGINS = "NULL"
         const val UNSET_CROP_MARGINS_VERSION = "0"
+        const val UNSET_AUTO_SCROLL_SPEED = "NULL"
     }
 }

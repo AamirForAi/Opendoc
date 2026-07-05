@@ -119,8 +119,10 @@ import com.google.gson.reflect.TypeToken
 import com.shockwave.pdfium.PdfPasswordException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.*
 import java.time.LocalDateTime
@@ -130,6 +132,12 @@ import kotlin.system.exitProcess
 class MainActivity : AppCompatActivity() {
 
     private data class RetainedPdfBytes(val uri: String?, val bytes: ByteArray?)
+
+    private data class PendingAutoScrollSpeed(val fileHash: String, val speed: Int)
+
+    private companion object {
+        const val AUTO_SCROLL_SPEED_SAVE_DELAY = 300L
+    }
 
     private val shouldStopExtracting: MutableMap<Int, Boolean> = mutableMapOf()
     private val TAG = "MainActivity"
@@ -153,6 +161,8 @@ class MainActivity : AppCompatActivity() {
     private var activeSearchResultPageNumber: Int? = null
     private var activeBookmarksSnackbar: Snackbar? = null
     private var bookmarkState = BookmarkState()
+    private var autoScrollSpeedSaveJob: Job? = null
+    private var pendingAutoScrollSpeedSave: PendingAutoScrollSpeed? = null
 
     private lateinit var actionBarMenu: Menu
 
@@ -181,7 +191,7 @@ class MainActivity : AppCompatActivity() {
 
         // init
         pref = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
-        autoScrollManager = AutoScrollManagerImpl(binding, pdf, pref)
+        autoScrollManager = AutoScrollManagerImpl(binding, pdf, pref, ::onAutoScrollSpeedChanged)
         fullScreenOptionsManager = FullScreenOptionsManagerImpl(
             binding, pdf, pref.getHideDelay().toLong(), pref
         )
@@ -276,12 +286,14 @@ class MainActivity : AppCompatActivity() {
         if (pdf.uri == uri) {
             return
         }
+        flushPendingAutoScrollSpeedSave()
         cropMarginsController.cancel()
         documentLoadToken++
         pdf.uri = uri
         pdf.fileHash = null
         pdf.pageNumber = 0
         pdf.zoom = 1F
+        pdf.autoScrollSpeed = null
         cropMarginsEnabledForCurrentDocument = pref.getAlwaysHideMargins()
         resetSearchResultState()
         resetBookmarkState()
@@ -418,13 +430,20 @@ class MainActivity : AppCompatActivity() {
                 return@launch
             }
 
+            val autoScrollSpeed = hash?.let { databaseManager.findAutoScrollSpeed(it) }
+            if (!isCurrentDocument(loadToken, documentUri)) {
+                return@launch
+            }
+
             val cachedCropMargins = cropMarginsController.findCached(hash)
             if (!isCurrentDocument(loadToken, documentUri)) {
                 return@launch
             }
             pdf.pageNumber = pageNumber
+            pdf.autoScrollSpeed = pdf.autoScrollSpeed ?: autoScrollSpeed
             withContext(Dispatchers.Main) {
                 if (isCurrentDocument(loadToken, documentUri)) {
+                    autoScrollManager.setSpeed(pdf.autoScrollSpeed ?: pref.getScrollSpeed())
                     initPdfViewAndLoad(viewConfigurator, pageNumber, savePassword, cachedCropMargins, hash, loadToken, documentUri)
                 }
             }
@@ -587,6 +606,40 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun onAutoScrollSpeedChanged(speed: Int) {
+        pdf.autoScrollSpeed = speed
+        val fileHash = pdf.fileHash ?: return
+        val pending = PendingAutoScrollSpeed(fileHash, speed)
+
+        pendingAutoScrollSpeedSave = pending
+        autoScrollSpeedSaveJob?.cancel()
+        autoScrollSpeedSaveJob = lifecycleScope.launch {
+            delay(AUTO_SCROLL_SPEED_SAVE_DELAY)
+            savePendingAutoScrollSpeed(pending)
+        }
+    }
+
+    private suspend fun savePendingAutoScrollSpeed(pending: PendingAutoScrollSpeed) {
+        if (pendingAutoScrollSpeedSave != pending) {
+            return
+        }
+
+        databaseManager.setAutoScrollSpeed(pending.fileHash, pending.speed)
+        if (pendingAutoScrollSpeedSave == pending) {
+            pendingAutoScrollSpeedSave = null
+        }
+    }
+
+    private fun flushPendingAutoScrollSpeedSave() {
+        val pending = pendingAutoScrollSpeedSave ?: return
+        autoScrollSpeedSaveJob?.cancel()
+        autoScrollSpeedSaveJob = null
+        pendingAutoScrollSpeedSave = null
+        runBlocking {
+            databaseManager.setAutoScrollSpeed(pending.fileHash, pending.speed)
+        }
+    }
+
     private fun checkAutoFullScreen() {
         if (pref.getAutoFullScreen() && !pdf.isFullScreenToggled) {
             toggleFullscreen()
@@ -648,6 +701,10 @@ class MainActivity : AppCompatActivity() {
                 if (!isCurrentDocument(loadToken, documentUri)) {
                     return@launch
                 }
+                pdf.autoScrollSpeed?.let { databaseManager.setAutoScrollSpeed(fileHash, it) }
+                if (!isCurrentDocument(loadToken, documentUri)) {
+                    return@launch
+                }
                 cropMarginsController.onRecordAvailable(fileHash)
             }
             else {
@@ -656,6 +713,10 @@ class MainActivity : AppCompatActivity() {
                 }
                 val record = PdfRecord.from(fileHash, this@MainActivity.pdf, password)
                 databaseManager.saveRecordInBackground(record)
+                if (!isCurrentDocument(loadToken, documentUri)) {
+                    return@launch
+                }
+                pdf.autoScrollSpeed?.let { databaseManager.setAutoScrollSpeed(fileHash, it) }
                 if (!isCurrentDocument(loadToken, documentUri)) {
                     return@launch
                 }
@@ -1201,7 +1262,13 @@ class MainActivity : AppCompatActivity() {
         return RetainedPdfBytes(PdfBytesHolder.uri, PdfBytesHolder.pdfByte)
     }
 
+    override fun onStop() {
+        flushPendingAutoScrollSpeedSave()
+        super.onStop()
+    }
+
     override fun onDestroy() {
+        flushPendingAutoScrollSpeedSave()
         if (::cropMarginsController.isInitialized) {
             cropMarginsController.cancel()
         }
@@ -1689,6 +1756,7 @@ class MainActivity : AppCompatActivity() {
         outState.putString(PDF.passwordKey, pdf.password)
         outState.putBoolean(PDF.isPortraitKey, pdf.isPortrait)
         outState.putBoolean(PDF.isFullScreenToggledKey, pdf.isFullScreenToggled)
+        pdf.autoScrollSpeed?.let { outState.putInt(PDF.autoScrollSpeedKey, it) }
         outState.putBoolean(PDF.cropMarginsEnabledKey, isCropMarginsEnabled())
         outState.putFloat(PDF.zoomKey, binding.pdfView.zoom)
         outState.putBoolean(PDF.isExtractingTextFinishedKey, pdf.isExtractingTextFinished)
@@ -1703,6 +1771,8 @@ class MainActivity : AppCompatActivity() {
         pdf.password = savedState.getString(PDF.passwordKey)
         pdf.isPortrait = savedState.getBoolean(PDF.isPortraitKey, true)
         pdf.isFullScreenToggled = savedState.getBoolean(PDF.isFullScreenToggledKey)
+        pdf.autoScrollSpeed = savedState.takeIf { it.containsKey(PDF.autoScrollSpeedKey) }
+            ?.getInt(PDF.autoScrollSpeedKey)
         cropMarginsEnabledForCurrentDocument = savedState.getBoolean(PDF.cropMarginsEnabledKey, pref.getAlwaysHideMargins())
         pdf.zoom = savedState.getFloat(PDF.zoomKey)
         pdf.isExtractingTextFinished = savedState.getBoolean(PDF.isExtractingTextFinishedKey)

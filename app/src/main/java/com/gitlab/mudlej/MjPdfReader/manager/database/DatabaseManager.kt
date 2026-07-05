@@ -16,6 +16,8 @@ interface DatabaseManager {
 
     suspend fun findCropMargins(fileHash: String, version: Int): String?
 
+    suspend fun findAutoScrollSpeed(fileHash: String): Int?
+
     suspend fun setPageNumber(fileHash: String, page: Int)
 
     suspend fun hasRecord(fileHash: String): Boolean
@@ -31,5 +33,7 @@ interface DatabaseManager {
     suspend fun setPassword(fileHash: String, password: String)
 
     suspend fun setCropMargins(fileHash: String, cropMargins: String, version: Int)
+
+    suspend fun setAutoScrollSpeed(fileHash: String, speed: Int)
 
 }

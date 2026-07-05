@@ -39,6 +39,12 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
         }
     }
 
+    override suspend fun findAutoScrollSpeed(fileHash: String): Int? {
+        return withContext(Dispatchers.IO) {
+            database.pdfRecordDao().findAutoScrollSpeed(fileHash)
+        }
+    }
+
     override suspend fun setPageNumber(fileHash: String, page: Int) {
         withContext(Dispatchers.IO) {
             database.pdfRecordDao().updatePageNumber(fileHash, page)
@@ -84,6 +90,12 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
     override suspend fun setCropMargins(fileHash: String, cropMargins: String, version: Int) {
         withContext(Dispatchers.IO) {
             database.pdfRecordDao().updateCropMargins(fileHash, cropMargins, version)
+        }
+    }
+
+    override suspend fun setAutoScrollSpeed(fileHash: String, speed: Int) {
+        withContext(Dispatchers.IO) {
+            database.pdfRecordDao().updateAutoScrollSpeed(fileHash, speed)
         }
     }
 

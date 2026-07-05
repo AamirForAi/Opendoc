@@ -66,6 +66,9 @@ interface PdfRecordDao {
     @Query("SELECT cropMargins FROM PdfRecord WHERE hash = :fileHash AND cropMarginsVersion = :version")
     fun findCropMargins(fileHash: String, version: Int): String?
 
+    @Query("SELECT autoScrollSpeed FROM PdfRecord WHERE hash = :fileHash")
+    fun findAutoScrollSpeed(fileHash: String): Int?
+
     @Query("UPDATE PdfRecord SET pageNumber = :page WHERE hash = :fileHash")
     fun updatePageNumber(fileHash: String?, page: Int): Int?
 
@@ -83,6 +86,9 @@ interface PdfRecordDao {
 
     @Query("UPDATE PdfRecord SET cropMargins = :cropMargins, cropMarginsVersion = :version WHERE hash = :fileHash")
     fun updateCropMargins(fileHash: String, cropMargins: String, version: Int): Int
+
+    @Query("UPDATE PdfRecord SET autoScrollSpeed = :speed WHERE hash = :fileHash")
+    fun updateAutoScrollSpeed(fileHash: String, speed: Int): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(saveLocations: PdfRecord)

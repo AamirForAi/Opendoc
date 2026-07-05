@@ -58,6 +58,7 @@ class PDF(
     var isBrightnessClicked: Boolean = false,
     var isAutoScrollClicked: Boolean = false,
     var isAutoScrolling: Boolean = false,
+    var autoScrollSpeed: Int? = null,
     var fileHash: String? = null,
     val text: MutableMap<Int, String> = mutableMapOf(),
     var isExtractingTextFinished: Boolean = false,
@@ -91,6 +92,7 @@ class PDF(
         const val zoomKey = "zoom"
         const val isPortraitKey = "isPortrait"
         const val isFullScreenToggledKey = "isFullScreenToggled"
+        const val autoScrollSpeedKey = "autoScrollSpeedKey"
         const val cropMarginsEnabledKey = "cropMarginsEnabled"
         const val isExtractingTextFinishedKey = "isExtractingTextFinished"
         const val pdfBookmarksKey = "PDF_BOOKMARKS"

@@ -6,6 +6,8 @@ interface AutoScrollManager {
 
     fun setup()
 
+    fun setSpeed(speed: Int)
+
     fun stop()
 
     fun hideControls()

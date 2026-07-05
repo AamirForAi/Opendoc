@@ -15,6 +15,7 @@ class AutoScrollManagerImpl(
     private val binding: ActivityMainBinding,
     private val pdf: PDF,
     private val preferences: Preferences,
+    private val onSpeedChanged: (Int) -> Unit,
 ) : AutoScrollManager {
 
     private companion object {
@@ -30,8 +31,7 @@ class AutoScrollManagerImpl(
     private var pausedByInteraction = false
 
     override fun setup() {
-        scrollBy = -Preferences.AUTO_SCROLL_UNIT * preferences.getScrollSpeed()
-        binding.autoScrollSpeedText.text = simplifySpeed(scrollBy).toString()
+        setSpeed(pdf.autoScrollSpeed ?: preferences.getScrollSpeed())
 
         binding.autoScrollButton.setOnClickListener { toggleControls() }
         binding.incScrollSpeedButton.setOnClickListener { increaseSpeed() }
@@ -40,6 +40,10 @@ class AutoScrollManagerImpl(
         binding.decScrollSpeedButton.setOnLongClickListener { startRepeatingSpeedChange(isIncreasing = false) }
         binding.reverseScrollDirectionButton.setOnClickListener { scrollBy = -scrollBy }
         binding.toggleAutoScrollButton.setOnClickListener { toggleAutoScroll() }
+    }
+
+    override fun setSpeed(speed: Int) {
+        setScrollBy(-Preferences.AUTO_SCROLL_UNIT * speed.coerceAtLeast(1), notify = false)
     }
 
     override fun stop() {
@@ -83,14 +87,12 @@ class AutoScrollManagerImpl(
     }
 
     private fun increaseSpeed() {
-        scrollBy = changeScrollingSpeed(scrollBy, Preferences.AUTO_SCROLL_UNIT, isIncreasing = true)
-        saveScrollSpeed(scrollBy)
+        setScrollBy(changeScrollingSpeed(scrollBy, Preferences.AUTO_SCROLL_UNIT, isIncreasing = true))
     }
 
     private fun decreaseSpeed() {
         if (scrollBy.absoluteValue > Preferences.AUTO_SCROLL_UNIT) {
-            scrollBy = changeScrollingSpeed(scrollBy, Preferences.AUTO_SCROLL_UNIT, isIncreasing = false)
-            saveScrollSpeed(scrollBy)
+            setScrollBy(changeScrollingSpeed(scrollBy, Preferences.AUTO_SCROLL_UNIT, isIncreasing = false))
         }
     }
 
@@ -100,7 +102,7 @@ class AutoScrollManagerImpl(
                 return@Runnable
             }
 
-            scrollBy = changeScrollingSpeed(scrollBy, Preferences.AUTO_SCROLL_UNIT, isIncreasing)
+            setScrollBy(changeScrollingSpeed(scrollBy, Preferences.AUTO_SCROLL_UNIT, isIncreasing))
             speedUpdateRunnable?.let { speedUpdateHandler.postDelayed(it, SPEED_UPDATE_DELAY) }
         }
         speedUpdateRunnable?.let { speedUpdateHandler.postDelayed(it, SPEED_UPDATE_DELAY) }
@@ -183,8 +185,14 @@ class AutoScrollManagerImpl(
         }
     }
 
-    private fun saveScrollSpeed(scrollBy: Double) {
-        preferences.setScrollSpeed(simplifySpeed(scrollBy))
+    private fun setScrollBy(newScrollBy: Double, notify: Boolean = true) {
+        scrollBy = newScrollBy
+        val speed = simplifySpeed(scrollBy)
+        binding.autoScrollSpeedText.text = speed.toString()
+        if (notify) {
+            pdf.autoScrollSpeed = speed
+            onSpeedChanged(speed)
+        }
     }
 
     private fun simplifySpeed(scrollBy: Double): Int {
@@ -202,7 +210,6 @@ class AutoScrollManagerImpl(
             scrollBy
         }
 
-        binding.autoScrollSpeedText.text = simplifySpeed(newSpeed).toString()
         return newSpeed
     }
 }
