@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.SystemClock
 import android.view.View
 import com.github.barteksc.pdfviewer.CropMarginDetection
+import com.github.barteksc.pdfviewer.PDFView
 import com.github.barteksc.pdfviewer.PDFView.Configurator
 import com.github.barteksc.pdfviewer.model.CropMargins
 import com.gitlab.mudlej.MjPdfReader.R
@@ -30,7 +31,7 @@ class CropMarginsController(
     private val isCropMarginsEnabled: () -> Boolean,
     private val setCropMarginsEnabled: (Boolean) -> Unit,
     private val isCurrentDocument: (Long, Uri?) -> Boolean,
-    private val reloadWithCropMargins: (Configurator, Int, CropMargins) -> Unit,
+    private val reloadWithCropMargins: (Configurator, Int, CropMargins, PDFView.ViewState?) -> Unit,
 ) {
 
     @Volatile
@@ -195,10 +196,11 @@ class CropMarginsController(
     private fun apply(cropMargins: CropMargins) {
         val uri = pdf.uri ?: return
         val configurator = currentConfigurator(uri) ?: return
-        val currentPage = binding.pdfView.currentPage
+        val viewState = binding.pdfView.captureViewState()
+        val currentPage = viewState?.pageIndex ?: binding.pdfView.currentPage
         pdf.pageNumber = currentPage
-        pdf.zoom = binding.pdfView.zoom
-        reloadWithCropMargins(configurator, currentPage, cropMargins)
+        pdf.zoom = viewState?.zoom ?: binding.pdfView.zoom
+        reloadWithCropMargins(configurator, currentPage, cropMargins, viewState)
     }
 
     private fun currentConfigurator(uri: Uri): Configurator? {

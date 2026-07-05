@@ -255,7 +255,7 @@
                 tools:ignore="RtlSymmetry">
 
                 <com.google.android.material.button.MaterialButton
-                    style="@style/CustomMaterialButton"
+                    style="@style/FullScreenOverlayButton"
                     android:id="@+id/exitFullScreenButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -270,7 +270,7 @@
                     tools:ignore="RtlSymmetry" />
 
                 <com.google.android.material.button.MaterialButton
-                    style="@style/CustomMaterialButton"
+                    style="@style/FullScreenOverlayButton"
                     android:id="@+id/rotateScreenButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -285,7 +285,7 @@
                     tools:ignore="RtlSymmetry" />
 
                 <com.google.android.material.button.MaterialButton
-                    style="@style/CustomMaterialButton"
+                    style="@style/FullScreenOverlayButton"
                     android:id="@+id/brightnessButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -300,7 +300,7 @@
                     tools:ignore="RtlSymmetry" />
 
                 <com.google.android.material.button.MaterialButton
-                    style="@style/CustomMaterialButton"
+                    style="@style/FullScreenOverlayButton"
                     android:id="@+id/autoScrollButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -315,7 +315,7 @@
                     tools:ignore="RtlSymmetry" />
 
                 <com.google.android.material.button.MaterialButton
-                    style="@style/CustomMaterialButton"
+                    style="@style/FullScreenOverlayButton"
                     android:id="@+id/toggleHorizontalSwipeButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -330,7 +330,7 @@
                     tools:ignore="RtlSymmetry" />
 
                 <com.google.android.material.button.MaterialButton
-                    style="@style/CustomMaterialButton"
+                    style="@style/FullScreenOverlayButton"
                     android:id="@+id/toggleZoomLockButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -345,7 +345,7 @@
                     tools:ignore="RtlSymmetry" />
 
                 <com.google.android.material.button.MaterialButton
-                    style="@style/CustomMaterialButton"
+                    style="@style/FullScreenOverlayButton"
                     android:id="@+id/screenshotButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -360,7 +360,7 @@
                     tools:ignore="RtlSymmetry" />
 
                 <com.google.android.material.button.MaterialButton
-                    style="@style/CustomMaterialButton"
+                    style="@style/FullScreenOverlayButton"
                     android:id="@+id/toggleLabelButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

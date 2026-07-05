@@ -108,6 +108,26 @@ public class PDFView extends RelativeLayout {
 
     public static final float NORMAL_SCALE = 1.0f;
 
+    public static class ViewState {
+
+        public final float zoom;
+        public final int pageIndex;
+        public final boolean swipeVertical;
+        public final boolean horizontalReadingDirectionRtl;
+        public final float relativeCrossAxisCenter;
+        public final float pageCenterOffsetRatio;
+
+        public ViewState(float zoom, int pageIndex, boolean swipeVertical, boolean horizontalReadingDirectionRtl,
+                         float relativeCrossAxisCenter, float pageCenterOffsetRatio) {
+            this.zoom = zoom;
+            this.pageIndex = pageIndex;
+            this.swipeVertical = swipeVertical;
+            this.horizontalReadingDirectionRtl = horizontalReadingDirectionRtl;
+            this.relativeCrossAxisCenter = relativeCrossAxisCenter;
+            this.pageCenterOffsetRatio = pageCenterOffsetRatio;
+        }
+    }
+
     private float minZoom = DEFAULT_MIN_SCALE;
     private float midZoom = DEFAULT_MID_SCALE;
     private float maxZoom = DEFAULT_MAX_SCALE;
@@ -235,6 +255,8 @@ public class PDFView extends RelativeLayout {
     private CropMargins cachedCropMargins = null;
 
     private int defaultPage = 0;
+
+    private ViewState defaultViewState = null;
 
     /* True if should scroll through pages vertically instead of horizontally */
     private boolean swipeVertical = true;
@@ -465,6 +487,40 @@ public class PDFView extends RelativeLayout {
         setPositionOffset(progress, true);
     }
 
+    public ViewState captureViewState() {
+        if (state != State.SHOWN || pdfFile == null || pdfFile.getPagesCount() == 0 || getWidth() <= 0 || getHeight() <= 0) {
+            return null;
+        }
+
+        int pageIndex = pdfFile.determineValidPageNumberFrom(findFocusPage(currentXOffset, currentYOffset));
+        float centerX = -currentXOffset + getWidth() * 0.5f;
+        float centerY = -currentYOffset + getHeight() * 0.5f;
+        float relativeCrossAxisCenter;
+        float pageCenterOffsetRatio;
+
+        if (swipeVertical) {
+            relativeCrossAxisCenter = ratioOrDefault(centerX, pdfFile.getMaxPageWidth(), 0.5f);
+            pageCenterOffsetRatio = ratioOrDefault(
+                    centerY - pdfFile.getPageOffset(pageIndex, zoom),
+                    pdfFile.getPageLength(pageIndex, zoom),
+                    0.5f);
+        } else {
+            relativeCrossAxisCenter = ratioOrDefault(centerY, pdfFile.getMaxPageHeight(), 0.5f);
+            pageCenterOffsetRatio = ratioOrDefault(
+                    centerX - pdfFile.getPageOffset(pageIndex, zoom),
+                    pdfFile.getPageLength(pageIndex, zoom),
+                    0.5f);
+        }
+
+        return new ViewState(
+                zoom,
+                pageIndex,
+                swipeVertical,
+                isHorizontalReadingDirectionRtl(),
+                relativeCrossAxisCenter,
+                MathUtils.limit(pageCenterOffsetRatio, 0f, 1f));
+    }
+
     public void stopFling() {
         animationManager.stopFling();
     }
@@ -556,6 +612,7 @@ public class PDFView extends RelativeLayout {
         isScrollHandleInit = false;
         currentXOffset = currentYOffset = 0;
         zoom = 1f;
+        defaultViewState = null;
         recycled = true;
         callbacks = new Callbacks();
         state = State.DEFAULT;
@@ -903,7 +960,65 @@ public class PDFView extends RelativeLayout {
         }
         dragPinchManager.enable();
         callbacks.callOnLoadComplete(pdfFile.getPagesCount());
-        jumpTo(defaultPage, false);
+        if (!restoreDefaultViewState()) {
+            jumpTo(defaultPage, false);
+        }
+    }
+
+    private boolean restoreDefaultViewState() {
+        ViewState viewState = defaultViewState;
+        defaultViewState = null;
+        if (viewState == null || pdfFile == null || pdfFile.getPagesCount() == 0) {
+            return false;
+        }
+
+        int pageIndex = pdfFile.determineValidPageNumberFrom(viewState.pageIndex);
+        zoomTo(validZoom(viewState.zoom));
+        if (viewState.swipeVertical != swipeVertical
+                || viewState.horizontalReadingDirectionRtl != isHorizontalReadingDirectionRtl()
+                || getWidth() <= 0
+                || getHeight() <= 0) {
+            jumpTo(pageIndex, false);
+            return true;
+        }
+
+        float pageLength = pdfFile.getPageLength(pageIndex, zoom);
+        if (!isUsable(pageLength)) {
+            jumpTo(pageIndex, false);
+            return true;
+        }
+
+        float pageCenterOffsetRatio = isValidNumber(viewState.pageCenterOffsetRatio)
+                ? MathUtils.limit(viewState.pageCenterOffsetRatio, 0f, 1f)
+                : 0.5f;
+        float relativeCrossAxisCenter = isValidNumber(viewState.relativeCrossAxisCenter)
+                ? viewState.relativeCrossAxisCenter
+                : 0.5f;
+        float pageCenterOffset = pdfFile.getPageOffset(pageIndex, zoom) + pageLength * pageCenterOffsetRatio;
+
+        float offsetX;
+        float offsetY;
+        if (swipeVertical) {
+            float crossAxisSize = pdfFile.getMaxPageWidth();
+            if (!isUsable(crossAxisSize)) {
+                jumpTo(pageIndex, false);
+                return true;
+            }
+            offsetX = -(relativeCrossAxisCenter * crossAxisSize) + getWidth() * 0.5f;
+            offsetY = -pageCenterOffset + getHeight() * 0.5f;
+        } else {
+            float crossAxisSize = pdfFile.getMaxPageHeight();
+            if (!isUsable(crossAxisSize)) {
+                jumpTo(pageIndex, false);
+                return true;
+            }
+            offsetX = -pageCenterOffset + getWidth() * 0.5f;
+            offsetY = -(relativeCrossAxisCenter * crossAxisSize) + getHeight() * 0.5f;
+        }
+
+        moveTo(offsetX, offsetY);
+        showPage(pageIndex);
+        return true;
     }
 
     void loadError(Throwable t) {
@@ -1282,6 +1397,29 @@ public class PDFView extends RelativeLayout {
         return zoom;
     }
 
+    private float validZoom(float value) {
+        if (!isValidNumber(value)) {
+            return NORMAL_SCALE;
+        }
+        return MathUtils.limit(value, minZoom, maxZoom);
+    }
+
+    private static float ratioOrDefault(float numerator, float denominator, float fallback) {
+        if (!isUsable(denominator)) {
+            return fallback;
+        }
+        float ratio = numerator / denominator;
+        return isValidNumber(ratio) ? ratio : fallback;
+    }
+
+    private static boolean isUsable(float value) {
+        return isValidNumber(value) && value > 0f;
+    }
+
+    private static boolean isValidNumber(float value) {
+        return !Float.isNaN(value) && !Float.isInfinite(value);
+    }
+
     TextSelectionManager getTextSelectionManager() {
         return textSelectionManager;
     }
@@ -1329,6 +1467,10 @@ public class PDFView extends RelativeLayout {
 
     public void setDefaultPage(int defaultPage) {   // changed by User
         this.defaultPage = defaultPage;
+    }
+
+    private void setDefaultViewState(ViewState defaultViewState) {
+        this.defaultViewState = defaultViewState;
     }
 
     public void resetZoom() {
@@ -1713,6 +1855,8 @@ public class PDFView extends RelativeLayout {
 
         private int defaultPage = 0;
 
+        private ViewState defaultViewState = null;
+
         private boolean swipeHorizontal = false;
 
         private boolean horizontalReadingDirectionRtl = false;
@@ -1863,6 +2007,11 @@ public class PDFView extends RelativeLayout {
             return this;
         }
 
+        public Configurator defaultViewState(ViewState defaultViewState) {
+            this.defaultViewState = defaultViewState;
+            return this;
+        }
+
         public Configurator swipeHorizontal(boolean swipeHorizontal) {
             this.swipeHorizontal = swipeHorizontal;
             return this;
@@ -1968,6 +2117,7 @@ public class PDFView extends RelativeLayout {
             PDFView.this.setNightMode(nightMode);
             PDFView.this.enableDoubleTap(enableDoubleTap);
             PDFView.this.setDefaultPage(defaultPage);
+            PDFView.this.setDefaultViewState(defaultViewState);
             PDFView.this.setSwipeVertical(!swipeHorizontal);
             PDFView.this.setHorizontalReadingDirectionRtl(horizontalReadingDirectionRtl);
             PDFView.this.enableAnnotationRendering(annotationRendering);

@@ -74,6 +74,7 @@ import androidx.core.net.toUri
 import androidx.core.view.*
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
+import com.github.barteksc.pdfviewer.PDFView
 import com.github.barteksc.pdfviewer.PDFView.Configurator
 import com.github.barteksc.pdfviewer.listener.OnTextSelectionChangeListener
 import com.github.barteksc.pdfviewer.model.CropMargins
@@ -165,6 +166,7 @@ class MainActivity : AppCompatActivity() {
     private var documentLoadToken = 0L
     private var cropMarginsEnabledForCurrentDocument = false
     private var activeSearchResultsSnackbar: Snackbar? = null
+    private var pendingViewState: PDFView.ViewState? = null
     private var activeSearchResultPageNumber: Int? = null
     private var activeBookmarksSnackbar: Snackbar? = null
     private var bookmarkState = BookmarkState()
@@ -305,6 +307,7 @@ class MainActivity : AppCompatActivity() {
         pdf.fileHash = null
         pdf.pageNumber = 0
         pdf.zoom = 1F
+        pendingViewState = null
         pdf.autoScrollSpeed = null
         pdf.readingDirectionOverride = null
         pdf.detectedReadingDirection = null
@@ -422,6 +425,7 @@ class MainActivity : AppCompatActivity() {
     private fun initPdfViewAndLoad(viewConfigurator: Configurator, savePassword: Boolean = false) {
         val loadToken = documentLoadToken
         val documentUri = pdf.uri
+        val viewState = pendingViewState
         lifecycleScope.launch {
             val hash = pdf.fileHash ?: computeHash(this@MainActivity, pdf)
             if (!isCurrentDocument(loadToken, documentUri)) {
@@ -476,6 +480,7 @@ class MainActivity : AppCompatActivity() {
                         loadToken,
                         documentUri,
                         readingDirectionState.effectiveDirection,
+                        viewState,
                     )
                 }
             }
@@ -523,6 +528,7 @@ class MainActivity : AppCompatActivity() {
         loadToken: Long,
         documentUri: Uri?,
         readingDirection: ReadingDirection = pdf.effectiveReadingDirection,
+        viewState: PDFView.ViewState? = null,
         applyDocumentLoadDefaults: Boolean = true,
         zoomDisabled: Boolean = false,
         horizontalSwipeDisabled: Boolean = false,
@@ -533,11 +539,11 @@ class MainActivity : AppCompatActivity() {
         pdfView.minZoom = Preferences.minZoomDefault
         pdfView.midZoom = Preferences.midZoomDefault
         pdfView.maxZoom = pref.getMaxZoom()
-        pdfView.zoomTo(pdf.zoom)
         val spacing = if (pref.getSpaceBetweenPages()) Preferences.spacingDefault else 0
 
         viewConfigurator   // creates a PDFView.Configurator
             .defaultPage(pageNumber)
+            .defaultViewState(viewState)
             .onPageChange { page: Int, pageCount: Int -> setCurrentPage(page, pageCount, fileHash, loadToken, documentUri) }
             .enableAnnotationRendering(Preferences.annotationRenderingDefault)
             .enableAntialiasing(pref.getAntiAliasing())
@@ -574,6 +580,9 @@ class MainActivity : AppCompatActivity() {
             .cropMargins(isCropMarginsEnabled())
             .cachedCropMargins(cachedCropMargins)
             .onLoad { pageCount ->
+                if (pendingViewState === viewState) {
+                    pendingViewState = null
+                }
                 hideProgressBar(loadToken, documentUri)
                 configureTheme()
                 createPdfRecord(savePassword, pdf, fileHash, loadToken, documentUri)
@@ -592,13 +601,16 @@ class MainActivity : AppCompatActivity() {
             }
             .load()
 
-        pdfView.zoomTo(pdf.zoom)
-
         // Show the page scroll handler for a while when the pdf is loaded then hide it.
         pdfView.performTap()
     }
 
-    private fun reloadWithCropMargins(configurator: Configurator, pageNumber: Int, cropMargins: CropMargins) {
+    private fun reloadWithCropMargins(
+        configurator: Configurator,
+        pageNumber: Int,
+        cropMargins: CropMargins,
+        viewState: PDFView.ViewState?,
+    ) {
         val zoomDisabled = binding.pdfView.isZoomDisabled
         val horizontalSwipeDisabled = binding.pdfView.isHorizontalSwipeDisabled
         initPdfViewAndLoad(
@@ -610,6 +622,7 @@ class MainActivity : AppCompatActivity() {
             loadToken = documentLoadToken,
             documentUri = pdf.uri,
             readingDirection = pdf.effectiveReadingDirection,
+            viewState = viewState,
             applyDocumentLoadDefaults = false,
             zoomDisabled = zoomDisabled,
             horizontalSwipeDisabled = horizontalSwipeDisabled,
@@ -1100,19 +1113,6 @@ class MainActivity : AppCompatActivity() {
 
         // restore the full screen mode if was toggled On
         restoreFullScreenIfNeeded()
-
-        // Prompt the user to restore the previous zoom if there is one saved other than the default
-        // pdfZoom != binding.pdfView.getZoom())   // doesn't work for some peculiar reason
-        if (pdf.zoom != 1f) {
-            Snackbar.make(
-                findViewById(R.id.mainLayout),
-                getString(R.string.ask_restore_zoom), Snackbar.LENGTH_LONG
-            )
-                .setAction(getString(R.string.restore)) {
-                    binding.pdfView.zoomWithAnimation(pdf.zoom)
-                }
-                .show()
-        }
     }
 
     private fun restoreFullScreenIfNeeded() {
@@ -1922,6 +1922,33 @@ class MainActivity : AppCompatActivity() {
         return AppCompatResources.getDrawable(this, id)
     }
 
+    private fun saveViewState(outState: Bundle): PDFView.ViewState? {
+        val viewState = binding.pdfView.captureViewState() ?: pendingViewState ?: return null
+        outState.putBoolean(PDF.viewStateSavedKey, true)
+        outState.putFloat(PDF.viewStateZoomKey, viewState.zoom)
+        outState.putInt(PDF.viewStatePageIndexKey, viewState.pageIndex)
+        outState.putBoolean(PDF.viewStateSwipeVerticalKey, viewState.swipeVertical)
+        outState.putBoolean(PDF.viewStateHorizontalReadingDirectionRtlKey, viewState.horizontalReadingDirectionRtl)
+        outState.putFloat(PDF.viewStateRelativeCrossAxisCenterKey, viewState.relativeCrossAxisCenter)
+        outState.putFloat(PDF.viewStatePageCenterOffsetRatioKey, viewState.pageCenterOffsetRatio)
+        return viewState
+    }
+
+    private fun restoreViewState(savedState: Bundle): PDFView.ViewState? {
+        if (!savedState.getBoolean(PDF.viewStateSavedKey, false)) {
+            return null
+        }
+
+        return PDFView.ViewState(
+            savedState.getFloat(PDF.viewStateZoomKey, 1f),
+            savedState.getInt(PDF.viewStatePageIndexKey, 0),
+            savedState.getBoolean(PDF.viewStateSwipeVerticalKey, true),
+            savedState.getBoolean(PDF.viewStateHorizontalReadingDirectionRtlKey, false),
+            savedState.getFloat(PDF.viewStateRelativeCrossAxisCenterKey, 0.5f),
+            savedState.getFloat(PDF.viewStatePageCenterOffsetRatioKey, 0.5f),
+        )
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putParcelable(PDF.uriKey, pdf.uri)
         outState.putString(PDF.fileHashKey, pdf.fileHash)
@@ -1934,7 +1961,8 @@ class MainActivity : AppCompatActivity() {
         outState.putBoolean(PDF.isFullScreenToggledKey, pdf.isFullScreenToggled)
         pdf.autoScrollSpeed?.let { outState.putInt(PDF.autoScrollSpeedKey, it) }
         outState.putBoolean(PDF.cropMarginsEnabledKey, isCropMarginsEnabled())
-        outState.putFloat(PDF.zoomKey, binding.pdfView.zoom)
+        val viewState = saveViewState(outState)
+        outState.putFloat(PDF.zoomKey, viewState?.zoom ?: pdf.zoom)
         outState.putBoolean(PDF.isExtractingTextFinishedKey, pdf.isExtractingTextFinished)
         bookmarkState.putInto(outState)
         super.onSaveInstanceState(outState)
@@ -1957,7 +1985,8 @@ class MainActivity : AppCompatActivity() {
         pdf.autoScrollSpeed = savedState.takeIf { it.containsKey(PDF.autoScrollSpeedKey) }
             ?.getInt(PDF.autoScrollSpeedKey)
         cropMarginsEnabledForCurrentDocument = savedState.getBoolean(PDF.cropMarginsEnabledKey, pref.getAlwaysHideMargins())
-        pdf.zoom = savedState.getFloat(PDF.zoomKey)
+        pendingViewState = restoreViewState(savedState)
+        pdf.zoom = pendingViewState?.zoom ?: savedState.getFloat(PDF.zoomKey, 1f)
         pdf.isExtractingTextFinished = savedState.getBoolean(PDF.isExtractingTextFinishedKey)
         bookmarkState = BookmarkState.from(savedState)
     }
