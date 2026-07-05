@@ -107,7 +107,7 @@ class InlineAnnotationActionController(
         params.verticalBias = if (selectionNearBottom) 0f else 1f
         card.layoutParams = params
         card.visibility = View.VISIBLE
-        card.post { updateSaveUiPosition() }
+        refreshCardRendering()
     }
 
     private fun dismissCard() {
@@ -136,6 +136,7 @@ class InlineAnnotationActionController(
         }
 
         binding.pdfView.clearTextSelection()
+        refreshCardRendering()
         markDirtyAndAutosave()
     }
 
@@ -193,6 +194,19 @@ class InlineAnnotationActionController(
 
     private fun selectedText(): String {
         return activeHighlightAnnotation?.contents ?: binding.pdfView.getSelectedText()
+    }
+
+    private fun refreshCardRendering() {
+        val card = binding.textSelectionActionCard
+        card.requestLayout()
+        card.invalidate()
+        binding.root.invalidate()
+        card.post {
+            card.requestLayout()
+            card.invalidate()
+            binding.root.invalidate()
+            updateSaveUiPosition()
+        }
     }
 
     private companion object {

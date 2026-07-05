@@ -122,9 +122,11 @@ public class PdfiumCore {
                                                            String contents);
 
     private native PdfDocument.HighlightAnnotation nativeGetHighlightAnnotationAt(long pagePtr,
-                                                                                  float x,
-                                                                                  float y,
-                                                                                  float tolerance);
+                                                                                   float x,
+                                                                                   float y,
+                                                                                   float tolerance);
+
+    private native PdfDocument.HighlightAnnotation[] nativeGetHighlightAnnotations(long pagePtr);
 
     private native boolean nativeSetHighlightAnnotationColor(long pagePtr, int annotationIndex,
                                                              String groupKey, int r, int g, int b);
@@ -661,13 +663,32 @@ public class PdfiumCore {
     }
 
     public PdfDocument.HighlightAnnotation findHighlightAnnotationAt(PdfDocument doc, int pageIndex,
-                                                                     float x, float y, float tolerance) {
+                                                                      float x, float y, float tolerance) {
         synchronized (lock) {
             Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
             if (nativePagePtr == null) {
                 return null;
             }
             return nativeGetHighlightAnnotationAt(nativePagePtr, x, y, tolerance);
+        }
+    }
+
+    public List<PdfDocument.HighlightAnnotation> getHighlightAnnotations(PdfDocument doc, int pageIndex) {
+        synchronized (lock) {
+            Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (nativePagePtr == null) {
+                return new ArrayList<>();
+            }
+            PdfDocument.HighlightAnnotation[] annotations = nativeGetHighlightAnnotations(nativePagePtr);
+            List<PdfDocument.HighlightAnnotation> result = new ArrayList<>();
+            if (annotations != null) {
+                for (PdfDocument.HighlightAnnotation annotation : annotations) {
+                    if (annotation != null) {
+                        result.add(annotation);
+                    }
+                }
+            }
+            return result;
         }
     }
 

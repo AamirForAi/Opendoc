@@ -108,7 +108,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.home.HomeActivity
 import com.gitlab.mudlej.MjPdfReader.ui.link.LinksActivity
 import com.gitlab.mudlej.MjPdfReader.ui.search.SearchActivity
 import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
-import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
+import com.gitlab.mudlej.MjPdfReader.ui.text_reader.TextReaderActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
 import com.gitlab.mudlej.MjPdfReader.util.FileUtil.fileFromUri
 import com.google.android.material.color.MaterialColors
@@ -1827,11 +1827,21 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        Intent(this, TextModeActivity::class.java).also {
+        val currentPageIndex = currentPdfViewPageIndex()
+        pdf.pageNumber = currentPageIndex
+        Intent(this, TextReaderActivity::class.java).also {
             it.putExtra(PDF.filePathKey, pdf.uri.toString())
             it.putExtra(PDF.passwordKey, pdf.password)
+            it.putExtra(PDF.pageNumberKey, currentPageIndex)
+            pdf.fileHash?.let { fileHash -> it.putExtra(PDF.fileHashKey, fileHash) }
             startActivityForResult(it, PDF.startTextActivity)
         }
+    }
+
+    private fun currentPdfViewPageIndex(): Int {
+        val currentPage = binding.pdfView.currentPage.coerceAtLeast(0)
+        val pageCount = binding.pdfView.pageCount
+        return if (pageCount > 0) currentPage.coerceAtMost(pageCount - 1) else currentPage
     }
 
     private fun showReaderActions() {
@@ -2130,6 +2140,16 @@ class MainActivity : AppCompatActivity() {
                     val pageIndex = intent?.getIntExtra(PDF.chosenBookmarkKey, pdf.pageNumber) ?: return
                     binding.pdfView.jumpTo(pageIndex)
                     showBookmarkNavigationSnackbar()
+                }
+            }
+            PDF.startTextActivity -> {
+                if (resultCode == RESULT_OK) {
+                    val pageIndex = intent?.getIntExtra(PDF.pageNumberKey, pdf.pageNumber) ?: return
+                    val pageCount = binding.pdfView.pageCount
+                    val boundedPageIndex = if (pageCount > 0) pageIndex.coerceIn(0, pageCount - 1) else pageIndex.coerceAtLeast(0)
+                    pdf.pageNumber = boundedPageIndex
+                    updateAppTitle()
+                    binding.pdfView.jumpTo(boundedPageIndex)
                 }
             }
             PDF.startLinksActivity -> {

@@ -8,6 +8,8 @@ interface PdfExtractor {
 
     fun getPageText(pageNumber: Int): String
 
+    fun getPageTextOrThrow(pageNumber: Int): String = getPageText(pageNumber)
+
     fun getPageCount(): Int
 
     fun getPageLinks(pageNumber: Int): List<PdfDocument.Link>

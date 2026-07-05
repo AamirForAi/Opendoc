@@ -114,12 +114,18 @@ public class PdfDocument {
         private String groupKey;
         private RectF bounds;
         private String contents;
+        private int color;
 
         public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String contents) {
+            this(annotationIndex, groupKey, bounds, contents, 0xFFFFFF00);
+        }
+
+        public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String contents, int color) {
             this.annotationIndex = annotationIndex;
             this.groupKey = groupKey == null ? "" : groupKey;
             this.bounds = bounds;
             this.contents = contents == null ? "" : contents;
+            this.color = color;
         }
 
         public int getAnnotationIndex() {
@@ -136,6 +142,10 @@ public class PdfDocument {
 
         public String getContents() {
             return contents;
+        }
+
+        public int getColor() {
+            return color;
         }
     }
 

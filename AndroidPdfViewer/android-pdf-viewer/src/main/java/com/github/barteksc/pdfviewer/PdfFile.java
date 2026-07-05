@@ -707,7 +707,7 @@ class PdfFile {
     }
 
     public PdfDocument.HighlightAnnotation findHighlightAnnotationAt(int pageIndex, float pdfX,
-                                                                     float pdfY, float tolerance) {
+                                                                      float pdfY, float tolerance) {
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return null;
@@ -718,6 +718,19 @@ class PdfFile {
             return null;
         }
         return pdfiumCore.findHighlightAnnotationAt(pdfDocument, docPage, pdfX, pdfY, tolerance);
+    }
+
+    public List<PdfDocument.HighlightAnnotation> getHighlightAnnotations(int pageIndex) {
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return new ArrayList<>();
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return new ArrayList<>();
+        }
+        return pdfiumCore.getHighlightAnnotations(pdfDocument, docPage);
     }
 
     public boolean setHighlightAnnotationColor(int pageIndex, int annotationIndex,

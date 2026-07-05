@@ -11,29 +11,51 @@ class PdfExtractorImpl(
 ) : PdfExtractor {
 
     override fun getPageText(pageNumber: Int): String {
-        val index = getIndex(pageNumber) ?: return ""
-        pdfiumCore.openPage(pdfDocument, index)
-
         return try {
-            pdfiumCore.getPageText(pdfDocument, index)
+            getPageTextOrThrow(pageNumber)
         }
         catch (throwable: Throwable) {
             throwable.printStackTrace()
-            "";
+            ""
+        }
+    }
+
+    override fun getPageTextOrThrow(pageNumber: Int): String {
+        val index = getIndex(pageNumber) ?: return ""
+        var opened = false
+
+        pdfiumCore.openPage(pdfDocument, index)
+        opened = true
+        return try {
+            pdfiumCore.getPageText(pdfDocument, index)
+        }
+        finally {
+            if (opened) {
+                pdfiumCore.closePage(pdfDocument, index)
+            }
         }
     }
 
     override fun getPageCount() = pdfiumCore.getPageCount(pdfDocument)
 
     override fun getPageLinks(pageNumber: Int): List<PdfDocument.Link> {
+        var opened = false
         try {
             pdfiumCore.openPage(pdfDocument, pageNumber)
+            opened = true
         }
         catch (throwable: Throwable) {
             throwable.printStackTrace()
             return listOf()
         }
-        return pdfiumCore.getPageLinks(pdfDocument, pageNumber).filter { it.uri != null }
+        return try {
+            pdfiumCore.getPageLinks(pdfDocument, pageNumber).filter { it.uri != null }
+        }
+        finally {
+            if (opened) {
+                pdfiumCore.closePage(pdfDocument, pageNumber)
+            }
+        }
     }
 
     override fun getAllBookmarks(): List<Bookmark> {

@@ -55,6 +55,13 @@
         <item name="android:windowLightStatusBar" tools:ignore="NewApi">true</item>
     </style>
 
+    <style name="TextReaderTheme" parent="@style/MJ_PDF_THEME">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
     <style name="ShapeAppearanceOverlay.App.roundedImage" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">5%</item>
@@ -138,5 +145,4 @@
         <item name="strokeColor">@android:color/transparent</item>
         <item name="android:backgroundTint">@android:color/transparent</item>
     </style>
-
 </resources>

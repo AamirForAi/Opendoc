@@ -78,8 +78,10 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * It supports animations, zoom, cache, and swipe.
@@ -278,6 +280,8 @@ public class PDFView extends RelativeLayout {
 
     private Paint selectedHighlightStrokePaint;
 
+    private Paint highlightAnnotationOverlayPaint;
+
     private HighlightAnnotation selectedHighlightAnnotation;
 
     /**
@@ -414,6 +418,8 @@ public class PDFView extends RelativeLayout {
         selectedHighlightStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         selectedHighlightStrokePaint.setStyle(Style.STROKE);
         selectedHighlightStrokePaint.setStrokeWidth(2f * getResources().getDisplayMetrics().density);
+        highlightAnnotationOverlayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        highlightAnnotationOverlayPaint.setStyle(Style.FILL);
         setSelectedHighlightColor(0xFF3F51B5);
 
         pdfiumCore = new PdfiumCore(context);
@@ -840,6 +846,7 @@ public class PDFView extends RelativeLayout {
         float currentXOffset = this.currentXOffset;
         float currentYOffset = this.currentYOffset;
         canvas.translate(currentXOffset, currentYOffset);
+        Set<Integer> visiblePages = new LinkedHashSet<>();
 
         // Draws thumbnails
         for (PagePart part : cacheManager.getThumbnails()) {
@@ -849,6 +856,7 @@ public class PDFView extends RelativeLayout {
 
         // Draws parts
         for (PagePart part : cacheManager.getPageParts()) {
+            visiblePages.add(part.getPage());
             drawPart(canvas, part);
             if (callbacks.getOnDrawAll() != null
                 && !onDrawPagesNums.contains(part.getPage())) {
@@ -862,6 +870,9 @@ public class PDFView extends RelativeLayout {
         onDrawPagesNums.clear();
 
         drawWithListener(canvas, currentPage, callbacks.getOnDraw());
+        visiblePages.add(currentPage);
+
+        drawHighlightAnnotationOverlays(canvas, visiblePages);
 
         if (textSelectionManager != null) {
             textSelectionManager.draw(canvas);
@@ -877,6 +888,43 @@ public class PDFView extends RelativeLayout {
         }
         canvas.drawRect(selectedHighlightAnnotation.viewBounds, selectedHighlightFillPaint);
         canvas.drawRect(selectedHighlightAnnotation.viewBounds, selectedHighlightStrokePaint);
+    }
+
+    private void drawHighlightAnnotationOverlays(Canvas canvas, Set<Integer> pages) {
+        if (!nightMode || !annotationRendering || pdfFile == null || pages == null || pages.isEmpty()) {
+            return;
+        }
+        for (Integer page : pages) {
+            if (page == null || page < 0 || page >= pdfFile.getPagesCount()) {
+                continue;
+            }
+            List<PdfDocument.HighlightAnnotation> annotations;
+            try {
+                annotations = pdfFile.getHighlightAnnotations(page);
+            } catch (Throwable throwable) {
+                Log.e(TAG, "drawHighlightAnnotationOverlays: failed to read highlights", throwable);
+                return;
+            }
+            for (PdfDocument.HighlightAnnotation annotation : annotations) {
+                RectF bounds = annotation.getBounds();
+                if (bounds == null) {
+                    continue;
+                }
+                RectF docRect = pdfFile.pdfRectToDocument(
+                        page,
+                        zoom,
+                        bounds.left,
+                        bounds.bottom,
+                        bounds.right,
+                        bounds.top
+                );
+                if (docRect == null) {
+                    continue;
+                }
+                highlightAnnotationOverlayPaint.setColor((0x66 << 24) | (annotation.getColor() & 0x00FFFFFF));
+                canvas.drawRect(docRect, highlightAnnotationOverlayPaint);
+            }
+        }
     }
 
     private void drawWithListener(Canvas canvas, int page, OnDrawListener listener) {
@@ -1809,7 +1857,7 @@ public class PDFView extends RelativeLayout {
     }
 
     public boolean isAnnotationRendering() {
-        return annotationRendering;
+        return annotationRendering && !nightMode;
     }
 
     public void enableRenderDuringScale(boolean renderDuringScale) {

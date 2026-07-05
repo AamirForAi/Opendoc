@@ -7,6 +7,7 @@ extern "C" {
     #include <errno.h>
     #include <string.h>
     #include <stdio.h>
+    #include <stdlib.h>
     #include <math.h>
     #include <time.h>
 }
@@ -80,6 +81,8 @@ static bool setAnnotWideString(JNIEnv* env, FPDF_ANNOTATION annot, const char* k
     return result;
 }
 
+static std::vector<FPDF_WCHAR> getAnnotWideString(FPDF_ANNOTATION annot, const char* key);
+
 static bool setAnnotAsciiString(FPDF_ANNOTATION annot, const char* key, const char* value) {
     std::vector<FPDF_WCHAR> wide;
     while (*value != '\0') {
@@ -88,6 +91,238 @@ static bool setAnnotAsciiString(FPDF_ANNOTATION annot, const char* key, const ch
     }
     wide.push_back(0);
     return FPDFAnnot_SetStringValue(annot, key, wide.data());
+}
+
+static std::string colorToHex(unsigned int red, unsigned int green, unsigned int blue) {
+    char buffer[7];
+    snprintf(buffer, sizeof(buffer), "%02X%02X%02X", red & 0xFF, green & 0xFF, blue & 0xFF);
+    return std::string(buffer);
+}
+
+static bool hexDigitValue(FPDF_WCHAR digit, unsigned int* value) {
+    if (digit >= '0' && digit <= '9') {
+        *value = digit - '0';
+        return true;
+    }
+    if (digit >= 'A' && digit <= 'F') {
+        *value = digit - 'A' + 10;
+        return true;
+    }
+    if (digit >= 'a' && digit <= 'f') {
+        *value = digit - 'a' + 10;
+        return true;
+    }
+    return false;
+}
+
+static bool parseHexColor(const std::vector<FPDF_WCHAR>& value,
+                          unsigned int* red,
+                          unsigned int* green,
+                          unsigned int* blue) {
+    if (value.size() != 6) {
+        return false;
+    }
+
+    unsigned int components[3];
+    for (int i = 0; i < 3; i++) {
+        unsigned int high;
+        unsigned int low;
+        if (!hexDigitValue(value[i * 2], &high) || !hexDigitValue(value[i * 2 + 1], &low)) {
+            return false;
+        }
+        components[i] = (high << 4) | low;
+    }
+    *red = components[0];
+    *green = components[1];
+    *blue = components[2];
+    return true;
+}
+
+static bool getAnnotStoredColor(FPDF_ANNOTATION annot,
+                                unsigned int* red,
+                                unsigned int* green,
+                                unsigned int* blue) {
+    return parseHexColor(getAnnotWideString(annot, "MJColor"), red, green, blue);
+}
+
+static bool isPdfTokenDelimiter(char value) {
+    return value == ' ' || value == '\n' || value == '\r' || value == '\t'
+            || value == '[' || value == ']' || value == '(' || value == ')'
+            || value == '<' || value == '>' || value == '{' || value == '}';
+}
+
+static bool parseDoubleToken(const std::string& token, double* value) {
+    if (token.empty()) {
+        return false;
+    }
+    char* end = NULL;
+    double parsed = strtod(token.c_str(), &end);
+    if (end == token.c_str() || *end != '\0') {
+        return false;
+    }
+    *value = parsed;
+    return true;
+}
+
+static unsigned int colorComponentToByte(double component) {
+    double scaled = component <= 1.0 ? component * 255.0 : component;
+    if (scaled < 0.0) {
+        scaled = 0.0;
+    }
+    if (scaled > 255.0) {
+        scaled = 255.0;
+    }
+    return static_cast<unsigned int>(round(scaled));
+}
+
+static bool setColorFromRecentNumbers(const std::vector<double>& recentNumbers,
+                                      unsigned int* red,
+                                      unsigned int* green,
+                                      unsigned int* blue,
+                                      unsigned int* alpha) {
+    if (recentNumbers.size() < 3) {
+        return false;
+    }
+    size_t start = recentNumbers.size() - 3;
+    *red = colorComponentToByte(recentNumbers[start]);
+    *green = colorComponentToByte(recentNumbers[start + 1]);
+    *blue = colorComponentToByte(recentNumbers[start + 2]);
+    *alpha = 255;
+    return true;
+}
+
+static bool updateColorFromAppearanceToken(const std::string& token,
+                                           const std::vector<double>& recentNumbers,
+                                           unsigned int* red,
+                                           unsigned int* green,
+                                           unsigned int* blue,
+                                           unsigned int* alpha) {
+    if (token == "rg" || token == "RG" || token == "sc" || token == "SC"
+            || token == "scn" || token == "SCN") {
+        return setColorFromRecentNumbers(recentNumbers, red, green, blue, alpha);
+    }
+    if ((token == "g" || token == "G") && !recentNumbers.empty()) {
+        unsigned int gray = colorComponentToByte(recentNumbers.back());
+        *red = gray;
+        *green = gray;
+        *blue = gray;
+        *alpha = 255;
+        return true;
+    }
+    if ((token == "k" || token == "K") && recentNumbers.size() >= 4) {
+        size_t start = recentNumbers.size() - 4;
+        double cyan = recentNumbers[start];
+        double magenta = recentNumbers[start + 1];
+        double yellow = recentNumbers[start + 2];
+        double black = recentNumbers[start + 3];
+        *red = colorComponentToByte(1.0 - fmin(1.0, cyan + black));
+        *green = colorComponentToByte(1.0 - fmin(1.0, magenta + black));
+        *blue = colorComponentToByte(1.0 - fmin(1.0, yellow + black));
+        *alpha = 255;
+        return true;
+    }
+    return false;
+}
+
+static bool getAnnotAppearanceStreamColor(FPDF_ANNOTATION annot,
+                                          unsigned int* red,
+                                          unsigned int* green,
+                                          unsigned int* blue,
+                                          unsigned int* alpha) {
+    unsigned long bytes = FPDFAnnot_GetAP(annot, FPDF_ANNOT_APPEARANCEMODE_NORMAL, NULL, 0);
+    if (bytes <= sizeof(FPDF_WCHAR)) {
+        return false;
+    }
+
+    unsigned long bufferBytes = bytes + sizeof(FPDF_WCHAR);
+    std::vector<FPDF_WCHAR> wide(bufferBytes / sizeof(FPDF_WCHAR));
+    unsigned long copied = FPDFAnnot_GetAP(annot, FPDF_ANNOT_APPEARANCEMODE_NORMAL,
+                                           wide.data(), bufferBytes);
+    if (copied == 0 || copied > bufferBytes) {
+        return false;
+    }
+
+    std::vector<double> recentNumbers;
+    std::string token;
+    bool foundColor = false;
+    size_t length = copied / sizeof(FPDF_WCHAR);
+    for (size_t i = 0; i <= length; i++) {
+        char value = '\0';
+        if (i < length && wide[i] != 0 && wide[i] <= 0x7F) {
+            value = static_cast<char>(wide[i]);
+        }
+        if (i == length || value == '\0' || isPdfTokenDelimiter(value)) {
+            if (!token.empty()) {
+                double number;
+                if (parseDoubleToken(token, &number)) {
+                    recentNumbers.push_back(number);
+                    if (recentNumbers.size() > 8) {
+                        recentNumbers.erase(recentNumbers.begin());
+                    }
+                } else if (updateColorFromAppearanceToken(token, recentNumbers,
+                                                          red, green, blue, alpha)) {
+                    foundColor = true;
+                    recentNumbers.clear();
+                } else {
+                    recentNumbers.clear();
+                }
+                token.clear();
+            }
+        } else {
+            token.push_back(value);
+        }
+    }
+    return foundColor;
+}
+
+static bool getAnnotAppearanceColor(FPDF_ANNOTATION annot,
+                                    unsigned int* red,
+                                    unsigned int* green,
+                                    unsigned int* blue,
+                                    unsigned int* alpha) {
+    int objectCount = FPDFAnnot_GetObjectCount(annot);
+    for (int i = 0; i < objectCount; i++) {
+        FPDF_PAGEOBJECT object = FPDFAnnot_GetObject(annot, i);
+        if (object == NULL) {
+            continue;
+        }
+        unsigned int objectRed;
+        unsigned int objectGreen;
+        unsigned int objectBlue;
+        unsigned int objectAlpha;
+        if (FPDFPageObj_GetFillColor(object, &objectRed, &objectGreen, &objectBlue, &objectAlpha)
+                && objectAlpha > 0) {
+            *red = objectRed;
+            *green = objectGreen;
+            *blue = objectBlue;
+            *alpha = objectAlpha;
+            return true;
+        }
+        if (FPDFPageObj_GetStrokeColor(object, &objectRed, &objectGreen, &objectBlue, &objectAlpha)
+                && objectAlpha > 0) {
+            *red = objectRed;
+            *green = objectGreen;
+            *blue = objectBlue;
+            *alpha = objectAlpha;
+            return true;
+        }
+    }
+    return getAnnotAppearanceStreamColor(annot, red, green, blue, alpha);
+}
+
+static bool getHighlightAnnotationColor(FPDF_ANNOTATION annot,
+                                        unsigned int* red,
+                                        unsigned int* green,
+                                        unsigned int* blue,
+                                        unsigned int* alpha) {
+    if (getAnnotStoredColor(annot, red, green, blue)) {
+        *alpha = 255;
+        return true;
+    }
+    if (getAnnotAppearanceColor(annot, red, green, blue, alpha)) {
+        return true;
+    }
+    return FPDFAnnot_GetColor(annot, FPDFANNOT_COLORTYPE_Color, red, green, blue, alpha);
 }
 
 static std::string makeAnnotName() {
@@ -1011,6 +1246,7 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
         quadpoints.x4 = rect.right;
         quadpoints.y4 = rect.bottom;
         std::string name = makeAnnotName();
+        std::string colorValue = colorToHex(red, green, blue);
         bool annotSuccess = FPDFAnnot_SetRect(annot, &rect)
                 && FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, red, green, blue, 255)
                 && FPDFAnnot_AppendAttachmentPoints(annot, &quadpoints)
@@ -1018,7 +1254,8 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
                 && setAnnotWideString(env, annot, "Contents", contents)
                 && setAnnotAsciiString(annot, "T", "MJ PDF")
                 && setAnnotAsciiString(annot, "NM", name.c_str())
-                && setAnnotAsciiString(annot, "MJGroup", groupName.c_str());
+                && setAnnotAsciiString(annot, "MJGroup", groupName.c_str())
+                && setAnnotAsciiString(annot, "MJColor", colorValue.c_str());
         int annotIndex = FPDFPage_GetAnnotIndex(page, annot);
         FPDFPage_CloseAnnot(annot);
         if (!annotSuccess) {
@@ -1164,6 +1401,97 @@ JNI_FUNC(jobject, PdfiumCore, nativeGetHighlightAnnotationAt)(JNI_ARGS,
     return hitObject;
 }
 
+JNI_FUNC(jobjectArray, PdfiumCore, nativeGetHighlightAnnotations)(JNI_ARGS,
+    jlong pagePtr
+) {
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    jclass hitClass = env->FindClass("com/shockwave/pdfium/PdfDocument$HighlightAnnotation");
+    if (hitClass == NULL) {
+        return NULL;
+    }
+    if (page == NULL) {
+        return env->NewObjectArray(0, hitClass, NULL);
+    }
+
+    jclass rectClass = env->FindClass("android/graphics/RectF");
+    if (rectClass == NULL) {
+        env->DeleteLocalRef(hitClass);
+        return NULL;
+    }
+    jmethodID rectConstructor = env->GetMethodID(rectClass, "<init>", "(FFFF)V");
+    jmethodID hitConstructor = env->GetMethodID(hitClass, "<init>",
+            "(ILjava/lang/String;Landroid/graphics/RectF;Ljava/lang/String;I)V");
+    if (rectConstructor == NULL || hitConstructor == NULL) {
+        env->DeleteLocalRef(rectClass);
+        env->DeleteLocalRef(hitClass);
+        return NULL;
+    }
+
+    std::vector<jobject> annotations;
+    int annotCount = FPDFPage_GetAnnotCount(page);
+    for (int i = 0; i < annotCount; i++) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (annot == NULL) {
+            continue;
+        }
+        if (FPDFAnnot_GetSubtype(annot) != FPDF_ANNOT_HIGHLIGHT) {
+            FPDFPage_CloseAnnot(annot);
+            continue;
+        }
+
+        FS_RECTF rect;
+        if (!FPDFAnnot_GetRect(annot, &rect)) {
+            FPDFPage_CloseAnnot(annot);
+            continue;
+        }
+        FS_RECTF bounds = normalizedRect(rect);
+        jobject rectObject = env->NewObject(rectClass, rectConstructor,
+                static_cast<jfloat>(bounds.left),
+                static_cast<jfloat>(bounds.top),
+                static_cast<jfloat>(bounds.right),
+                static_cast<jfloat>(bounds.bottom));
+        if (rectObject == NULL) {
+            FPDFPage_CloseAnnot(annot);
+            continue;
+        }
+
+        unsigned int red = 255;
+        unsigned int green = 255;
+        unsigned int blue = 0;
+        unsigned int alpha = 255;
+        getHighlightAnnotationColor(annot, &red, &green, &blue, &alpha);
+        int color = 0xFF000000
+                | ((red & 0xFF) << 16)
+                | ((green & 0xFF) << 8)
+                | (blue & 0xFF);
+        jstring groupString = wideToJString(env, getAnnotWideString(annot, "MJGroup"));
+        jstring contentsString = wideToJString(env, getAnnotWideString(annot, "Contents"));
+        jobject hitObject = env->NewObject(hitClass, hitConstructor,
+                static_cast<jint>(i), groupString, rectObject, contentsString, static_cast<jint>(color));
+        if (hitObject != NULL) {
+            annotations.push_back(env->NewGlobalRef(hitObject));
+            env->DeleteLocalRef(hitObject);
+        }
+        if (groupString != NULL) {
+            env->DeleteLocalRef(groupString);
+        }
+        if (contentsString != NULL) {
+            env->DeleteLocalRef(contentsString);
+        }
+        env->DeleteLocalRef(rectObject);
+        FPDFPage_CloseAnnot(annot);
+    }
+
+    jobjectArray result = env->NewObjectArray(annotations.size(), hitClass, NULL);
+    for (jsize i = 0; i < static_cast<jsize>(annotations.size()); i++) {
+        env->SetObjectArrayElement(result, i, annotations[i]);
+        env->DeleteGlobalRef(annotations[i]);
+    }
+    env->DeleteLocalRef(rectClass);
+    env->DeleteLocalRef(hitClass);
+    return result;
+}
+
 JNI_FUNC(jboolean, PdfiumCore, nativeSetHighlightAnnotationColor)(JNI_ARGS,
     jlong pagePtr,
     jint annotIndex,
@@ -1181,6 +1509,7 @@ JNI_FUNC(jboolean, PdfiumCore, nativeSetHighlightAnnotationColor)(JNI_ARGS,
     std::vector<FPDF_WCHAR> group = jstringToWide(env, groupKey);
     bool updatedAny = false;
     bool success = true;
+    std::string colorValue = colorToHex(red, green, blue);
 
     for (int i = 0; i < annotCount; i++) {
         if (group.empty() && i != annotIndex) {
@@ -1196,7 +1525,8 @@ JNI_FUNC(jboolean, PdfiumCore, nativeSetHighlightAnnotationColor)(JNI_ARGS,
         if (matches) {
             updatedAny = true;
             FPDFAnnot_SetAP(annot, FPDF_ANNOT_APPEARANCEMODE_NORMAL, NULL);
-            if (!FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, red, green, blue, 255)) {
+            if (!FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, red, green, blue, 255)
+                    || !setAnnotAsciiString(annot, "MJColor", colorValue.c_str())) {
                 success = false;
             }
             FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT);

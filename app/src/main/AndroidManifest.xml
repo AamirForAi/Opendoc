@@ -39,6 +39,10 @@
             android:name=".ui.text_mode.TextModeActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.text_reader.TextReaderActivity"
+            android:exported="false"
+            android:theme="@style/TextReaderTheme" />
+        <activity
             android:name=".ui.main.MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:documentLaunchMode="intoExisting"

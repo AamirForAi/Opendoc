@@ -5,7 +5,7 @@
 - [x] Remove old dependencies and libraries ([!24](https://gitlab.com/mudlej_android/mj_pdf_reader/-/merge_requests/24), [!25](https://gitlab.com/mudlej_android/mj_pdf_reader/-/merge_requests/25))
 - [x] Update SDK and dependencies ([!24](https://gitlab.com/mudlej_android/mj_pdf_reader/-/merge_requests/24), [!25](https://gitlab.com/mudlej_android/mj_pdf_reader/-/merge_requests/25))
 - [x] Add Italian, Dutch, French, Simplified Chinese, Persian, and Polish translations. ([!26](https://gitlab.com/mudlej_android/mj_pdf_reader/-/merge_requests/26))
-- [ ] Add option to change/crop PDF margins.
+- [x] Add option to change/crop PDF margins.
 - [x] Fix back button breaking when "volume key to turn page" is enabled.
 - [ ] Investigate PDF corruption/rendering issues after files stay open for several hours.
 - [x] Fix scroll-handle tap behavior.
@@ -18,15 +18,15 @@
 - [x] Show some metadata like time in fullscreen mode.
 - [x] Add fullscreen shortcuts for Table of Contents and Go To Page.
 - [x] Make fullscreen shortcuts/custom buttons configurable.
-- [ ] Make the second top-bar button configurable instead of reload-only.
+- [x] Make the second top-bar button configurable instead of reload-only.
 - [ ] Remember per-document zoom.
-- [ ] Add way to return to Table of Contents after navigation.
-- [ ] Make TOC remember expanded/collapsed state.
+- [x] Add way to return to Table of Contents after navigation.
+- [x] Make TOC remember expanded/collapsed state.
 - [ ] Remember per-document horizontal scroll lock.
-- [ ] Remember per-document auto-scroll speed.
-- [ ] Support RTL reading direction in horizontal mode.
-- [ ] Add search in TOC activity.
-- [ ] Improve text mode a little
+- [x] Remember per-document auto-scroll speed.
+- [x] Support RTL reading direction in horizontal mode.
+- [x] Add search in TOC activity.
+- [x] Improve text mode a little
 - [ ] Investigate missing form checkboxes when printing.
 
 ## Reading State And Persistence
@@ -44,7 +44,7 @@
 
 ## Bookmarks And Library
 - [ ] Add user bookmarks for saved page locations.
-- [ ] Add expand/collapse all in bookmarks activity.
+- [ ] Add expand/collapse all in ToC.
 - [ ] Add Home page.
 - [ ] Add user-controlled "mark as read" state, independent from progress.
 - [ ] Add recently opened files.
@@ -52,15 +52,15 @@
 - [ ] Add file info cards for library items.
 
 ## Text Mode, Search, And Reflow
-- [ ] Replace current Text Mode with a proper dedicated Text Mode page.
-- [ ] Add Reflow Mode.
-- [ ] Fix hard line/sentence breaks in reflow/text mode.
+- [x] Replace current Text Mode with a proper dedicated Text Mode page.
+- [x] Add Reflow Mode.
+- [ ] Fix hard line/sentence breaks in reflow/text mode?!
 - [ ] Investigate WebView-based Text Mode.
-- [ ] Add support for multiple fonts in Text Mode.
+- [x] Add support for multiple fonts in Text Mode.
 - [ ] Add skip-empty-pages option in Text Mode.
-- [ ] Add live inline text selection.
+- [x] Add live inline text selection.
 - [ ] Add next/previous search-result navigation from the main reader.
-- [ ] Improve expanding search results after filtering.
+- [x] Improve expanding search results after filtering.
 - [ ] Search for words ignoring accents/diacritics. (`èéÈÉ=e`, `òóÒÓ=o`, `çč=c`, `ž=z`)
 
 ## PDF Features
@@ -68,7 +68,7 @@
 - [ ] Add forms support.
 - [ ] Add fillable forms support.
 - [ ] Add handwritten/image signature support.
-- [ ] Add highlight functionality.
+- [x] Add highlight functionality.
 - [ ] Add custom PDF theming.
 
 ## External Input

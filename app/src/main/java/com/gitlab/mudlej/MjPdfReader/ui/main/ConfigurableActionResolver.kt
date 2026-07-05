@@ -133,7 +133,7 @@ class ConfigurableActionResolver(
                 run = handlers.extractText,
             )
             ConfigurableAction.TEXT_MODE -> ConfiguredAction(
-                R.string.text_mode,
+                R.string.text_reader,
                 R.drawable.ic_text,
                 visible = fileAvailable,
                 run = handlers.textMode,
