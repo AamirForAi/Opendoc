@@ -251,23 +251,12 @@ final class TextSelectionManager {
             return;
         }
 
-        float x = handle == Handle.START ? docRect.left : docRect.right;
+        float x = handleAnchorX(handle, docRect);
         float stemTop = docRect.bottom;
         float stemBottom = stemTop + handleStemLength;
         float circleY = stemBottom + handleRadius;
         canvas.drawLine(x, stemTop, x, stemBottom, handlePaint);
         canvas.drawCircle(x, circleY, handleRadius, handlePaint);
-    }
-
-    private void setActivePage(int page) {
-        if (activePage == page) {
-            return;
-        }
-        PdfFile pdfFile = pdfView.pdfFile;
-        if (pdfFile != null && activePage >= 0) {
-            pdfFile.closeTextPage(activePage);
-        }
-        activePage = page;
     }
 
     private int caretAt(int page, float pdfX, float pdfY, float tolerance) {
@@ -351,7 +340,6 @@ final class TextSelectionManager {
             return;
         }
         pdfView.callbacks.callOnTextSelectionChanged(
-                getSelectedText(),
                 getSelectionViewBounds(),
                 selection.pageIndex
         );
@@ -388,9 +376,33 @@ final class TextSelectionManager {
         if (docRect == null) {
             return null;
         }
-        float x = handle == Handle.START ? docRect.left : docRect.right;
+        float x = handleAnchorX(handle, docRect);
         float y = docRect.bottom + handleStemLength + handleRadius;
         return new PointF(x + pdfView.getCurrentXOffset(), y + pdfView.getCurrentYOffset());
+    }
+
+    private float handleAnchorX(Handle handle, RectF docRect) {
+        boolean rtl = isHandleEndpointRtl(handle);
+        if (handle == Handle.START) {
+            return rtl ? docRect.right : docRect.left;
+        }
+        return rtl ? docRect.left : docRect.right;
+    }
+
+    private boolean isHandleEndpointRtl(Handle handle) {
+        PdfFile pdfFile = pdfView.pdfFile;
+        if (pdfFile == null || selection == null) {
+            return false;
+        }
+
+        int charCount = pdfFile.pageCharCount(selection.pageIndex);
+        if (charCount <= 0) {
+            return false;
+        }
+
+        int index = handle == Handle.START ? selection.startChar() : selection.endChar() - 1;
+        index = clamp(index, 0, charCount - 1);
+        return isRtl(pdfFile.charUnicode(selection.pageIndex, index));
     }
 
     private RectF handleRunDocumentRect(Handle handle, float zoom) {

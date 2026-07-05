@@ -46,6 +46,7 @@ package com.gitlab.mudlej.MjPdfReader.ui.main
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.ActivityManager
+import android.app.SearchManager
 import android.content.*
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
@@ -67,6 +68,7 @@ import androidx.activity.result.contract.ActivityResultContracts.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.*
@@ -108,7 +110,6 @@ import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
 import com.gitlab.mudlej.MjPdfReader.util.FileUtil.fileFromUri
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -152,8 +153,6 @@ class MainActivity : AppCompatActivity() {
     private var activeSearchResultPageNumber: Int? = null
     private var activeBookmarksSnackbar: Snackbar? = null
     private var bookmarkState = BookmarkState()
-    private var textSelectionCopyPopup: PopupWindow? = null
-    private var inlineSelectedText = ""
 
     private lateinit var actionBarMenu: Menu
 
@@ -220,6 +219,7 @@ class MainActivity : AppCompatActivity() {
         )
         permissionManager = PermissionManager(this)
         brightness = Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 2
+        configureInlineTextSelectionActions()
 
         Constants.THUMBNAIL_RATIO = pref.getThumbnailRation()
         Constants.PART_SIZE = pref.getPartSize()
@@ -478,12 +478,12 @@ class MainActivity : AppCompatActivity() {
             .enableTextSelection(pref.getInlineTextSelection())
             .textSelectionColor(MaterialColors.getColor(binding.root, R.attr.colorPrimary))
             .onTextSelectionChange(object : OnTextSelectionChangeListener {
-                override fun onTextSelectionChanged(selectedText: String, viewBounds: RectF?, pageIndex: Int) {
-                    showInlineTextSelectionPopup(selectedText, viewBounds)
+                override fun onTextSelectionChanged(viewBounds: RectF?, pageIndex: Int) {
+                    showInlineTextSelectionActions(viewBounds)
                 }
 
                 override fun onTextSelectionCleared() {
-                    dismissInlineTextSelectionPopup()
+                    hideInlineTextSelectionActions()
                 }
             })
             .cropMargins(isCropMarginsEnabled())
@@ -704,89 +704,59 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showInlineTextSelectionPopup(selectedText: String, viewBounds: RectF?) {
-        inlineSelectedText = selectedText
-        if (selectedText.isBlank()) {
-            dismissInlineTextSelectionPopup()
-            return
-        }
-
-        val popup = textSelectionCopyPopup ?: createInlineTextSelectionPopup().also {
-            textSelectionCopyPopup = it
-        }
-        binding.root.post {
-            showOrMoveInlineTextSelectionPopup(popup, viewBounds)
-        }
-    }
-
-    private fun createInlineTextSelectionPopup(): PopupWindow {
-        val copyButton = MaterialButton(this).apply {
-            text = getString(R.string.copy)
-            minWidth = 0
-            minHeight = 0
-            setPadding(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8))
-            setOnClickListener {
-                copyInlineSelectedText()
+    private fun configureInlineTextSelectionActions() {
+        binding.textSelectionCopyButton.setOnClickListener {
+            if (copyInlineSelectedText()) {
                 binding.pdfView.clearTextSelection()
             }
         }
-        return PopupWindow(copyButton, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, false).apply {
-            isTouchable = true
-            isOutsideTouchable = false
-            elevation = dpToPx(6).toFloat()
+        binding.textSelectionSearchWebButton.setOnClickListener {
+            if (searchWebForInlineSelectedText()) {
+                binding.pdfView.clearTextSelection()
+            }
         }
     }
 
-    private fun showOrMoveInlineTextSelectionPopup(popup: PopupWindow, viewBounds: RectF?) {
-        val content = popup.contentView
-        content.measure(
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-        )
-
-        val rootLocation = IntArray(2)
-        val pdfLocation = IntArray(2)
-        binding.root.getLocationOnScreen(rootLocation)
-        binding.pdfView.getLocationOnScreen(pdfLocation)
-
-        val pdfLeft = pdfLocation[0] - rootLocation[0]
-        val pdfTop = pdfLocation[1] - rootLocation[1]
-        val anchorCenterX = pdfLeft + (viewBounds?.centerX() ?: binding.pdfView.width / 2f)
-        val anchorTop = pdfTop + (viewBounds?.top ?: 0f)
-        val anchorBottom = pdfTop + (viewBounds?.bottom ?: anchorTop)
-        val margin = dpToPx(8)
-        val popupWidth = content.measuredWidth
-        val popupHeight = content.measuredHeight
-        val maxX = (binding.root.width - popupWidth - margin).coerceAtLeast(margin)
-        val x = (anchorCenterX - popupWidth / 2f).toInt().coerceIn(margin, maxX)
-        val yAbove = (anchorTop - popupHeight - margin).toInt()
-        val yBelow = (anchorBottom + margin).toInt()
-        val y = if (yAbove >= margin) yAbove else yBelow
-
-        if (popup.isShowing) {
-            popup.update(x, y, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        } else {
-            popup.showAtLocation(binding.root, Gravity.NO_GRAVITY, x, y)
-        }
+    private fun showInlineTextSelectionActions(viewBounds: RectF?) {
+        val card = binding.textSelectionActionCard
+        val params = card.layoutParams as ConstraintLayout.LayoutParams
+        val selectionNearBottom = viewBounds != null && viewBounds.centerY() > binding.pdfView.height * 0.65f
+        params.verticalBias = if (selectionNearBottom) 0f else 1f
+        card.layoutParams = params
+        card.visibility = View.VISIBLE
     }
 
-    private fun dismissInlineTextSelectionPopup() {
-        textSelectionCopyPopup?.dismiss()
-        textSelectionCopyPopup = null
-        inlineSelectedText = ""
+    private fun hideInlineTextSelectionActions() {
+        binding.textSelectionActionCard.visibility = View.GONE
     }
 
-    private fun copyInlineSelectedText() {
-        val text = inlineSelectedText
+    private fun copyInlineSelectedText(): Boolean {
+        val text = binding.pdfView.getSelectedText()
         if (text.isBlank()) {
-            return
+            return false
         }
         copyToClipboard(this, getString(R.string.selected_text), text)
         Snackbar.make(binding.root, getString(R.string.copied_to_clipboard), Snackbar.LENGTH_SHORT).show()
+        return true
     }
 
-    private fun dpToPx(value: Int): Int {
-        return (value * resources.displayMetrics.density).toInt()
+    private fun searchWebForInlineSelectedText(): Boolean {
+        val text = binding.pdfView.getSelectedText()
+        if (text.isBlank()) {
+            return false
+        }
+        val searchIntent = Intent(Intent.ACTION_WEB_SEARCH).putExtra(SearchManager.QUERY, text)
+        try {
+            startActivity(searchIntent)
+        } catch (e: ActivityNotFoundException) {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=${Uri.encode(text)}")))
+            } catch (browserError: ActivityNotFoundException) {
+                Snackbar.make(binding.root, getString(R.string.no_app_to_open_link), Snackbar.LENGTH_LONG).show()
+                return false
+            }
+        }
+        return true
     }
 
     private fun showFailedExtractTextSnackbar(pageNumber: Int) {
@@ -1235,7 +1205,7 @@ class MainActivity : AppCompatActivity() {
         if (::cropMarginsController.isInitialized) {
             cropMarginsController.cancel()
         }
-        dismissInlineTextSelectionPopup()
+        hideInlineTextSelectionActions()
         super.onDestroy()
     }
 

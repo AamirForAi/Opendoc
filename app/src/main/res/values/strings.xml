@@ -159,6 +159,7 @@
     <string name="no_bookmarks">This file doesn\'t contain bookmarks</string>
     <string name="additional_options">More</string>
     <string name="search">Search</string>
+    <string name="search_web">Search web</string>
     <string name="search_results">Search Results</string>
     <string name="copied_to_clipboard">Text copied to clipboard</string>
     <string name="copy">Copy</string>

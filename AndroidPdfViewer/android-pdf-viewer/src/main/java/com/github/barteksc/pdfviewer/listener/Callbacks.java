@@ -193,9 +193,9 @@ public class Callbacks {
         this.onTextSelectionChangeListener = onTextSelectionChangeListener;
     }
 
-    public void callOnTextSelectionChanged(String selectedText, RectF viewBounds, int pageIndex) {
+    public void callOnTextSelectionChanged(RectF viewBounds, int pageIndex) {
         if (onTextSelectionChangeListener != null) {
-            onTextSelectionChangeListener.onTextSelectionChanged(selectedText, viewBounds, pageIndex);
+            onTextSelectionChangeListener.onTextSelectionChanged(viewBounds, pageIndex);
         }
     }
 
