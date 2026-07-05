@@ -239,6 +239,8 @@ public class PDFView extends RelativeLayout {
     /* True if should scroll through pages vertically instead of horizontally */
     private boolean swipeVertical = true;
 
+    private boolean horizontalReadingDirectionRtl = false;
+
     private boolean enableSwipe = true;
 
     private boolean horizontalSwipeDisabled = false;
@@ -380,7 +382,7 @@ public class PDFView extends RelativeLayout {
         }
 
         page = pdfFile.determineValidPageNumberFrom(page);
-        float offset = page == 0 ? 0 : -pdfFile.getPageOffset(page, zoom);
+        float offset = -pdfFile.getPageOffset(page, zoom);
         if (swipeVertical) {
             if (withAnimation) {
                 animationManager.startYAnimation(currentYOffset, offset);
@@ -419,6 +421,7 @@ public class PDFView extends RelativeLayout {
 
         if (scrollHandle != null && !documentFitsView()) {
             scrollHandle.setPageNum(currentPage + 1);
+            scrollHandle.setScroll(getPositionOffset());
         }
 
         callbacks.callOnPageChange(currentPage, pdfFile.getPagesCount());
@@ -1452,6 +1455,14 @@ public class PDFView extends RelativeLayout {
         this.swipeVertical = swipeVertical;
     }
 
+    private void setHorizontalReadingDirectionRtl(boolean horizontalReadingDirectionRtl) {
+        this.horizontalReadingDirectionRtl = horizontalReadingDirectionRtl;
+    }
+
+    public boolean isHorizontalReadingDirectionRtl() {
+        return !swipeVertical && horizontalReadingDirectionRtl;
+    }
+
     public void enableAnnotationRendering(boolean annotationRendering) {
         this.annotationRendering = annotationRendering;
     }
@@ -1704,6 +1715,8 @@ public class PDFView extends RelativeLayout {
 
         private boolean swipeHorizontal = false;
 
+        private boolean horizontalReadingDirectionRtl = false;
+
         private boolean annotationRendering = false;
 
         private String password = null;
@@ -1855,6 +1868,11 @@ public class PDFView extends RelativeLayout {
             return this;
         }
 
+        public Configurator horizontalReadingDirectionRtl(boolean horizontalReadingDirectionRtl) {
+            this.horizontalReadingDirectionRtl = horizontalReadingDirectionRtl;
+            return this;
+        }
+
         public Configurator password(String password) {
             this.password = password;
             return this;
@@ -1951,6 +1969,7 @@ public class PDFView extends RelativeLayout {
             PDFView.this.enableDoubleTap(enableDoubleTap);
             PDFView.this.setDefaultPage(defaultPage);
             PDFView.this.setSwipeVertical(!swipeHorizontal);
+            PDFView.this.setHorizontalReadingDirectionRtl(horizontalReadingDirectionRtl);
             PDFView.this.enableAnnotationRendering(annotationRendering);
             PDFView.this.setScrollHandle(scrollHandle);
             PDFView.this.enableAntialiasing(antialiasing);

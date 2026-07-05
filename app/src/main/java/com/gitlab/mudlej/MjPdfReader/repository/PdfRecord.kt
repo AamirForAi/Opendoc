@@ -90,6 +90,12 @@ data class PdfRecord(
 
     @ColumnInfo(defaultValue = UNSET_AUTO_SCROLL_SPEED)
     val autoScrollSpeed: Int? = null,
+
+    @ColumnInfo(defaultValue = UNSET_READING_DIRECTION)
+    val readingDirectionOverride: String? = null,
+
+    @ColumnInfo(defaultValue = UNSET_READING_DIRECTION)
+    val detectedReadingDirection: String? = null,
 ) {
 
     companion object {
@@ -120,6 +126,8 @@ data class PdfRecord(
                 ReadingStatus.UNSET,
                 false,
                 autoScrollSpeed = pdf.autoScrollSpeed,
+                readingDirectionOverride = pdf.readingDirectionOverride?.id,
+                detectedReadingDirection = pdf.detectedReadingDirection?.id,
             )
         }
 
@@ -133,5 +141,6 @@ data class PdfRecord(
         const val UNSET_CROP_MARGINS = "NULL"
         const val UNSET_CROP_MARGINS_VERSION = "0"
         const val UNSET_AUTO_SCROLL_SPEED = "NULL"
+        const val UNSET_READING_DIRECTION = "NULL"
     }
 }

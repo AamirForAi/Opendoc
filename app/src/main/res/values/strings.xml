@@ -245,6 +245,12 @@
     <string name="auto_scroll">Auto Scroll</string>
     <string name="horizontal_lock">Horiz. Lock</string>
     <string name="horizontal_lock_action">Horizontal Lock</string>
+    <string name="reading_direction">Reading Direction</string>
+    <string name="reading_direction_message">Horizontal Scrolling must be enabled to use reading direction.</string>
+    <string name="reading_direction_auto_ltr">Auto (using Left to Right)</string>
+    <string name="reading_direction_auto_rtl">Auto (using Right to Left)</string>
+    <string name="reading_direction_ltr">Left to Right</string>
+    <string name="reading_direction_rtl">Right to Left</string>
     <string name="zoom_lock">Zoom Lock</string>
     <string name="screenshot">Screenshot</string>
     <string name="hide_labels">Hide Labels</string>

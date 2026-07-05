@@ -89,6 +89,7 @@ import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
 import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
 import com.gitlab.mudlej.MjPdfReader.enums.FileType
+import com.gitlab.mudlej.MjPdfReader.enums.ReadingDirection
 import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManager
 import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManagerImpl
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
@@ -134,6 +135,12 @@ class MainActivity : AppCompatActivity() {
     private data class RetainedPdfBytes(val uri: String?, val bytes: ByteArray?)
 
     private data class PendingAutoScrollSpeed(val fileHash: String, val speed: Int)
+
+    private data class ReadingDirectionLoadState(
+        val overrideDirection: ReadingDirection?,
+        val detectedDirection: ReadingDirection?,
+        val effectiveDirection: ReadingDirection,
+    )
 
     private companion object {
         const val AUTO_SCROLL_SPEED_SAVE_DELAY = 300L
@@ -195,7 +202,12 @@ class MainActivity : AppCompatActivity() {
         fullScreenOptionsManager = FullScreenOptionsManagerImpl(
             binding, pdf, pref.getHideDelay().toLong(), pref
         )
-        actionResolver = ConfigurableActionResolver(::hasFile, ::isCropMarginsEnabled, createActionHandlers())
+        actionResolver = ConfigurableActionResolver(
+            ::hasFile,
+            pref::getHorizontalScroll,
+            ::isCropMarginsEnabled,
+            createActionHandlers(),
+        )
         toolbarActionController = ToolbarActionController(
             actionResolver,
             pref::getPrimaryButtonAction,
@@ -294,6 +306,9 @@ class MainActivity : AppCompatActivity() {
         pdf.pageNumber = 0
         pdf.zoom = 1F
         pdf.autoScrollSpeed = null
+        pdf.readingDirectionOverride = null
+        pdf.detectedReadingDirection = null
+        pdf.effectiveReadingDirection = ReadingDirection.LEFT_TO_RIGHT
         cropMarginsEnabledForCurrentDocument = pref.getAlwaysHideMargins()
         resetSearchResultState()
         resetBookmarkState()
@@ -435,19 +450,68 @@ class MainActivity : AppCompatActivity() {
                 return@launch
             }
 
+            val readingDirectionState = resolveReadingDirection(hash, documentUri)
+            if (!isCurrentDocument(loadToken, documentUri)) {
+                return@launch
+            }
+
             val cachedCropMargins = cropMarginsController.findCached(hash)
             if (!isCurrentDocument(loadToken, documentUri)) {
                 return@launch
             }
             pdf.pageNumber = pageNumber
             pdf.autoScrollSpeed = pdf.autoScrollSpeed ?: autoScrollSpeed
+            pdf.readingDirectionOverride = readingDirectionState.overrideDirection
+            pdf.detectedReadingDirection = readingDirectionState.detectedDirection
+            pdf.effectiveReadingDirection = readingDirectionState.effectiveDirection
             withContext(Dispatchers.Main) {
                 if (isCurrentDocument(loadToken, documentUri)) {
                     autoScrollManager.setSpeed(pdf.autoScrollSpeed ?: pref.getScrollSpeed())
-                    initPdfViewAndLoad(viewConfigurator, pageNumber, savePassword, cachedCropMargins, hash, loadToken, documentUri)
+                    initPdfViewAndLoad(
+                        viewConfigurator,
+                        pageNumber,
+                        savePassword,
+                        cachedCropMargins,
+                        hash,
+                        loadToken,
+                        documentUri,
+                        readingDirectionState.effectiveDirection,
+                    )
                 }
             }
         }
+    }
+
+    private suspend fun resolveReadingDirection(fileHash: String?, documentUri: Uri?): ReadingDirectionLoadState {
+        val overrideDirection = fileHash
+            ?.let { databaseManager.findReadingDirectionOverride(it) }
+            ?.let { ReadingDirection.fromOverrideId(it) }
+        val storedDetectedDirection = fileHash
+            ?.let { databaseManager.findDetectedReadingDirection(it) }
+            ?.let { ReadingDirection.fromId(it) }
+        if (overrideDirection != null) {
+            return ReadingDirectionLoadState(
+                overrideDirection,
+                detectedDirection = storedDetectedDirection,
+                effectiveDirection = overrideDirection,
+            )
+        }
+
+        val detectedDirection = storedDetectedDirection ?: detectReadingDirectionIfNeeded(documentUri)
+
+        return ReadingDirectionLoadState(
+            overrideDirection,
+            detectedDirection,
+            ReadingDirection.effective(overrideDirection, detectedDirection),
+        )
+    }
+
+    private suspend fun detectReadingDirectionIfNeeded(documentUri: Uri?): ReadingDirection? {
+        if (!pref.getHorizontalScroll() || documentUri == null) {
+            return null
+        }
+        val result = ReadingDirectionDetector.detect(this, documentUri, pdf.password)
+        return result.direction.takeIf { result.cacheable }
     }
 
     private fun initPdfViewAndLoad(
@@ -458,6 +522,7 @@ class MainActivity : AppCompatActivity() {
         fileHash: String?,
         loadToken: Long,
         documentUri: Uri?,
+        readingDirection: ReadingDirection = pdf.effectiveReadingDirection,
         applyDocumentLoadDefaults: Boolean = true,
         zoomDisabled: Boolean = false,
         horizontalSwipeDisabled: Boolean = false,
@@ -488,6 +553,7 @@ class MainActivity : AppCompatActivity() {
             .pageFitPolicy(FitPolicy.WIDTH)
             .password(pdf.password)
             .swipeHorizontal(pref.getHorizontalScroll())
+            .horizontalReadingDirectionRtl(pref.getHorizontalScroll() && readingDirection.isRightToLeft)
             .disableHorizontalSwipe(horizontalSwipeDisabled)
             .zoomDisabled(zoomDisabled)
             .autoSpacing(pref.getHorizontalScroll())
@@ -543,6 +609,7 @@ class MainActivity : AppCompatActivity() {
             fileHash = pdf.fileHash,
             loadToken = documentLoadToken,
             documentUri = pdf.uri,
+            readingDirection = pdf.effectiveReadingDirection,
             applyDocumentLoadDefaults = false,
             zoomDisabled = zoomDisabled,
             horizontalSwipeDisabled = horizontalSwipeDisabled,
@@ -585,6 +652,7 @@ class MainActivity : AppCompatActivity() {
             exitFullscreen = ::exitFullscreen,
             rotate = ::rotateScreen,
             toggleHorizontalLock = { horizontalSwipeButtonListener(binding) },
+            readingDirection = ::showReadingDirectionDialog,
             toggleZoomLock = { zoomLockButtonListener(binding) },
             toggleCropMargins = ::toggleCropMargins,
             screenshot = ::takeScreenshot,
@@ -705,6 +773,10 @@ class MainActivity : AppCompatActivity() {
                 if (!isCurrentDocument(loadToken, documentUri)) {
                     return@launch
                 }
+                saveReadingDirectionState(fileHash)
+                if (!isCurrentDocument(loadToken, documentUri)) {
+                    return@launch
+                }
                 cropMarginsController.onRecordAvailable(fileHash)
             }
             else {
@@ -722,6 +794,13 @@ class MainActivity : AppCompatActivity() {
                 }
                 cropMarginsController.onRecordAvailable(fileHash)
             }
+        }
+    }
+
+    private suspend fun saveReadingDirectionState(fileHash: String) {
+        databaseManager.setReadingDirectionOverride(fileHash, pdf.readingDirectionOverride?.id)
+        pdf.detectedReadingDirection?.let {
+            databaseManager.setDetectedReadingDirection(fileHash, it.id)
         }
     }
 
@@ -1512,6 +1591,99 @@ class MainActivity : AppCompatActivity() {
         showGoToPageDialog(this, binding.root, pdf.pageNumber, pdf.length, ::goToPage)
     }
 
+    private fun showReadingDirectionDialog() {
+        if (!checkHasFile()) {
+            return
+        }
+
+        var selectedOverride = pdf.readingDirectionOverride
+        val dialogBuilder = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.reading_direction)
+            .setSingleChoiceItems(
+                readingDirectionDialogItems(),
+                readingDirectionDialogSelectedIndex(selectedOverride),
+            ) { _, which ->
+                selectedOverride = readingDirectionOverrideForDialogIndex(which)
+            }
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                applyReadingDirectionOverride(selectedOverride)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+        if (!pref.getHorizontalScroll()) {
+            dialogBuilder.setMessage(R.string.reading_direction_message)
+        }
+        dialogBuilder.show()
+    }
+
+    private fun readingDirectionDialogItems(): Array<String> {
+        val autoLabel = if (pdf.effectiveReadingDirection.isRightToLeft) {
+            R.string.reading_direction_auto_rtl
+        } else {
+            R.string.reading_direction_auto_ltr
+        }
+        return arrayOf(
+            getString(autoLabel),
+            getString(R.string.reading_direction_ltr),
+            getString(R.string.reading_direction_rtl),
+        )
+    }
+
+    private fun readingDirectionDialogSelectedIndex(direction: ReadingDirection?): Int {
+        return when (direction) {
+            null -> 0
+            ReadingDirection.LEFT_TO_RIGHT -> 1
+            ReadingDirection.RIGHT_TO_LEFT -> 2
+            ReadingDirection.UNKNOWN -> 0
+        }
+    }
+
+    private fun readingDirectionOverrideForDialogIndex(index: Int): ReadingDirection? {
+        return when (index) {
+            1 -> ReadingDirection.LEFT_TO_RIGHT
+            2 -> ReadingDirection.RIGHT_TO_LEFT
+            else -> null
+        }
+    }
+
+    private fun applyReadingDirectionOverride(direction: ReadingDirection?) {
+        val loadToken = documentLoadToken
+        val documentUri = pdf.uri
+        val oldEffectiveDirection = pdf.effectiveReadingDirection
+        lifecycleScope.launch {
+            val hash = pdf.fileHash ?: computeHash(this@MainActivity, pdf)
+            if (!isCurrentDocument(loadToken, documentUri)) {
+                return@launch
+            }
+            if (hash == null) {
+                showFailedToComputeHashError()
+                return@launch
+            }
+
+            pdf.fileHash = hash
+            databaseManager.setReadingDirectionOverride(hash, direction?.id)
+            if (!isCurrentDocument(loadToken, documentUri)) {
+                return@launch
+            }
+
+            val detectedDirection = if (direction == null && pdf.detectedReadingDirection == null) {
+                detectReadingDirectionIfNeeded(documentUri)
+            } else {
+                pdf.detectedReadingDirection
+            }
+            if (!isCurrentDocument(loadToken, documentUri)) {
+                return@launch
+            }
+            detectedDirection?.let { databaseManager.setDetectedReadingDirection(hash, it.id) }
+
+            pdf.readingDirectionOverride = direction
+            pdf.detectedReadingDirection = detectedDirection
+            pdf.effectiveReadingDirection = ReadingDirection.effective(direction, detectedDirection)
+            if (pref.getHorizontalScroll() && pdf.effectiveReadingDirection != oldEffectiveDirection) {
+                recreate()
+            }
+        }
+    }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (pref.getTurnPageByVolumeButtons()) {
             when (keyCode) {
@@ -1554,6 +1726,7 @@ class MainActivity : AppCompatActivity() {
             readerAction(ConfigurableAction.FULLSCREEN),
             readerAction(ConfigurableAction.SEARCH),
             readerAction(ConfigurableAction.GO_TO_PAGE),
+            readerAction(ConfigurableAction.READING_DIRECTION),
             readerAction(ConfigurableAction.CROP_MARGINS),
             readerAction(ConfigurableAction.EXTRACT_TEXT),
             readerAction(ConfigurableAction.SETTINGS),
@@ -1754,6 +1927,9 @@ class MainActivity : AppCompatActivity() {
         outState.putString(PDF.fileHashKey, pdf.fileHash)
         outState.putInt(PDF.pageNumberKey, pdf.pageNumber)
         outState.putString(PDF.passwordKey, pdf.password)
+        outState.putString(PDF.readingDirectionOverrideKey, pdf.readingDirectionOverride?.id)
+        outState.putString(PDF.detectedReadingDirectionKey, pdf.detectedReadingDirection?.id)
+        outState.putString(PDF.effectiveReadingDirectionKey, pdf.effectiveReadingDirection.id)
         outState.putBoolean(PDF.isPortraitKey, pdf.isPortrait)
         outState.putBoolean(PDF.isFullScreenToggledKey, pdf.isFullScreenToggled)
         pdf.autoScrollSpeed?.let { outState.putInt(PDF.autoScrollSpeedKey, it) }
@@ -1769,6 +1945,13 @@ class MainActivity : AppCompatActivity() {
         pdf.fileHash = savedState.getString(PDF.fileHashKey)
         pdf.pageNumber = savedState.getInt(PDF.pageNumberKey)
         pdf.password = savedState.getString(PDF.passwordKey)
+        pdf.readingDirectionOverride = ReadingDirection.fromOverrideId(
+            savedState.getString(PDF.readingDirectionOverrideKey),
+        )
+        pdf.detectedReadingDirection = ReadingDirection.fromId(savedState.getString(PDF.detectedReadingDirectionKey))
+        pdf.effectiveReadingDirection = ReadingDirection.fromId(
+            savedState.getString(PDF.effectiveReadingDirectionKey),
+        ) ?: ReadingDirection.LEFT_TO_RIGHT
         pdf.isPortrait = savedState.getBoolean(PDF.isPortraitKey, true)
         pdf.isFullScreenToggled = savedState.getBoolean(PDF.isFullScreenToggledKey)
         pdf.autoScrollSpeed = savedState.takeIf { it.containsKey(PDF.autoScrollSpeedKey) }

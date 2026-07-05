@@ -6,6 +6,8 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 import android.view.MotionEvent;
 
+import com.github.barteksc.pdfviewer.util.TextDirectionUtil;
+
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
@@ -275,7 +277,7 @@ final class TextSelectionManager {
 
         float centerX = (boxScratch[0] + boxScratch[2]) * 0.5f;
         boolean afterHalf = pdfX > centerX;
-        if (isRtl(pdfFile.charUnicode(page, glyph))) {
+        if (TextDirectionUtil.isRtl(pdfFile.charUnicode(page, glyph))) {
             afterHalf = !afterHalf;
         }
         return afterHalf ? glyph + 1 : glyph;
@@ -402,7 +404,7 @@ final class TextSelectionManager {
 
         int index = handle == Handle.START ? selection.startChar() : selection.endChar() - 1;
         index = clamp(index, 0, charCount - 1);
-        return isRtl(pdfFile.charUnicode(selection.pageIndex, index));
+        return TextDirectionUtil.isRtl(pdfFile.charUnicode(selection.pageIndex, index));
     }
 
     private RectF handleRunDocumentRect(Handle handle, float zoom) {
@@ -567,12 +569,6 @@ final class TextSelectionManager {
     private boolean isWordChar(int codePoint) {
         return Character.isLetterOrDigit(codePoint)
                 || codePoint == '_';
-    }
-
-    private boolean isRtl(int codePoint) {
-        return (codePoint >= 0x0590 && codePoint <= 0x08FF)
-                || (codePoint >= 0xFB1D && codePoint <= 0xFDFF)
-                || (codePoint >= 0xFE70 && codePoint <= 0xFEFF);
     }
 
     private int clamp(int value, int min, int max) {

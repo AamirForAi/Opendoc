@@ -44,6 +44,7 @@
 package com.gitlab.mudlej.MjPdfReader.data
 
 import android.net.Uri
+import com.gitlab.mudlej.MjPdfReader.enums.ReadingDirection
 
 class PDF(
     var uri: Uri? = null,
@@ -60,6 +61,9 @@ class PDF(
     var isAutoScrolling: Boolean = false,
     var autoScrollSpeed: Int? = null,
     var fileHash: String? = null,
+    var readingDirectionOverride: ReadingDirection? = null,
+    var detectedReadingDirection: ReadingDirection? = null,
+    var effectiveReadingDirection: ReadingDirection = ReadingDirection.LEFT_TO_RIGHT,
     val text: MutableMap<Int, String> = mutableMapOf(),
     var isExtractingTextFinished: Boolean = false,
     var lastQuery: String? = null,
@@ -94,6 +98,9 @@ class PDF(
         const val isFullScreenToggledKey = "isFullScreenToggled"
         const val autoScrollSpeedKey = "autoScrollSpeedKey"
         const val cropMarginsEnabledKey = "cropMarginsEnabled"
+        const val readingDirectionOverrideKey = "readingDirectionOverride"
+        const val detectedReadingDirectionKey = "detectedReadingDirection"
+        const val effectiveReadingDirectionKey = "effectiveReadingDirection"
         const val isExtractingTextFinishedKey = "isExtractingTextFinished"
         const val pdfBookmarksKey = "PDF_BOOKMARKS"
         const val chosenBookmarkKey = "chosenBookmarkKey"

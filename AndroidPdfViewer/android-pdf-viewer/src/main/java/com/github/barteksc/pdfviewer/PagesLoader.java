@@ -128,18 +128,24 @@ class PagesLoader {
         float offsetFirst = pdfView.isSwipeVertical() ? fixedFirstYOffset : fixedFirstXOffset;
         float offsetLast = pdfView.isSwipeVertical() ? fixedLastYOffset : fixedLastXOffset;
 
-        int firstPage = pdfView.pdfFile.getPageAtOffset(offsetFirst, pdfView.getZoom());
-        int lastPage = pdfView.pdfFile.getPageAtOffset(offsetLast, pdfView.getZoom());
-        int pageCount = lastPage - firstPage + 1;
+        int firstLayoutIndex = pdfView.pdfFile.getPageLayoutIndexAtOffset(offsetFirst, pdfView.getZoom());
+        int lastLayoutIndex = pdfView.pdfFile.getPageLayoutIndexAtOffset(offsetLast, pdfView.getZoom());
+        if (lastLayoutIndex < firstLayoutIndex) {
+            int swap = firstLayoutIndex;
+            firstLayoutIndex = lastLayoutIndex;
+            lastLayoutIndex = swap;
+        }
+        int pageCount = lastLayoutIndex - firstLayoutIndex + 1;
 
         List<RenderRange> renderRanges = new LinkedList<>();
 
-        for (int page = firstPage; page <= lastPage; page++) {
+        for (int layoutIndex = firstLayoutIndex; layoutIndex <= lastLayoutIndex; layoutIndex++) {
+            int page = pdfView.pdfFile.getPageAtLayoutIndex(layoutIndex);
             RenderRange range = new RenderRange();
             range.page = page;
 
             float pageFirstXOffset, pageFirstYOffset, pageLastXOffset, pageLastYOffset;
-            if (page == firstPage) {
+            if (layoutIndex == firstLayoutIndex) {
                 pageFirstXOffset = fixedFirstXOffset;
                 pageFirstYOffset = fixedFirstYOffset;
                 if (pageCount == 1) {
@@ -156,7 +162,7 @@ class PagesLoader {
                         pageLastXOffset = pageOffset + pageSize.getWidth();
                     }
                 }
-            } else if (page == lastPage) {
+            } else if (layoutIndex == lastLayoutIndex) {
                 float pageOffset = pdfView.pdfFile.getPageOffset(page, pdfView.getZoom());
 
                 if (pdfView.isSwipeVertical()) {

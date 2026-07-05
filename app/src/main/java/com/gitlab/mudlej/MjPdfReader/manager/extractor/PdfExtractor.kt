@@ -15,4 +15,6 @@ interface PdfExtractor {
     fun getAllBookmarks(): List<Bookmark>
 
     fun getAllLinks(): List<Link>
+
+    fun close() {}
 }

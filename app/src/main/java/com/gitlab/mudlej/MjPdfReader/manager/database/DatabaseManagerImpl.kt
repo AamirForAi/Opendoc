@@ -45,6 +45,18 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
         }
     }
 
+    override suspend fun findReadingDirectionOverride(fileHash: String): String? {
+        return withContext(Dispatchers.IO) {
+            database.pdfRecordDao().findReadingDirectionOverride(fileHash)
+        }
+    }
+
+    override suspend fun findDetectedReadingDirection(fileHash: String): String? {
+        return withContext(Dispatchers.IO) {
+            database.pdfRecordDao().findDetectedReadingDirection(fileHash)
+        }
+    }
+
     override suspend fun setPageNumber(fileHash: String, page: Int) {
         withContext(Dispatchers.IO) {
             database.pdfRecordDao().updatePageNumber(fileHash, page)
@@ -96,6 +108,18 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
     override suspend fun setAutoScrollSpeed(fileHash: String, speed: Int) {
         withContext(Dispatchers.IO) {
             database.pdfRecordDao().updateAutoScrollSpeed(fileHash, speed)
+        }
+    }
+
+    override suspend fun setReadingDirectionOverride(fileHash: String, direction: String?) {
+        withContext(Dispatchers.IO) {
+            database.pdfRecordDao().updateReadingDirectionOverride(fileHash, direction)
+        }
+    }
+
+    override suspend fun setDetectedReadingDirection(fileHash: String, direction: String) {
+        withContext(Dispatchers.IO) {
+            database.pdfRecordDao().updateDetectedReadingDirection(fileHash, direction)
         }
     }
 

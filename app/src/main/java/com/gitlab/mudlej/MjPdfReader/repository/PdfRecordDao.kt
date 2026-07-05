@@ -69,6 +69,12 @@ interface PdfRecordDao {
     @Query("SELECT autoScrollSpeed FROM PdfRecord WHERE hash = :fileHash")
     fun findAutoScrollSpeed(fileHash: String): Int?
 
+    @Query("SELECT readingDirectionOverride FROM PdfRecord WHERE hash = :fileHash")
+    fun findReadingDirectionOverride(fileHash: String): String?
+
+    @Query("SELECT detectedReadingDirection FROM PdfRecord WHERE hash = :fileHash")
+    fun findDetectedReadingDirection(fileHash: String): String?
+
     @Query("UPDATE PdfRecord SET pageNumber = :page WHERE hash = :fileHash")
     fun updatePageNumber(fileHash: String?, page: Int): Int?
 
@@ -89,6 +95,12 @@ interface PdfRecordDao {
 
     @Query("UPDATE PdfRecord SET autoScrollSpeed = :speed WHERE hash = :fileHash")
     fun updateAutoScrollSpeed(fileHash: String, speed: Int): Int
+
+    @Query("UPDATE PdfRecord SET readingDirectionOverride = :direction WHERE hash = :fileHash")
+    fun updateReadingDirectionOverride(fileHash: String, direction: String?): Int
+
+    @Query("UPDATE PdfRecord SET detectedReadingDirection = :direction WHERE hash = :fileHash")
+    fun updateDetectedReadingDirection(fileHash: String, direction: String): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(saveLocations: PdfRecord)

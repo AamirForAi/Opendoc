@@ -18,6 +18,10 @@ interface DatabaseManager {
 
     suspend fun findAutoScrollSpeed(fileHash: String): Int?
 
+    suspend fun findReadingDirectionOverride(fileHash: String): String?
+
+    suspend fun findDetectedReadingDirection(fileHash: String): String?
+
     suspend fun setPageNumber(fileHash: String, page: Int)
 
     suspend fun hasRecord(fileHash: String): Boolean
@@ -35,5 +39,9 @@ interface DatabaseManager {
     suspend fun setCropMargins(fileHash: String, cropMargins: String, version: Int)
 
     suspend fun setAutoScrollSpeed(fileHash: String, speed: Int)
+
+    suspend fun setReadingDirectionOverride(fileHash: String, direction: String?)
+
+    suspend fun setDetectedReadingDirection(fileHash: String, direction: String)
 
 }

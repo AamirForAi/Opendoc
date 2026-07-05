@@ -59,6 +59,14 @@ class PdfExtractorImpl(
         return links
     }
 
+    override fun close() {
+        try {
+            pdfiumCore.closeDocument(pdfDocument)
+        } catch (throwable: Throwable) {
+            throwable.printStackTrace()
+        }
+    }
+
     private fun getIndex(pageNumber: Int): Int? {
         return if (pageNumber < 1) null else pageNumber - 1
     }

@@ -136,6 +136,9 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             direction = velocityY > 0 ? -1 : 1;
         } else {
             direction = velocityX > 0 ? -1 : 1;
+            if (pdfView.isHorizontalReadingDirectionRtl()) {
+                direction = -direction;
+            }
         }
         // get the focused page during the down event to ensure only a single page is changed
         float delta = pdfView.isSwipeVertical() ? ev.getY() - downEvent.getY() : ev.getX() - downEvent.getX();
