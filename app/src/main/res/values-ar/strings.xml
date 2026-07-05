@@ -145,7 +145,6 @@
     <string name="go_back">العودة</string>
     <string name="selectable_text">نص قابل للتحديد من الصفحة</string>
     <string name="show_copy_dialog_title">عرض نافذة نسخ النص</string>
-    <string name="show_copy_dialog_summary">عرض نافذة تحتوي على النص المستخرج من الصفحة عند الضغط الطويل.</string>
     <string name="copy_page_text">نسخ نص الصفحة</string>
     <string name="turn_page_by_volume_buttons_title">تقليب الصفحات باستخدام أزرار الصوت</string>
     <string name="turn_page_by_volume_buttons_summary">الانتقال إلى الصفحة التالية أو السابقة باستخدام أزرار الصوت على جانب الهاتف</string>

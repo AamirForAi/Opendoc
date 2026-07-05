@@ -15,6 +15,7 @@
  */
 package com.github.barteksc.pdfviewer.listener;
 
+import android.graphics.RectF;
 import android.view.MotionEvent;
 
 import com.github.barteksc.pdfviewer.link.LinkHandler;
@@ -73,6 +74,11 @@ public class Callbacks {
      * Call back object to call when the user does a long tap gesture
      */
     private OnLongPressListener onLongPressListener;
+
+    /**
+     * Call back object to call when inline text selection changes.
+     */
+    private OnTextSelectionChangeListener onTextSelectionChangeListener;
 
     /**
      * Call back object to call when clicking link
@@ -180,6 +186,22 @@ public class Callbacks {
     public void callOnLongPress(MotionEvent event) {
         if (onLongPressListener != null) {
             onLongPressListener.onLongPress(event);
+        }
+    }
+
+    public void setOnTextSelectionChange(OnTextSelectionChangeListener onTextSelectionChangeListener) {
+        this.onTextSelectionChangeListener = onTextSelectionChangeListener;
+    }
+
+    public void callOnTextSelectionChanged(String selectedText, RectF viewBounds, int pageIndex) {
+        if (onTextSelectionChangeListener != null) {
+            onTextSelectionChangeListener.onTextSelectionChanged(selectedText, viewBounds, pageIndex);
+        }
+    }
+
+    public void callOnTextSelectionCleared() {
+        if (onTextSelectionChangeListener != null) {
+            onTextSelectionChangeListener.onTextSelectionCleared();
         }
     }
 

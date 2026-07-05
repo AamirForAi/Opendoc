@@ -16,6 +16,7 @@
 package com.github.barteksc.pdfviewer;
 
 import android.graphics.Bitmap;
+import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.SparseBooleanArray;
@@ -31,6 +32,7 @@ import com.shockwave.pdfium.util.Size;
 import com.shockwave.pdfium.util.SizeF;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,10 +46,14 @@ class PdfFile {
     private List<Size> originalPageSizes = new ArrayList<>();
     /** Full page sizes before optional margin cropping */
     private List<Size> originalFullPageSizes = new ArrayList<>();
+    /** Full page sizes in PDF points before optional margin cropping */
+    private List<SizeF> originalFullPagePointSizes = new ArrayList<>();
     /** Scaled page sizes */
     private List<SizeF> pageSizes = new ArrayList<>();
     /** Opened pages with indicator whether opening was successful */
     private SparseBooleanArray openedPages = new SparseBooleanArray();
+    /** Pages opened only to back a pinned text page. */
+    private SparseBooleanArray textOpenedPages = new SparseBooleanArray();
     /** Page with maximum width */
     private Size originalMaxWidthPageSize = new Size(0, 0);
     /** Page with maximum height */
@@ -106,11 +112,13 @@ class PdfFile {
         }
 
         for (int i = 0; i < pagesCount; i++) {
-            originalFullPageSizes.add(pdfiumCore.getPageSize(pdfDocument, documentPage(i)));
+            int docPage = documentPage(i);
+            originalFullPageSizes.add(pdfiumCore.getPageSize(pdfDocument, docPage));
+            originalFullPagePointSizes.add(pdfiumCore.getPageSizePoint(pdfDocument, docPage));
         }
 
         for (int i = 0; i < pagesCount; i++) {
-            Size pageSize = getOriginalPageSize(i);
+            Size pageSize = calculateOriginalPageSize(i);
             if (pageSize.getWidth() > originalMaxWidthPageSize.getWidth()) {
                 originalMaxWidthPageSize = pageSize;
             }
@@ -123,7 +131,7 @@ class PdfFile {
         recalculatePageSizes(viewSize);
     }
 
-    private Size getOriginalPageSize(int pageIndex) {
+    private Size calculateOriginalPageSize(int pageIndex) {
         Size fullSize = originalFullPageSizes.get(pageIndex);
         if (!cropMarginsEnabled) {
             return fullSize;
@@ -134,6 +142,27 @@ class PdfFile {
         int width = Math.max(1, Math.round(fullSize.getWidth() * crop.getWidth()));
         int height = Math.max(1, Math.round(fullSize.getHeight() * crop.getHeight()));
         return new Size(width, height);
+    }
+
+    public Size getOriginalPageSize(int pageIndex) {
+        if (pageIndex < 0 || pageIndex >= originalPageSizes.size()) {
+            return new Size(0, 0);
+        }
+        return originalPageSizes.get(pageIndex);
+    }
+
+    private Size getOriginalFullPageSize(int pageIndex) {
+        if (pageIndex < 0 || pageIndex >= originalFullPageSizes.size()) {
+            return new Size(0, 0);
+        }
+        return originalFullPageSizes.get(pageIndex);
+    }
+
+    private SizeF getOriginalFullPagePointSize(int pageIndex) {
+        if (pageIndex < 0 || pageIndex >= originalFullPagePointSizes.size()) {
+            return new SizeF(0, 0);
+        }
+        return originalFullPagePointSizes.get(pageIndex);
     }
 
     /**
@@ -299,23 +328,239 @@ class PdfFile {
         }
 
         synchronized (lock) {
-            if (openedPages.indexOfKey(docPage) < 0) {
-                try {
-                    pdfiumCore.openPage(pdfDocument, docPage);
-                    openedPages.put(docPage, true);
-                    return true;
-                } catch (Exception e) {
-                    openedPages.put(docPage, false);
-                    throw new PageRenderingException(pageIndex, e);
+            if (openedPages.indexOfKey(docPage) >= 0) {
+                if (openedPages.get(docPage, false)) {
+                    textOpenedPages.delete(docPage);
                 }
+                return false;
             }
-            return false;
+            try {
+                pdfiumCore.openPage(pdfDocument, docPage);
+                openedPages.put(docPage, true);
+                return true;
+            } catch (Exception e) {
+                openedPages.put(docPage, false);
+                throw new PageRenderingException(pageIndex, e);
+            }
         }
     }
 
     public boolean pageHasError(int pageIndex) {
         int docPage = documentPage(pageIndex);
         return !openedPages.get(docPage, false);
+    }
+
+    public void ensureTextPage(int pageIndex) {
+        if (pdfiumCore == null || pdfDocument == null) {
+            return;
+        }
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return;
+        }
+        synchronized (lock) {
+            if (openedPages.indexOfKey(docPage) < 0) {
+                try {
+                    pdfiumCore.openPage(pdfDocument, docPage);
+                    openedPages.put(docPage, true);
+                    textOpenedPages.put(docPage, true);
+                } catch (Exception e) {
+                    openedPages.put(docPage, false);
+                    return;
+                }
+            } else if (!openedPages.get(docPage, false)) {
+                return;
+            }
+            pdfiumCore.openTextPage(pdfDocument, docPage);
+        }
+    }
+
+    public void closeTextPage(int pageIndex) {
+        if (pdfiumCore == null || pdfDocument == null) {
+            return;
+        }
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return;
+        }
+        synchronized (lock) {
+            pdfiumCore.closeTextPage(pdfDocument, docPage);
+            closeTextOwnedPage(docPage);
+        }
+    }
+
+    public void closeAllTextPages() {
+        if (pdfiumCore == null || pdfDocument == null) {
+            return;
+        }
+        synchronized (lock) {
+            pdfiumCore.closeTextPages(pdfDocument);
+            closeTextOwnedPages();
+        }
+    }
+
+    private void closeTextOwnedPages() {
+        for (int i = textOpenedPages.size() - 1; i >= 0; i--) {
+            closeTextOwnedPage(textOpenedPages.keyAt(i));
+        }
+    }
+
+    private void closeTextOwnedPage(int docPage) {
+        if (!textOpenedPages.get(docPage, false)) {
+            return;
+        }
+        pdfiumCore.closePage(pdfDocument, docPage);
+        openedPages.delete(docPage);
+        textOpenedPages.delete(docPage);
+    }
+
+    public int pageCharCount(int pageIndex) {
+        if (pdfiumCore == null || pdfDocument == null) {
+            return 0;
+        }
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return 0;
+        }
+        return pdfiumCore.textCountChars(pdfDocument, docPage);
+    }
+
+    public int charIndexAtPagePoint(int pageIndex, float pdfX, float pdfY, float tolerance) {
+        if (pdfiumCore == null || pdfDocument == null) {
+            return -1;
+        }
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return -1;
+        }
+        return pdfiumCore.charIndexAtPos(pdfDocument, docPage, pdfX, pdfY, tolerance);
+    }
+
+    public boolean looseCharBox(int pageIndex, int charIndex, float[] out4) {
+        if (pdfiumCore == null || pdfDocument == null) {
+            return false;
+        }
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return false;
+        }
+        return pdfiumCore.looseCharBox(pdfDocument, docPage, charIndex, out4);
+    }
+
+    public boolean tightCharBox(int pageIndex, int charIndex, float[] out4) {
+        if (pdfiumCore == null || pdfDocument == null) {
+            return false;
+        }
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return false;
+        }
+        return pdfiumCore.tightCharBox(pdfDocument, docPage, charIndex, out4);
+    }
+
+    public int charUnicode(int pageIndex, int charIndex) {
+        if (pdfiumCore == null || pdfDocument == null) {
+            return 0;
+        }
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return 0;
+        }
+        return pdfiumCore.charUnicode(pdfDocument, docPage, charIndex);
+    }
+
+    public String textRange(int pageIndex, int start, int count) {
+        if (pdfiumCore == null || pdfDocument == null) {
+            return "";
+        }
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return "";
+        }
+        return pdfiumCore.textRange(pdfDocument, docPage, start, count);
+    }
+
+    public PointF documentToPdf(int pageIndex, float zoom, float docX, float docY) {
+        SizeF fullSize = getOriginalFullPagePointSize(pageIndex);
+        SizeF renderedSize = getScaledPageSize(pageIndex, zoom);
+        if (fullSize.getWidth() <= 0 || fullSize.getHeight() <= 0
+                || renderedSize.getWidth() <= 0 || renderedSize.getHeight() <= 0) {
+            return new PointF(0, 0);
+        }
+
+        float pageOriginX = isVertical ? getSecondaryPageOffset(pageIndex, zoom) : getPageOffset(pageIndex, zoom);
+        float pageOriginY = isVertical ? getPageOffset(pageIndex, zoom) : getSecondaryPageOffset(pageIndex, zoom);
+        float localX = docX - pageOriginX;
+        float localY = docY - pageOriginY;
+
+        CropBounds crop = getCropBounds(pageIndex);
+        float cropLeft = crop.getLeft() * fullSize.getWidth();
+        float cropTop = crop.getTop() * fullSize.getHeight();
+        float cropWidth = Math.max(1f, crop.getWidth() * fullSize.getWidth());
+        float cropHeight = Math.max(1f, crop.getHeight() * fullSize.getHeight());
+
+        float fullX = cropLeft + localX * cropWidth / renderedSize.getWidth();
+        float fullYFromTop = cropTop + localY * cropHeight / renderedSize.getHeight();
+        return new PointF(fullX, fullSize.getHeight() - fullYFromTop);
+    }
+
+    public RectF pdfRectToDocument(int pageIndex, float zoom, float left, float bottom, float right, float top) {
+        SizeF fullSize = getOriginalFullPagePointSize(pageIndex);
+        SizeF renderedSize = getScaledPageSize(pageIndex, zoom);
+        if (fullSize.getWidth() <= 0 || fullSize.getHeight() <= 0
+                || renderedSize.getWidth() <= 0 || renderedSize.getHeight() <= 0) {
+            return null;
+        }
+
+        CropBounds crop = getCropBounds(pageIndex);
+        float cropLeft = crop.getLeft() * fullSize.getWidth();
+        float cropTop = crop.getTop() * fullSize.getHeight();
+        float cropWidth = Math.max(1f, crop.getWidth() * fullSize.getWidth());
+        float cropHeight = Math.max(1f, crop.getHeight() * fullSize.getHeight());
+
+        float pageOriginX = isVertical ? getSecondaryPageOffset(pageIndex, zoom) : getPageOffset(pageIndex, zoom);
+        float pageOriginY = isVertical ? getPageOffset(pageIndex, zoom) : getSecondaryPageOffset(pageIndex, zoom);
+
+        float localLeft = (left - cropLeft) * renderedSize.getWidth() / cropWidth;
+        float localRight = (right - cropLeft) * renderedSize.getWidth() / cropWidth;
+        float localTop = (fullSize.getHeight() - top - cropTop) * renderedSize.getHeight() / cropHeight;
+        float localBottom = (fullSize.getHeight() - bottom - cropTop) * renderedSize.getHeight() / cropHeight;
+        RectF rect = new RectF(
+                pageOriginX + localLeft,
+                pageOriginY + localTop,
+                pageOriginX + localRight,
+                pageOriginY + localBottom
+        );
+        rect.sort();
+        return clipToPageBounds(rect, pageOriginX, pageOriginY, renderedSize.getWidth(), renderedSize.getHeight());
+    }
+
+    private CropBounds getCropBounds(int pageIndex) {
+        if (!cropMarginsEnabled) {
+            return CropBounds.fullPage();
+        }
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return CropBounds.fullPage();
+        }
+        return cropMargins.forDocumentPage(docPage);
+    }
+
+    private RectF clipToPageBounds(RectF rect, float pageOriginX, float pageOriginY, float width, float height) {
+        float right = pageOriginX + width;
+        float bottom = pageOriginY + height;
+        if (rect.right <= pageOriginX
+                || rect.left >= right
+                || rect.bottom <= pageOriginY
+                || rect.top >= bottom) {
+            return null;
+        }
+
+        rect.left = Math.max(rect.left, pageOriginX);
+        rect.top = Math.max(rect.top, pageOriginY);
+        rect.right = Math.min(rect.right, right);
+        rect.bottom = Math.min(rect.bottom, bottom);
+        return rect;
     }
 
     public void renderPageBitmap(Bitmap bitmap, int pageIndex, Rect bounds, boolean annotationRendering) {
@@ -366,27 +611,51 @@ class PdfFile {
 
     public List<PdfDocument.Link> getPageLinks(int pageIndex) {
         int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return new ArrayList<>();
+        }
         return pdfiumCore.getPageLinks(pdfDocument, docPage);
     }
 
     public String getPageText(int pageIndex) {
         int docPage = documentPage(pageIndex);
-        pdfiumCore.openPage(pdfDocument, pageIndex);
+        if (docPage < 0) {
+            return "";
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return "";
+        }
         return pdfiumCore.getPageText(pdfDocument, docPage);
     }
 
     public Map<Integer, String> getPagesText(int start, int end) {
-        pdfiumCore.openPages(pdfDocument, start, end);
-        return pdfiumCore.getPagesText(pdfDocument, start, end);
+        Map<Integer, String> pagesText = new HashMap<>();
+        for (int pageIndex = start; pageIndex <= end; pageIndex++) {
+            pagesText.put(pageIndex, getPageText(pageIndex));
+        }
+        return pagesText;
     }
 
     public Rect[] createHighlightText(int pageIndex, int start, int end, boolean padding) {
-        pdfiumCore.openPage(pdfDocument, pageIndex);
-        return pdfiumCore.createHighlightText(pdfDocument, pageIndex, start, end, padding);
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return new Rect[0];
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return new Rect[0];
+        }
+        return pdfiumCore.createHighlightText(pdfDocument, docPage, start, end, padding);
     }
 
     public void clearSearchResultsAnnot(int pageIndex) {
-        pdfiumCore.clearSearchResultsAnnot(pdfDocument, pageIndex);
+        int docPage = documentPage(pageIndex);
+        if (docPage >= 0) {
+            pdfiumCore.clearSearchResultsAnnot(pdfDocument, docPage);
+        }
     }
 
     public RectF mapRectToDevice(int pageIndex, int startX, int startY, int sizeX, int sizeY,
@@ -425,12 +694,15 @@ class PdfFile {
 
     public void dispose() {
         if (pdfiumCore != null && pdfDocument != null) {
+            closeAllTextPages();
             pdfiumCore.closeDocument(pdfDocument);
         }
 
         pdfDocument = null;
         originalUserPages = null;
         originalFullPageSizes.clear();
+        originalFullPagePointSizes.clear();
+        textOpenedPages.clear();
     }
 
     /**

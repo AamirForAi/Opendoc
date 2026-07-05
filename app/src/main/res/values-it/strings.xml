@@ -136,7 +136,6 @@
     <string name="this_is_experimental_message">Questa funzione dell\'app è ancora in fase di sviluppo e non è stabile o completamente corretta.</string>
     <string name="go_back">Vai indietro</string>
     <string name="selectable_text">Testo selezionabile della pagina</string>
-    <string name="show_copy_dialog_summary">Mostra un pop-up con il testo estratto della pagina quando si tiene premuto.</string>
     <string name="show_copy_dialog_title">Mostra la finestra Copia testo</string>
     <string name="copy_page_text">Copia il testo della pagina</string>
     <string name="turn_page_by_volume_buttons_title">Gira pagina con i pulsanti del volume</string>

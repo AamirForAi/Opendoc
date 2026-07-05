@@ -399,6 +399,28 @@ JNI_FUNC(jobject, PdfiumCore, nativeGetPageSizeByIndex)(JNI_ARGS, jlong docPtr, 
     return env->NewObject(clazz, constructorID, widthInt, heightInt);
 }
 
+JNI_FUNC(jobject, PdfiumCore, nativeGetPageSizePointByIndex)(JNI_ARGS, jlong docPtr, jint pageIndex){
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+    if(doc == NULL) {
+        LOGE("Document is null");
+
+        jniThrowException(env, "java/lang/IllegalStateException",
+                               "Document is null");
+        return NULL;
+    }
+
+    double width, height;
+    int result = FPDF_GetPageSizeByIndex(doc->pdfDocument, pageIndex, &width, &height);
+    if (result == 0) {
+        width = 0;
+        height = 0;
+    }
+
+    jclass clazz = env->FindClass("com/shockwave/pdfium/util/SizeF");
+    jmethodID constructorID = env->GetMethodID(clazz, "<init>", "(FF)V");
+    return env->NewObject(clazz, constructorID, static_cast<jfloat>(width), static_cast<jfloat>(height));
+}
+
 static void renderPageInternal(
     FPDF_PAGE page,
     ANativeWindow_Buffer *windowBuffer,
@@ -724,9 +746,20 @@ JNI_FUNC(jint, PdfiumCore, nativeClearSearchResultAnnot)(JNI_ARGS, jlong pagePtr
 JNI_FUNC(jstring, PdfiumCore, nativeGetPageText)(JNI_ARGS, jlong pagePtr) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
     FPDF_TEXTPAGE pageText = FPDFText_LoadPage(page);
+    if (pageText == NULL) {
+        return env->NewStringUTF("");
+    }
 
     auto charCount = FPDFText_CountChars(pageText);
+    if (charCount <= 0) {
+        FPDFText_ClosePage(pageText);
+        return env->NewStringUTF("");
+    }
     jchar* str = (jchar*) malloc((charCount + 1) * sizeof(jchar));
+    if (str == NULL) {
+        FPDFText_ClosePage(pageText);
+        return env->NewStringUTF("");
+    }
     int length = FPDFText_GetText(pageText, 0, charCount, str);
 
     // ---------
@@ -740,19 +773,25 @@ JNI_FUNC(jstring, PdfiumCore, nativeGetPageText)(JNI_ARGS, jlong pagePtr) {
     if (length > 0) {
         jstring result = env->NewString(str, length - 1);       // no trailing zero
         free(str);
+        FPDFText_ClosePage(pageText);
         return result;
     }
     else {
-        return 0;
+        free(str);
+        FPDFText_ClosePage(pageText);
+        return env->NewStringUTF("");
     }
 }
 
 JNI_FUNC(jobjectArray, PdfiumCore, nativeGetPageTextBounds)(JNI_ARGS, jlong pagePtr, jint start, jint count) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
-    FPDF_TEXTPAGE pageText = FPDFText_LoadPage(page);
-    int rectsCount = FPDFText_CountRects(pageText, start, count);
-
     jclass rectCls = env->FindClass("android/graphics/Rect");
+    FPDF_TEXTPAGE pageText = FPDFText_LoadPage(page);
+    if (pageText == NULL) {
+        return env->NewObjectArray(0, rectCls, 0);
+    }
+
+    int rectsCount = FPDFText_CountRects(pageText, start, count);
     jmethodID constructorID = env->GetMethodID(rectCls, "<init>", "(IIII)V");
     jobjectArray array = env->NewObjectArray(rectsCount, rectCls, 0);
 
@@ -767,23 +806,174 @@ JNI_FUNC(jobjectArray, PdfiumCore, nativeGetPageTextBounds)(JNI_ARGS, jlong page
         env->DeleteLocalRef(sizeObj);
     }
 
+    FPDFText_ClosePage(pageText);
     return array;
 }
 
 JNI_FUNC(jstring, PdfiumCore, nativeGetPagesText)(JNI_ARGS, jlong pagePtr, jlong start, jlong end) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
     FPDF_TEXTPAGE text = FPDFText_LoadPage(page);
+    if (text == NULL) {
+        return env->NewStringUTF("");
+    }
 
     auto length = FPDFText_CountChars(text);
+    if (length <= 0) {
+        FPDFText_ClosePage(text);
+        return env->NewStringUTF("");
+    }
     jchar *str = (jchar *) malloc((length + 1) * sizeof(jchar));
+    if (str == NULL) {
+        FPDFText_ClosePage(text);
+        return env->NewStringUTF("");
+    }
     int len = FPDFText_GetText(text, 0, length, str);
     if (len > 0) {
         jstring s = env->NewString(str, len - 1);   // no trailing zero
         free(str);
+        FPDFText_ClosePage(text);
         return s;
     } else {
+        free(str);
+        FPDFText_ClosePage(text);
+        return env->NewStringUTF("");
+    }
+}
+
+JNI_FUNC(jlong, PdfiumCore, nativeLoadTextPage)(JNI_ARGS, jlong pagePtr) {
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (page == NULL) {
         return 0;
     }
+
+    FPDF_TEXTPAGE textPage = FPDFText_LoadPage(page);
+    return reinterpret_cast<jlong>(textPage);
+}
+
+JNI_FUNC(void, PdfiumCore, nativeCloseTextPage)(JNI_ARGS, jlong textPagePtr) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage != NULL) {
+        FPDFText_ClosePage(textPage);
+    }
+}
+
+JNI_FUNC(jint, PdfiumCore, nativeTextCountChars)(JNI_ARGS, jlong textPagePtr) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL) {
+        return -1;
+    }
+    return FPDFText_CountChars(textPage);
+}
+
+JNI_FUNC(jint, PdfiumCore, nativeCharIndexAtPos)(JNI_ARGS, jlong textPagePtr,
+    jdouble x,
+    jdouble y,
+    jdouble xTolerance,
+    jdouble yTolerance
+) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL) {
+        return -1;
+    }
+    return FPDFText_GetCharIndexAtPos(textPage, x, y, xTolerance, yTolerance);
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeLooseCharBox)(JNI_ARGS, jlong textPagePtr,
+    jint index,
+    jfloatArray out4
+) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL || out4 == NULL || env->GetArrayLength(out4) < 4) {
+        return false;
+    }
+
+    FS_RECTF rect;
+    if (!FPDFText_GetLooseCharBox(textPage, index, &rect)) {
+        return false;
+    }
+
+    jfloat values[4] = {
+        static_cast<jfloat>(rect.left),
+        static_cast<jfloat>(rect.bottom),
+        static_cast<jfloat>(rect.right),
+        static_cast<jfloat>(rect.top)
+    };
+    env->SetFloatArrayRegion(out4, 0, 4, values);
+    return true;
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeTightCharBox)(JNI_ARGS, jlong textPagePtr,
+    jint index,
+    jfloatArray out4
+) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL || out4 == NULL || env->GetArrayLength(out4) < 4) {
+        return false;
+    }
+
+    double left = 0, right = 0, bottom = 0, top = 0;
+    if (!FPDFText_GetCharBox(textPage, index, &left, &right, &bottom, &top)) {
+        return false;
+    }
+
+    jfloat values[4] = {
+        static_cast<jfloat>(left),
+        static_cast<jfloat>(bottom),
+        static_cast<jfloat>(right),
+        static_cast<jfloat>(top)
+    };
+    env->SetFloatArrayRegion(out4, 0, 4, values);
+    return true;
+}
+
+JNI_FUNC(jint, PdfiumCore, nativeCharUnicode)(JNI_ARGS, jlong textPagePtr, jint index) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL) {
+        return 0;
+    }
+    return static_cast<jint>(FPDFText_GetUnicode(textPage, index));
+}
+
+JNI_FUNC(jstring, PdfiumCore, nativeTextRange)(JNI_ARGS, jlong textPagePtr,
+    jint start,
+    jint count
+) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL || count <= 0) {
+        return env->NewStringUTF("");
+    }
+
+    int charCount = FPDFText_CountChars(textPage);
+    if (charCount <= 0) {
+        return env->NewStringUTF("");
+    }
+    if (start < 0) {
+        start = 0;
+    }
+    if (start >= charCount) {
+        return env->NewStringUTF("");
+    }
+
+    int available = charCount - start;
+    int safeCount = count < available ? count : available;
+    if (safeCount <= 0) {
+        return env->NewStringUTF("");
+    }
+
+    jchar *str = (jchar *) malloc((safeCount + 1) * sizeof(jchar));
+    if (str == NULL) {
+        return env->NewStringUTF("");
+    }
+
+    int len = FPDFText_GetText(textPage, start, safeCount, str);
+    if (len <= 0) {
+        free(str);
+        return env->NewStringUTF("");
+    }
+
+    jstring result = env->NewString(str, len - 1);
+    free(str);
+    return result;
 }
 
 JNI_FUNC(jstring, PdfiumCore, nativeGetDocumentMetaText)(JNI_ARGS, jlong docPtr, jstring tag) {

@@ -144,7 +144,6 @@
     <string name="this_is_experimental_message">Diese Funktion der App befindet sich noch in der Entwicklung und ist nicht stabil oder vollständig korrekt.</string>
     <string name="go_back">Zurückgehen</string>
     <string name="selectable_text">Auswählbarer Text der Seite</string>
-    <string name="show_copy_dialog_summary">Ein Popup anzeigen, das den extrahierten Text der Seite enthält, wenn man lange drückt.</string>
     <string name="show_copy_dialog_title">Textkopie-Dialog anzeigen</string>
     <string name="copy_page_text">Seitentext kopieren</string>
     <string name="turn_page_by_volume_buttons_title">Seite mit Lautstärketasten umblättern</string>

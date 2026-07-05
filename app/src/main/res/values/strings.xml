@@ -145,6 +145,7 @@
     <string name="search">Search</string>
     <string name="search_results">Search Results</string>
     <string name="copied_to_clipboard">Text copied to clipboard</string>
+    <string name="copy">Copy</string>
     <string name="copy_all">Copy All</string>
     <string name="increase_text_size">Increase Size</string>
     <string name="decrease_text_size">Decrease Size</string>
@@ -155,10 +156,13 @@
     <string name="go_back">Go Back</string>
     <string name="back_to_table_of_contents">Back to Table of Contents</string>
     <string name="selectable_text">Selectable Text of Page</string>
-    <string name="show_copy_dialog_summary">Show a pop up that has the extracted text of the page when pressing and hold.</string>
+    <string name="show_copy_dialog_summary">Show a pop up with the extracted text of the current page when page text extraction is triggered.</string>
     <string name="show_copy_dialog_title">Show Copy Text Dialog</string>
+    <string name="inline_text_selection_title">Inline Text Selection</string>
+    <string name="inline_text_selection_summary">Select and copy text directly from the rendered PDF page.</string>
     <string name="default_text_mode">Default to Text Mode</string>
     <string name="default_text_mode_summary">Open PDFs in Text Mode by default.</string>
+    <string name="selected_text">Selected Text</string>
     <string name="copy_page_text">Extract Text</string>
     <string name="turn_page_by_volume_buttons_title">Turn Page by Volume Buttons</string>
     <string name="turn_page_by_volume_buttons_summary">Go to the next or previous page using the physical volume buttons</string>

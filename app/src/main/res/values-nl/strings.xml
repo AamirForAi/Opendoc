@@ -148,7 +148,6 @@
     <string name="this_is_experimental_message">Deze functie van de app is nog in ontwikkeling en is niet stabiel of volledig correct.</string>
     <string name="go_back">Ga terug</string>
     <string name="selectable_text">Selecteerbare tekst van pagina</string>
-    <string name="show_copy_dialog_summary">Toon bij het indrukken en vasthouden een pop-up met de geëxtraheerde tekst van de pagina.</string>
     <string name="show_copy_dialog_title">Dialoogvenster Tekst kopiëren weergeven</string>
     <string name="copy_page_text">Paginatekst kopiëren</string>
     <string name="turn_page_by_volume_buttons_title">Bladzijde omslaan met volumeknoppen</string>

@@ -10,10 +10,12 @@ import android.util.Log;
 import android.view.Surface;
 
 import com.shockwave.pdfium.util.Size;
+import com.shockwave.pdfium.util.SizeF;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -84,11 +86,30 @@ public class PdfiumCore {
 
     private native Size nativeGetPageSizeByIndex(long docPtr, int pageIndex, int dpi);
 
+    private native SizeF nativeGetPageSizePointByIndex(long docPtr, int pageIndex);
+
     private native long[] nativeGetPageLinks(long pagePtr);
 
     private native String nativeGetPageText(long pagePtr);
 
     private native Rect[] nativeGetPageTextBounds(long pagePtr, int start, int count);
+
+    private native long nativeLoadTextPage(long pagePtr);
+
+    private native void nativeCloseTextPage(long textPagePtr);
+
+    private native int nativeTextCountChars(long textPagePtr);
+
+    private native int nativeCharIndexAtPos(long textPagePtr, double x, double y,
+                                            double xTolerance, double yTolerance);
+
+    private native boolean nativeLooseCharBox(long textPagePtr, int index, float[] out4);
+
+    private native boolean nativeTightCharBox(long textPagePtr, int index, float[] out4);
+
+    private native int nativeCharUnicode(long textPagePtr, int index);
+
+    private native String nativeTextRange(long textPagePtr, int start, int count);
 
 
     private native boolean nativeCreateAnnotInPage(long pagePtr, int l, int r, int t, int b, int dpi, boolean padding);
@@ -176,6 +197,10 @@ public class PdfiumCore {
     public long openPage(PdfDocument doc, int pageIndex) {
         long pagePtr;
         synchronized (lock) {
+            Long existing = doc.mNativePagesPtr.get(pageIndex);
+            if (existing != null) {
+                return existing;
+            }
             pagePtr = nativeLoadPage(doc.mNativeDocPtr, pageIndex);
             doc.mNativePagesPtr.put(pageIndex, pagePtr);
             return pagePtr;
@@ -185,10 +210,119 @@ public class PdfiumCore {
 
     public void closePage(PdfDocument doc, int pageIndex) {
         synchronized (lock) {
+            Long textPagePtr = doc.mNativeTextPagesPtr.remove(pageIndex);
+            if (textPagePtr != null && textPagePtr != 0L) {
+                nativeCloseTextPage(textPagePtr);
+            }
             Long pagePtr = doc.mNativePagesPtr.remove(pageIndex);
-            if (pagePtr != null) {
+            if (pagePtr != null && pagePtr != 0L) {
                 nativeClosePage(pagePtr);
             }
+        }
+    }
+
+    public long openTextPage(PdfDocument doc, int pageIndex) {
+        synchronized (lock) {
+            Long existing = doc.mNativeTextPagesPtr.get(pageIndex);
+            if (existing != null && existing != 0L) {
+                return existing;
+            }
+
+            Long pagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (pagePtr == null || pagePtr == 0L) {
+                pagePtr = nativeLoadPage(doc.mNativeDocPtr, pageIndex);
+                doc.mNativePagesPtr.put(pageIndex, pagePtr);
+            }
+            if (pagePtr == null || pagePtr == 0L) {
+                return 0L;
+            }
+
+            long textPagePtr = nativeLoadTextPage(pagePtr);
+            if (textPagePtr != 0L) {
+                doc.mNativeTextPagesPtr.put(pageIndex, textPagePtr);
+            }
+            return textPagePtr;
+        }
+    }
+
+    public void closeTextPage(PdfDocument doc, int pageIndex) {
+        synchronized (lock) {
+            Long textPagePtr = doc.mNativeTextPagesPtr.remove(pageIndex);
+            if (textPagePtr != null && textPagePtr != 0L) {
+                nativeCloseTextPage(textPagePtr);
+            }
+        }
+    }
+
+    public void closeTextPages(PdfDocument doc) {
+        synchronized (lock) {
+            for (Long textPagePtr : doc.mNativeTextPagesPtr.values()) {
+                if (textPagePtr != null && textPagePtr != 0L) {
+                    nativeCloseTextPage(textPagePtr);
+                }
+            }
+            doc.mNativeTextPagesPtr.clear();
+        }
+    }
+
+    public int textCountChars(PdfDocument doc, int pageIndex) {
+        synchronized (lock) {
+            Long textPagePtr = doc.mNativeTextPagesPtr.get(pageIndex);
+            if (textPagePtr == null || textPagePtr == 0L) {
+                return 0;
+            }
+            return Math.max(0, nativeTextCountChars(textPagePtr));
+        }
+    }
+
+    public int charIndexAtPos(PdfDocument doc, int pageIndex, double x, double y, double tolerance) {
+        synchronized (lock) {
+            Long textPagePtr = doc.mNativeTextPagesPtr.get(pageIndex);
+            if (textPagePtr == null || textPagePtr == 0L) {
+                return -1;
+            }
+            return nativeCharIndexAtPos(textPagePtr, x, y, tolerance, tolerance);
+        }
+    }
+
+    public boolean looseCharBox(PdfDocument doc, int pageIndex, int charIndex, float[] out4) {
+        synchronized (lock) {
+            Long textPagePtr = doc.mNativeTextPagesPtr.get(pageIndex);
+            if (textPagePtr == null || textPagePtr == 0L || out4 == null || out4.length < 4) {
+                return false;
+            }
+            return nativeLooseCharBox(textPagePtr, charIndex, out4);
+        }
+    }
+
+    public boolean tightCharBox(PdfDocument doc, int pageIndex, int charIndex, float[] out4) {
+        synchronized (lock) {
+            Long textPagePtr = doc.mNativeTextPagesPtr.get(pageIndex);
+            if (textPagePtr == null || textPagePtr == 0L || out4 == null || out4.length < 4) {
+                return false;
+            }
+            return nativeTightCharBox(textPagePtr, charIndex, out4);
+        }
+    }
+
+    public int charUnicode(PdfDocument doc, int pageIndex, int charIndex) {
+        synchronized (lock) {
+            Long textPagePtr = doc.mNativeTextPagesPtr.get(pageIndex);
+            if (textPagePtr == null || textPagePtr == 0L) {
+                return 0;
+            }
+            return nativeCharUnicode(textPagePtr, charIndex);
+        }
+    }
+
+    public String textRange(PdfDocument doc, int pageIndex, int start, int count) {
+        synchronized (lock) {
+            Long textPagePtr = doc.mNativeTextPagesPtr.get(pageIndex);
+            if (textPagePtr == null || textPagePtr == 0L || count <= 0) {
+                return "";
+            }
+            String text = nativeTextRange(textPagePtr, start, count);
+            return text == null ? "" : text;
         }
     }
 
@@ -275,6 +409,15 @@ public class PdfiumCore {
     }
 
     /**
+     * Get size of page in PDF points. This method does not require given page to be opened.
+     */
+    public SizeF getPageSizePoint(PdfDocument doc, int index) {
+        synchronized (lock) {
+            return nativeGetPageSizePointByIndex(doc.mNativeDocPtr, index);
+        }
+    }
+
+    /**
      * Render page fragment on {@link Surface}.<br>
      * Page must be opened before rendering.
      */
@@ -346,8 +489,12 @@ public class PdfiumCore {
     /** Release native resources and opened file */
     public void closeDocument(PdfDocument doc) {
         synchronized (lock) {
+            closeTextPages(doc);
             for (Integer index : doc.mNativePagesPtr.keySet()) {
-                nativeClosePage(doc.mNativePagesPtr.get(index));
+                Long pagePtr = doc.mNativePagesPtr.get(index);
+                if (pagePtr != null && pagePtr != 0L) {
+                    nativeClosePage(pagePtr);
+                }
             }
             doc.mNativePagesPtr.clear();
 
@@ -417,13 +564,7 @@ public class PdfiumCore {
             if (nativePagePtr == null) {
                 return "";
             }
-            String text = nativeGetPageText(nativePagePtr);
-            // fix '￾' character
-            if (text != null) {
-                // for some reason a dash '-' at the end of the line is interpreted as \uFFFE
-                // deleting the character is no good, there are cases where the last character in a line is '-'
-                text = text.replace('\uFFFE', '-');    // replace '￾' (65534) with '-'
-            }
+            String text = normalizeExtractedText(nativeGetPageText(nativePagePtr));
 
             // ------------------ Unrelated Code:
             // Size size = nativeGetPageSizeByIndex(doc.mNativeDocPtr, pageIndex, mCurrentDpi);
@@ -434,12 +575,25 @@ public class PdfiumCore {
         }
     }
 
+    public String normalizeExtractedText(String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        // Some PDFs expose Arabic presentation forms/ligatures. NFKC converts
+        // compatibility glyph forms back to normal Unicode letters for copying.
+        return Normalizer.normalize(text, Normalizer.Form.NFKC)
+                .replace('\uFFFE', '-')
+                .replace("\u200B", "")
+                .replace("\r\n", "\n")
+                .replace('\r', '\n');
+    }
+
     public Map<Integer, String> getPagesText(PdfDocument doc, int start, int end) {
         synchronized (lock) {
             Map<Integer, String> pagesText = new HashMap<>();
             for (int i = start; i <= end; ++i) {
                 long pagePtr = doc.mNativePagesPtr.get(i);
-                pagesText.put(i, nativeGetPageText(pagePtr));
+                pagesText.put(i, normalizeExtractedText(nativeGetPageText(pagePtr)));
             }
             return pagesText;
         }

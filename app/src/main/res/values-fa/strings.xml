@@ -141,7 +141,6 @@
     <string name="this_is_experimental_message">این ویژگی برنامه هنوز در حال توسعه است و ممکن است پایدار یا کاملاً درست نباشد.</string>
     <string name="go_back">بازگشت</string>
     <string name="selectable_text">متن قابل انتخاب صفحه</string>
-    <string name="show_copy_dialog_summary">هنگام فشار دادن و نگه داشتن، یک پنجره که شامل متن استخراج‌شده از صفحه است نمایش داده شود.</string>
     <string name="show_copy_dialog_title">نمایش پنجره رونویسی متن</string>
     <string name="copy_page_text">رونویسی متن صفحه</string>
     <string name="turn_page_by_volume_buttons_title">جابه‌جایی صفحه با دکمه‌های صدا</string>

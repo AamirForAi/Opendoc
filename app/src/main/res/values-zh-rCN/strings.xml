@@ -148,7 +148,6 @@
     <string name="this_is_experimental_message">此功能仍在开发中，不稳定且存在问题。</string>
     <string name="go_back">返回</string>
     <string name="selectable_text">可选择的页面文字</string>
-    <string name="show_copy_dialog_summary">长按时显示包含页面已提取文字的弹出窗口。</string>
     <string name="show_copy_dialog_title">显示复制文字对话框</string>
     <string name="copy_page_text">复制页面文字</string>
     <string name="turn_page_by_volume_buttons_title">使用音量键翻页</string>

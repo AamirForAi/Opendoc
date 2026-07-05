@@ -144,7 +144,6 @@
     <string name="this_is_experimental_message">Esta característica de la aplicación aún está en desarrollo y no es estable ni completamente correcta.</string>
     <string name="go_back">Regresar</string>
     <string name="selectable_text">Texto Seleccionable de la Página</string>
-    <string name="show_copy_dialog_summary">Mostrar un pop-up que tiene el texto extraído de la página al presionar y mantener.</string>
     <string name="show_copy_dialog_title">Mostrar Diálogo de Copiar Texto</string>
     <string name="copy_page_text">Copiar Texto de la Página</string>
     <string name="turn_page_by_volume_buttons_title">Cambiar Página con Botones de Volumen</string>

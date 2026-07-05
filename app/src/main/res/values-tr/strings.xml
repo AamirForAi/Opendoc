@@ -146,7 +146,6 @@
     <string name="this_is_experimental_message">Uygulamanın bu özelliği hala geliştirme aşamasında olup stabil veya tamamen doğru değildir.</string>
     <string name="go_back">Geri Dön</string>
     <string name="selectable_text">Sayfadaki Seçilebilir Metin</string>
-    <string name="show_copy_dialog_summary">Basılı tutulduğunda sayfanın çıkarılmış metnini içeren bir açılır pencere göster.</string>
     <string name="show_copy_dialog_title">Kopyala Metin İletişim Kutusunu Göster</string>
     <string name="copy_page_text">Sayfanın Metnini Kopyala</string>
     <string name="turn_page_by_volume_buttons_title">Sayfa Çevirme Ses Düğmeleri ile</string>

@@ -349,11 +349,19 @@ class SettingsFragment : PreferenceFragmentCompat() {
             summary = getString(R.string.show_copy_dialog_summary)
             isIconSpaceReserved = false
         }
+        val inlineTextSelectionSwitch = SwitchPreferenceCompat(requireContext()).apply {
+            title = getString(R.string.inline_text_selection_title)
+            setDefaultValue(Preferences.inlineTextSelectionDefault)
+            key = Preferences.inlineTextSelectionKey
+            summary = getString(R.string.inline_text_selection_summary)
+            isIconSpaceReserved = false
+        }
 
         val section: PreferenceCategory? = findPreference("textSection")
         section?.apply {
             isIconSpaceReserved = false
             addPreference(defaultTextModeSwitch)
+            addPreference(inlineTextSelectionSwitch)
             addPreference(showCopyTextDialogSwitch)
         }
     }

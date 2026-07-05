@@ -148,7 +148,6 @@
     <string name="this_is_experimental_message">Ta funkcja aplikacji jest wciąż w fazie rozwoju i nie jest stabilna ani w pełni poprawna.</string>
     <string name="go_back">Wróć</string>
     <string name="selectable_text">Zaznaczalny tekst strony</string>
-    <string name="show_copy_dialog_summary">Pokaż okienko z wyodrębnionym tekstem strony po naciśnięciu i przytrzymaniu.</string>
     <string name="show_copy_dialog_title">Pokaż okno dialogowe kopiowania tekstu</string>
     <string name="copy_page_text">Kopiuj tekst strony</string>
     <string name="turn_page_by_volume_buttons_title">Przewracaj strony przyciskami głośności</string>

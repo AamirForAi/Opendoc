@@ -138,7 +138,6 @@
     <string name="this_is_experimental_message">此 App 功能仍在開發中，並不穩定或完全正確。</string>
     <string name="go_back">返回</string>
     <string name="selectable_text">可選擇的頁面文字</string>
-    <string name="show_copy_dialog_summary">長按時顯示包含頁面已提取文字的彈出視窗。</string>
     <string name="show_copy_dialog_title">顯示複製文字對話框</string>
     <string name="copy_page_text">複製頁面文字</string>
     <string name="turn_page_by_volume_buttons_title">用音量鍵翻頁</string>

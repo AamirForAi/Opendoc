@@ -69,6 +69,11 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
 
     @Override
     public boolean onSingleTapConfirmed(MotionEvent e) {
+        TextSelectionManager textSelectionManager = pdfView.getTextSelectionManager();
+        if (textSelectionManager != null && textSelectionManager.handleSingleTap(e.getX(), e.getY())) {
+            return true;
+        }
+
         boolean onTapHandled = pdfView.callbacks.callOnTap(e);
         boolean linkTapped = checkLinkTapped(e.getX(), e.getY());
 
@@ -188,6 +193,11 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
 
     @Override
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+        TextSelectionManager textSelectionManager = pdfView.getTextSelectionManager();
+        if (textSelectionManager != null && textSelectionManager.isDraggingHandle()) {
+            return true;
+        }
+
         scrolling = true;
         if (pdfView.isZooming() || pdfView.isSwipeEnabled()) {
             if (pdfView.isHorizontalSwipeDisabled()) distanceX = 0;
@@ -210,6 +220,9 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
 
     @Override
     public void onLongPress(MotionEvent e) {
+        if (pdfView.startTextSelectionAt(e.getX(), e.getY())) {
+            return;
+        }
         pdfView.callbacks.callOnLongPress(e);
     }
 
@@ -312,6 +325,14 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
 
         if (isInteractionEvent(event)) {
             pdfView.callbacks.callOnDocumentInteraction(event);
+        }
+
+        TextSelectionManager textSelectionManager = pdfView.getTextSelectionManager();
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+            animationManager.stopFling();
+        }
+        if (textSelectionManager != null && textSelectionManager.handleTouch(event)) {
+            return true;
         }
 
         boolean retVal = scaleGestureDetector.onTouchEvent(event);

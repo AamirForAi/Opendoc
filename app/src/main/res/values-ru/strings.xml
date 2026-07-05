@@ -147,7 +147,6 @@
     <string name="this_is_experimental_message">Эта функция приложения все еще находится в разработке и не является стабильной или полностью корректной.</string>
     <string name="go_back">Вернуться назад</string>
     <string name="selectable_text">Выбираемый текст страницы</string>
-    <string name="show_copy_dialog_summary">Показать всплывающее окно с извлеченным текстом страницы при удержании.</string>
     <string name="show_copy_dialog_title">Показать диалог копирования текста</string>
     <string name="copy_page_text">Копировать текст страницы</string>
     <string name="turn_page_by_volume_buttons_title">Листать страницы кнопками громкости</string>

@@ -52,6 +52,7 @@ import com.github.barteksc.pdfviewer.listener.OnPageErrorListener;
 import com.github.barteksc.pdfviewer.listener.OnPageScrollListener;
 import com.github.barteksc.pdfviewer.listener.OnRenderListener;
 import com.github.barteksc.pdfviewer.listener.OnTapListener;
+import com.github.barteksc.pdfviewer.listener.OnTextSelectionChangeListener;
 import com.github.barteksc.pdfviewer.model.CropMargins;
 import com.github.barteksc.pdfviewer.model.PagePart;
 import com.github.barteksc.pdfviewer.scroll.ScrollHandle;
@@ -155,6 +156,8 @@ public class PDFView extends RelativeLayout {
      * Drag manager manage all touch events
      */
     private DragPinchManager dragPinchManager;
+
+    private TextSelectionManager textSelectionManager;
 
     PdfFile pdfFile;
 
@@ -338,6 +341,7 @@ public class PDFView extends RelativeLayout {
 
         cacheManager = new CacheManager();
         animationManager = new AnimationManager(this);
+        textSelectionManager = new TextSelectionManager(this);
         dragPinchManager = new DragPinchManager(this, animationManager);
         pagesLoader = new PagesLoader(this);
 
@@ -533,6 +537,10 @@ public class PDFView extends RelativeLayout {
 
         if (scrollHandle != null && isScrollHandleInit) {
             scrollHandle.destroyLayout();
+        }
+
+        if (textSelectionManager != null) {
+            textSelectionManager.recycle();
         }
 
         if (pdfFile != null) {
@@ -750,6 +758,10 @@ public class PDFView extends RelativeLayout {
         onDrawPagesNums.clear();
 
         drawWithListener(canvas, currentPage, callbacks.getOnDraw());
+
+        if (textSelectionManager != null) {
+            textSelectionManager.draw(canvas);
+        }
 
         // Restores the canvas position
         canvas.translate(-currentXOffset, -currentYOffset);
@@ -1267,6 +1279,47 @@ public class PDFView extends RelativeLayout {
         return zoom;
     }
 
+    TextSelectionManager getTextSelectionManager() {
+        return textSelectionManager;
+    }
+
+    boolean startTextSelectionAt(float viewX, float viewY) {
+        return textSelectionManager != null && textSelectionManager.startWordSelectionAt(viewX, viewY);
+    }
+
+    public boolean isTextSelectionEnabled() {
+        return textSelectionManager != null && textSelectionManager.isEnabled();
+    }
+
+    public void setTextSelectionEnabled(boolean enabled) {
+        if (textSelectionManager != null) {
+            textSelectionManager.setEnabled(enabled);
+        }
+    }
+
+    public void setTextSelectionColor(int color) {
+        if (textSelectionManager != null) {
+            textSelectionManager.setSelectionColor(color);
+        }
+    }
+
+    public boolean hasTextSelection() {
+        return textSelectionManager != null && textSelectionManager.hasSelection();
+    }
+
+    public String getSelectedText() {
+        if (textSelectionManager == null) {
+            return "";
+        }
+        return textSelectionManager.getSelectedText();
+    }
+
+    public void clearTextSelection() {
+        if (textSelectionManager != null) {
+            textSelectionManager.clear();
+        }
+    }
+
     public boolean isZooming() {
         return zoom != minZoom;
     }
@@ -1641,6 +1694,8 @@ public class PDFView extends RelativeLayout {
 
         private OnLongPressListener onLongPressListener;
 
+        private OnTextSelectionChangeListener onTextSelectionChangeListener;
+
         private OnPageErrorListener onPageErrorListener;
 
         private LinkHandler linkHandler = new DefaultLinkHandler(PDFView.this);
@@ -1676,6 +1731,10 @@ public class PDFView extends RelativeLayout {
         private boolean pageSnap = false;
 
         private boolean nightMode = false;
+
+        private boolean textSelectionEnabled = false;
+
+        private int textSelectionColor = 0xFF3F51B5;
 
         private Configurator(DocumentSource documentSource) {
             this.documentSource = documentSource;
@@ -1763,6 +1822,21 @@ public class PDFView extends RelativeLayout {
 
         public Configurator onLongPress(OnLongPressListener onLongPressListener) {
             this.onLongPressListener = onLongPressListener;
+            return this;
+        }
+
+        public Configurator enableTextSelection(boolean enabled) {
+            this.textSelectionEnabled = enabled;
+            return this;
+        }
+
+        public Configurator textSelectionColor(int color) {
+            this.textSelectionColor = color;
+            return this;
+        }
+
+        public Configurator onTextSelectionChange(OnTextSelectionChangeListener onTextSelectionChangeListener) {
+            this.onTextSelectionChangeListener = onTextSelectionChangeListener;
             return this;
         }
 
@@ -1868,6 +1942,7 @@ public class PDFView extends RelativeLayout {
             PDFView.this.callbacks.setOnTap(onTapListener);
             PDFView.this.callbacks.setOnLongPress(onLongPressListener);
             PDFView.this.callbacks.setOnPageError(onPageErrorListener);
+            PDFView.this.callbacks.setOnTextSelectionChange(onTextSelectionChangeListener);
             PDFView.this.callbacks.setLinkHandler(linkHandler);
             PDFView.this.setSwipeEnabled(enableSwipe);
             PDFView.this.setHorizontalSwipeDisabled(horizontalSwipeDisabled);
@@ -1889,6 +1964,8 @@ public class PDFView extends RelativeLayout {
             PDFView.this.setCachedCropMargins(cachedCropMargins);
             PDFView.this.setPageSnap(pageSnap);
             PDFView.this.setPageFling(pageFling);
+            PDFView.this.setTextSelectionColor(textSelectionColor);
+            PDFView.this.setTextSelectionEnabled(textSelectionEnabled);
 
             if (pageNumbers != null) {
                 PDFView.this.load(documentSource, password, pageNumbers);
