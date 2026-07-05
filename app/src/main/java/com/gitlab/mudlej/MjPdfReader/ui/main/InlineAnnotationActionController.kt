@@ -169,7 +169,6 @@ class InlineAnnotationActionController(
             return false
         }
         copyToClipboard(activity, activity.getString(R.string.selected_text), text)
-        Snackbar.make(binding.root, activity.getString(R.string.copied_to_clipboard), Snackbar.LENGTH_SHORT).show()
         return true
     }
 

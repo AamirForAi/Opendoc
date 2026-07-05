@@ -131,7 +131,6 @@
     <string name="additional_options">Davantage</string>
     <string name="search">Rechercher</string>
     <string name="search_results">Résultats de la recherche</string>
-    <string name="copied_to_clipboard">Texte copié dans le presse-papier</string>
     <string name="copy_all">Tout copier</string>
     <string name="increase_text_size">Augmenter la taille</string>
     <string name="decrease_text_size">Diminuer la taille</string>

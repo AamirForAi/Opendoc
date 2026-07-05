@@ -234,10 +234,6 @@ fun showCopyPageTextDialog(
         .setPositiveButton(activity.getString(R.string.copy_all)) { dialog, _ ->
             val copyLabel = "${activity.getString(R.string.page)} #${pageNumber} Text"
             copyToClipboard(activity, copyLabel, pageText)
-
-            // show message to user before closing
-            //Toast.makeText(activity, activity.getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT).show()
-            Snackbar.make(binding.root, activity.getString(R.string.copied_to_clipboard), Snackbar.LENGTH_SHORT).show()
             dialog.dismiss()
         }
         .show()

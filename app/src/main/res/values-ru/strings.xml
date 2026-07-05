@@ -136,7 +136,6 @@
     <string name="additional_options">Дополнительно</string>
     <string name="search">Поиск</string>
     <string name="search_results">Результаты поиска</string>
-    <string name="copied_to_clipboard">Текст скопирован в буфер обмена</string>
     <string name="copy_all">Копировать все</string>
     <string name="increase_text_size">Увеличить размер</string>
     <string name="decrease_text_size">Уменьшить размер</string>

@@ -128,7 +128,6 @@
     <string name="no_bookmarks">此檔案不含書籤</string>
     <string name="additional_options">更多</string>
     <string name="search_results">搜尋結果</string>
-    <string name="copied_to_clipboard">文字已複製到剪貼簿</string>
     <string name="copy_all">全部複製</string>
     <string name="increase_text_size">放大字體</string>
     <string name="decrease_text_size">縮小字體</string>

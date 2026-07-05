@@ -180,7 +180,6 @@
     <string name="highlight_save_failed">Couldn\'t save highlights. Choose a save location and try again.</string>
     <string name="choose">Choose</string>
     <string name="search_results">Search Results</string>
-    <string name="copied_to_clipboard">Text copied to clipboard</string>
     <string name="copy">Copy</string>
     <string name="copy_all">Copy All</string>
     <string name="highlight_update_failed">Couldn\'t update highlight</string>
