@@ -47,14 +47,12 @@ import android.app.Activity
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
+import android.graphics.Typeface
 import android.net.Uri
 import android.util.Log
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
-import android.view.WindowManager
+import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
@@ -66,15 +64,17 @@ import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
-import com.gitlab.mudlej.MjPdfReader.ui.dialog.PropertiesDialog
 import com.gitlab.mudlej.MjPdfReader.ui.main.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.search.SearchActivity
 import com.gitlab.mudlej.MjPdfReader.util.copyToClipboard
+import com.gitlab.mudlej.MjPdfReader.util.convertDateString
+import com.gitlab.mudlej.MjPdfReader.util.sizeInMb
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
 import com.shockwave.pdfium.PdfDocument
 import java.io.File
+import java.util.Locale
 
 private const val TAG = "Dialogs"
 
@@ -99,24 +99,61 @@ fun showMetaDialog(context: Context, meta: PdfDocument.Meta?, file: File?) {
         return
     }
     try {
-        val dialog = PropertiesDialog(context, meta, file)
-        val dialogWindow = dialog.window
-
-        if (dialogWindow != null) {
-            val displayMetrics = context.resources.displayMetrics
-            val width = displayMetrics.widthPixels
-            // Set the dialog width to a certain percentage of the screen width
-            dialogWindow.setLayout((width * 0.5).toInt(), WindowManager.LayoutParams.WRAP_CONTENT)
-            dialogWindow.setGravity(Gravity.CENTER)
-        }
-
-        dialogWindow?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        dialog.show()
+        MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.file_properties)
+            .setView(createMetadataView(context, meta, file))
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
     catch (throwable: Throwable) {
         Log.e(TAG, "showMetaDialog: Failed to show File Properties Dialog", throwable)
         Toast.makeText(context, "Failed to show file properties", Toast.LENGTH_SHORT).show()
     }
+}
+
+private fun createMetadataView(context: Context, meta: PdfDocument.Meta, file: File?): View {
+    val content = LinearLayout(context).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(context, 24), dp(context, 8), dp(context, 24), 0)
+    }
+
+    addMetadataRow(content, R.string.pdf_file_name, file?.name)
+    addMetadataRow(content, R.string.pdf_title, meta.title)
+    addMetadataRow(content, R.string.pdf_author, meta.author)
+    addMetadataRow(content, R.string.pdf_pages, String.format(Locale.getDefault(), "%d", meta.totalPages))
+    addMetadataRow(content, R.string.pdf_subject, meta.subject)
+    addMetadataRow(content, R.string.pdf_keywords, meta.keywords)
+    addMetadataRow(content, R.string.pdf_created, convertDateString(meta.creationDate) ?: meta.creationDate)
+    addMetadataRow(content, R.string.pdf_modified, convertDateString(meta.modDate) ?: meta.modDate)
+    addMetadataRow(content, R.string.pdf_created_by, meta.creator)
+    addMetadataRow(content, R.string.pdf_produced_by, meta.producer)
+    addMetadataRow(content, R.string.pdf_file_size, file?.let { String.format(Locale.US, "%.2f MB", it.sizeInMb) } ?: "--")
+
+    return ScrollView(context).apply { addView(content) }
+}
+
+private fun addMetadataRow(parent: LinearLayout, labelRes: Int, value: String?) {
+    if (value.isNullOrBlank()) return
+
+    val context = parent.context
+    parent.addView(
+        TextView(context).apply {
+            text = context.getString(labelRes)
+            setTypeface(typeface, Typeface.BOLD)
+            setPadding(0, dp(context, 10), 0, 0)
+        }
+    )
+    parent.addView(
+        TextView(context).apply {
+            text = value
+            setTextIsSelectable(true)
+            setPadding(0, dp(context, 2), 0, 0)
+        }
+    )
+}
+
+private fun dp(context: Context, value: Int): Int {
+    return (value * context.resources.displayMetrics.density).toInt()
 }
 
 fun showHowToExitFullscreenDialog(context: Context, pref: Preferences) {
