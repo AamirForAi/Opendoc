@@ -92,7 +92,7 @@ class FullScreenButtonController(
     }
 
     private fun createActionButton(action: ConfigurableAction): MaterialButton {
-        val button = MaterialButton(ContextThemeWrapper(context, R.style.FullScreenOverlayButton)).apply {
+        val button = MaterialButton(ContextThemeWrapper(context, R.style.ThemeOverlay_FullScreenOverlayButton)).apply {
             val margin = resources.getDimensionPixelSize(R.dimen.fs_button_vertical_margin)
             val padding = resources.getDimensionPixelSize(R.dimen.fs_button_padding)
             val paddingEnd = resources.getDimensionPixelSize(R.dimen.fs_button_padding_end)

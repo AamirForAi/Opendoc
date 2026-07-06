@@ -683,7 +683,7 @@ class MainActivity : AppCompatActivity() {
             .autoSpacing(pref.getHorizontalScroll())
             .pageSnap(pref.getPageSnap())
             .pageFling(pref.getPageFling())
-            .nightMode(pref.getPdfDarkTheme())
+            .nightMode(effectivePdfDarkTheme())
             .enableTextSelection(pref.getInlineTextSelection())
             .textSelectionColor(MaterialColors.getColor(binding.root, R.attr.colorPrimary))
             .onTextSelectionChange(object : OnTextSelectionChangeListener {
@@ -1287,35 +1287,30 @@ class MainActivity : AppCompatActivity() {
 
         val pdfView = binding.pdfView
 
-        // set background color behind pages
-        if (!pref.getPdfDarkTheme()) {
-            pdfView.setBackgroundColor(Preferences.pdfDarkBackgroundColor)
-        }
-        else {
-            pdfView.setBackgroundColor(Preferences.pdfLightBackgroundColor)
-        }
+        applyPdfThemeToView(effectivePdfDarkTheme(), reloadPages = false)
 
-        if (pref.getAppFollowSystemTheme()) {
-            if (AppCompatDelegate.getDefaultNightMode() != AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM) {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-            }
+        val appNightMode = when (pref.getInterfaceTheme()) {
+            Preferences.themeSystem -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            Preferences.themeDark -> AppCompatDelegate.MODE_NIGHT_YES
+            else -> AppCompatDelegate.MODE_NIGHT_NO
         }
-        else {
-            if (AppCompatDelegate.getDefaultNightMode() != AppCompatDelegate.MODE_NIGHT_NO) {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-            }
-        }
-
-        if (pref.getPdfFollowSystemTheme()) {
-            applyPdfTheme()
+        if (AppCompatDelegate.getDefaultNightMode() != appNightMode) {
+            AppCompatDelegate.setDefaultNightMode(appNightMode)
         }
     }
 
-    private fun applyPdfTheme() {
-        when (applicationContext.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) {
-            Configuration.UI_MODE_NIGHT_YES -> setPdfTheme(true)
-            Configuration.UI_MODE_NIGHT_NO -> setPdfTheme(false)
-            Configuration.UI_MODE_NIGHT_UNDEFINED -> setPdfTheme(false)
+    private fun effectivePdfDarkTheme(): Boolean {
+        return when (pref.getPdfPagesTheme()) {
+            Preferences.themeSystem -> isSystemDarkTheme()
+            Preferences.themeDark -> true
+            else -> false
+        }
+    }
+
+    private fun isSystemDarkTheme(): Boolean {
+        return when (applicationContext.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) {
+            Configuration.UI_MODE_NIGHT_YES -> true
+            else -> false
         }
     }
 
@@ -1976,10 +1971,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun switchPdfTheme() {
-        if (pref.getPdfFollowSystemTheme()) {
+        if (pref.getPdfPagesTheme() == Preferences.themeSystem) {
             Snackbar.make(
                 binding.root,
-                "PDF theme is set to follow system's theme. Disable it in the Settings first.",
+                getString(R.string.pdf_theme_follows_system),
                 Snackbar.LENGTH_LONG
             ).show()
         }
@@ -1989,17 +1984,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setPdfTheme(darkTheme: Boolean) {
-        if (pref.getPdfDarkTheme() == darkTheme) {
+        if (pref.getPdfPagesTheme() != Preferences.themeSystem && pref.getPdfDarkTheme() == darkTheme) {
             return
         }
-        pref.setPdfDarkTheme(darkTheme)
+        pref.setPdfPagesTheme(if (darkTheme) Preferences.themeDark else Preferences.themeLight)
+        applyPdfThemeToView(darkTheme, reloadPages = true)
+    }
+
+    private fun applyPdfThemeToView(darkTheme: Boolean, reloadPages: Boolean) {
         binding.pdfView.setNightMode(darkTheme)
         if (!darkTheme) {
             binding.pdfView.setBackgroundColor(Preferences.pdfDarkBackgroundColor)
         } else {
             binding.pdfView.setBackgroundColor(Preferences.pdfLightBackgroundColor)
         }
-        binding.pdfView.reloadPages()
+        if (reloadPages) {
+            binding.pdfView.reloadPages()
+        }
     }
 
     private fun screenShot(view: View): Bitmap {

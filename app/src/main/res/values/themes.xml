@@ -91,6 +91,10 @@
         <item name="strokeWidth">1dp</item>
     </style>
 
+    <style name="ThemeOverlay.FullScreenOverlayButton" parent="">
+        <item name="materialButtonStyle">@style/FullScreenOverlayButton</item>
+    </style>
+
     <style name="ChromeActionBarTheme" parent="ThemeOverlay.Material3">
         <item name="android:textColorPrimary">?attr/colorOnSurface</item>
         <item name="colorOnBackground">?attr/colorOnSurface</item>

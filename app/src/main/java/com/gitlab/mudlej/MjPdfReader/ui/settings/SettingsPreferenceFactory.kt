@@ -11,20 +11,27 @@
 package com.gitlab.mudlej.MjPdfReader.ui.settings
 
 import android.content.DialogInterface
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
 import androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceViewHolder
 import androidx.preference.SwitchPreferenceCompat
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlin.math.roundToInt
 
@@ -65,34 +72,30 @@ internal class SettingsPreferenceFactory(
         }
     }
 
-    fun appThemePreference(breadcrumb: String?): Preference {
-        return switchPreference(
-            titleRes = R.string.dark_theme_for_app,
-            key = Preferences.appFollowSystemThemeKey,
-            defaultValue = Preferences.appFollowSystemThemeDefault,
-            summaryRes = R.string.app_dark_theme_summary,
-            breadcrumb = breadcrumb,
-        ).apply {
-            setOnPreferenceClickListener {
-                if (!isChecked) {
-                    setDefaultNightMode(MODE_NIGHT_NO)
-                    return@setOnPreferenceClickListener true
+    fun interfaceThemePreference(breadcrumb: String?): Preference {
+        return ThemeChoicePreference(
+            context = context,
+            titleText = formatSummary(breadcrumb, getString(R.string.dark_theme_for_app)) ?: getString(R.string.dark_theme_for_app),
+            initialSelectedMode = appPreferences.getInterfaceTheme(),
+        ) { mode ->
+            appPreferences.setInterfaceTheme(mode)
+            setDefaultNightMode(
+                when (mode) {
+                    Preferences.themeSystem -> MODE_NIGHT_FOLLOW_SYSTEM
+                    Preferences.themeDark -> MODE_NIGHT_YES
+                    else -> MODE_NIGHT_NO
                 }
+            )
+        }
+    }
 
-                MaterialAlertDialogBuilder(context)
-                    .setTitle(getString(R.string.caution))
-                    .setMessage(getString(R.string.app_dark_dialog_message))
-                    .setPositiveButton(getString(R.string.ok)) { dialog, _ ->
-                        dialog.dismiss()
-                        setDefaultNightMode(MODE_NIGHT_FOLLOW_SYSTEM)
-                    }
-                    .setNegativeButton(getString(R.string.cancel)) { _, _ ->
-                        isChecked = false
-                    }
-                    .create()
-                    .show()
-                true
-            }
+    fun pdfPagesThemePreference(breadcrumb: String?): Preference {
+        return ThemeChoicePreference(
+            context = context,
+            titleText = formatSummary(breadcrumb, getString(R.string.dark_theme_for_pdf)) ?: getString(R.string.dark_theme_for_pdf),
+            initialSelectedMode = appPreferences.getPdfPagesTheme(),
+        ) { mode ->
+            appPreferences.setPdfPagesTheme(mode)
         }
     }
 
@@ -151,12 +154,10 @@ internal class SettingsPreferenceFactory(
         return Preference(context).apply {
             title = getString(R.string.fullscreen_buttons)
             key = Preferences.fullScreenOverlayActionsKey
-            updateFullScreenButtonsSummary(breadcrumb)
+            summary = formatSummary(breadcrumb, getString(R.string.fullscreen_buttons_summary))
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
-                showFullScreenButtonsPreferenceDialog(context, appPreferences) {
-                    updateFullScreenButtonsSummary(breadcrumb)
-                }
+                showFullScreenButtonsPreferenceDialog(context, appPreferences) {}
                 true
             }
         }
@@ -166,12 +167,10 @@ internal class SettingsPreferenceFactory(
         return Preference(context).apply {
             title = getString(R.string.shortcut_bar_buttons)
             key = Preferences.shortcutBarActionsKey
-            updateShortcutBarButtonsSummary(breadcrumb)
+            summary = formatSummary(breadcrumb, getString(R.string.shortcut_bar_buttons_summary))
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
-                showShortcutBarButtonsPreferenceDialog(context, appPreferences) {
-                    updateShortcutBarButtonsSummary(breadcrumb)
-                }
+                showShortcutBarButtonsPreferenceDialog(context, appPreferences) {}
                 true
             }
         }
@@ -334,20 +333,6 @@ internal class SettingsPreferenceFactory(
         )
     }
 
-    private fun Preference.updateFullScreenButtonsSummary(breadcrumb: String?) {
-        summary = formatSummary(
-            breadcrumb = breadcrumb,
-            detail = fullScreenButtonsSummary(context, appPreferences),
-        )
-    }
-
-    private fun Preference.updateShortcutBarButtonsSummary(breadcrumb: String?) {
-        summary = formatSummary(
-            breadcrumb = breadcrumb,
-            detail = shortcutBarButtonsSummary(context, appPreferences),
-        )
-    }
-
     private fun Preference.updateFloatPreferenceSummary(
         breadcrumb: String?,
         @StringRes summaryRes: Int,
@@ -371,5 +356,65 @@ internal class SettingsPreferenceFactory(
 
     private fun dp(value: Int): Int {
         return (value * fragment.resources.displayMetrics.density).roundToInt()
+    }
+
+    private class ThemeChoicePreference(
+        context: android.content.Context,
+        private val titleText: String,
+        initialSelectedMode: String,
+        private val onModeSelected: (String) -> Unit,
+    ) : Preference(context) {
+        private var selectedMode = initialSelectedMode
+
+        init {
+            layoutResource = R.layout.preference_theme_choice
+            title = titleText
+            isSelectable = false
+            isIconSpaceReserved = false
+        }
+
+        override fun onBindViewHolder(holder: PreferenceViewHolder) {
+            super.onBindViewHolder(holder)
+
+            val group = holder.findViewById(R.id.theme_choice_group) as MaterialButtonToggleGroup
+            group.clearOnButtonCheckedListeners()
+            group.check(selectedMode.toButtonId())
+            styleSegments(group)
+            group.addOnButtonCheckedListener { _, checkedId, isChecked ->
+                if (!isChecked) return@addOnButtonCheckedListener
+                selectedMode = checkedId.toThemeMode()
+                styleSegments(group)
+                onModeSelected(selectedMode)
+            }
+        }
+
+        private fun styleSegments(group: MaterialButtonToggleGroup) {
+            val checkedId = group.checkedButtonId
+            val selectedBackground = MaterialColors.getColor(group, com.google.android.material.R.attr.colorSecondary)
+            val selectedText = MaterialColors.getColor(group, com.google.android.material.R.attr.colorOnSecondary)
+            val unselectedText = MaterialColors.getColor(group, com.google.android.material.R.attr.colorOnSurface)
+            for (index in 0 until group.childCount) {
+                val button = group.getChildAt(index) as? MaterialButton ?: continue
+                val selected = button.id == checkedId
+                button.backgroundTintList = ColorStateList.valueOf(if (selected) selectedBackground else Color.TRANSPARENT)
+                button.setTextColor(if (selected) selectedText else unselectedText)
+            }
+        }
+
+        private fun String.toButtonId(): Int {
+            return when (this) {
+                Preferences.themeDark -> R.id.theme_choice_dark
+                Preferences.themeLight -> R.id.theme_choice_light
+                else -> R.id.theme_choice_system
+            }
+        }
+
+        private fun Int.toThemeMode(): String {
+            return when (this) {
+                R.id.theme_choice_dark -> Preferences.themeDark
+                R.id.theme_choice_light -> Preferences.themeLight
+                else -> Preferences.themeSystem
+            }
+        }
     }
 }

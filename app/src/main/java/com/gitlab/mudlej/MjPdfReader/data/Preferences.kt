@@ -61,6 +61,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val pdfDarkThemeKey = "pdfDarkTheme"
         const val appFollowSystemThemeKey = "appFollowSystemTheme"
         const val pdfFollowSystemThemeKey = "pdfFollowSystemTheme"
+        const val interfaceThemeKey = "interfaceTheme"
+        const val pdfPagesThemeKey = "pdfPagesTheme"
         const val enableReloadButtonKey = "enableReloadButton"
         const val primaryButtonActionKey = "primaryButtonAction"
         const val secondaryButtonActionKey = "secondaryButtonAction"
@@ -137,6 +139,9 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val autoFullScreenHorizontalDefault = false
         const val scrollSpeedDefault = 3
         const val listFilterDefault = "RECENT"  // ListFilter.RECENT.name
+        const val themeSystem = "system"
+        const val themeLight = "light"
+        const val themeDark = "dark"
         val fullScreenOverlayActionsDefault = ConfigurableAction.defaultFullScreenOverlayActionIds
         val shortcutBarActionsDefault = ConfigurableAction.defaultShortcutBarActionIds
 
@@ -163,6 +168,14 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getPdfDarkTheme() = prefMan.getBoolean(pdfDarkThemeKey, pdfDarkThemeDefault)
     fun getAppFollowSystemTheme() = prefMan.getBoolean(appFollowSystemThemeKey, appFollowSystemThemeDefault)
     fun getPdfFollowSystemTheme() = prefMan.getBoolean(pdfFollowSystemThemeKey, pdfFollowSystemThemeDefault)
+    fun getInterfaceTheme(): String {
+        return prefMan.getString(interfaceThemeKey, null)
+            ?: if (getAppFollowSystemTheme()) themeSystem else themeLight
+    }
+    fun getPdfPagesTheme(): String {
+        return prefMan.getString(pdfPagesThemeKey, null)
+            ?: if (getPdfFollowSystemTheme()) themeSystem else if (getPdfDarkTheme()) themeDark else themeLight
+    }
     fun getScreenOn() = prefMan.getBoolean(screenOnKey, screenOnDefault)
     fun getSpaceBetweenPages() = prefMan.getBoolean(spaceBetweenPagesKey, spaceBetweenPagesDefault)
     fun getHideDelay() = prefMan.getInt(hideDelayKey, hideDelayDefault)
@@ -228,6 +241,15 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setPdfDarkTheme(value: Boolean) = prefMan.edit().putBoolean(pdfDarkThemeKey, value).apply()
     fun setAppFollowSystemTheme(value: Boolean) = prefMan.edit().putBoolean(appFollowSystemThemeKey, value).apply()
     fun setPdfFollowSystemTheme(value: Boolean) = prefMan.edit().putBoolean(pdfFollowSystemThemeKey, value).apply()
+    fun setInterfaceTheme(value: String) = prefMan.edit()
+        .putString(interfaceThemeKey, value)
+        .putBoolean(appFollowSystemThemeKey, value == themeSystem)
+        .apply()
+    fun setPdfPagesTheme(value: String) = prefMan.edit()
+        .putString(pdfPagesThemeKey, value)
+        .putBoolean(pdfFollowSystemThemeKey, value == themeSystem)
+        .putBoolean(pdfDarkThemeKey, value == themeDark)
+        .apply()
     fun setScreenOn(value: Boolean) = prefMan.edit().putBoolean(screenOnKey, value).apply()
     fun setSpaceBetweenPages(value: Boolean) = prefMan.edit().putBoolean(spaceBetweenPagesKey, value).apply()
     fun setHideDelay(value: Int) = prefMan.edit().putInt(hideDelayKey, value).apply()

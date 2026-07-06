@@ -30,19 +30,19 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
     private fun appearanceEntries(): List<SettingEntry> {
         return listOf(
             appThemeEntry(),
-            switchEntry(
+            SettingEntry(
                 page = SettingsPage.APPEARANCE,
                 titleRes = R.string.dark_theme_for_pdf,
-                key = Preferences.pdfFollowSystemThemeKey,
-                defaultValue = Preferences.pdfFollowSystemThemeDefault,
-                summaryRes = R.string.pdf_dark_theme_summary,
                 keywords = listOf("pdf", "theme", "dark", "night", "system"),
-            ),
+            ) { breadcrumb ->
+                pdfPagesThemePreference(breadcrumb = breadcrumb)
+            },
             switchEntry(
                 page = SettingsPage.APPEARANCE,
                 titleRes = R.string.quality,
                 key = Preferences.highQualityKey,
                 defaultValue = Preferences.highQualityDefault,
+                summaryRes = R.string.quality_summary,
                 keywords = listOf("rendering", "quality"),
             ),
             switchEntry(
@@ -50,6 +50,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 titleRes = R.string.anti_aliasing,
                 key = Preferences.antiAliasingKey,
                 defaultValue = Preferences.antiAliasingDefault,
+                summaryRes = R.string.anti_aliasing_summary,
                 keywords = listOf("rendering", "smooth"),
             ),
             switchEntry(
@@ -85,6 +86,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 titleRes = R.string.horizontal_scrolling_mode,
                 key = Preferences.horizontalScrollKey,
                 defaultValue = Preferences.horizontalScrollDefault,
+                summaryRes = R.string.horizontal_scrolling_summary,
                 keywords = listOf("landscape", "swipe"),
             ),
             switchEntry(
@@ -124,6 +126,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 titleRes = R.string.keep_screen_on,
                 key = Preferences.screenOnKey,
                 defaultValue = Preferences.screenOnDefault,
+                summaryRes = R.string.keep_screen_on_summary,
                 keywords = listOf("display", "sleep", "screen"),
             ),
             switchEntry(
@@ -131,6 +134,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 titleRes = R.string.double_tap_to_exit,
                 key = Preferences.doubleTapToExitEnabledKey,
                 defaultValue = Preferences.doubleTapToExitEnabledDefault,
+                summaryRes = R.string.double_tap_to_exit_summary,
                 keywords = listOf("exit", "back"),
             ),
         )
@@ -173,6 +177,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 titleRes = R.string.fullscreen_info_show_time,
                 key = Preferences.fullScreenInfoShowTimeKey,
                 defaultValue = Preferences.fullScreenInfoShowTimeDefault,
+                summaryRes = R.string.fullscreen_info_show_time_summary,
                 keywords = listOf("fullscreen", "info", "clock"),
             ),
             switchEntry(
@@ -180,6 +185,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 titleRes = R.string.fullscreen_info_show_pdf_name,
                 key = Preferences.fullScreenInfoShowPdfNameKey,
                 defaultValue = Preferences.fullScreenInfoShowPdfNameDefault,
+                summaryRes = R.string.fullscreen_info_show_pdf_name_summary,
                 keywords = listOf("fullscreen", "info", "title", "file"),
             ),
             switchEntry(
@@ -187,6 +193,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 titleRes = R.string.fullscreen_info_show_page_number,
                 key = Preferences.fullScreenInfoShowPageNumberKey,
                 defaultValue = Preferences.fullScreenInfoShowPageNumberDefault,
+                summaryRes = R.string.fullscreen_info_show_page_number_summary,
                 keywords = listOf("fullscreen", "info", "page"),
             ),
             switchEntry(
@@ -194,6 +201,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 titleRes = R.string.fullscreen_info_show_reading_percentage,
                 key = Preferences.fullScreenInfoShowReadingPercentageKey,
                 defaultValue = Preferences.fullScreenInfoShowReadingPercentageDefault,
+                summaryRes = R.string.fullscreen_info_show_reading_percentage_summary,
                 keywords = listOf("fullscreen", "info", "percent", "progress"),
             ),
         )
@@ -253,10 +261,9 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
         return SettingEntry(
             page = SettingsPage.APPEARANCE,
             titleRes = R.string.dark_theme_for_app,
-            summaryRes = R.string.app_dark_theme_summary,
             keywords = listOf("ui", "theme", "dark", "night", "system"),
         ) { breadcrumb ->
-            appThemePreference(breadcrumb = breadcrumb)
+            interfaceThemePreference(breadcrumb = breadcrumb)
         }
     }
 
@@ -264,6 +271,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
         return SettingEntry(
             page = SettingsPage.CUSTOMIZE_CONTROLS,
             titleRes = R.string.shortcut_bar_buttons,
+            summaryRes = R.string.shortcut_bar_buttons_summary,
             keywords = listOf("shortcut", "buttons", "actions"),
         ) { breadcrumb ->
             shortcutBarButtonsPreference(breadcrumb = breadcrumb)
@@ -274,6 +282,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
         return SettingEntry(
             page = SettingsPage.CUSTOMIZE_CONTROLS,
             titleRes = R.string.fullscreen_buttons,
+            summaryRes = R.string.fullscreen_buttons_summary,
             keywords = listOf("fullscreen", "buttons", "actions"),
         ) { breadcrumb ->
             fullScreenButtonsPreference(breadcrumb = breadcrumb)

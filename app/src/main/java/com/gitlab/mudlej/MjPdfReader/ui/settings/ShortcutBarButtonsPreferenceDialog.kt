@@ -5,7 +5,6 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
 import com.gitlab.mudlej.MjPdfReader.enums.filteredShortcutBarActionIds
-import com.gitlab.mudlej.MjPdfReader.enums.orderedSelectedShortcutBarActions
 import com.gitlab.mudlej.MjPdfReader.enums.orderedShortcutBarActions
 import com.gitlab.mudlej.MjPdfReader.enums.selectedShortcutBarActionIds
 
@@ -25,15 +24,6 @@ fun showShortcutBarButtonsPreferenceDialog(
         preferences.setShortcutBarActionOrder(filteredShortcutBarActionIds(rows.actionIds()))
         onSaved()
     }
-}
-
-fun shortcutBarButtonsSummary(context: Context, preferences: Preferences): String {
-    val selectedTitles = orderedSelectedShortcutBarActions(
-        selectedIds = preferences.getShortcutBarActions(),
-        actionOrder = preferences.getShortcutBarActionOrder(),
-    )
-        .map { context.getString(it.titleRes) }
-    return selectedTitles.ifEmpty { listOf(context.getString(R.string.none)) }.joinToString(", ")
 }
 
 private fun shortcutBarButtonRows(preferences: Preferences): MutableList<ActionSelectionRow> {

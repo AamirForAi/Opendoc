@@ -6,7 +6,6 @@ import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
 import com.gitlab.mudlej.MjPdfReader.enums.orderedFullScreenOverlayActionIds
 import com.gitlab.mudlej.MjPdfReader.enums.orderedFullScreenOverlayActions
-import com.gitlab.mudlej.MjPdfReader.enums.orderedSelectedFullScreenOverlayActions
 import com.gitlab.mudlej.MjPdfReader.enums.selectedFullScreenOverlayActionIds
 
 fun showFullScreenButtonsPreferenceDialog(
@@ -25,16 +24,6 @@ fun showFullScreenButtonsPreferenceDialog(
         preferences.setFullScreenOverlayActionOrder(orderedFullScreenOverlayActionIds(rows.map { it.action.id }))
         onSaved()
     }
-}
-
-fun fullScreenButtonsSummary(context: Context, preferences: Preferences): String {
-    val selectedTitles = orderedSelectedFullScreenOverlayActions(
-        selectedIds = preferences.getFullScreenOverlayActions(),
-        actionOrder = preferences.getFullScreenOverlayActionOrder(),
-    )
-        .filter { it != ConfigurableAction.EXIT_FULLSCREEN }
-        .map { context.getString(it.titleRes) }
-    return (listOf(context.getString(R.string.exit)) + selectedTitles).joinToString(", ")
 }
 
 private fun fullScreenButtonRows(preferences: Preferences): MutableList<ActionSelectionRow> {
