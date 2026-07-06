@@ -148,7 +148,7 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
 
                 activeQuery = query.trim().takeUnless { it.isBlank() }
                 bookmarkAdapter.query = activeQuery
-                val visibleBookmarks = submitVisibleBookmarks()
+                val visibleBookmarks = submitVisibleBookmarks(forceRebind = true)
                 if (!activeQuery.isNullOrBlank()) {
                     Snackbar.make(
                         binding.root,
@@ -162,7 +162,7 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
         searchView.setOnCloseListener {
             activeQuery = null
             bookmarkAdapter.query = null
-            submitVisibleBookmarks()
+            submitVisibleBookmarks(forceRebind = true)
             false
         }
     }
@@ -191,10 +191,13 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
         }
     }
 
-    private fun submitVisibleBookmarks(restoreScroll: Boolean = false): List<Bookmark> {
+    private fun submitVisibleBookmarks(
+        restoreScroll: Boolean = false,
+        forceRebind: Boolean = false,
+    ): List<Bookmark> {
         val items = visibleBookmarks()
         bookmarkAdapter.submitList(items) {
-            bookmarkAdapter.notifyDataSetChanged()
+            if (forceRebind) bookmarkAdapter.notifyItemRangeChanged(0, bookmarkAdapter.itemCount)
             if (restoreScroll) restorePositionInList()
         }
         return items
