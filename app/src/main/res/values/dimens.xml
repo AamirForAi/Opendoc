@@ -10,4 +10,7 @@
     <dimen name="text_reader_controls_max_width">560dp</dimen>
 
     <dimen name="properties_padding">5dp</dimen>
+
+    <dimen name="bookmark_indent_step">24dp</dimen>
+    <dimen name="bookmark_card_horizontal_margin">8dp</dimen>
 </resources>

@@ -1,19 +1,62 @@
 package com.gitlab.mudlej.MjPdfReader.ui.bookmark
 
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.gitlab.mudlej.MjPdfReader.data.Bookmark
-import com.gitlab.mudlej.MjPdfReader.databinding.BookmarksListItemBinding
+import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.databinding.BookmarkRowItemBinding
 
 class BookmarkViewHolder(
-    private val binding: BookmarksListItemBinding,
+    private val binding: BookmarkRowItemBinding,
     private val bookmarkAdapter: BookmarkAdapter,
 ) : RecyclerView.ViewHolder(binding.root) {
 
-    fun bind(bookmark: Bookmark) {
-        val view = bookmarkAdapter.rootViewFor(bookmark, binding.root)
-        (view.parent as? ViewGroup)?.removeView(view)
-        binding.root.removeAllViews()
-        binding.root.addView(view)
+    fun bind(row: BookmarkRow) {
+        val bookmark = row.bookmark
+        val textSize = PDF.BOOKMARK_TEXT_SIZE - bookmark.level * PDF.BOOKMARK_TEXT_SIZE_DEC
+
+        indent(bookmark.level)
+
+        binding.bookmarkText.text = bookmark.title
+        binding.bookmarkText.textSize = textSize
+        binding.bookmarkPageNumber.text = (bookmark.pageIdx + 1).toString()
+        binding.bookmarkPageNumber.textSize = textSize
+
+        val onClick = View.OnClickListener { bookmarkAdapter.bookmarkFunctions.onBookmarkClicked(bookmark) }
+        binding.root.setOnClickListener(onClick)
+        binding.bookmarkText.setOnClickListener(onClick)
+        binding.bookmarkPageNumber.setOnClickListener(onClick)
+
+        bindToggle(row)
+    }
+
+    private fun bindToggle(row: BookmarkRow) {
+        val toggle = binding.toggleButton
+        if (!row.expandable) {
+            toggle.setImageResource(R.drawable.ic_bullet_point)
+            toggle.setOnClickListener(null)
+            toggle.isClickable = false
+            return
+        }
+
+        toggle.setImageResource(
+            if (row.expanded) R.drawable.ic_small_arrow_down else R.drawable.ic_small_arrow_right
+        )
+
+        if (bookmarkAdapter.isFiltering()) {
+            toggle.setOnClickListener(null)
+            toggle.isClickable = false
+        } else {
+            toggle.setOnClickListener { bookmarkAdapter.onToggleClicked(row.bookmark) }
+        }
+    }
+
+    private fun indent(level: Int) {
+        val step = itemView.resources.getDimensionPixelSize(R.dimen.bookmark_indent_step)
+        val baseMargin = itemView.resources.getDimensionPixelSize(R.dimen.bookmark_card_horizontal_margin)
+        val params = binding.root.layoutParams as ViewGroup.MarginLayoutParams
+        params.marginStart = baseMargin + level * step
+        binding.root.layoutParams = params
     }
 }

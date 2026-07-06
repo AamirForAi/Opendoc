@@ -3,14 +3,16 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/bookmarkCard"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:layout_marginVertical="4dp"
+    android:layout_marginHorizontal="@dimen/bookmark_card_horizontal_margin">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="10dp">
-        <!--    android:background="@drawable/bookmark_list_item_background"-->
 
         <ImageView
             android:id="@+id/toggleButton"
@@ -19,7 +21,7 @@
             android:contentDescription="@string/expand_or_collapse_bookmark"
             android:padding="8dp"
             android:src="@drawable/ic_small_arrow_right"
-            app:layout_constraintBottom_toTopOf="@id/childrenBookmarkLayout"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -29,7 +31,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="10dp"
             android:textSize="24sp"
-            app:layout_constraintBottom_toTopOf="@id/childrenBookmarkLayout"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/bookmarkPageNumber"
             app:layout_constraintStart_toEndOf="@id/toggleButton"
             app:layout_constraintTop_toTopOf="parent"
@@ -41,26 +43,10 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="10dp"
             android:textSize="20sp"
-            app:layout_constraintBottom_toTopOf="@id/childrenBookmarkLayout"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             tools:text="45" />
 
-        <androidx.appcompat.widget.LinearLayoutCompat
-            android:id="@+id/childrenBookmarkLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginVertical="10dp"
-            android:layout_marginHorizontal="4dp"
-            android:orientation="vertical"
-            android:visibility="gone"
-            app:divider="@drawable/bookmark_divider"
-            app:showDividers="middle"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/bookmarkText">
-            <!-- will be added dynamically -->
-        </androidx.appcompat.widget.LinearLayoutCompat>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>
