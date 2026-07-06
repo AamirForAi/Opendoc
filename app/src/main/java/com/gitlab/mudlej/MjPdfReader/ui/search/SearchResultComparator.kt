@@ -1,12 +1,12 @@
 package com.gitlab.mudlej.MjPdfReader.ui.search
 
 import androidx.recyclerview.widget.DiffUtil
-import com.gitlab.mudlej.MjPdfReader.data.SearchResult
 
-class SearchResultComparator : DiffUtil.ItemCallback<SearchResult>() {
-    override fun areItemsTheSame(oldItem: SearchResult, newItem: SearchResult) =
-        oldItem.pageNumber == newItem.pageNumber && oldItem.originalIndex == newItem.originalIndex
+class SearchResultComparator : DiffUtil.ItemCallback<SearchResultRow>() {
+    override fun areItemsTheSame(oldItem: SearchResultRow, newItem: SearchResultRow) =
+        oldItem.result.pageNumber == newItem.result.pageNumber
+                && oldItem.result.originalIndex == newItem.result.originalIndex
 
-    override fun areContentsTheSame(oldItem: SearchResult, newItem: SearchResult) =
-        oldItem == newItem
+    override fun areContentsTheSame(oldItem: SearchResultRow, newItem: SearchResultRow) =
+        oldItem.result == newItem.result && oldItem.nestedQuery == newItem.nestedQuery
 }

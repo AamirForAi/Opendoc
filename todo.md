@@ -1,6 +1,6 @@
 # MJ PDF To-Do list
 
-## 2.3.0 Targets
+## 3.0.0 Targets
 - [x] Add SETUP.md guide for building MJ PDF locally. ([!24](https://gitlab.com/mudlej_android/mj_pdf_reader/-/merge_requests/24))
 - [x] Remove old dependencies and libraries ([!24](https://gitlab.com/mudlej_android/mj_pdf_reader/-/merge_requests/24), [!25](https://gitlab.com/mudlej_android/mj_pdf_reader/-/merge_requests/25))
 - [x] Update SDK and dependencies ([!24](https://gitlab.com/mudlej_android/mj_pdf_reader/-/merge_requests/24), [!25](https://gitlab.com/mudlej_android/mj_pdf_reader/-/merge_requests/25))

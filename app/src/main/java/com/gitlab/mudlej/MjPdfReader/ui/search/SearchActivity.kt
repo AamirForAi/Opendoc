@@ -28,6 +28,8 @@ import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.max
@@ -49,6 +51,8 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     private var restoredListOffsetPx: Int = 0
     private var restoredNestedQuery: String? = null
     private var restoredNestedQueryApplied = false
+    private var nestedQueryJob: Job? = null
+    private var pendingResultClick: SearchResult? = null
 
     private val lastPageLiveData = MutableLiveData<Int>()
 
@@ -122,7 +126,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     }
 
     private fun initRecyclerView() {
-        searchResultAdapter.submitList(searchResults)
+        searchResultAdapter.submitList(emptyList())
         searchResultAdapter.progressBar = binding.progressBar
 
         binding.searchRecyclerView.apply {
@@ -179,7 +183,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             withContext(Dispatchers.Main) {
                 searchResults = results
                 searchResultAdapter.nestedQuery = restoredNestedQuery
-                searchResultAdapter.submitList(visibleSearchResults())
+                searchResultAdapter.submitList(visibleResultRows())
                 hideProgressBar()
                 binding.searchProgressBar.visibility = View.GONE
                 postSearch()
@@ -258,6 +262,11 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         } else {
             searchResults.filter { it.text.contains(query, true) }
         }
+    }
+
+    private fun visibleResultRows(): List<SearchResultRow> {
+        val query = searchResultAdapter.nestedQuery
+        return visibleSearchResults().map { SearchResultRow(it, query) }
     }
 
     private fun getPageResult(
@@ -359,23 +368,26 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             override fun onQueryTextSubmit(query: String) = false
 
             override fun onQueryTextChange(query: String): Boolean {
-                searchResultAdapter.nestedQuery = query
-                showProgressBar()
-                val filteredList = visibleSearchResults()
-                searchResultAdapter.submitList(filteredList)
-                searchResultAdapter.notifyDataSetChanged() // because the comparator doesn't see the difference in text style
-                Snackbar.make(
-                    binding.root,
-                    getString(R.string.number_of_filtered_results).format(filteredList.size),
-                    Snackbar.LENGTH_SHORT
-                ).show()
+                nestedQueryJob?.cancel()
+                nestedQueryJob = lifecycleScope.launch {
+                    delay(NESTED_QUERY_DEBOUNCE_MS)
+                    searchResultAdapter.nestedQuery = query
+                    showProgressBar()
+                    val rows = withContext(Dispatchers.Default) { visibleResultRows() }
+                    searchResultAdapter.submitList(rows)
+                    Snackbar.make(
+                        binding.root,
+                        getString(R.string.number_of_filtered_results).format(rows.size),
+                        Snackbar.LENGTH_SHORT
+                    ).show()
+                }
                 return false
             }
         })
         searchView.setOnCloseListener {
+            nestedQueryJob?.cancel()
             searchResultAdapter.nestedQuery = null
-            searchResultAdapter.submitList(searchResults.toList())
-            searchResultAdapter.notifyDataSetChanged()
+            searchResultAdapter.submitList(visibleResultRows())
             true
         }
         val nestedQuery = restoredNestedQuery
@@ -389,6 +401,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     }
 
     override fun onSearchResultClicked(searchResult: SearchResult) {
+        pendingResultClick = searchResult
         saveSearchSessionState()
         val resultIntent = Intent()
         resultIntent.putExtra(PDF.searchResultKey, Gson().toJson(searchResult))
@@ -396,35 +409,52 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         finish()
     }
 
-    override fun onShowMoreResultTextClicked(searchResult: SearchResult, index: Int): SearchResult {
-        val query = searchQuery.ifBlank { searchResult.text.substring(searchResult.inputStart, searchResult.inputEnd) }
-        val pageText = pdfExtractor.getPageText(searchResult.pageNumber)
-
-        val newSearchResult = getPageResult(
-            query,
-            searchResult.originalIndex,
-            pageText,
-            searchResult.pageNumber,
-            200,
-            expanded = true
-        )
-        newSearchResult.searchResultIndexInList = searchResult.searchResultIndexInList
+    override fun onShowMoreResultTextClicked(searchResult: SearchResult) {
         val searchResultIndex = searchResult.searchResultIndexInList
         if (searchResultIndex !in searchResults.indices) {
-            //throw RuntimeException("index is -1!!")
-            return searchResult
+            return
         }
-        searchResults[searchResultIndex] = newSearchResult
-        SearchSessionCache.setExpanded(fileHash, searchQuery, searchResultIndex, expanded = true)
-        searchResultAdapter.submitList(visibleSearchResults())
+        val query = searchQuery.ifBlank { searchResult.text.substring(searchResult.inputStart, searchResult.inputEnd) }
 
-        return newSearchResult
+        lifecycleScope.launch {
+            val pageText = withContext(Dispatchers.Default) {
+                pdfExtractor.getPageText(searchResult.pageNumber)
+            }
+            val newSearchResult = getPageResult(
+                query,
+                searchResult.originalIndex,
+                pageText,
+                searchResult.pageNumber,
+                200,
+                expanded = true
+            )
+            newSearchResult.searchResultIndexInList = searchResultIndex
+            if (searchResultIndex !in searchResults.indices) {
+                return@launch
+            }
+            searchResults[searchResultIndex] = newSearchResult
+            SearchSessionCache.setExpanded(fileHash, searchQuery, searchResultIndex, expanded = true)
+            searchResultAdapter.submitList(visibleResultRows())
+        }
     }
 
     private fun saveSearchSessionState() {
         if (!::binding.isInitialized || searchQuery.isBlank()) {
             return
         }
+
+        val clicked = pendingResultClick
+        if (clicked != null) {
+            SearchSessionCache.updateUiState(
+                fileHash,
+                searchQuery,
+                clicked.searchResultIndexInList,
+                0,
+                nestedQuery = null,
+            )
+            return
+        }
+
         val layoutManager = binding.searchRecyclerView.layoutManager as? LinearLayoutManager ?: return
         val position = layoutManager.findFirstVisibleItemPosition()
         if (position == -1) {
@@ -439,5 +469,9 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             offsetPx,
             searchResultAdapter.nestedQuery,
         )
+    }
+
+    companion object {
+        private const val NESTED_QUERY_DEBOUNCE_MS = 200L
     }
 }

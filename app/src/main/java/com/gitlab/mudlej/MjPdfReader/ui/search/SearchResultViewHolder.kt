@@ -20,27 +20,31 @@ class SearchResultViewHolder(
     private val context: Context,
     private val binding: SearchResultItemBinding,
     private val searchResultFunctions: SearchResultFunctions,
-    private val searchResultAdapter: SearchResultAdapter
 ) : RecyclerView.ViewHolder(binding.root) {
 
-    fun bind(searchResult: SearchResult) {
-        val text = stylizeText(searchResult)
+    companion object {
+        private const val COLLAPSED_MAX_LINES = 4
+    }
+
+    fun bind(row: SearchResultRow) {
+        val searchResult = row.result
+        val text = stylizeText(searchResult, row.nestedQuery)
         binding.apply {
             resultText.setText(text, TextView.BufferType.SPANNABLE)
             resultPageNumber.text = "PAGE\n${searchResult.pageNumber}"
 
             // show more text
             if (!searchResult.expanded) {
+                resultText.maxLines = COLLAPSED_MAX_LINES
                 showMoreButton.visibility = View.VISIBLE
                 showMoreButton.setOnClickListener {
-                    searchResultFunctions.onShowMoreResultTextClicked(
-                        searchResult, searchResultAdapter.currentList.indexOf(searchResult)
-                    )
+                    searchResultFunctions.onShowMoreResultTextClicked(searchResult)
                 }
             }
             else {
                 resultText.maxLines = Int.MAX_VALUE
                 showMoreButton.visibility = View.GONE
+                showMoreButton.setOnClickListener(null)
             }
 
             // got to page
@@ -50,17 +54,15 @@ class SearchResultViewHolder(
         }
     }
 
-    private fun stylizeText(searchResult: SearchResult): Spannable {
+    private fun stylizeText(searchResult: SearchResult, nestedQuery: String?): Spannable {
         val color = ContextCompat.getColor(context, R.color.search)
         val spannable = SpannableString(searchResult.text)
+        val length = spannable.length
 
         // stylize nested query result
-        searchResultAdapter.nestedQuery?.let { query ->
+        nestedQuery?.let { query ->
             if (query.isEmpty() || query.isBlank() || query.length < 3) {
                 return@let
-            } else {
-                spannable.removeSpan(StyleSpan(Typeface.BOLD))
-                spannable.removeSpan(UnderlineSpan())
             }
 
             val indexes = searchResult.text.indexesOf(query, ignoreCase = true)
@@ -69,34 +71,21 @@ class SearchResultViewHolder(
                     continue // skip the main query string
                 }
 
-                spannable.setSpan(
-                    UnderlineSpan(),
-                    index,
-                    index + query.length,
-                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                spannable.setSpan(
-                    StyleSpan(Typeface.BOLD),
-                    index,
-                    index + query.length,
-                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
+                val end = (index + query.length).coerceAtMost(length)
+                if (index !in 0 until end) continue
+
+                spannable.setSpan(UnderlineSpan(), index, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                spannable.setSpan(StyleSpan(Typeface.BOLD), index, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
         }
 
         // stylize the main query input
-        spannable.setSpan(
-            ForegroundColorSpan(color),
-            searchResult.inputStart,
-            searchResult.inputEnd,
-            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        spannable.setSpan(
-            StyleSpan(Typeface.BOLD),
-            searchResult.inputStart,
-            searchResult.inputEnd,
-            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
+        val inputStart = searchResult.inputStart.coerceIn(0, length)
+        val inputEnd = searchResult.inputEnd.coerceIn(inputStart, length)
+        if (inputStart < inputEnd) {
+            spannable.setSpan(ForegroundColorSpan(color), inputStart, inputEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), inputStart, inputEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
         return spannable
     }
 }

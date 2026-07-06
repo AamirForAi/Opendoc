@@ -5,12 +5,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ProgressBar
 import androidx.recyclerview.widget.ListAdapter
-import com.gitlab.mudlej.MjPdfReader.data.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.SearchResultItemBinding
 
 class SearchResultAdapter(
     private val searchResultFunctions: SearchResultFunctions
-) : ListAdapter<SearchResult, SearchResultViewHolder>(SearchResultComparator()) {
+) : ListAdapter<SearchResultRow, SearchResultViewHolder>(SearchResultComparator()) {
 
     var nestedQuery: String? = null
     var progressBar: ProgressBar? = null
@@ -19,7 +18,6 @@ class SearchResultAdapter(
         return SearchResultViewHolder(parent.context,
             SearchResultItemBinding.inflate(LayoutInflater.from(parent.context), parent, false),
             searchResultFunctions,
-            searchResultAdapter = this
         )
     }
 
@@ -29,7 +27,7 @@ class SearchResultAdapter(
         }
     }
 
-    override fun onCurrentListChanged(previousList: MutableList<SearchResult>, currentList: MutableList<SearchResult>) {
+    override fun onCurrentListChanged(previousList: MutableList<SearchResultRow>, currentList: MutableList<SearchResultRow>) {
         progressBar?.visibility = View.GONE
         super.onCurrentListChanged(previousList, currentList)
     }

@@ -5,6 +5,8 @@ from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--fresh", action="store_true", help="Clean generated native outputs before building.")
+parser.add_argument("--native-only", action="store_true",
+                    help="Skip fetching/building dependencies and only rebuild the native code (ndk-build).")
 args = parser.parse_args()
 
 from build_dependencies.common import log
@@ -41,8 +43,9 @@ if args.fresh:
     clean_native_outputs()
 
 os.chdir("build_dependencies")
-fetch_prebuilt_pdfium()
-build_libpng_libs()
-build_freetype_libs()
-copy_shared_cpp_libs()
+if not args.native_only:
+    fetch_prebuilt_pdfium()
+    build_libpng_libs()
+    build_freetype_libs()
+    copy_shared_cpp_libs()
 build_native_code()

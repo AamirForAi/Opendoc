@@ -1226,9 +1226,9 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
         if (rect.right <= rect.left || rect.top <= rect.bottom) {
             continue;
         }
-        float verticalPadding = fmax(0.5f, (rect.top - rect.bottom) * 0.08f);
-        rect.top += verticalPadding;
-        rect.bottom -= verticalPadding;
+//        float verticalPadding = fmax(0.5f, (rect.top - rect.bottom) * 0.05f);
+//        rect.top += verticalPadding;
+//        rect.bottom -= verticalPadding;
 
         FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_HIGHLIGHT);
         if (annot == NULL) {

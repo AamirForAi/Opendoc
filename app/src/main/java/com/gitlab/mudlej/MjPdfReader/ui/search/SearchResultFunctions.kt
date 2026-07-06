@@ -6,6 +6,6 @@ interface SearchResultFunctions {
 
     fun onSearchResultClicked(searchResult: SearchResult)
 
-    fun onShowMoreResultTextClicked(searchResult: SearchResult, index: Int): SearchResult
+    fun onShowMoreResultTextClicked(searchResult: SearchResult)
 
 }
