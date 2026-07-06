@@ -7,7 +7,6 @@
 - [x] Add Italian, Dutch, French, Simplified Chinese, Persian, and Polish translations. ([!26](https://gitlab.com/mudlej_android/mj_pdf_reader/-/merge_requests/26))
 - [x] Add option to change/crop PDF margins.
 - [x] Fix back button breaking when "volume key to turn page" is enabled.
-- [ ] Investigate PDF corruption/rendering issues after files stay open for several hours.
 - [x] Fix scroll-handle tap behavior.
 - [x] Lower minimum auto-scroll speed; current speed `1` is still too fast.
 - [x] Stop auto-scrolling when the user touches/interacts with the document.
@@ -19,15 +18,16 @@
 - [x] Add fullscreen shortcuts for Table of Contents and Go To Page.
 - [x] Make fullscreen shortcuts/custom buttons configurable.
 - [x] Make the second top-bar button configurable instead of reload-only.
-- [ ] Remember per-document zoom.
 - [x] Add way to return to Table of Contents after navigation.
 - [x] Make TOC remember expanded/collapsed state.
-- [ ] Remember per-document horizontal scroll lock.
 - [x] Remember per-document auto-scroll speed.
 - [x] Support RTL reading direction in horizontal mode.
 - [x] Add search in TOC activity.
 - [x] Improve text mode a little
+- [ ] Investigate PDF corruption/rendering issues after files stay open for several hours.
 - [ ] Investigate missing form checkboxes when printing.
+- [ ] Remember per-document horizontal scroll lock.
+- [ ] Remember per-document zoom.
 
 ## Reading State And Persistence
 - [ ] Remember per-document orientation.
@@ -42,9 +42,8 @@
 - [ ] Add browser-like scrolling mode.
 - [ ] Improve physical-book navigation feel.
 
-## Bookmarks And Library
+## Home Page
 - [ ] Add user bookmarks for saved page locations.
-- [ ] Add expand/collapse all in ToC.
 - [ ] Add Home page.
 - [ ] Add user-controlled "mark as read" state, independent from progress.
 - [ ] Add recently opened files.
@@ -54,17 +53,13 @@
 ## Text Mode, Search, And Reflow
 - [x] Replace current Text Mode with a proper dedicated Text Mode page.
 - [x] Add Reflow Mode.
-- [ ] Fix hard line/sentence breaks in reflow/text mode?!
-- [ ] Investigate WebView-based Text Mode.
 - [x] Add support for multiple fonts in Text Mode.
 - [ ] Add skip-empty-pages option in Text Mode.
 - [x] Add live inline text selection.
 - [ ] Add next/previous search-result navigation from the main reader.
 - [x] Improve expanding search results after filtering.
-- [ ] Search for words ignoring accents/diacritics. (`èéÈÉ=e`, `òóÒÓ=o`, `çč=c`, `ž=z`)
 
 ## PDF Features
-- [ ] Add PDF metadata such as page size (mm, A4, etc) and embedded fonts.
 - [ ] Add forms support.
 - [ ] Add fillable forms support.
 - [ ] Add handwritten/image signature support.
