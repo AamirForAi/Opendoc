@@ -153,14 +153,21 @@ public class PDFView extends RelativeLayout {
         public final int annotationIndex;
         public final String groupKey;
         public final RectF viewBounds;
+        public final RectF pdfBounds;
         public final String contents;
 
         public HighlightAnnotation(int pageIndex, int annotationIndex, String groupKey,
                                    RectF viewBounds, String contents) {
+            this(pageIndex, annotationIndex, groupKey, viewBounds, null, contents);
+        }
+
+        public HighlightAnnotation(int pageIndex, int annotationIndex, String groupKey,
+                                   RectF viewBounds, RectF pdfBounds, String contents) {
             this.pageIndex = pageIndex;
             this.annotationIndex = annotationIndex;
             this.groupKey = groupKey == null ? "" : groupKey;
             this.viewBounds = viewBounds == null ? null : new RectF(viewBounds);
+            this.pdfBounds = pdfBounds == null ? null : new RectF(pdfBounds);
             this.contents = contents == null ? "" : contents;
         }
     }
@@ -882,21 +889,34 @@ public class PDFView extends RelativeLayout {
         visiblePages.add(currentPage);
 
         drawHighlightAnnotationOverlays(canvas, visiblePages);
+        drawSelectedHighlightAnnotation(canvas);
 
         if (textSelectionManager != null) {
             textSelectionManager.draw(canvas);
         }
 
         canvas.translate(-currentXOffset, -currentYOffset);
-        drawSelectedHighlightAnnotation(canvas);
     }
 
     private void drawSelectedHighlightAnnotation(Canvas canvas) {
-        if (selectedHighlightAnnotation == null || selectedHighlightAnnotation.viewBounds == null) {
+        if (selectedHighlightAnnotation == null || selectedHighlightAnnotation.pdfBounds == null
+                || pdfFile == null) {
             return;
         }
-        canvas.drawRect(selectedHighlightAnnotation.viewBounds, selectedHighlightFillPaint);
-        canvas.drawRect(selectedHighlightAnnotation.viewBounds, selectedHighlightStrokePaint);
+        RectF pdfBounds = selectedHighlightAnnotation.pdfBounds;
+        RectF docRect = pdfFile.pdfRectToDocument(
+                selectedHighlightAnnotation.pageIndex,
+                zoom,
+                pdfBounds.left,
+                pdfBounds.bottom,
+                pdfBounds.right,
+                pdfBounds.top
+        );
+        if (docRect == null) {
+            return;
+        }
+        canvas.drawRect(docRect, selectedHighlightFillPaint);
+        canvas.drawRect(docRect, selectedHighlightStrokePaint);
     }
 
     private void drawHighlightAnnotationOverlays(Canvas canvas, Set<Integer> pages) {
@@ -1690,6 +1710,7 @@ public class PDFView extends RelativeLayout {
                 hit.getAnnotationIndex(),
                 hitGroup,
                 viewBounds,
+                pdfBounds,
                 hit.getContents()
         );
     }
@@ -2171,6 +2192,8 @@ public class PDFView extends RelativeLayout {
 
         private OnTapListener onTapListener;
 
+        private OnTapListener onTapUpListener;
+
         private OnLongPressListener onLongPressListener;
 
         private OnTextSelectionChangeListener onTextSelectionChangeListener;
@@ -2300,6 +2323,11 @@ public class PDFView extends RelativeLayout {
 
         public Configurator onTap(OnTapListener onTapListener) {
             this.onTapListener = onTapListener;
+            return this;
+        }
+
+        public Configurator onTapUp(OnTapListener onTapUpListener) {
+            this.onTapUpListener = onTapUpListener;
             return this;
         }
 
@@ -2433,6 +2461,7 @@ public class PDFView extends RelativeLayout {
             PDFView.this.callbacks.setOnDocumentInteraction(onDocumentInteractionListener);
             PDFView.this.callbacks.setOnRender(onRenderListener);
             PDFView.this.callbacks.setOnTap(onTapListener);
+            PDFView.this.callbacks.setOnTapUp(onTapUpListener);
             PDFView.this.callbacks.setOnLongPress(onLongPressListener);
             PDFView.this.callbacks.setOnPageError(onPageErrorListener);
             PDFView.this.callbacks.setOnTextSelectionChange(onTextSelectionChangeListener);

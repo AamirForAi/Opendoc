@@ -48,12 +48,16 @@ class InlineAnnotationActionController(
         binding.saveAnnotationsFab.setOnClickListener { onSaveClicked() }
     }
 
+    fun handleImmediatePdfTap(event: MotionEvent): Boolean {
+        val annotation = binding.pdfView.findHighlightAnnotationAt(event.x, event.y) ?: return false
+        clearActiveSearchResultHighlight()
+        binding.pdfView.clearTextSelection()
+        showHighlightAnnotationActions(annotation)
+        return true
+    }
+
     fun handlePdfTap(event: MotionEvent): Boolean {
-        val annotation = binding.pdfView.findHighlightAnnotationAt(event.x, event.y)
-        if (annotation != null) {
-            clearActiveSearchResultHighlight()
-            binding.pdfView.clearTextSelection()
-            showHighlightAnnotationActions(annotation)
+        if (handleImmediatePdfTap(event)) {
             return true
         }
 

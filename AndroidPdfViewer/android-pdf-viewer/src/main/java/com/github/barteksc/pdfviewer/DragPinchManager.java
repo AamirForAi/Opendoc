@@ -191,7 +191,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
 
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
-        return false;
+        return pdfView.callbacks.callOnTapUp(e);
     }
 
     @Override

@@ -70,6 +70,8 @@ public class Callbacks {
      */
     private OnTapListener onTapListener;
 
+    private OnTapListener onTapUpListener;
+
     /**
      * Call back object to call when the user does a long tap gesture
      */
@@ -177,6 +179,14 @@ public class Callbacks {
 
     public boolean callOnTap(MotionEvent event) {
         return onTapListener != null && onTapListener.onTap(event);
+    }
+
+    public void setOnTapUp(OnTapListener onTapUpListener) {
+        this.onTapUpListener = onTapUpListener;
+    }
+
+    public boolean callOnTapUp(MotionEvent event) {
+        return onTapUpListener != null && onTapUpListener.onTap(event);
     }
 
     public void setOnLongPress(OnLongPressListener onLongPressListener) {

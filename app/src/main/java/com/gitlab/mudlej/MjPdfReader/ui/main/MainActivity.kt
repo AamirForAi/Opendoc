@@ -660,6 +660,7 @@ class MainActivity : AppCompatActivity() {
             .enableAntialiasing(pref.getAntiAliasing())
             .onDocumentInteraction { motionEvent -> autoScrollManager.handleUserInteraction(motionEvent) }
             .onTap { motionEvent -> inlineAnnotationActionController.handlePdfTap(motionEvent) }
+            .onTapUp { motionEvent -> inlineAnnotationActionController.handleImmediatePdfTap(motionEvent) }
             .scrollHandle(createScrollHandle())
             .spacing(spacing)
             .onError { exception: Throwable ->
