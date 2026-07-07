@@ -120,7 +120,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val midZoomDefault = 2.0f
         const val maxZoomDefault = 10.0f
         const val partSizeDefault = 512f
-        const val thumbnailRatioDefault = 0.3f
+        const val thumbnailRatioDefault = 0.45f
         const val pdfLengthDefault = 0
         const val inlineTextSelectionDefault = true
         const val defaultTextReaderDefault = false

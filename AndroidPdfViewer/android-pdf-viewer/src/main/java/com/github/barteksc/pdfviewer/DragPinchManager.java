@@ -209,7 +209,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
 
             pdfView.moveRelativeTo(-distanceX, -distanceY);
         }
-        if (!scaling || pdfView.doRenderDuringScale()) {
+        if (!scaling) {
             pdfView.loadPageByOffset();
         }
         return true;

@@ -22,7 +22,6 @@ import com.gitlab.mudlej.MjPdfReader.util.copyToClipboard
 import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
 import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
 import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -73,7 +72,7 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
     }
 
     private fun initLinks() {
-        CoroutineScope(Dispatchers.Default).launch {
+        lifecycleScope.launch(Dispatchers.Default) {
             links = pdfExtractor.getAllLinks()
             linkAdapter.submitList(links)
 

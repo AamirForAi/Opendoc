@@ -40,7 +40,6 @@ static double monotonicMillis() {
     return now.tv_sec * 1000.0 + now.tv_nsec / 1000000.0;
 }
 
-static std::vector<int> searchResultAnnotIndexes;
 
 struct FdFileWrite {
     FPDF_FILEWRITE fileWrite;
@@ -1244,8 +1243,7 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateAnnotInPage)(JNI_ARGS,
     if (FPDFAnnot_IsObjectSupportedSubtype(FPDF_ANNOT_HIGHLIGHT)) return false;
     FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_HIGHLIGHT);
 
-    int annotIndex = FPDFPage_GetAnnotIndex(page, annot);
-    searchResultAnnotIndexes.push_back(annotIndex);
+    setAnnotAsciiString(annot, "MJSearch", "1");
 
     int red = 255, green = 0, blue = 0, alpha = 255;
     //FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_InteriorColor, red, green, blue, alpha);
@@ -1853,15 +1851,27 @@ JNI_FUNC(jboolean, PdfiumCore, nativeSetFormFieldChecked)(JNI_ARGS,
 }
 
 JNI_FUNC(jint, PdfiumCore, nativeClearSearchResultAnnot)(JNI_ARGS, jlong pagePtr) {
-    // TODO: this should be converted to a map that has both pageIndexes and a vector of results annot indexes
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
-    while (!searchResultAnnotIndexes.empty()) {
-        int index = searchResultAnnotIndexes.back();
-        FPDFPage_RemoveAnnot(page, index);
-        searchResultAnnotIndexes.pop_back();
+    if (page == NULL) {
+        return 0;
     }
 
-    return searchResultAnnotIndexes.size();
+    int removed = 0;
+    int annotCount = FPDFPage_GetAnnotCount(page);
+    for (int i = annotCount - 1; i >= 0; i--) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (annot == NULL) {
+            continue;
+        }
+        bool isSearchAnnot = FPDFAnnot_GetSubtype(annot) == FPDF_ANNOT_HIGHLIGHT
+                && !getAnnotWideString(annot, "MJSearch").empty();
+        FPDFPage_CloseAnnot(annot);
+        if (isSearchAnnot && FPDFPage_RemoveAnnot(page, i)) {
+            removed++;
+        }
+    }
+
+    return removed;
 }
 
 JNI_FUNC(jstring, PdfiumCore, nativeGetPageText)(JNI_ARGS, jlong pagePtr) {

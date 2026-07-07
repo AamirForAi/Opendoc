@@ -1076,60 +1076,64 @@ public class PDFView extends RelativeLayout {
         RectF pageRelativeBounds = part.getPageRelativeBounds();
         Bitmap renderedBitmap = part.getRenderedBitmap();
 
-        if (renderedBitmap.isRecycled()) {
+        if (renderedBitmap == null) {
             return;
         }
 
-        // Move to the target page
-        float localTranslationX = 0;
-        float localTranslationY = 0;
-        SizeF size = pdfFile.getPageSize(part.getPage());
+        synchronized (renderedBitmap) {
+            if (renderedBitmap.isRecycled()) {
+                return;
+            }
 
-        if (swipeVertical) {
-            localTranslationY = pdfFile.getPageOffset(part.getPage(), zoom);
-            float maxWidth = pdfFile.getMaxPageWidth();
-            localTranslationX = toCurrentScale(maxWidth - size.getWidth()) / 2;
-        } else {
-            localTranslationX = pdfFile.getPageOffset(part.getPage(), zoom);
-            float maxHeight = pdfFile.getMaxPageHeight();
-            localTranslationY = toCurrentScale(maxHeight - size.getHeight()) / 2;
-        }
-        canvas.translate(localTranslationX, localTranslationY);
+            // Move to the target page
+            float localTranslationX = 0;
+            float localTranslationY = 0;
+            SizeF size = pdfFile.getPageSize(part.getPage());
 
-        Rect srcRect = new Rect(0, 0, renderedBitmap.getWidth(),
-            renderedBitmap.getHeight());
+            if (swipeVertical) {
+                localTranslationY = pdfFile.getPageOffset(part.getPage(), zoom);
+                float maxWidth = pdfFile.getMaxPageWidth();
+                localTranslationX = toCurrentScale(maxWidth - size.getWidth()) / 2;
+            } else {
+                localTranslationX = pdfFile.getPageOffset(part.getPage(), zoom);
+                float maxHeight = pdfFile.getMaxPageHeight();
+                localTranslationY = toCurrentScale(maxHeight - size.getHeight()) / 2;
+            }
+            canvas.translate(localTranslationX, localTranslationY);
 
-        float offsetX = toCurrentScale(pageRelativeBounds.left * size.getWidth());
-        float offsetY = toCurrentScale(pageRelativeBounds.top * size.getHeight());
-        float width = toCurrentScale(pageRelativeBounds.width() * size.getWidth());
-        float height = toCurrentScale(pageRelativeBounds.height() * size.getHeight());
+            Rect srcRect = new Rect(0, 0, renderedBitmap.getWidth(),
+                renderedBitmap.getHeight());
 
-        // If we use float values for this rectangle, there will be
-        // a possible gap between page parts, especially when
-        // the zoom level is high.
-        RectF dstRect = new RectF((int) offsetX, (int) offsetY,
-            (int) (offsetX + width),
-            (int) (offsetY + height));
+            float offsetX = toCurrentScale(pageRelativeBounds.left * size.getWidth());
+            float offsetY = toCurrentScale(pageRelativeBounds.top * size.getHeight());
+            float width = toCurrentScale(pageRelativeBounds.width() * size.getWidth());
+            float height = toCurrentScale(pageRelativeBounds.height() * size.getHeight());
 
-        // Check if bitmap is in the screen
-        float translationX = currentXOffset + localTranslationX;
-        float translationY = currentYOffset + localTranslationY;
-        if (translationX + dstRect.left >= getWidth() || translationX + dstRect.right <= 0 ||
-            translationY + dstRect.top >= getHeight() || translationY + dstRect.bottom <= 0) {
+            // If we use float values for this rectangle, there will be a possible gap between
+            // page parts, especially when the zoom level is high.
+            RectF dstRect = new RectF((int) offsetX, (int) offsetY,
+                (int) (offsetX + width),
+                (int) (offsetY + height));
+
+            // Check if bitmap is in the screen
+            float translationX = currentXOffset + localTranslationX;
+            float translationY = currentYOffset + localTranslationY;
+            if (translationX + dstRect.left >= getWidth() || translationX + dstRect.right <= 0 ||
+                translationY + dstRect.top >= getHeight() || translationY + dstRect.bottom <= 0) {
+                canvas.translate(-localTranslationX, -localTranslationY);
+                return;
+            }
+
+            canvas.drawBitmap(renderedBitmap, srcRect, dstRect, paint);
+
+            if (Constants.DEBUG_MODE) {
+                debugPaint.setColor(part.getPage() % 2 == 0 ? Color.RED : Color.BLUE);
+                canvas.drawRect(dstRect, debugPaint);
+            }
+
+            // Restore the canvas position
             canvas.translate(-localTranslationX, -localTranslationY);
-            return;
         }
-
-        canvas.drawBitmap(renderedBitmap, srcRect, dstRect, paint);
-
-        if (Constants.DEBUG_MODE) {
-            debugPaint.setColor(part.getPage() % 2 == 0 ? Color.RED : Color.BLUE);
-            canvas.drawRect(dstRect, debugPaint);
-        }
-
-        // Restore the canvas position
-        canvas.translate(-localTranslationX, -localTranslationY);
-
     }
 
     /**

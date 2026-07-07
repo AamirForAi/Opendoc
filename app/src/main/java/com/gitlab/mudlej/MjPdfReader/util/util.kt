@@ -111,9 +111,14 @@ suspend fun computeHash(context: Context, pdf: PDF): String? {
                 val inputStream = context.contentResolver.openInputStream(pdf.uri as Uri) ?: return@withContext null
                 inputStream.use { stream ->
                     val buffer = ByteArray(PDF.HASH_SIZE)
-                    val amountRead = stream.read(buffer)
-                    if (amountRead == -1) return@withContext null
-                    digester.update(buffer, 0, amountRead)
+                    var totalRead = 0
+                    while (totalRead < buffer.size) {
+                        val amountRead = stream.read(buffer, totalRead, buffer.size - totalRead)
+                        if (amountRead == -1) break
+                        totalRead += amountRead
+                    }
+                    if (totalRead == 0) return@withContext null
+                    digester.update(buffer, 0, totalRead)
                 }
             }
         }

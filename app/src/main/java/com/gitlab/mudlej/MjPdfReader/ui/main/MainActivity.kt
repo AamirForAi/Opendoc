@@ -122,9 +122,9 @@ import com.shockwave.pdfium.PdfPasswordException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.*
 import java.time.LocalDateTime
@@ -145,9 +145,10 @@ class MainActivity : AppCompatActivity() {
 
     private companion object {
         const val AUTO_SCROLL_SPEED_SAVE_DELAY = 300L
-        const val TILE_CACHE_PIXEL_BUDGET = 120 * 256 * 256
+        const val TILE_CACHE_PIXEL_BUDGET = 2 * 120 * 256 * 256
         const val MIN_TILE_CACHE_SIZE = 24
         const val MAX_TILE_CACHE_SIZE = 480
+        val backgroundSaveScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 
     private val shouldStopExtracting: MutableMap<Int, Boolean> = mutableMapOf()
@@ -288,7 +289,7 @@ class MainActivity : AppCompatActivity() {
         ) { fullScreenOptionsManager.showAllTemporarilyOrHide() }
         formFieldController = FormFieldController(this, binding, ::onAnnotationEdit)
         permissionManager = PermissionManager(this)
-        brightness = Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 2
+        brightness = Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128) / 2
         inlineAnnotationActionController.configure { annotationSaveController.saveHighlights() }
 
         applyTileRenderingPreferences()
@@ -358,6 +359,8 @@ class MainActivity : AppCompatActivity() {
         pdf.detectedReadingDirection = null
         pdf.effectiveReadingDirection = ReadingDirection.LEFT_TO_RIGHT
         cropMarginsEnabledForCurrentDocument = pref.getAlwaysHideMargins()
+        shouldStopExtracting.clear()
+        showNoTextInPage = true
         resetSearchResultState()
         resetBookmarkState()
         inlineAnnotationActionController.hideActions()
@@ -817,7 +820,7 @@ class MainActivity : AppCompatActivity() {
         autoScrollSpeedSaveJob?.cancel()
         autoScrollSpeedSaveJob = null
         pendingAutoScrollSpeedSave = null
-        runBlocking {
+        backgroundSaveScope.launch {
             databaseManager.setAutoScrollSpeed(pending.fileHash, pending.speed)
         }
     }
@@ -938,7 +941,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         var pageText = ""
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 pageText = binding.pdfView.getPageText(pageNumber)
             }
@@ -1152,7 +1155,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setBrightnessSeekbarListener(binding: ActivityMainBinding) {
         // init the seekbar
-        val brightness = Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS)
+        val brightness = Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128)
         binding.brightnessSeekBar.progress = brightness
         binding.brightnessPercentage.text = "$brightness%"
         binding.brightnessSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -1584,18 +1587,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun printFile() {
-        if (checkHasFile()) {
-            val printManager = getSystemService(Context.PRINT_SERVICE) as PrintManager
-            try {
-                printManager.print(
-                    pdf.name,
-                    PdfDocumentAdapter(this, pdf.uri), null
-                )
+        if (!checkHasFile()) {
+            return
+        }
+        val documentUri = pdf.uri
+        val bytes = if (PdfBytesHolder.uri == documentUri?.toString()) PdfBytesHolder.pdfByte else null
+        if (bytes == null) {
+            printUri(documentUri)
+            return
+        }
+        lifecycleScope.launch {
+            val tempUri = withContext(Dispatchers.IO) {
+                runCatching {
+                    val tempFile = File(cacheDir, "print_temp.pdf")
+                    tempFile.writeBytes(bytes)
+                    Uri.fromFile(tempFile)
+                }.getOrNull()
             }
-            catch (e: Throwable) {
-                //Toast.makeText(this, "Failed to print. Error message: ${e.message}", Toast.LENGTH_LONG).show()
-                Snackbar.make(binding.root, "Failed to print. Error message: ${e.message}", Snackbar.LENGTH_LONG).show()
-            }
+            printUri(tempUri ?: documentUri)
+        }
+    }
+
+    private fun printUri(uri: Uri?) {
+        val printManager = getSystemService(Context.PRINT_SERVICE) as PrintManager
+        try {
+            printManager.print(
+                pdf.name,
+                PdfDocumentAdapter(this, uri), null
+            )
+        }
+        catch (e: Throwable) {
+            Snackbar.make(binding.root, "Failed to print. Error message: ${e.message}", Snackbar.LENGTH_LONG).show()
         }
     }
 
@@ -2258,7 +2280,7 @@ class MainActivity : AppCompatActivity() {
                     Snackbar.make(binding.root, getString(R.string.press_back_again), Snackbar.LENGTH_LONG).show()
                     doubleBackToExitPressedOnce = true
 
-                    CoroutineScope(Dispatchers.Main).launch {
+                    lifecycleScope.launch {
                         delay(2500)
                         Log.d("BackPress", "Coroutine executing: resetting doubleBackToExitPressedOnce")
                         doubleBackToExitPressedOnce = false

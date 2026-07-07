@@ -18,6 +18,7 @@ package com.github.barteksc.pdfviewer;
 import static com.github.barteksc.pdfviewer.util.Constants.Cache.CACHE_SIZE;
 import static com.github.barteksc.pdfviewer.util.Constants.Cache.THUMBNAILS_CACHE_SIZE;
 
+import android.graphics.Bitmap;
 import android.graphics.RectF;
 
 import androidx.annotation.Nullable;
@@ -84,7 +85,17 @@ class CacheManager {
         PagePart existing = find(queue, newPart);
         if (existing != null) {
             queue.remove(existing);
-            existing.getRenderedBitmap().recycle();
+            recycleBitmap(existing);
+        }
+    }
+
+    private static void recycleBitmap(PagePart part) {
+        Bitmap bitmap = part.getRenderedBitmap();
+        if (bitmap == null) {
+            return;
+        }
+        synchronized (bitmap) {
+            bitmap.recycle();
         }
     }
 
@@ -99,13 +110,12 @@ class CacheManager {
         synchronized (passiveActiveLock) {
             while ((activeCache.size() + passiveCache.size()) >= CACHE_SIZE &&
                     !passiveCache.isEmpty()) {
-                PagePart part = passiveCache.poll();
-                part.getRenderedBitmap().recycle();
+                recycleBitmap(passiveCache.poll());
             }
 
             while ((activeCache.size() + passiveCache.size()) >= CACHE_SIZE &&
                     !activeCache.isEmpty()) {
-                activeCache.poll().getRenderedBitmap().recycle();
+                recycleBitmap(activeCache.poll());
             }
         }
     }
@@ -114,7 +124,7 @@ class CacheManager {
         synchronized (thumbnails) {
             // If cache too big, remove and recycle
             while (thumbnails.size() >= THUMBNAILS_CACHE_SIZE) {
-                thumbnails.remove(0).getRenderedBitmap().recycle();
+                recycleBitmap(thumbnails.remove(0));
             }
 
             // Then add thumbnail
@@ -168,11 +178,11 @@ class CacheManager {
             PagePart part = iterator.next();
             if (part.equals(newPart)) {
                 if (!part.isStale()) {
-                    newPart.getRenderedBitmap().recycle();
+                    recycleBitmap(newPart);
                     return;
                 }
                 iterator.remove();
-                part.getRenderedBitmap().recycle();
+                recycleBitmap(part);
                 break;
             }
         }
@@ -199,24 +209,24 @@ class CacheManager {
 
     public List<PagePart> getThumbnails() {
         synchronized (thumbnails) {
-            return thumbnails;
+            return new ArrayList<>(thumbnails);
         }
     }
 
     public void recycle() {
         synchronized (passiveActiveLock) {
             for (PagePart part : passiveCache) {
-                part.getRenderedBitmap().recycle();
+                recycleBitmap(part);
             }
             passiveCache.clear();
             for (PagePart part : activeCache) {
-                part.getRenderedBitmap().recycle();
+                recycleBitmap(part);
             }
             activeCache.clear();
         }
         synchronized (thumbnails) {
             for (PagePart part : thumbnails) {
-                part.getRenderedBitmap().recycle();
+                recycleBitmap(part);
             }
             thumbnails.clear();
         }

@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 class PdfFile {
 
@@ -59,8 +60,8 @@ class PdfFile {
     private SparseBooleanArray openedPages = new SparseBooleanArray();
     /** Pages opened only to back a pinned text page. */
     private SparseBooleanArray textOpenedPages = new SparseBooleanArray();
-    private final Map<Integer, List<PdfDocument.HighlightAnnotation>> highlightAnnotationCache = new HashMap<>();
-    private final Map<Integer, float[]> formFieldRectCache = new HashMap<>();
+    private final Map<Integer, List<PdfDocument.HighlightAnnotation>> highlightAnnotationCache = new ConcurrentHashMap<>();
+    private final Map<Integer, float[]> formFieldRectCache = new ConcurrentHashMap<>();
     /** Page with maximum width */
     private Size originalMaxWidthPageSize = new Size(0, 0);
     /** Page with maximum height */
@@ -346,14 +347,19 @@ class PdfFile {
         if (pageIndexesByOffset.isEmpty()) {
             return 0;
         }
+        int low = 0;
+        int high = pageIndexesByOffset.size() - 1;
         int currentLayoutIndex = 0;
-        for (int layoutIndex = 0; layoutIndex < pageIndexesByOffset.size(); layoutIndex++) {
-            int pageIndex = pageIndexesByOffset.get(layoutIndex);
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            int pageIndex = pageIndexesByOffset.get(mid);
             float off = pageOffsets.get(pageIndex) * zoom - getPageSpacing(pageIndex, zoom) / 2f;
-            if (off >= offset) {
-                break;
+            if (off < offset) {
+                currentLayoutIndex = mid;
+                low = mid + 1;
+            } else {
+                high = mid - 1;
             }
-            currentLayoutIndex = layoutIndex;
         }
         return currentLayoutIndex;
     }
@@ -756,6 +762,14 @@ class PdfFile {
                 : Collections.unmodifiableList(annotations);
         highlightAnnotationCache.put(pageIndex, snapshot);
         return snapshot;
+    }
+
+    void prewarmPageCaches(int pageIndex) {
+        try {
+            getFormFieldRects(pageIndex);
+            getHighlightAnnotations(pageIndex);
+        } catch (Throwable ignored) {
+        }
     }
 
     public void invalidateHighlightAnnotationCache(int pageIndex) {

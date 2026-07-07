@@ -38,7 +38,6 @@ import com.gitlab.mudlej.MjPdfReader.util.showOptionalIcons
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.shockwave.pdfium.PdfiumCore
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -121,7 +120,7 @@ class HomeActivity : AppCompatActivity(), RecordFunctions {
 
     private fun filterRecordsList(listFilter: ListFilter, filter: (PdfRecord) -> Boolean) {
         val title = listFilter.name.formatEnumToTitle()
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             records = findAllRecords()
                 .filter(filter)
                 .sortedByDescending { record -> record.lastOpened }

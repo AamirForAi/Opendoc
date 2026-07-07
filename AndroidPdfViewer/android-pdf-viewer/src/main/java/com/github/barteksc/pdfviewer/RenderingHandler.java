@@ -112,6 +112,7 @@ class RenderingHandler extends Handler {
         calculateBounds(w, h, renderingTask.bounds);
 
         pdfFile.renderPageBitmap(render, renderingTask.page, roundedRenderBounds, renderingTask.annotationRendering);
+        pdfFile.prewarmPageCaches(renderingTask.page);
 
         return new PagePart(renderingTask.page, render,
                 renderingTask.bounds, renderingTask.thumbnail,
