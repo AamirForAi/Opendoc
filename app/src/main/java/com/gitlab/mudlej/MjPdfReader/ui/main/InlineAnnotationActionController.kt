@@ -12,15 +12,17 @@ import android.view.ViewGroup
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.github.barteksc.pdfviewer.PDFView
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.util.copyToClipboard
 import com.google.android.material.snackbar.Snackbar
+import java.util.UUID
 
 class InlineAnnotationActionController(
     private val activity: Activity,
     private val binding: ActivityMainBinding,
     private val clearActiveSearchResultHighlight: () -> Unit,
-    private val markDirtyAndAutosave: () -> Unit,
+    private val onAnnotationEdit: (AnnotationEdit) -> Unit,
     private val updateSaveUiPosition: () -> Unit,
     private val toggleReaderChrome: () -> Unit,
 ) {
@@ -129,15 +131,17 @@ class InlineAnnotationActionController(
 
     private fun addInlineHighlight(color: Int) {
         val request = binding.pdfView.getHighlightRequest()
-        val created = request != null && binding.pdfView.addHighlight(request, color)
-        if (!created) {
+        val groupKey = UUID.randomUUID().toString()
+        if (request == null || !binding.pdfView.addHighlight(request, color, groupKey)) {
             Snackbar.make(binding.root, R.string.highlight_failed, Snackbar.LENGTH_SHORT).show()
             return
         }
 
         binding.pdfView.clearTextSelection()
         refreshCardRendering()
-        markDirtyAndAutosave()
+        onAnnotationEdit(
+            AnnotationEdit.Add(request.pageIndex, groupKey, request.pdfRects, color, request.selectedText)
+        )
     }
 
     private fun updateActiveHighlightAnnotationColor(annotation: PDFView.HighlightAnnotation, color: Int) {
@@ -148,7 +152,7 @@ class InlineAnnotationActionController(
         }
 
         hideActions()
-        markDirtyAndAutosave()
+        onAnnotationEdit(AnnotationEdit.Recolor(annotation.pageIndex, annotation.groupKey, color))
     }
 
     private fun deleteActiveHighlightAnnotation() {
@@ -160,7 +164,7 @@ class InlineAnnotationActionController(
         }
 
         hideActions()
-        markDirtyAndAutosave()
+        onAnnotationEdit(AnnotationEdit.Delete(annotation.pageIndex, annotation.groupKey))
     }
 
     private fun copySelectedText(): Boolean {

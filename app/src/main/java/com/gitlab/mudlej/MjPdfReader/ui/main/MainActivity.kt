@@ -85,6 +85,7 @@ import com.gitlab.mudlej.MjPdfReader.Launcher
 import com.gitlab.mudlej.MjPdfReader.Launchers
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.*
+import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
 import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
@@ -144,7 +145,6 @@ class MainActivity : AppCompatActivity() {
 
     private companion object {
         const val AUTO_SCROLL_SPEED_SAVE_DELAY = 300L
-        const val ANNOTATION_AUTOSAVE_DELAY = 1200L
     }
 
     private val shouldStopExtracting: MutableMap<Int, Boolean> = mutableMapOf()
@@ -175,7 +175,6 @@ class MainActivity : AppCompatActivity() {
     private var bookmarkState = BookmarkState()
     private var autoScrollSpeedSaveJob: Job? = null
     private var pendingAutoScrollSpeedSave: PendingAutoScrollSpeed? = null
-    private var annotationAutosaveJob: Job? = null
 
     private lateinit var actionBarMenu: Menu
 
@@ -259,7 +258,6 @@ class MainActivity : AppCompatActivity() {
             ::isCropMarginsEnabled,
             ::setCropMarginsEnabled,
             ::isCurrentDocument,
-            ::flushPendingAnnotationAutosave,
             ::reloadWithCropMargins,
         )
         annotationController = AnnotationController(this, binding, pdf)
@@ -272,7 +270,6 @@ class MainActivity : AppCompatActivity() {
             lifecycleScope,
             updateAnnotationDestinationLauncher,
             createAnnotationDestinationLauncher,
-            ::cancelPendingAnnotationAutosave,
             ::clearActiveSearchResultHighlight,
             ::updateAnnotationDirtyUi,
         ) {
@@ -282,7 +279,7 @@ class MainActivity : AppCompatActivity() {
             this,
             binding,
             ::clearActiveSearchResultHighlight,
-            ::markAnnotationsDirtyAndAutosave,
+            ::onAnnotationEdit,
             ::updateAnnotationSaveUiPosition,
         ) { fullScreenOptionsManager.showAllTemporarilyOrHide() }
         permissionManager = PermissionManager(this)
@@ -345,9 +342,6 @@ class MainActivity : AppCompatActivity() {
             return
         }
         flushPendingAutoScrollSpeedSave()
-        flushPendingAnnotationAutosave()
-        annotationAutosaveJob?.cancel()
-        annotationAutosaveJob = null
         cropMarginsController.cancel()
         documentLoadToken++
         pdf.uri = uri
@@ -457,9 +451,8 @@ class MainActivity : AppCompatActivity() {
                 annotationSaveController.saveHighlights(postSaveAction = discardAction)
             }
             .setNegativeButton(R.string.discard) { _, _ ->
-                annotationAutosaveJob?.cancel()
-                annotationAutosaveJob = null
                 annotationSaveController.clearPendingRequests()
+                annotationController.clearJournal()
                 annotationController.deleteWorkingCopy()
                 updateAnnotationDirtyUi()
                 discardAction()
@@ -716,6 +709,7 @@ class MainActivity : AppCompatActivity() {
                 fullScreenButtonController.configure()
                 reapplyFullscreenStateAfterLoad()
                 cropMarginsController.startIfNeeded(cachedCropMargins, fileHash, loadToken, documentUri, pageCount)
+                maybeRestoreAnnotations(documentUri, loadToken)
             }
             .load()
 
@@ -729,24 +723,22 @@ class MainActivity : AppCompatActivity() {
         cropMargins: CropMargins,
         viewState: PDFView.ViewState?,
     ) {
-        runAfterAnnotationFlush {
-            val zoomDisabled = binding.pdfView.isZoomDisabled
-            val horizontalSwipeDisabled = binding.pdfView.isHorizontalSwipeDisabled
-            initPdfViewAndLoad(
-                configurator,
-                pageNumber,
-                savePassword = false,
-                cachedCropMargins = cropMargins,
-                fileHash = pdf.fileHash,
-                loadToken = documentLoadToken,
-                documentUri = pdf.uri,
-                readingDirection = pdf.effectiveReadingDirection,
-                viewState = viewState,
-                applyDocumentLoadDefaults = false,
-                zoomDisabled = zoomDisabled,
-                horizontalSwipeDisabled = horizontalSwipeDisabled,
-            )
-        }
+        val zoomDisabled = binding.pdfView.isZoomDisabled
+        val horizontalSwipeDisabled = binding.pdfView.isHorizontalSwipeDisabled
+        initPdfViewAndLoad(
+            configurator,
+            pageNumber,
+            savePassword = false,
+            cachedCropMargins = cropMargins,
+            fileHash = pdf.fileHash,
+            loadToken = documentLoadToken,
+            documentUri = pdf.uri,
+            readingDirection = pdf.effectiveReadingDirection,
+            viewState = viewState,
+            applyDocumentLoadDefaults = false,
+            zoomDisabled = zoomDisabled,
+            horizontalSwipeDisabled = horizontalSwipeDisabled,
+        )
     }
 
     private fun openTextModeByDefault() {
@@ -977,46 +969,47 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun markAnnotationsDirtyAndAutosave() {
-        annotationController.markDirty()
+    private fun onAnnotationEdit(edit: AnnotationEdit) {
+        annotationController.recordEdit(edit)
         updateAnnotationDirtyUi()
-        scheduleWorkingCopyAutosave()
     }
 
-    private fun scheduleWorkingCopyAutosave() {
-        annotationAutosaveJob?.cancel()
-        annotationAutosaveJob = lifecycleScope.launch {
-            delay(ANNOTATION_AUTOSAVE_DELAY)
-            annotationAutosaveJob = null
-            annotationController.saveWorkingCopy()
-        }
-    }
-
-    private fun flushPendingAnnotationAutosave() {
-        if (!::annotationController.isInitialized || !annotationController.hasUnsavedAnnotations) {
-            return
-        }
-        cancelPendingAnnotationAutosave()
-        runBlocking {
-            annotationController.saveWorkingCopy()
-        }
-    }
-
-    private fun runAfterAnnotationFlush(action: () -> Unit) {
-        if (!::annotationController.isInitialized || !annotationController.hasUnsavedAnnotations) {
-            action()
-            return
-        }
-        cancelPendingAnnotationAutosave()
+    private fun maybeRestoreAnnotations(documentUri: Uri?, loadToken: Long) {
+        val uri = documentUri ?: return
         lifecycleScope.launch {
-            annotationController.saveWorkingCopy()
-            action()
+            val hasJournal = withContext(Dispatchers.IO) { annotationController.hasJournal(uri) }
+            if (!hasJournal || !isCurrentDocument(loadToken, uri)) {
+                return@launch
+            }
+            if (annotationController.isSessionOwned(uri)) {
+                replayAnnotations(uri, loadToken)
+            } else {
+                promptRestoreAnnotations(uri, loadToken)
+            }
         }
     }
 
-    private fun cancelPendingAnnotationAutosave() {
-        annotationAutosaveJob?.cancel()
-        annotationAutosaveJob = null
+    private fun promptRestoreAnnotations(documentUri: Uri, loadToken: Long) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.restore_unsaved_highlights_title)
+            .setMessage(R.string.restore_unsaved_highlights_message)
+            .setCancelable(false)
+            .setPositiveButton(R.string.restore) { _, _ ->
+                lifecycleScope.launch { replayAnnotations(documentUri, loadToken) }
+            }
+            .setNegativeButton(R.string.discard) { _, _ ->
+                annotationController.clearJournal(documentUri)
+                updateAnnotationDirtyUi()
+            }
+            .show()
+    }
+
+    private suspend fun replayAnnotations(documentUri: Uri, loadToken: Long) {
+        if (!isCurrentDocument(loadToken, documentUri)) {
+            return
+        }
+        annotationController.replayJournal()
+        updateAnnotationDirtyUi()
     }
 
     private fun updateAnnotationDirtyUi() {
@@ -1416,7 +1409,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun reloadPdf() {
         if (checkHasFile()) {
-            runAfterAnnotationFlush { recreate() }
+            recreate()
         }
     }
 
@@ -1424,20 +1417,18 @@ class MainActivity : AppCompatActivity() {
         if (!checkHasFile()) {
             return
         }
-        runAfterAnnotationFlush {
-            val enableCropMargins = !isCropMarginsEnabled()
-            setCropMarginsEnabled(enableCropMargins)
-            if (enableCropMargins) {
-                cropMarginsController.startOrApply(
-                    pdf.fileHash,
-                    documentLoadToken,
-                    pdf.uri,
-                    binding.pdfView.pageCount,
-                )
-            } else {
-                cropMarginsController.cancel()
-                recreate()
-            }
+        val enableCropMargins = !isCropMarginsEnabled()
+        setCropMarginsEnabled(enableCropMargins)
+        if (enableCropMargins) {
+            cropMarginsController.startOrApply(
+                pdf.fileHash,
+                documentLoadToken,
+                pdf.uri,
+                binding.pdfView.pageCount,
+            )
+        } else {
+            cropMarginsController.cancel()
+            recreate()
         }
     }
 
@@ -1470,13 +1461,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         flushPendingAutoScrollSpeedSave()
-        flushPendingAnnotationAutosave()
         super.onStop()
     }
 
     override fun onDestroy() {
         flushPendingAutoScrollSpeedSave()
-        flushPendingAnnotationAutosave()
         if (::cropMarginsController.isInitialized) {
             cropMarginsController.cancel()
         }
@@ -1808,7 +1797,7 @@ class MainActivity : AppCompatActivity() {
             pdf.detectedReadingDirection = detectedDirection
             pdf.effectiveReadingDirection = ReadingDirection.effective(direction, detectedDirection)
             if (pref.getHorizontalScroll() && pdf.effectiveReadingDirection != oldEffectiveDirection) {
-                runAfterAnnotationFlush { recreate() }
+                recreate()
             }
         }
     }
@@ -2110,6 +2099,7 @@ class MainActivity : AppCompatActivity() {
         outState.putString(PDF.detectedReadingDirectionKey, pdf.detectedReadingDirection?.id)
         outState.putString(PDF.effectiveReadingDirectionKey, pdf.effectiveReadingDirection.id)
         outState.putBoolean(PDF.hasUnsavedAnnotationsKey, annotationController.hasUnsavedAnnotations)
+        outState.putStringArrayList(PDF.sessionOwnedAnnotationKeysKey, annotationController.sessionOwnedKeysForState())
         outState.putBoolean(PDF.isPortraitKey, pdf.isPortrait)
         outState.putBoolean(PDF.isFullScreenToggledKey, pdf.isFullScreenToggled)
         pdf.autoScrollSpeed?.let { outState.putInt(PDF.autoScrollSpeedKey, it) }
@@ -2143,8 +2133,12 @@ class MainActivity : AppCompatActivity() {
         pdf.isExtractingTextFinished = savedState.getBoolean(PDF.isExtractingTextFinishedKey)
         bookmarkState = BookmarkState.from(savedState)
         annotationController.resetForDocument(pdf.uri)
+        annotationController.restoreSessionOwnedKeys(
+            savedState.getStringArrayList(PDF.sessionOwnedAnnotationKeysKey),
+        )
         if (savedState.getBoolean(PDF.hasUnsavedAnnotationsKey, false)) {
             annotationController.markDirty()
+            annotationController.markSessionOwned(pdf.uri)
         }
         updateAnnotationDirtyUi()
     }

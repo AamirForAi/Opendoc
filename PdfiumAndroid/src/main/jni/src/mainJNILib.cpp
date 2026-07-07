@@ -27,6 +27,7 @@ using namespace android;
 #include <fpdf_save.h>
 #include <string>
 
+#include <set>
 #include <vector>
 
 static Mutex sLibraryLock;
@@ -355,6 +356,19 @@ static std::vector<FPDF_WCHAR> jstringToWide(JNIEnv* env, jstring value) {
     return wide;
 }
 
+static std::string jstringToUtf8(JNIEnv* env, jstring value) {
+    if (value == NULL) {
+        return std::string();
+    }
+    const char* chars = env->GetStringUTFChars(value, NULL);
+    if (chars == NULL) {
+        return std::string();
+    }
+    std::string result(chars);
+    env->ReleaseStringUTFChars(value, chars);
+    return result;
+}
+
 static std::vector<FPDF_WCHAR> getAnnotWideString(FPDF_ANNOTATION annot, const char* key) {
     std::vector<FPDF_WCHAR> empty;
     unsigned long bytes = FPDFAnnot_GetStringValue(annot, key, NULL, 0);
@@ -411,16 +425,6 @@ static jstring wideToJString(JNIEnv* env, const std::vector<FPDF_WCHAR>& wide) {
     return env->NewString(chars.data(), chars.size());
 }
 
-static bool isSearchResultAnnotIndex(int index) {
-    for (std::vector<int>::const_iterator it = searchResultAnnotIndexes.begin();
-         it != searchResultAnnotIndexes.end(); ++it) {
-        if (*it == index) {
-            return true;
-        }
-    }
-    return false;
-}
-
 static bool isAppHighlightAnnotation(FPDF_ANNOTATION annot) {
     if (annot == NULL || FPDFAnnot_GetSubtype(annot) != FPDF_ANNOT_HIGHLIGHT) {
         return false;
@@ -432,6 +436,31 @@ static bool isAppHighlightAnnotation(FPDF_ANNOTATION annot) {
     return wideEqualsAscii(getAnnotWideString(annot, "T"), "MJ PDF");
 }
 
+static bool setAppHighlightsHidden(FPDF_PAGE page, bool hidden) {
+    if (page == NULL) {
+        return false;
+    }
+    bool matchedAny = false;
+    int annotCount = FPDFPage_GetAnnotCount(page);
+    for (int i = 0; i < annotCount; i++) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (annot == NULL) {
+            continue;
+        }
+        if (isAppHighlightAnnotation(annot)) {
+            matchedAny = true;
+            int flags = FPDFAnnot_GetFlags(annot);
+            int updated = hidden ? (flags | FPDF_ANNOT_FLAG_HIDDEN)
+                                 : (flags & ~FPDF_ANNOT_FLAG_HIDDEN);
+            if (updated != flags) {
+                FPDFAnnot_SetFlags(annot, updated);
+            }
+        }
+        FPDFPage_CloseAnnot(annot);
+    }
+    return matchedAny;
+}
+
 static FS_RECTF normalizedRect(FS_RECTF rect) {
     FS_RECTF normalized;
     normalized.left = fmin(rect.left, rect.right);
@@ -439,22 +468,6 @@ static FS_RECTF normalizedRect(FS_RECTF rect) {
     normalized.bottom = fmin(rect.bottom, rect.top);
     normalized.top = fmax(rect.bottom, rect.top);
     return normalized;
-}
-
-static bool rectContainsPoint(FS_RECTF rect, float x, float y, float tolerance) {
-    FS_RECTF normalized = normalizedRect(rect);
-    return x >= normalized.left - tolerance
-            && x <= normalized.right + tolerance
-            && y >= normalized.bottom - tolerance
-            && y <= normalized.top + tolerance;
-}
-
-static void unionRect(FS_RECTF* target, FS_RECTF rect) {
-    FS_RECTF normalized = normalizedRect(rect);
-    target->left = fmin(target->left, normalized.left);
-    target->right = fmax(target->right, normalized.right);
-    target->bottom = fmin(target->bottom, normalized.bottom);
-    target->top = fmax(target->top, normalized.top);
 }
 
 static void initLibraryIfNeed(){
@@ -488,16 +501,34 @@ class DocumentFile {
     public:
     FPDF_DOCUMENT pdfDocument = NULL;
     size_t fileSize;
+    std::set<int> pagesWithAppHighlights;
+    FPDF_FORMFILLINFO formFillInfo;
+    FPDF_FORMHANDLE formHandle = NULL;
 
     DocumentFile() { initLibraryIfNeed(); }
     ~DocumentFile();
 };
 DocumentFile::~DocumentFile(){
+    if(formHandle != NULL){
+        FPDFDOC_ExitFormFillEnvironment(formHandle);
+    }
     if(pdfDocument != NULL){
         FPDF_CloseDocument(pdfDocument);
     }
 
     destroyLibraryIfNeed();
+}
+
+static FPDF_FORMHANDLE ensureFormHandle(DocumentFile *doc) {
+    if (doc == NULL || doc->pdfDocument == NULL) {
+        return NULL;
+    }
+    if (doc->formHandle == NULL) {
+        memset(&doc->formFillInfo, 0, sizeof(doc->formFillInfo));
+        doc->formFillInfo.version = 1;
+        doc->formHandle = FPDFDOC_InitFormFillEnvironment(doc->pdfDocument, &doc->formFillInfo);
+    }
+    return doc->formHandle;
 }
 
 template <class string_type>
@@ -724,11 +755,30 @@ JNI_FUNC(jboolean, PdfiumCore, nativeSaveAsCopy)(JNI_ARGS, jlong documentPtr, ji
         return false;
     }
 
+    std::vector<FPDF_PAGE> unhiddenPages;
+    for (std::set<int>::const_iterator it = doc->pagesWithAppHighlights.begin();
+         it != doc->pagesWithAppHighlights.end(); ++it) {
+        FPDF_PAGE page = FPDF_LoadPage(doc->pdfDocument, *it);
+        if (page == NULL) {
+            continue;
+        }
+        setAppHighlightsHidden(page, false);
+        unhiddenPages.push_back(page);
+    }
+
     FdFileWrite writer;
     writer.fileWrite.version = 1;
     writer.fileWrite.WriteBlock = &writeBlockToFd;
     writer.fd = fd;
-    return FPDF_SaveAsCopy(doc->pdfDocument, &writer.fileWrite, FPDF_INCREMENTAL);
+    jboolean saved = FPDF_SaveAsCopy(doc->pdfDocument, &writer.fileWrite, FPDF_INCREMENTAL);
+
+    for (std::vector<FPDF_PAGE>::const_iterator it = unhiddenPages.begin();
+         it != unhiddenPages.end(); ++it) {
+        setAppHighlightsHidden(*it, true);
+        FPDF_ClosePage(*it);
+    }
+
+    return saved;
 }
 
 static jlong loadPageInternal(JNIEnv *env, DocumentFile *doc, int pageIndex){
@@ -740,6 +790,9 @@ static jlong loadPageInternal(JNIEnv *env, DocumentFile *doc, int pageIndex){
             FPDF_PAGE page = FPDF_LoadPage(pdfDoc, pageIndex);
             if (page == NULL) {
                 throw "Loaded page is null";
+            }
+            if (setAppHighlightsHidden(page, true)) {
+                doc->pagesWithAppHighlights.insert(pageIndex);
             }
             return reinterpret_cast<jlong>(page);
         }
@@ -1086,14 +1139,12 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
 
     DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
 
-    FPDF_FORMFILLINFO formfillinfo;
-    formfillinfo.version = 1;
-
-    FPDF_FORMHANDLE formHandle = FPDFDOC_InitFormFillEnvironment(doc->pdfDocument, &formfillinfo);
-
-    FPDF_FFLDraw(
-        formHandle, pdfBitmap, page, startX, startY, (int)drawSizeHor, (int)drawSizeVer, 0, flags
-    );
+    FPDF_FORMHANDLE formHandle = ensureFormHandle(doc);
+    if (formHandle != NULL) {
+        FPDF_FFLDraw(
+            formHandle, pdfBitmap, page, startX, startY, (int)drawSizeHor, (int)drawSizeVer, 0, flags
+        );
+    }
 
     if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
         rgbBitmapTo565(tmp, sourceStride, addr, &info);
@@ -1171,17 +1222,21 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateAnnotInPage)(JNI_ARGS,
 }
 
 JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
+    jlong docPtr,
     jlong pagePtr,
+    jint pageIndex,
     jobjectArray rects,
     jint red,
     jint green,
     jint blue,
     jint alpha,
-    jstring contents
+    jstring contents,
+    jstring groupKey
 ) {
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
     (void) alpha;
-    if (page == NULL || rects == NULL) {
+    if (doc == NULL || page == NULL || rects == NULL) {
         return false;
     }
     if (!FPDFAnnot_IsSupportedSubtype(FPDF_ANNOT_HIGHLIGHT)) {
@@ -1196,7 +1251,10 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
     bool success = true;
     bool createdAny = false;
     std::vector<int> createdIndexes;
-    std::string groupName = makeAnnotName();
+    std::string groupName = jstringToUtf8(env, groupKey);
+    if (groupName.empty()) {
+        groupName = makeAnnotName();
+    }
 
     for (jsize i = 0; i < rectCount; i++) {
         jfloatArray rectArray = static_cast<jfloatArray>(env->GetObjectArrayElement(rects, i));
@@ -1226,9 +1284,6 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
         if (rect.right <= rect.left || rect.top <= rect.bottom) {
             continue;
         }
-//        float verticalPadding = fmax(0.5f, (rect.top - rect.bottom) * 0.05f);
-//        rect.top += verticalPadding;
-//        rect.bottom -= verticalPadding;
 
         FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_HIGHLIGHT);
         if (annot == NULL) {
@@ -1250,7 +1305,7 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
         bool annotSuccess = FPDFAnnot_SetRect(annot, &rect)
                 && FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, red, green, blue, 255)
                 && FPDFAnnot_AppendAttachmentPoints(annot, &quadpoints)
-                && FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT)
+                && FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT | FPDF_ANNOT_FLAG_HIDDEN)
                 && setAnnotWideString(env, annot, "Contents", contents)
                 && setAnnotAsciiString(annot, "T", "MJ PDF")
                 && setAnnotAsciiString(annot, "NM", name.c_str())
@@ -1278,127 +1333,11 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
         for (std::vector<int>::reverse_iterator it = createdIndexes.rbegin(); it != createdIndexes.rend(); ++it) {
             FPDFPage_RemoveAnnot(page, *it);
         }
+    } else {
+        doc->pagesWithAppHighlights.insert(pageIndex);
     }
 
     return success;
-}
-
-JNI_FUNC(jobject, PdfiumCore, nativeGetHighlightAnnotationAt)(JNI_ARGS,
-    jlong pagePtr,
-    jfloat x,
-    jfloat y,
-    jfloat tolerance
-) {
-    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
-    if (page == NULL) {
-        return NULL;
-    }
-
-    int annotCount = FPDFPage_GetAnnotCount(page);
-    int hitIndex = -1;
-    FS_RECTF hitRect;
-    std::vector<FPDF_WCHAR> hitGroup;
-    std::vector<FPDF_WCHAR> hitContents;
-
-    for (int i = annotCount - 1; i >= 0; i--) {
-        if (isSearchResultAnnotIndex(i)) {
-            continue;
-        }
-        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
-        if (annot == NULL) {
-            continue;
-        }
-
-        FS_RECTF rect;
-        bool matches = isAppHighlightAnnotation(annot)
-                && FPDFAnnot_GetRect(annot, &rect)
-                && rectContainsPoint(rect, x, y, tolerance);
-        if (matches) {
-            hitIndex = i;
-            hitRect = normalizedRect(rect);
-            hitGroup = getAnnotWideString(annot, "MJGroup");
-            hitContents = getAnnotWideString(annot, "Contents");
-        }
-        FPDFPage_CloseAnnot(annot);
-        if (matches) {
-            break;
-        }
-    }
-
-    if (hitIndex < 0) {
-        return NULL;
-    }
-
-    FS_RECTF bounds = hitRect;
-    if (!hitGroup.empty()) {
-        bool foundGroupRect = false;
-        for (int i = 0; i < annotCount; i++) {
-            FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
-            if (annot == NULL) {
-                continue;
-            }
-            FS_RECTF rect;
-            bool sameGroup = isAppHighlightAnnotation(annot)
-                    && wideEquals(getAnnotWideString(annot, "MJGroup"), hitGroup)
-                    && FPDFAnnot_GetRect(annot, &rect);
-            FPDFPage_CloseAnnot(annot);
-            if (!sameGroup) {
-                continue;
-            }
-            if (!foundGroupRect) {
-                bounds = normalizedRect(rect);
-                foundGroupRect = true;
-            } else {
-                unionRect(&bounds, rect);
-            }
-        }
-    }
-
-    jclass rectClass = env->FindClass("android/graphics/RectF");
-    if (rectClass == NULL) {
-        return NULL;
-    }
-    jmethodID rectConstructor = env->GetMethodID(rectClass, "<init>", "(FFFF)V");
-    if (rectConstructor == NULL) {
-        env->DeleteLocalRef(rectClass);
-        return NULL;
-    }
-    jobject rectObject = env->NewObject(rectClass, rectConstructor,
-            static_cast<jfloat>(bounds.left),
-            static_cast<jfloat>(bounds.top),
-            static_cast<jfloat>(bounds.right),
-            static_cast<jfloat>(bounds.bottom));
-    env->DeleteLocalRef(rectClass);
-    if (rectObject == NULL) {
-        return NULL;
-    }
-
-    jclass hitClass = env->FindClass("com/shockwave/pdfium/PdfDocument$HighlightAnnotation");
-    if (hitClass == NULL) {
-        env->DeleteLocalRef(rectObject);
-        return NULL;
-    }
-    jmethodID hitConstructor = env->GetMethodID(hitClass, "<init>",
-            "(ILjava/lang/String;Landroid/graphics/RectF;Ljava/lang/String;)V");
-    if (hitConstructor == NULL) {
-        env->DeleteLocalRef(hitClass);
-        env->DeleteLocalRef(rectObject);
-        return NULL;
-    }
-
-    jstring groupString = wideToJString(env, hitGroup);
-    jstring contentsString = wideToJString(env, hitContents);
-    jobject hitObject = env->NewObject(hitClass, hitConstructor,
-            static_cast<jint>(hitIndex), groupString, rectObject, contentsString);
-    env->DeleteLocalRef(hitClass);
-    env->DeleteLocalRef(rectObject);
-    if (groupString != NULL) {
-        env->DeleteLocalRef(groupString);
-    }
-    if (contentsString != NULL) {
-        env->DeleteLocalRef(contentsString);
-    }
-    return hitObject;
 }
 
 JNI_FUNC(jobjectArray, PdfiumCore, nativeGetHighlightAnnotations)(JNI_ARGS,
@@ -1420,7 +1359,7 @@ JNI_FUNC(jobjectArray, PdfiumCore, nativeGetHighlightAnnotations)(JNI_ARGS,
     }
     jmethodID rectConstructor = env->GetMethodID(rectClass, "<init>", "(FFFF)V");
     jmethodID hitConstructor = env->GetMethodID(hitClass, "<init>",
-            "(ILjava/lang/String;Landroid/graphics/RectF;Ljava/lang/String;I)V");
+            "(ILjava/lang/String;Landroid/graphics/RectF;Ljava/lang/String;IZ)V");
     if (rectConstructor == NULL || hitConstructor == NULL) {
         env->DeleteLocalRef(rectClass);
         env->DeleteLocalRef(hitClass);
@@ -1466,8 +1405,9 @@ JNI_FUNC(jobjectArray, PdfiumCore, nativeGetHighlightAnnotations)(JNI_ARGS,
                 | (blue & 0xFF);
         jstring groupString = wideToJString(env, getAnnotWideString(annot, "MJGroup"));
         jstring contentsString = wideToJString(env, getAnnotWideString(annot, "Contents"));
+        jboolean appOwned = isAppHighlightAnnotation(annot);
         jobject hitObject = env->NewObject(hitClass, hitConstructor,
-                static_cast<jint>(i), groupString, rectObject, contentsString, static_cast<jint>(color));
+                static_cast<jint>(i), groupString, rectObject, contentsString, static_cast<jint>(color), appOwned);
         if (hitObject != NULL) {
             annotations.push_back(env->NewGlobalRef(hitObject));
             env->DeleteLocalRef(hitObject);
@@ -1529,7 +1469,7 @@ JNI_FUNC(jboolean, PdfiumCore, nativeSetHighlightAnnotationColor)(JNI_ARGS,
                     || !setAnnotAsciiString(annot, "MJColor", colorValue.c_str())) {
                 success = false;
             }
-            FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT);
+            FPDFAnnot_SetFlags(annot, FPDFAnnot_GetFlags(annot) | FPDF_ANNOT_FLAG_PRINT);
         }
         FPDFPage_CloseAnnot(annot);
 
@@ -1775,6 +1715,40 @@ JNI_FUNC(jboolean, PdfiumCore, nativeTightCharBox)(JNI_ARGS, jlong textPagePtr,
     };
     env->SetFloatArrayRegion(out4, 0, 4, values);
     return true;
+}
+
+JNI_FUNC(jfloatArray, PdfiumCore, nativeTextGetRects)(JNI_ARGS, jlong textPagePtr,
+    jint start,
+    jint count
+) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL || count <= 0) {
+        return env->NewFloatArray(0);
+    }
+
+    int rectCount = FPDFText_CountRects(textPage, start, count);
+    if (rectCount <= 0) {
+        return env->NewFloatArray(0);
+    }
+
+    std::vector<jfloat> values;
+    values.reserve(rectCount * 4);
+    for (int i = 0; i < rectCount; i++) {
+        double left = 0, top = 0, right = 0, bottom = 0;
+        if (!FPDFText_GetRect(textPage, i, &left, &top, &right, &bottom)) {
+            continue;
+        }
+        values.push_back(static_cast<jfloat>(left));
+        values.push_back(static_cast<jfloat>(bottom));
+        values.push_back(static_cast<jfloat>(right));
+        values.push_back(static_cast<jfloat>(top));
+    }
+
+    jfloatArray result = env->NewFloatArray(values.size());
+    if (result != NULL && !values.empty()) {
+        env->SetFloatArrayRegion(result, 0, values.size(), values.data());
+    }
+    return result;
 }
 
 JNI_FUNC(jint, PdfiumCore, nativeCharUnicode)(JNI_ARGS, jlong textPagePtr, jint index) {

@@ -25,6 +25,8 @@ import android.graphics.Paint;
 import android.graphics.Paint.Style;
 import android.graphics.PaintFlagsDrawFilter;
 import android.graphics.PointF;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
@@ -110,6 +112,8 @@ public class PDFView extends RelativeLayout {
     public static final float DEFAULT_MIN_SCALE = 1.0f;
 
     public static final float NORMAL_SCALE = 1.0f;
+
+    private static final float HIGHLIGHT_HIT_TOLERANCE = 2.5f;
 
     public static class ViewState {
 
@@ -282,6 +286,8 @@ public class PDFView extends RelativeLayout {
 
     private Paint highlightAnnotationOverlayPaint;
 
+    private Paint highlightAnnotationMultiplyPaint;
+
     private HighlightAnnotation selectedHighlightAnnotation;
 
     /**
@@ -420,6 +426,9 @@ public class PDFView extends RelativeLayout {
         selectedHighlightStrokePaint.setStrokeWidth(2f * getResources().getDisplayMetrics().density);
         highlightAnnotationOverlayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         highlightAnnotationOverlayPaint.setStyle(Style.FILL);
+        highlightAnnotationMultiplyPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        highlightAnnotationMultiplyPaint.setStyle(Style.FILL);
+        highlightAnnotationMultiplyPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));
         setSelectedHighlightColor(0xFF3F51B5);
 
         pdfiumCore = new PdfiumCore(context);
@@ -891,7 +900,7 @@ public class PDFView extends RelativeLayout {
     }
 
     private void drawHighlightAnnotationOverlays(Canvas canvas, Set<Integer> pages) {
-        if (!nightMode || !annotationRendering || pdfFile == null || pages == null || pages.isEmpty()) {
+        if (!annotationRendering || pdfFile == null || pages == null || pages.isEmpty()) {
             return;
         }
         for (Integer page : pages) {
@@ -906,8 +915,9 @@ public class PDFView extends RelativeLayout {
                 return;
             }
             for (PdfDocument.HighlightAnnotation annotation : annotations) {
+                Paint overlayPaint = highlightOverlayPaint(annotation);
                 RectF bounds = annotation.getBounds();
-                if (bounds == null) {
+                if (overlayPaint == null || bounds == null) {
                     continue;
                 }
                 RectF docRect = pdfFile.pdfRectToDocument(
@@ -921,10 +931,21 @@ public class PDFView extends RelativeLayout {
                 if (docRect == null) {
                     continue;
                 }
-                highlightAnnotationOverlayPaint.setColor((0x66 << 24) | (annotation.getColor() & 0x00FFFFFF));
-                canvas.drawRect(docRect, highlightAnnotationOverlayPaint);
+                canvas.drawRect(docRect, overlayPaint);
             }
         }
+    }
+
+    private Paint highlightOverlayPaint(PdfDocument.HighlightAnnotation annotation) {
+        if (nightMode) {
+            highlightAnnotationOverlayPaint.setColor((0x66 << 24) | (annotation.getColor() & 0x00FFFFFF));
+            return highlightAnnotationOverlayPaint;
+        }
+        if (!annotation.isAppOwned()) {
+            return null;
+        }
+        highlightAnnotationMultiplyPaint.setColor(0xFF000000 | (annotation.getColor() & 0x00FFFFFF));
+        return highlightAnnotationMultiplyPaint;
     }
 
     private void drawWithListener(Canvas canvas, int page, OnDrawListener listener) {
@@ -1584,21 +1605,22 @@ public class PDFView extends RelativeLayout {
         return textSelectionManager.getHighlightRequest();
     }
 
-    public boolean addHighlight(HighlightRequest request, int color) {
+    public boolean addHighlight(HighlightRequest request, int color, String groupKey) {
         if (request == null) {
             return false;
         }
-        return addHighlightAnnotation(request.pageIndex, request.pdfRects, color, request.selectedText);
+        return addHighlightAnnotation(request.pageIndex, request.pdfRects, color, request.selectedText, groupKey);
     }
 
-    public boolean addHighlightAnnotation(int pageIndex, List<RectF> pdfRects, int color, String contents) {
+    public boolean addHighlightAnnotation(int pageIndex, List<RectF> pdfRects, int color,
+                                          String contents, String groupKey) {
         if (pdfFile == null || pdfRects == null || pdfRects.isEmpty()) {
             return false;
         }
         try {
-            boolean created = pdfFile.createHighlightAnnotation(pageIndex, pdfRects, color, contents);
+            boolean created = pdfFile.createHighlightAnnotation(pageIndex, pdfRects, color, contents, groupKey);
             if (created) {
-                reloadPages();
+                invalidate();
             }
             return created;
         } catch (Throwable throwable) {
@@ -1619,27 +1641,45 @@ public class PDFView extends RelativeLayout {
         }
 
         PointF point = pdfFile.documentToPdf(page, getZoom(), docX, docY);
-        PdfDocument.HighlightAnnotation annotation;
+        List<PdfDocument.HighlightAnnotation> annotations;
         try {
-            annotation = pdfFile.findHighlightAnnotationAt(page, point.x, point.y, 2.5f);
+            annotations = pdfFile.getHighlightAnnotations(page);
         } catch (Throwable throwable) {
-            Log.e(TAG, "findHighlightAnnotationAt: failed to hit-test highlight", throwable);
+            Log.e(TAG, "findHighlightAnnotationAt: failed to read highlights", throwable);
             return null;
         }
-        if (annotation == null) {
+        if (annotations == null || annotations.isEmpty()) {
             return null;
         }
 
-        RectF bounds = annotation.getBounds();
+        PdfDocument.HighlightAnnotation hit = null;
+        for (int i = annotations.size() - 1; i >= 0; i--) {
+            PdfDocument.HighlightAnnotation candidate = annotations.get(i);
+            String group = candidate.getGroupKey();
+            if (group == null || group.isEmpty()) {
+                continue;
+            }
+            RectF bounds = candidate.getBounds();
+            if (bounds != null && pdfRectContainsPoint(bounds, point.x, point.y, HIGHLIGHT_HIT_TOLERANCE)) {
+                hit = candidate;
+                break;
+            }
+        }
+        if (hit == null) {
+            return null;
+        }
+
+        String hitGroup = hit.getGroupKey();
+        RectF pdfBounds = unionGroupBounds(annotations, hitGroup, hit.getBounds());
         RectF viewBounds = null;
-        if (bounds != null) {
+        if (pdfBounds != null) {
             viewBounds = pdfFile.pdfRectToDocument(
                     page,
                     getZoom(),
-                    bounds.left,
-                    bounds.bottom,
-                    bounds.right,
-                    bounds.top
+                    pdfBounds.left,
+                    pdfBounds.bottom,
+                    pdfBounds.right,
+                    pdfBounds.top
             );
             if (viewBounds != null) {
                 viewBounds.offset(getCurrentXOffset(), getCurrentYOffset());
@@ -1647,11 +1687,50 @@ public class PDFView extends RelativeLayout {
         }
         return new HighlightAnnotation(
                 page,
-                annotation.getAnnotationIndex(),
-                annotation.getGroupKey(),
+                hit.getAnnotationIndex(),
+                hitGroup,
                 viewBounds,
-                annotation.getContents()
+                hit.getContents()
         );
+    }
+
+    private static boolean pdfRectContainsPoint(RectF rect, float x, float y, float tolerance) {
+        float left = Math.min(rect.left, rect.right);
+        float right = Math.max(rect.left, rect.right);
+        float bottom = Math.min(rect.top, rect.bottom);
+        float top = Math.max(rect.top, rect.bottom);
+        return x >= left - tolerance && x <= right + tolerance
+                && y >= bottom - tolerance && y <= top + tolerance;
+    }
+
+    private static RectF unionGroupBounds(List<PdfDocument.HighlightAnnotation> annotations,
+                                          String group, RectF fallback) {
+        if (group == null || group.isEmpty()) {
+            return fallback;
+        }
+        float left = Float.MAX_VALUE;
+        float right = -Float.MAX_VALUE;
+        float top = -Float.MAX_VALUE;
+        float bottom = Float.MAX_VALUE;
+        boolean found = false;
+        for (PdfDocument.HighlightAnnotation candidate : annotations) {
+            if (!group.equals(candidate.getGroupKey())) {
+                continue;
+            }
+            RectF b = candidate.getBounds();
+            if (b == null) {
+                continue;
+            }
+            left = Math.min(left, Math.min(b.left, b.right));
+            right = Math.max(right, Math.max(b.left, b.right));
+            top = Math.max(top, Math.max(b.top, b.bottom));
+            bottom = Math.min(bottom, Math.min(b.top, b.bottom));
+            found = true;
+        }
+        if (!found) {
+            return fallback;
+        }
+        return new RectF(left, top, right, bottom);
     }
 
     public boolean setHighlightAnnotationColor(HighlightAnnotation annotation, int color) {
@@ -1666,7 +1745,7 @@ public class PDFView extends RelativeLayout {
                     color
             );
             if (updated) {
-                reloadPages();
+                invalidate();
             }
             return updated;
         } catch (Throwable throwable) {
@@ -1686,7 +1765,7 @@ public class PDFView extends RelativeLayout {
                     annotation.groupKey
             );
             if (removed) {
-                reloadPages();
+                invalidate();
             }
             return removed;
         } catch (Throwable throwable) {

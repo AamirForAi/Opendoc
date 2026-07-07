@@ -114,17 +114,15 @@ public class PdfiumCore {
 
     private native String nativeTextRange(long textPagePtr, int start, int count);
 
+    private native float[] nativeTextGetRects(long textPagePtr, int start, int count);
+
 
     private native boolean nativeCreateAnnotInPage(long pagePtr, int l, int r, int t, int b, int dpi, boolean padding);
 
-    private native boolean nativeCreateHighlightAnnotation(long pagePtr, float[][] rects,
+    private native boolean nativeCreateHighlightAnnotation(long docPtr, long pagePtr, int pageIndex,
+                                                           float[][] rects,
                                                            int r, int g, int b, int a,
-                                                           String contents);
-
-    private native PdfDocument.HighlightAnnotation nativeGetHighlightAnnotationAt(long pagePtr,
-                                                                                   float x,
-                                                                                   float y,
-                                                                                   float tolerance);
+                                                           String contents, String groupKey);
 
     private native PdfDocument.HighlightAnnotation[] nativeGetHighlightAnnotations(long pagePtr);
 
@@ -352,6 +350,17 @@ public class PdfiumCore {
             }
             String text = nativeTextRange(textPagePtr, start, count);
             return text == null ? "" : text;
+        }
+    }
+
+    public float[] textRects(PdfDocument doc, int pageIndex, int start, int count) {
+        synchronized (lock) {
+            Long textPagePtr = doc.mNativeTextPagesPtr.get(pageIndex);
+            if (textPagePtr == null || textPagePtr == 0L || count <= 0) {
+                return new float[0];
+            }
+            float[] rects = nativeTextGetRects(textPagePtr, start, count);
+            return rects == null ? new float[0] : rects;
         }
     }
 
@@ -641,7 +650,7 @@ public class PdfiumCore {
     }
 
     public boolean createHighlightAnnotation(PdfDocument doc, int pageIndex, List<RectF> rects,
-                                              int color, String contents) {
+                                              int color, String contents, String groupKey) {
         synchronized (lock) {
             Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
             if (nativePagePtr == null || rects == null || rects.isEmpty()) {
@@ -656,20 +665,9 @@ public class PdfiumCore {
                 nativeRects[i][2] = rect.right;
                 nativeRects[i][3] = rect.bottom;
             }
-            return nativeCreateHighlightAnnotation(nativePagePtr, nativeRects,
+            return nativeCreateHighlightAnnotation(doc.mNativeDocPtr, nativePagePtr, pageIndex, nativeRects,
                     Color.red(color), Color.green(color), Color.blue(color), Color.alpha(color),
-                    contents == null ? "" : contents);
-        }
-    }
-
-    public PdfDocument.HighlightAnnotation findHighlightAnnotationAt(PdfDocument doc, int pageIndex,
-                                                                      float x, float y, float tolerance) {
-        synchronized (lock) {
-            Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
-            if (nativePagePtr == null) {
-                return null;
-            }
-            return nativeGetHighlightAnnotationAt(nativePagePtr, x, y, tolerance);
+                    contents == null ? "" : contents, groupKey == null ? "" : groupKey);
         }
     }
 

@@ -21,6 +21,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.time.LocalDateTime
@@ -34,7 +35,6 @@ class AnnotationSaveController(
     private val scope: CoroutineScope,
     private val updateDestinationLauncher: ActivityResultLauncher<Intent>,
     private val createDestinationLauncher: ActivityResultLauncher<Intent>,
-    private val cancelPendingAutosave: () -> Unit,
     private val clearActiveSearchResultHighlight: () -> Unit,
     private val updateDirtyUi: () -> Unit,
     private val onDocumentSaved: () -> Unit,
@@ -195,20 +195,13 @@ class AnnotationSaveController(
     }
 
     private fun saveHighlightsToUri(destinationUri: Uri, sourceUri: Uri, saveDestinationDurably: Boolean = true) {
-        cancelPendingAutosave()
         clearActiveSearchResultHighlight()
         annotationController.setSaving(true)
         updateDirtyUi()
 
         scope.launch {
             val oldHash = pdf.fileHash
-            val savedCopy = annotationController.saveWorkingCopy()
-            annotationController.setSaving(true)
-            val saveResult = if (savedCopy) {
-                writeWorkingCopyToSaf(destinationUri)
-            } else {
-                null
-            }
+            val saveResult = writeDocumentToSaf(destinationUri)
 
             if (saveResult == null) {
                 annotationController.setSaving(false)
@@ -247,6 +240,7 @@ class AnnotationSaveController(
                 )
             }
 
+            annotationController.clearJournal(sourceUri)
             annotationController.deleteWorkingCopy(sourceUri)
             annotationController.setCurrentSaveDestination(destinationUri, durable = saveDestinationDurably)
             annotationController.setSaving(false)
@@ -260,19 +254,26 @@ class AnnotationSaveController(
         }
     }
 
-    private suspend fun writeWorkingCopyToSaf(destinationUri: Uri): SaveBytes? = withContext(Dispatchers.IO) {
-        val sourceFile = annotationController.workingCopyFile ?: return@withContext null
-        val bytes = runCatching { sourceFile.readBytes() }.getOrNull() ?: return@withContext null
-        val hash = computeHash(bytes) ?: return@withContext null
-        val wrote = runCatching {
-            activity.contentResolver.openOutputStream(destinationUri, "wt")?.use { output ->
-                sourceFile.inputStream().use { input -> input.copyTo(output) }
-            } != null
-        }.getOrDefault(false)
-        if (!wrote) {
-            return@withContext null
+    private suspend fun writeDocumentToSaf(destinationUri: Uri): SaveBytes? = withContext(Dispatchers.IO) {
+        val tmp = File(activity.cacheDir, "annotation-save-${System.currentTimeMillis()}.pdf")
+        try {
+            if (!runCatching { binding.pdfView.saveAsCopy(tmp) }.getOrDefault(false)) {
+                return@withContext null
+            }
+            val bytes = runCatching { tmp.readBytes() }.getOrNull() ?: return@withContext null
+            val hash = computeHash(bytes) ?: return@withContext null
+            val wrote = runCatching {
+                activity.contentResolver.openOutputStream(destinationUri, "wt")?.use { output ->
+                    tmp.inputStream().use { input -> input.copyTo(output) }
+                } != null
+            }.getOrDefault(false)
+            if (!wrote) {
+                return@withContext null
+            }
+            SaveBytes(bytes, hash)
+        } finally {
+            tmp.delete()
         }
-        SaveBytes(bytes, hash)
     }
 
     private fun computeHash(bytes: ByteArray): String? {

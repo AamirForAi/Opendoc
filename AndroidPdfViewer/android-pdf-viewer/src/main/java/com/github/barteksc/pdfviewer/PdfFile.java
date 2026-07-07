@@ -35,6 +35,7 @@ import com.shockwave.pdfium.util.SizeF;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,7 @@ class PdfFile {
     private SparseBooleanArray openedPages = new SparseBooleanArray();
     /** Pages opened only to back a pinned text page. */
     private SparseBooleanArray textOpenedPages = new SparseBooleanArray();
+    private final Map<Integer, List<PdfDocument.HighlightAnnotation>> highlightAnnotationCache = new HashMap<>();
     /** Page with maximum width */
     private Size originalMaxWidthPageSize = new Size(0, 0);
     /** Page with maximum height */
@@ -521,6 +523,17 @@ class PdfFile {
         return pdfiumCore.textRange(pdfDocument, docPage, start, count);
     }
 
+    public float[] textRects(int pageIndex, int start, int count) {
+        if (pdfiumCore == null || pdfDocument == null) {
+            return new float[0];
+        }
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return new float[0];
+        }
+        return pdfiumCore.textRects(pdfDocument, docPage, start, count);
+    }
+
     public PointF documentToPdf(int pageIndex, float zoom, float docX, float docY) {
         SizeF fullSize = getOriginalFullPagePointSize(pageIndex);
         SizeF renderedSize = getScaledPageSize(pageIndex, zoom);
@@ -689,11 +702,13 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return new Rect[0];
         }
-        return pdfiumCore.createHighlightText(pdfDocument, docPage, start, end, padding);
+        Rect[] result = pdfiumCore.createHighlightText(pdfDocument, docPage, start, end, padding);
+        invalidateHighlightAnnotationCache(pageIndex);
+        return result;
     }
 
     public boolean createHighlightAnnotation(int pageIndex, List<RectF> pdfRects,
-                                              int color, String contents) {
+                                              int color, String contents, String groupKey) {
         int docPage = documentPage(pageIndex);
         if (docPage < 0 || pdfRects == null || pdfRects.isEmpty()) {
             return false;
@@ -703,24 +718,18 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return false;
         }
-        return pdfiumCore.createHighlightAnnotation(pdfDocument, docPage, pdfRects, color, contents);
-    }
-
-    public PdfDocument.HighlightAnnotation findHighlightAnnotationAt(int pageIndex, float pdfX,
-                                                                      float pdfY, float tolerance) {
-        int docPage = documentPage(pageIndex);
-        if (docPage < 0) {
-            return null;
+        boolean created = pdfiumCore.createHighlightAnnotation(pdfDocument, docPage, pdfRects, color, contents, groupKey);
+        if (created) {
+            invalidateHighlightAnnotationCache(pageIndex);
         }
-        try {
-            openPage(pageIndex);
-        } catch (PageRenderingException e) {
-            return null;
-        }
-        return pdfiumCore.findHighlightAnnotationAt(pdfDocument, docPage, pdfX, pdfY, tolerance);
+        return created;
     }
 
     public List<PdfDocument.HighlightAnnotation> getHighlightAnnotations(int pageIndex) {
+        List<PdfDocument.HighlightAnnotation> cached = highlightAnnotationCache.get(pageIndex);
+        if (cached != null) {
+            return cached;
+        }
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return new ArrayList<>();
@@ -730,7 +739,21 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return new ArrayList<>();
         }
-        return pdfiumCore.getHighlightAnnotations(pdfDocument, docPage);
+        List<PdfDocument.HighlightAnnotation> annotations =
+                pdfiumCore.getHighlightAnnotations(pdfDocument, docPage);
+        List<PdfDocument.HighlightAnnotation> snapshot = annotations == null
+                ? Collections.<PdfDocument.HighlightAnnotation>emptyList()
+                : Collections.unmodifiableList(annotations);
+        highlightAnnotationCache.put(pageIndex, snapshot);
+        return snapshot;
+    }
+
+    public void invalidateHighlightAnnotationCache(int pageIndex) {
+        highlightAnnotationCache.remove(pageIndex);
+    }
+
+    public void invalidateHighlightAnnotationCache() {
+        highlightAnnotationCache.clear();
     }
 
     public boolean setHighlightAnnotationColor(int pageIndex, int annotationIndex,
@@ -744,7 +767,11 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return false;
         }
-        return pdfiumCore.setHighlightAnnotationColor(pdfDocument, docPage, annotationIndex, groupKey, color);
+        boolean updated = pdfiumCore.setHighlightAnnotationColor(pdfDocument, docPage, annotationIndex, groupKey, color);
+        if (updated) {
+            invalidateHighlightAnnotationCache(pageIndex);
+        }
+        return updated;
     }
 
     public boolean removeHighlightAnnotation(int pageIndex, int annotationIndex, String groupKey) {
@@ -757,7 +784,11 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return false;
         }
-        return pdfiumCore.removeHighlightAnnotation(pdfDocument, docPage, annotationIndex, groupKey);
+        boolean removed = pdfiumCore.removeHighlightAnnotation(pdfDocument, docPage, annotationIndex, groupKey);
+        if (removed) {
+            invalidateHighlightAnnotationCache(pageIndex);
+        }
+        return removed;
     }
 
     public boolean saveAsCopy(File outputFile) throws IOException {
@@ -779,6 +810,7 @@ class PdfFile {
         int docPage = documentPage(pageIndex);
         if (docPage >= 0) {
             pdfiumCore.clearSearchResultsAnnot(pdfDocument, docPage);
+            invalidateHighlightAnnotationCache(pageIndex);
         }
     }
 
@@ -827,6 +859,7 @@ class PdfFile {
         originalFullPageSizes.clear();
         originalFullPagePointSizes.clear();
         textOpenedPages.clear();
+        highlightAnnotationCache.clear();
     }
 
     /**

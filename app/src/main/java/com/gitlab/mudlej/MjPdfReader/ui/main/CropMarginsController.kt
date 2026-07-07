@@ -31,7 +31,6 @@ class CropMarginsController(
     private val isCropMarginsEnabled: () -> Boolean,
     private val setCropMarginsEnabled: (Boolean) -> Unit,
     private val isCurrentDocument: (Long, Uri?) -> Boolean,
-    private val beforeReload: () -> Unit,
     private val reloadWithCropMargins: (Configurator, Int, CropMargins, PDFView.ViewState?) -> Unit,
 ) {
 
@@ -196,7 +195,6 @@ class CropMarginsController(
 
     private fun apply(cropMargins: CropMargins) {
         val uri = pdf.uri ?: return
-        beforeReload()
         val configurator = currentConfigurator(uri) ?: return
         val viewState = binding.pdfView.captureViewState()
         val currentPage = viewState?.pageIndex ?: binding.pdfView.currentPage

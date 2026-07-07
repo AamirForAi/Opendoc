@@ -17,8 +17,6 @@ final class TextSelectionManager {
     private static final int DEFAULT_SELECTION_COLOR = 0x663F51B5;
     private static final float INITIAL_HIT_TOLERANCE_PT = 2f;
     private static final float HANDLE_HIT_TOLERANCE_PT = 20f;
-    private static final float VERTICAL_OVERLAP_THRESHOLD = 0.8f;
-    private static final float MIN_RUN_GAP_PT = 12f;
 
     private enum Handle { NONE, START, END }
 
@@ -502,32 +500,19 @@ final class TextSelectionManager {
         int charCount = pdfFile.pageCharCount(page);
         int start = Math.max(0, Math.min(selection.startChar(), charCount));
         int end = Math.max(start, Math.min(selection.endChar(), charCount));
-        RectF run = null;
-
-        for (int i = start; i < end; i++) {
-            if (!charBox(page, i, boxScratch)) {
-                continue;
-            }
-            float left = Math.min(boxScratch[0], boxScratch[2]);
-            float right = Math.max(boxScratch[0], boxScratch[2]);
-            float bottom = Math.min(boxScratch[1], boxScratch[3]);
-            float top = Math.max(boxScratch[1], boxScratch[3]);
-            if (right <= left || top <= bottom) {
-                continue;
-            }
-
-            if (run == null) {
-                run = pdfRect(left, bottom, right, top);
-            } else if (sameRun(run, left, bottom, right, top)) {
-                unionPdfRect(run, left, bottom, right, top);
-            } else {
-                pdfRunRects.add(run);
-                run = pdfRect(left, bottom, right, top);
-            }
+        if (end <= start) {
+            return;
         }
 
-        if (run != null) {
-            pdfRunRects.add(run);
+        float[] rects = pdfFile.textRects(page, start, end - start);
+        for (int i = 0; i + 3 < rects.length; i += 4) {
+            float left = Math.min(rects[i], rects[i + 2]);
+            float right = Math.max(rects[i], rects[i + 2]);
+            float bottom = Math.min(rects[i + 1], rects[i + 3]);
+            float top = Math.max(rects[i + 1], rects[i + 3]);
+            if (right > left && top > bottom) {
+                pdfRunRects.add(pdfRect(left, bottom, right, top));
+            }
         }
     }
 
@@ -538,32 +523,6 @@ final class TextSelectionManager {
         rect.right = right;
         rect.bottom = bottom;
         return rect;
-    }
-
-    private void unionPdfRect(RectF run, float left, float bottom, float right, float top) {
-        run.left = Math.min(run.left, left);
-        run.right = Math.max(run.right, right);
-        run.top = Math.max(run.top, top);
-        run.bottom = Math.min(run.bottom, bottom);
-    }
-
-    private boolean sameRun(RectF run, float left, float bottom, float right, float top) {
-        float overlap = Math.min(run.top, top) - Math.max(run.bottom, bottom);
-        float smallerHeight = Math.min(run.top - run.bottom, top - bottom);
-        if (smallerHeight <= 0 || overlap / smallerHeight < VERTICAL_OVERLAP_THRESHOLD) {
-            return false;
-        }
-
-        float gap;
-        if (left > run.right) {
-            gap = left - run.right;
-        } else if (run.left > right) {
-            gap = run.left - right;
-        } else {
-            gap = 0;
-        }
-        float maxGap = Math.max(MIN_RUN_GAP_PT, (right - left) * 3f);
-        return gap <= maxGap;
     }
 
     private String normalizeCopiedText(String text) {
