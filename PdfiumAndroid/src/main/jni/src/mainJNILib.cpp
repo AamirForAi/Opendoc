@@ -425,6 +425,30 @@ static jstring wideToJString(JNIEnv* env, const std::vector<FPDF_WCHAR>& wide) {
     return env->NewString(chars.data(), chars.size());
 }
 
+typedef unsigned long (*FormFieldStringGetter)(FPDF_FORMHANDLE, FPDF_ANNOTATION, FPDF_WCHAR*, unsigned long);
+
+static std::vector<FPDF_WCHAR> getFormFieldWideString(FormFieldStringGetter getter,
+                                                      FPDF_FORMHANDLE formHandle,
+                                                      FPDF_ANNOTATION annot) {
+    std::vector<FPDF_WCHAR> empty;
+    unsigned long bytes = getter(formHandle, annot, NULL, 0);
+    if (bytes <= sizeof(FPDF_WCHAR)) {
+        return empty;
+    }
+
+    unsigned long bufferBytes = bytes + sizeof(FPDF_WCHAR);
+    std::vector<FPDF_WCHAR> value(bufferBytes / sizeof(FPDF_WCHAR));
+    unsigned long copied = getter(formHandle, annot, value.data(), bufferBytes);
+    if (copied == 0 || copied > bufferBytes) {
+        return empty;
+    }
+    value.resize(copied / sizeof(FPDF_WCHAR));
+    if (!value.empty() && value.back() == 0) {
+        value.pop_back();
+    }
+    return value;
+}
+
 static bool isAppHighlightAnnotation(FPDF_ANNOTATION annot) {
     if (annot == NULL || FPDFAnnot_GetSubtype(annot) != FPDF_ANNOT_HIGHLIGHT) {
         return false;
@@ -1520,6 +1544,244 @@ JNI_FUNC(jboolean, PdfiumCore, nativeRemoveHighlightAnnotation)(JNI_ARGS,
     }
 
     return removedAny && success;
+}
+
+JNI_FUNC(jobject, PdfiumCore, nativeGetFormFieldAtPoint)(JNI_ARGS,
+    jlong docPtr,
+    jlong pagePtr,
+    jfloat x,
+    jfloat y
+) {
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    FPDF_FORMHANDLE formHandle = ensureFormHandle(doc);
+    if (page == NULL || formHandle == NULL) {
+        return NULL;
+    }
+
+    FS_POINTF point;
+    point.x = x;
+    point.y = y;
+    FPDF_ANNOTATION annot = FPDFAnnot_GetFormFieldAtPoint(formHandle, page, &point);
+    if (annot == NULL) {
+        return NULL;
+    }
+
+    int annotIndex = FPDFPage_GetAnnotIndex(page, annot);
+    int fieldType = FPDFAnnot_GetFormFieldType(formHandle, annot);
+    int fieldFlags = FPDFAnnot_GetFormFieldFlags(formHandle, annot);
+    jboolean checked = FPDFAnnot_IsChecked(formHandle, annot);
+    jstring nameString = wideToJString(env,
+            getFormFieldWideString(&FPDFAnnot_GetFormFieldName, formHandle, annot));
+    jstring valueString = wideToJString(env,
+            getFormFieldWideString(&FPDFAnnot_GetFormFieldValue, formHandle, annot));
+    FPDFPage_CloseAnnot(annot);
+
+    if (annotIndex < 0) {
+        return NULL;
+    }
+
+    jclass fieldClass = env->FindClass("com/shockwave/pdfium/PdfDocument$FormField");
+    if (fieldClass == NULL) {
+        return NULL;
+    }
+    jmethodID fieldConstructor = env->GetMethodID(fieldClass, "<init>",
+            "(IIILjava/lang/String;Ljava/lang/String;Z)V");
+    if (fieldConstructor == NULL) {
+        env->DeleteLocalRef(fieldClass);
+        return NULL;
+    }
+
+    jobject fieldObject = env->NewObject(fieldClass, fieldConstructor,
+            static_cast<jint>(annotIndex),
+            static_cast<jint>(fieldType),
+            static_cast<jint>(fieldFlags),
+            nameString,
+            valueString,
+            checked);
+    env->DeleteLocalRef(fieldClass);
+    if (nameString != NULL) {
+        env->DeleteLocalRef(nameString);
+    }
+    if (valueString != NULL) {
+        env->DeleteLocalRef(valueString);
+    }
+    return fieldObject;
+}
+
+static FPDF_ANNOTATION getWidgetAnnot(FPDF_PAGE page, int annotIndex) {
+    FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, annotIndex);
+    if (annot == NULL) {
+        return NULL;
+    }
+    if (FPDFAnnot_GetSubtype(annot) != FPDF_ANNOT_WIDGET) {
+        FPDFPage_CloseAnnot(annot);
+        return NULL;
+    }
+    return annot;
+}
+
+static bool isEditableFormField(FPDF_FORMHANDLE formHandle, FPDF_ANNOTATION annot) {
+    int type = FPDFAnnot_GetFormFieldType(formHandle, annot);
+    bool editableType = type == FPDF_FORMFIELD_TEXTFIELD
+            || type == FPDF_FORMFIELD_CHECKBOX
+            || type == FPDF_FORMFIELD_RADIOBUTTON;
+    if (!editableType) {
+        return false;
+    }
+    if ((FPDFAnnot_GetFormFieldFlags(formHandle, annot) & FPDF_FORMFLAG_READONLY) != 0) {
+        return false;
+    }
+    return (FPDFAnnot_GetFlags(annot) & FPDF_ANNOT_FLAG_HIDDEN) == 0;
+}
+
+JNI_FUNC(jfloatArray, PdfiumCore, nativeGetFormFieldRects)(JNI_ARGS,
+    jlong docPtr,
+    jlong pagePtr
+) {
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    FPDF_FORMHANDLE formHandle = ensureFormHandle(doc);
+    if (page == NULL || formHandle == NULL) {
+        return env->NewFloatArray(0);
+    }
+
+    std::vector<jfloat> values;
+    int annotCount = FPDFPage_GetAnnotCount(page);
+    for (int i = 0; i < annotCount; i++) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (annot == NULL) {
+            continue;
+        }
+        FS_RECTF rect;
+        if (FPDFAnnot_GetSubtype(annot) == FPDF_ANNOT_WIDGET
+                && isEditableFormField(formHandle, annot)
+                && FPDFAnnot_GetRect(annot, &rect)) {
+            FS_RECTF bounds = normalizedRect(rect);
+            values.push_back(bounds.left);
+            values.push_back(bounds.bottom);
+            values.push_back(bounds.right);
+            values.push_back(bounds.top);
+        }
+        FPDFPage_CloseAnnot(annot);
+    }
+
+    jfloatArray result = env->NewFloatArray(values.size());
+    if (result != NULL && !values.empty()) {
+        env->SetFloatArrayRegion(result, 0, values.size(), values.data());
+    }
+    return result;
+}
+
+static bool isAnnotChecked(FPDF_FORMHANDLE formHandle, FPDF_ANNOTATION annot) {
+    return FPDFAnnot_IsChecked(formHandle, annot) != 0;
+}
+
+static bool toggleByFocusAndSpace(FPDF_FORMHANDLE formHandle, FPDF_PAGE page, FPDF_ANNOTATION annot) {
+    if (!FORM_SetFocusedAnnot(formHandle, annot)) {
+        LOGE("toggleByFocusAndSpace: FORM_SetFocusedAnnot failed");
+        return false;
+    }
+    FORM_OnChar(formHandle, page, ' ', 0);
+    FORM_ForceToKillFocus(formHandle);
+    return true;
+}
+
+static bool toggleByClick(FPDF_FORMHANDLE formHandle, FPDF_PAGE page, FPDF_ANNOTATION annot) {
+    FS_RECTF rect;
+    if (!FPDFAnnot_GetRect(annot, &rect)) {
+        LOGE("toggleByClick: FPDFAnnot_GetRect failed");
+        return false;
+    }
+    double centerX = (rect.left + rect.right) / 2.0;
+    double centerY = (rect.top + rect.bottom) / 2.0;
+    if (!FORM_OnLButtonDown(formHandle, page, 0, centerX, centerY)) {
+        LOGE("toggleByClick: FORM_OnLButtonDown not handled at (%f, %f)", centerX, centerY);
+    }
+    FORM_OnLButtonUp(formHandle, page, 0, centerX, centerY);
+    FORM_ForceToKillFocus(formHandle);
+    return true;
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeSetFormFieldText)(JNI_ARGS,
+    jlong docPtr,
+    jlong pagePtr,
+    jint annotIndex,
+    jstring text
+) {
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    FPDF_FORMHANDLE formHandle = ensureFormHandle(doc);
+    if (page == NULL || formHandle == NULL) {
+        return false;
+    }
+
+    FPDF_ANNOTATION annot = getWidgetAnnot(page, annotIndex);
+    if (annot == NULL) {
+        return false;
+    }
+
+    std::vector<FPDF_WCHAR> wideText = jstringToWide(env, text);
+    wideText.push_back(0);
+
+    FORM_OnAfterLoadPage(page, formHandle);
+    FORM_ForceToKillFocus(formHandle);
+    bool focused = FORM_SetFocusedAnnot(formHandle, annot);
+    if (focused) {
+        FORM_SelectAllText(formHandle, page);
+        FORM_ReplaceSelection(formHandle, page, wideText.data());
+        FORM_ForceToKillFocus(formHandle);
+    } else {
+        LOGE("nativeSetFormFieldText: FORM_SetFocusedAnnot failed for annot %d", annotIndex);
+    }
+    FPDFPage_CloseAnnot(annot);
+    return focused;
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeSetFormFieldChecked)(JNI_ARGS,
+    jlong docPtr,
+    jlong pagePtr,
+    jint annotIndex,
+    jboolean checked
+) {
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    FPDF_FORMHANDLE formHandle = ensureFormHandle(doc);
+    if (page == NULL || formHandle == NULL) {
+        return false;
+    }
+
+    FPDF_ANNOTATION annot = getWidgetAnnot(page, annotIndex);
+    if (annot == NULL) {
+        return false;
+    }
+
+    bool wantChecked = checked;
+    if (isAnnotChecked(formHandle, annot) == wantChecked) {
+        FPDFPage_CloseAnnot(annot);
+        return true;
+    }
+
+    FORM_OnAfterLoadPage(page, formHandle);
+    FORM_ForceToKillFocus(formHandle);
+
+    toggleByFocusAndSpace(formHandle, page, annot);
+    if (isAnnotChecked(formHandle, annot) != wantChecked) {
+        LOGE("nativeSetFormFieldChecked: focus+space had no effect on annot %d, trying click", annotIndex);
+        toggleByClick(formHandle, page, annot);
+    }
+
+    jboolean result = isAnnotChecked(formHandle, annot) == wantChecked;
+    if (!result) {
+        LOGE("nativeSetFormFieldChecked: annot %d stuck at %d, wanted %d (type %d, flags 0x%x)",
+             annotIndex,
+             isAnnotChecked(formHandle, annot),
+             wantChecked,
+             FPDFAnnot_GetFormFieldType(formHandle, annot),
+             FPDFAnnot_GetFormFieldFlags(formHandle, annot));
+    }
+    FPDFPage_CloseAnnot(annot);
+    return result;
 }
 
 JNI_FUNC(jint, PdfiumCore, nativeClearSearchResultAnnot)(JNI_ARGS, jlong pagePtr) {

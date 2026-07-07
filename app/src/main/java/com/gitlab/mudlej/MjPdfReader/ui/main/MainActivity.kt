@@ -163,6 +163,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cropMarginsController: CropMarginsController
     private lateinit var annotationController: AnnotationController
     private lateinit var inlineAnnotationActionController: InlineAnnotationActionController
+    private lateinit var formFieldController: FormFieldController
     private lateinit var annotationSaveController: AnnotationSaveController
     private lateinit var pref: Preferences
     private val pdf = PDF()
@@ -282,6 +283,7 @@ class MainActivity : AppCompatActivity() {
             ::onAnnotationEdit,
             ::updateAnnotationSaveUiPosition,
         ) { fullScreenOptionsManager.showAllTemporarilyOrHide() }
+        formFieldController = FormFieldController(this, binding, ::onAnnotationEdit)
         permissionManager = PermissionManager(this)
         brightness = Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 2
         inlineAnnotationActionController.configure { annotationSaveController.saveHighlights() }
@@ -453,7 +455,6 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton(R.string.discard) { _, _ ->
                 annotationSaveController.clearPendingRequests()
                 annotationController.clearJournal()
-                annotationController.deleteWorkingCopy()
                 updateAnnotationDirtyUi()
                 discardAction()
             }
@@ -483,33 +484,8 @@ class MainActivity : AppCompatActivity() {
             downloadOrShowDownloadedFile(uri)
         }
         else {
-            loadCurrentDocumentWithRecoveryPrompt(uri, savePassword)
-        }
-    }
-
-    private fun loadCurrentDocumentWithRecoveryPrompt(uri: Uri, savePassword: Boolean) {
-        if (!annotationController.hasWorkingCopy(uri) || PdfBytesHolder.uri == uri.toString()) {
             loadCurrentDocument(savePassword)
-            return
         }
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.restore_unsaved_highlights_title)
-            .setMessage(R.string.restore_unsaved_highlights_message)
-            .setPositiveButton(R.string.restore) { _, _ ->
-                if (annotationController.applyWorkingCopyIfPresent(uri)) {
-                    annotationController.markDirty()
-                    updateAnnotationDirtyUi()
-                }
-                loadCurrentDocument(savePassword)
-            }
-            .setNegativeButton(R.string.discard) { _, _ ->
-                annotationController.deleteWorkingCopy(uri)
-                updateAnnotationDirtyUi()
-                loadCurrentDocument(savePassword)
-            }
-            .setCancelable(false)
-            .show()
     }
 
     private fun loadCurrentDocument(savePassword: Boolean = false) {
@@ -659,7 +635,7 @@ class MainActivity : AppCompatActivity() {
             .enableAnnotationRendering(Preferences.annotationRenderingDefault)
             .enableAntialiasing(pref.getAntiAliasing())
             .onDocumentInteraction { motionEvent -> autoScrollManager.handleUserInteraction(motionEvent) }
-            .onTap { motionEvent -> inlineAnnotationActionController.handlePdfTap(motionEvent) }
+            .onTap { motionEvent -> handleReaderTap(motionEvent) }
             .onTapUp { motionEvent -> inlineAnnotationActionController.handleImmediatePdfTap(motionEvent) }
             .scrollHandle(createScrollHandle())
             .spacing(spacing)
@@ -973,6 +949,17 @@ class MainActivity : AppCompatActivity() {
     private fun onAnnotationEdit(edit: AnnotationEdit) {
         annotationController.recordEdit(edit)
         updateAnnotationDirtyUi()
+    }
+
+    private fun handleReaderTap(event: MotionEvent): Boolean {
+        if (inlineAnnotationActionController.handleImmediatePdfTap(event)) {
+            return true
+        }
+        if (formFieldController.handlePdfTap(event)) {
+            return true
+        }
+        inlineAnnotationActionController.handleEmptyTap()
+        return true
     }
 
     private fun maybeRestoreAnnotations(documentUri: Uri?, loadToken: Long) {

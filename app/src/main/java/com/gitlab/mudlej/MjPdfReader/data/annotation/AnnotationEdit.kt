@@ -8,11 +8,10 @@ import com.google.gson.JsonParser
 sealed class AnnotationEdit {
 
     abstract val page: Int
-    abstract val group: String
 
     data class Add(
         override val page: Int,
-        override val group: String,
+        val group: String,
         val rects: List<RectF>,
         val color: Int,
         val contents: String,
@@ -20,28 +19,55 @@ sealed class AnnotationEdit {
 
     data class Recolor(
         override val page: Int,
-        override val group: String,
+        val group: String,
         val color: Int,
     ) : AnnotationEdit()
 
     data class Delete(
         override val page: Int,
-        override val group: String,
+        val group: String,
+    ) : AnnotationEdit()
+
+    data class SetFieldText(
+        override val page: Int,
+        val fieldIndex: Int,
+        val fieldName: String,
+        val text: String,
+    ) : AnnotationEdit()
+
+    data class SetFieldChecked(
+        override val page: Int,
+        val fieldIndex: Int,
+        val fieldName: String,
+        val checked: Boolean,
     ) : AnnotationEdit()
 
     fun toJsonLine(): String {
         val json = JsonObject()
         json.addProperty(KEY_OP, opName())
         json.addProperty(KEY_PAGE, page)
-        json.addProperty(KEY_GROUP, group)
         when (this) {
             is Add -> {
+                json.addProperty(KEY_GROUP, group)
                 json.addProperty(KEY_COLOR, color)
                 json.addProperty(KEY_CONTENTS, contents)
                 json.add(KEY_RECTS, rectsToJson(rects))
             }
-            is Recolor -> json.addProperty(KEY_COLOR, color)
-            is Delete -> Unit
+            is Recolor -> {
+                json.addProperty(KEY_GROUP, group)
+                json.addProperty(KEY_COLOR, color)
+            }
+            is Delete -> json.addProperty(KEY_GROUP, group)
+            is SetFieldText -> {
+                json.addProperty(KEY_FIELD_INDEX, fieldIndex)
+                json.addProperty(KEY_FIELD_NAME, fieldName)
+                json.addProperty(KEY_TEXT, text)
+            }
+            is SetFieldChecked -> {
+                json.addProperty(KEY_FIELD_INDEX, fieldIndex)
+                json.addProperty(KEY_FIELD_NAME, fieldName)
+                json.addProperty(KEY_CHECKED, checked)
+            }
         }
         return json.toString()
     }
@@ -50,6 +76,8 @@ sealed class AnnotationEdit {
         is Add -> OP_ADD
         is Recolor -> OP_RECOLOR
         is Delete -> OP_DELETE
+        is SetFieldText -> OP_SET_FIELD_TEXT
+        is SetFieldChecked -> OP_SET_FIELD_CHECKED
     }
 
     companion object {
@@ -59,24 +87,45 @@ sealed class AnnotationEdit {
         private const val KEY_COLOR = "color"
         private const val KEY_CONTENTS = "contents"
         private const val KEY_RECTS = "rects"
+        private const val KEY_FIELD_INDEX = "fieldIndex"
+        private const val KEY_FIELD_NAME = "fieldName"
+        private const val KEY_TEXT = "text"
+        private const val KEY_CHECKED = "checked"
         private const val OP_ADD = "add"
         private const val OP_RECOLOR = "recolor"
         private const val OP_DELETE = "delete"
+        private const val OP_SET_FIELD_TEXT = "setFieldText"
+        private const val OP_SET_FIELD_CHECKED = "setFieldChecked"
 
         fun fromJsonLine(line: String): AnnotationEdit? = runCatching {
             val json = JsonParser.parseString(line).asJsonObject
             val page = json.get(KEY_PAGE).asInt
-            val group = json.get(KEY_GROUP).asString
             when (json.get(KEY_OP).asString) {
                 OP_ADD -> Add(
                     page = page,
-                    group = group,
+                    group = json.get(KEY_GROUP).asString,
                     rects = rectsFromJson(json.getAsJsonArray(KEY_RECTS)),
                     color = json.get(KEY_COLOR).asInt,
                     contents = json.get(KEY_CONTENTS).asString,
                 )
-                OP_RECOLOR -> Recolor(page = page, group = group, color = json.get(KEY_COLOR).asInt)
-                OP_DELETE -> Delete(page = page, group = group)
+                OP_RECOLOR -> Recolor(
+                    page = page,
+                    group = json.get(KEY_GROUP).asString,
+                    color = json.get(KEY_COLOR).asInt,
+                )
+                OP_DELETE -> Delete(page = page, group = json.get(KEY_GROUP).asString)
+                OP_SET_FIELD_TEXT -> SetFieldText(
+                    page = page,
+                    fieldIndex = json.get(KEY_FIELD_INDEX).asInt,
+                    fieldName = json.get(KEY_FIELD_NAME).asString,
+                    text = json.get(KEY_TEXT).asString,
+                )
+                OP_SET_FIELD_CHECKED -> SetFieldChecked(
+                    page = page,
+                    fieldIndex = json.get(KEY_FIELD_INDEX).asInt,
+                    fieldName = json.get(KEY_FIELD_NAME).asString,
+                    checked = json.get(KEY_CHECKED).asBoolean,
+                )
                 else -> null
             }
         }.getOrNull()

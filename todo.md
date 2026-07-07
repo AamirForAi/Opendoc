@@ -25,7 +25,6 @@
 - [x] Add search in TOC activity.
 - [x] Improve text mode a little
 - [ ] Investigate PDF corruption/rendering issues after files stay open for several hours.
-- [ ] Investigate missing form checkboxes when printing.
 - [ ] Remember per-document horizontal scroll lock.
 - [ ] Remember per-document zoom.
 - [ ] Add ability to jump back after clicking internal PDF references.

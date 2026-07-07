@@ -241,7 +241,6 @@ class AnnotationSaveController(
             }
 
             annotationController.clearJournal(sourceUri)
-            annotationController.deleteWorkingCopy(sourceUri)
             annotationController.setCurrentSaveDestination(destinationUri, durable = saveDestinationDurably)
             annotationController.setSaving(false)
             updateDirtyUi()

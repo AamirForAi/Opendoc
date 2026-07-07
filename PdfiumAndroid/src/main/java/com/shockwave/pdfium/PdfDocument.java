@@ -160,6 +160,59 @@ public class PdfDocument {
         }
     }
 
+    public static class FormField {
+        public static final int TYPE_CHECKBOX = 2;
+        public static final int TYPE_RADIO_BUTTON = 3;
+        public static final int TYPE_TEXT_FIELD = 6;
+
+        public static final int FLAG_READONLY = 1;
+        public static final int FLAG_TEXT_MULTILINE = 1 << 12;
+
+        private final int annotationIndex;
+        private final int type;
+        private final int flags;
+        private final String name;
+        private final String value;
+        private final boolean checked;
+
+        public FormField(int annotationIndex, int type, int flags, String name, String value, boolean checked) {
+            this.annotationIndex = annotationIndex;
+            this.type = type;
+            this.flags = flags;
+            this.name = name == null ? "" : name;
+            this.value = value == null ? "" : value;
+            this.checked = checked;
+        }
+
+        public int getAnnotationIndex() {
+            return annotationIndex;
+        }
+
+        public int getType() {
+            return type;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public boolean isChecked() {
+            return checked;
+        }
+
+        public boolean isReadOnly() {
+            return (flags & FLAG_READONLY) != 0;
+        }
+
+        public boolean isMultiline() {
+            return (flags & FLAG_TEXT_MULTILINE) != 0;
+        }
+    }
+
     /*package*/ PdfDocument() {
     }
 

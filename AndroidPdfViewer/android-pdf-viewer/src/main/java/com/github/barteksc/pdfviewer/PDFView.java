@@ -115,6 +115,10 @@ public class PDFView extends RelativeLayout {
 
     private static final float HIGHLIGHT_HIT_TOLERANCE = 2.5f;
 
+    private static final int FORM_FIELD_FILL_COLOR = 0x282196F3; // 16% Material blue tint
+
+    private static final int FORM_FIELD_STROKE_COLOR = 0x662196F3; // 40% Material blue hairline
+
     public static class ViewState {
 
         public final float zoom;
@@ -145,6 +149,28 @@ public class PDFView extends RelativeLayout {
             this.pageIndex = pageIndex;
             this.pdfRects = Collections.unmodifiableList(new ArrayList<>(safeRects));
             this.selectedText = selectedText == null ? "" : selectedText;
+        }
+    }
+
+    public static final class FormField {
+        public final int pageIndex;
+        public final int annotationIndex;
+        public final int type;
+        public final String name;
+        public final String value;
+        public final boolean checked;
+        public final boolean readOnly;
+        public final boolean multiline;
+
+        public FormField(int pageIndex, PdfDocument.FormField field) {
+            this.pageIndex = pageIndex;
+            this.annotationIndex = field.getAnnotationIndex();
+            this.type = field.getType();
+            this.name = field.getName();
+            this.value = field.getValue();
+            this.checked = field.isChecked();
+            this.readOnly = field.isReadOnly();
+            this.multiline = field.isMultiline();
         }
     }
 
@@ -295,6 +321,10 @@ public class PDFView extends RelativeLayout {
 
     private Paint highlightAnnotationMultiplyPaint;
 
+    private Paint formFieldFillPaint;
+
+    private Paint formFieldStrokePaint;
+
     private HighlightAnnotation selectedHighlightAnnotation;
 
     /**
@@ -436,6 +466,13 @@ public class PDFView extends RelativeLayout {
         highlightAnnotationMultiplyPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         highlightAnnotationMultiplyPaint.setStyle(Style.FILL);
         highlightAnnotationMultiplyPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));
+        formFieldFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        formFieldFillPaint.setStyle(Style.FILL);
+        formFieldFillPaint.setColor(FORM_FIELD_FILL_COLOR);
+        formFieldStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        formFieldStrokePaint.setStyle(Style.STROKE);
+        formFieldStrokePaint.setStrokeWidth(getResources().getDisplayMetrics().density);
+        formFieldStrokePaint.setColor(FORM_FIELD_STROKE_COLOR);
         setSelectedHighlightColor(0xFF3F51B5);
 
         pdfiumCore = new PdfiumCore(context);
@@ -888,6 +925,7 @@ public class PDFView extends RelativeLayout {
         drawWithListener(canvas, currentPage, callbacks.getOnDraw());
         visiblePages.add(currentPage);
 
+        drawFormFieldIndicators(canvas, visiblePages);
         drawHighlightAnnotationOverlays(canvas, visiblePages);
         drawSelectedHighlightAnnotation(canvas);
 
@@ -896,6 +934,39 @@ public class PDFView extends RelativeLayout {
         }
 
         canvas.translate(-currentXOffset, -currentYOffset);
+    }
+
+    private void drawFormFieldIndicators(Canvas canvas, Set<Integer> pages) {
+        if (pdfFile == null || pages == null || pages.isEmpty()) {
+            return;
+        }
+        for (Integer page : pages) {
+            if (page == null || page < 0 || page >= pdfFile.getPagesCount()) {
+                continue;
+            }
+            float[] rects;
+            try {
+                rects = pdfFile.getFormFieldRects(page);
+            } catch (Throwable throwable) {
+                Log.e(TAG, "drawFormFieldIndicators: failed to read form fields", throwable);
+                return;
+            }
+            for (int i = 0; i + 3 < rects.length; i += 4) {
+                RectF docRect = pdfFile.pdfRectToDocument(
+                        page,
+                        zoom,
+                        rects[i],
+                        rects[i + 1],
+                        rects[i + 2],
+                        rects[i + 3]
+                );
+                if (docRect == null) {
+                    continue;
+                }
+                canvas.drawRect(docRect, formFieldFillPaint);
+                canvas.drawRect(docRect, formFieldStrokePaint);
+            }
+        }
     }
 
     private void drawSelectedHighlightAnnotation(Canvas canvas) {
@@ -1791,6 +1862,59 @@ public class PDFView extends RelativeLayout {
             return removed;
         } catch (Throwable throwable) {
             Log.e(TAG, "removeHighlightAnnotation: failed to remove highlight", throwable);
+            return false;
+        }
+    }
+
+    public FormField findFormFieldAt(float viewX, float viewY) {
+        if (pdfFile == null) {
+            return null;
+        }
+        float docX = -getCurrentXOffset() + viewX;
+        float docY = -getCurrentYOffset() + viewY;
+        int page = pdfFile.getPageAtOffset(isSwipeVertical() ? docY : docX, getZoom());
+        if (page < 0 || page >= pdfFile.getPagesCount()) {
+            return null;
+        }
+
+        PointF point = pdfFile.documentToPdf(page, getZoom(), docX, docY);
+        try {
+            PdfDocument.FormField field = pdfFile.getFormFieldAtPoint(page, point.x, point.y);
+            return field == null ? null : new FormField(page, field);
+        } catch (Throwable throwable) {
+            Log.e(TAG, "findFormFieldAt: failed to hit-test form field", throwable);
+            return null;
+        }
+    }
+
+    public boolean setFormFieldText(int pageIndex, int annotationIndex, String text) {
+        if (pdfFile == null) {
+            return false;
+        }
+        try {
+            boolean updated = pdfFile.setFormFieldText(pageIndex, annotationIndex, text);
+            if (updated) {
+                reloadPages();
+            }
+            return updated;
+        } catch (Throwable throwable) {
+            Log.e(TAG, "setFormFieldText: failed to update form field", throwable);
+            return false;
+        }
+    }
+
+    public boolean setFormFieldChecked(int pageIndex, int annotationIndex, boolean checked) {
+        if (pdfFile == null) {
+            return false;
+        }
+        try {
+            boolean updated = pdfFile.setFormFieldChecked(pageIndex, annotationIndex, checked);
+            if (updated) {
+                reloadPages();
+            }
+            return updated;
+        } catch (Throwable throwable) {
+            Log.e(TAG, "setFormFieldChecked: failed to update form field", throwable);
             return false;
         }
     }

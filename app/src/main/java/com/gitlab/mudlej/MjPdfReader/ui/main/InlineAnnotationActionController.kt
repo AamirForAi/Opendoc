@@ -56,16 +56,11 @@ class InlineAnnotationActionController(
         return true
     }
 
-    fun handlePdfTap(event: MotionEvent): Boolean {
-        if (handleImmediatePdfTap(event)) {
-            return true
-        }
-
+    fun handleEmptyTap() {
         if (activeHighlightAnnotation != null) {
             hideActions()
         }
         toggleReaderChrome()
-        return true
     }
 
     fun showSelectionActions(viewBounds: RectF?) {

@@ -5,14 +5,12 @@ import android.net.Uri
 import android.util.Log
 import com.github.barteksc.pdfviewer.PDFView
 import com.gitlab.mudlej.MjPdfReader.data.PDF
-import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationJournal
 import com.gitlab.mudlej.MjPdfReader.data.annotation.SourceKey
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 
 class AnnotationController(
     private val context: Context,
@@ -113,48 +111,21 @@ class AnnotationController(
             is AnnotationEdit.Add ->
                 pdfView.addHighlightAnnotation(edit.page, edit.rects, edit.color, edit.contents, edit.group)
             is AnnotationEdit.Recolor ->
-                pdfView.setHighlightAnnotationColor(highlightReference(edit), edit.color)
+                pdfView.setHighlightAnnotationColor(highlightReference(edit.page, edit.group), edit.color)
             is AnnotationEdit.Delete ->
-                pdfView.removeHighlightAnnotation(highlightReference(edit))
+                pdfView.removeHighlightAnnotation(highlightReference(edit.page, edit.group))
+            is AnnotationEdit.SetFieldText ->
+                pdfView.setFormFieldText(edit.page, edit.fieldIndex, edit.text)
+            is AnnotationEdit.SetFieldChecked ->
+                pdfView.setFormFieldChecked(edit.page, edit.fieldIndex, edit.checked)
         }
         if (!applied) {
             Log.w(TAG, "applyEdit: skipped ${edit.javaClass.simpleName} on page ${edit.page}")
         }
     }
 
-    private fun highlightReference(edit: AnnotationEdit): PDFView.HighlightAnnotation {
-        return PDFView.HighlightAnnotation(edit.page, -1, edit.group, null, "")
-    }
-
-    // TODO(remove after one release): legacy pre-journal working-copy recovery.
-    fun hasWorkingCopy(uri: Uri?): Boolean {
-        return uri?.let { workingCopyFileFor(it).isFile } == true
-    }
-
-    // TODO(remove after one release): legacy pre-journal working-copy recovery.
-    fun applyWorkingCopyIfPresent(uri: Uri?): Boolean {
-        val sourceUri = uri ?: return false
-        val file = workingCopyFileFor(sourceUri)
-        if (!file.isFile) {
-            return false
-        }
-        val bytes = runCatching { file.readBytes() }.getOrNull() ?: return false
-        PdfBytesHolder.set(sourceUri.toString(), bytes)
-        return true
-    }
-
-    // TODO(remove after one release): legacy pre-journal working-copy recovery.
-    fun deleteWorkingCopy(uri: Uri? = pdf.uri) {
-        uri?.let { workingCopyFileFor(it).delete() }
-        hasUnsavedAnnotations = false
-    }
-
-    private fun workingCopyFileFor(uri: Uri): File {
-        val dir = File(context.filesDir, "annotations")
-        if (!dir.exists()) {
-            dir.mkdirs()
-        }
-        return File(dir, "${sourceKey(uri)}.pdf")
+    private fun highlightReference(page: Int, group: String): PDFView.HighlightAnnotation {
+        return PDFView.HighlightAnnotation(page, -1, group, null, "")
     }
 
     companion object {

@@ -126,6 +126,17 @@ public class PdfiumCore {
 
     private native PdfDocument.HighlightAnnotation[] nativeGetHighlightAnnotations(long pagePtr);
 
+    private native PdfDocument.FormField nativeGetFormFieldAtPoint(long docPtr, long pagePtr,
+                                                                   float x, float y);
+
+    private native float[] nativeGetFormFieldRects(long docPtr, long pagePtr);
+
+    private native boolean nativeSetFormFieldText(long docPtr, long pagePtr, int annotIndex,
+                                                  String text);
+
+    private native boolean nativeSetFormFieldChecked(long docPtr, long pagePtr, int annotIndex,
+                                                     boolean checked);
+
     private native boolean nativeSetHighlightAnnotationColor(long pagePtr, int annotationIndex,
                                                              String groupKey, int r, int g, int b);
 
@@ -717,6 +728,48 @@ public class PdfiumCore {
         synchronized (lock) {
             Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
             nativeClearSearchResultAnnot(nativePagePtr, pageIndex);
+        }
+    }
+
+    public PdfDocument.FormField getFormFieldAtPoint(PdfDocument doc, int pageIndex, float x, float y) {
+        synchronized (lock) {
+            Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (nativePagePtr == null) {
+                return null;
+            }
+            return nativeGetFormFieldAtPoint(doc.mNativeDocPtr, nativePagePtr, x, y);
+        }
+    }
+
+    public float[] getFormFieldRects(PdfDocument doc, int pageIndex) {
+        synchronized (lock) {
+            Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (nativePagePtr == null) {
+                return new float[0];
+            }
+            float[] rects = nativeGetFormFieldRects(doc.mNativeDocPtr, nativePagePtr);
+            return rects == null ? new float[0] : rects;
+        }
+    }
+
+    public boolean setFormFieldText(PdfDocument doc, int pageIndex, int annotationIndex, String text) {
+        synchronized (lock) {
+            Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (nativePagePtr == null) {
+                return false;
+            }
+            return nativeSetFormFieldText(doc.mNativeDocPtr, nativePagePtr, annotationIndex,
+                    text == null ? "" : text);
+        }
+    }
+
+    public boolean setFormFieldChecked(PdfDocument doc, int pageIndex, int annotationIndex, boolean checked) {
+        synchronized (lock) {
+            Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (nativePagePtr == null) {
+                return false;
+            }
+            return nativeSetFormFieldChecked(doc.mNativeDocPtr, nativePagePtr, annotationIndex, checked);
         }
     }
 

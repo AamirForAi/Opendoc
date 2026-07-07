@@ -188,6 +188,8 @@
     <string name="copy">Copy</string>
     <string name="copy_all">Copy All</string>
     <string name="highlight_update_failed">Couldn\'t update highlight</string>
+    <string name="form_field">Form field</string>
+    <string name="form_field_update_failed">Couldn\'t update form field</string>
     <string name="increase_text_size">Increase Size</string>
     <string name="decrease_text_size">Decrease Size</string>
     <string name="search_dialog_message">This app tries to extract text from PDF, so it may not be accurate or correct</string>

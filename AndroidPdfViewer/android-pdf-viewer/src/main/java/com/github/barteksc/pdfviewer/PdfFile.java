@@ -59,6 +59,7 @@ class PdfFile {
     /** Pages opened only to back a pinned text page. */
     private SparseBooleanArray textOpenedPages = new SparseBooleanArray();
     private final Map<Integer, List<PdfDocument.HighlightAnnotation>> highlightAnnotationCache = new HashMap<>();
+    private final Map<Integer, float[]> formFieldRectCache = new HashMap<>();
     /** Page with maximum width */
     private Size originalMaxWidthPageSize = new Size(0, 0);
     /** Page with maximum height */
@@ -791,6 +792,64 @@ class PdfFile {
         return removed;
     }
 
+    public float[] getFormFieldRects(int pageIndex) {
+        float[] cached = formFieldRectCache.get(pageIndex);
+        if (cached != null) {
+            return cached;
+        }
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return new float[0];
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return new float[0];
+        }
+        float[] rects = pdfiumCore.getFormFieldRects(pdfDocument, docPage);
+        formFieldRectCache.put(pageIndex, rects);
+        return rects;
+    }
+
+    public PdfDocument.FormField getFormFieldAtPoint(int pageIndex, float pdfX, float pdfY) {
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return null;
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return null;
+        }
+        return pdfiumCore.getFormFieldAtPoint(pdfDocument, docPage, pdfX, pdfY);
+    }
+
+    public boolean setFormFieldText(int pageIndex, int annotationIndex, String text) {
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return false;
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return false;
+        }
+        return pdfiumCore.setFormFieldText(pdfDocument, docPage, annotationIndex, text);
+    }
+
+    public boolean setFormFieldChecked(int pageIndex, int annotationIndex, boolean checked) {
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return false;
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return false;
+        }
+        return pdfiumCore.setFormFieldChecked(pdfDocument, docPage, annotationIndex, checked);
+    }
+
     public boolean saveAsCopy(File outputFile) throws IOException {
         if (pdfDocument == null || outputFile == null) {
             return false;
@@ -860,6 +919,7 @@ class PdfFile {
         originalFullPagePointSizes.clear();
         textOpenedPages.clear();
         highlightAnnotationCache.clear();
+        formFieldRectCache.clear();
     }
 
     /**
