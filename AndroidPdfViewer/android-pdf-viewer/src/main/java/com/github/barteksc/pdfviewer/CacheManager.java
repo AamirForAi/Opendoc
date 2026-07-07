@@ -27,6 +27,7 @@ import com.github.barteksc.pdfviewer.model.PagePart;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.PriorityQueue;
 
@@ -50,11 +51,40 @@ class CacheManager {
 
     public void cachePart(PagePart part) {
         synchronized (passiveActiveLock) {
+            removeAndRecycleEqual(activeCache, part);
+            removeAndRecycleEqual(passiveCache, part);
+
             // If cache too big, remove and recycle
             makeAFreeSpace();
 
             // Then add part
             activeCache.offer(part);
+        }
+    }
+
+    public void invalidatePageParts(int page) {
+        synchronized (passiveActiveLock) {
+            markPageStale(passiveCache, page);
+            markPageStale(activeCache, page);
+        }
+        synchronized (thumbnails) {
+            markPageStale(thumbnails, page);
+        }
+    }
+
+    private static void markPageStale(Collection<PagePart> parts, int page) {
+        for (PagePart part : parts) {
+            if (part.getPage() == page) {
+                part.markStale();
+            }
+        }
+    }
+
+    private static void removeAndRecycleEqual(PriorityQueue<PagePart> queue, PagePart newPart) {
+        PagePart existing = find(queue, newPart);
+        if (existing != null) {
+            queue.remove(existing);
+            existing.getRenderedBitmap().recycle();
         }
     }
 
@@ -99,13 +129,17 @@ class CacheManager {
         PagePart found;
         synchronized (passiveActiveLock) {
             if ((found = find(passiveCache, fakePart)) != null) {
+                if (found.isStale()) {
+                    return false;
+                }
                 passiveCache.remove(found);
                 found.setCacheOrder(toOrder);
                 activeCache.offer(found);
                 return true;
             }
 
-            return find(activeCache, fakePart) != null;
+            found = find(activeCache, fakePart);
+            return found != null && !found.isStale();
         }
     }
 
@@ -117,7 +151,7 @@ class CacheManager {
         synchronized (thumbnails) {
             for (PagePart part : thumbnails) {
                 if (part.equals(fakePart)) {
-                    return true;
+                    return !part.isStale();
                 }
             }
             return false;
@@ -125,13 +159,21 @@ class CacheManager {
     }
 
     /**
-     * Add part if it doesn't exist, recycle bitmap otherwise
+     * Add part if it doesn't exist, recycle bitmap otherwise.
+     * A stale duplicate is replaced by the new part instead.
      */
     private void addWithoutDuplicates(Collection<PagePart> collection, PagePart newPart) {
-        for (PagePart part : collection) {
+        Iterator<PagePart> iterator = collection.iterator();
+        while (iterator.hasNext()) {
+            PagePart part = iterator.next();
             if (part.equals(newPart)) {
-                newPart.getRenderedBitmap().recycle();
-                return;
+                if (!part.isStale()) {
+                    newPart.getRenderedBitmap().recycle();
+                    return;
+                }
+                iterator.remove();
+                part.getRenderedBitmap().recycle();
+                break;
             }
         }
         collection.add(newPart);

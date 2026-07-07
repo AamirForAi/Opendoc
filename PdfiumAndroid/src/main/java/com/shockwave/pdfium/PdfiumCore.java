@@ -127,7 +127,7 @@ public class PdfiumCore {
     private native PdfDocument.HighlightAnnotation[] nativeGetHighlightAnnotations(long pagePtr);
 
     private native PdfDocument.FormField nativeGetFormFieldAtPoint(long docPtr, long pagePtr,
-                                                                   float x, float y);
+                                                                   float x, float y, float tolerance);
 
     private native float[] nativeGetFormFieldRects(long docPtr, long pagePtr);
 
@@ -731,13 +731,14 @@ public class PdfiumCore {
         }
     }
 
-    public PdfDocument.FormField getFormFieldAtPoint(PdfDocument doc, int pageIndex, float x, float y) {
+    public PdfDocument.FormField getFormFieldAtPoint(PdfDocument doc, int pageIndex,
+                                                     float x, float y, float tolerance) {
         synchronized (lock) {
             Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
             if (nativePagePtr == null) {
                 return null;
             }
-            return nativeGetFormFieldAtPoint(doc.mNativeDocPtr, nativePagePtr, x, y);
+            return nativeGetFormFieldAtPoint(doc.mNativeDocPtr, nativePagePtr, x, y, tolerance);
         }
     }
 

@@ -30,6 +30,8 @@ public class PagePart {
 
     private int cacheOrder;
 
+    private boolean stale;
+
     public PagePart(int page, Bitmap renderedBitmap, RectF pageRelativeBounds, boolean thumbnail, int cacheOrder) {
         super();
         this.page = page;
@@ -61,6 +63,14 @@ public class PagePart {
 
     public void setCacheOrder(int cacheOrder) {
         this.cacheOrder = cacheOrder;
+    }
+
+    public void markStale() {
+        stale = true;
+    }
+
+    public boolean isStale() {
+        return stale;
     }
 
     @Override

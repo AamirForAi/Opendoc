@@ -494,6 +494,27 @@ static FS_RECTF normalizedRect(FS_RECTF rect) {
     return normalized;
 }
 
+static bool rectContainsWithTolerance(FS_RECTF rect, float x, float y, float tolerance) {
+    return x >= rect.left - tolerance
+            && x <= rect.right + tolerance
+            && y >= rect.bottom - tolerance
+            && y <= rect.top + tolerance;
+}
+
+static bool isEditableFormField(FPDF_FORMHANDLE formHandle, FPDF_ANNOTATION annot) {
+    int type = FPDFAnnot_GetFormFieldType(formHandle, annot);
+    bool editableType = type == FPDF_FORMFIELD_TEXTFIELD
+            || type == FPDF_FORMFIELD_CHECKBOX
+            || type == FPDF_FORMFIELD_RADIOBUTTON;
+    if (!editableType) {
+        return false;
+    }
+    if ((FPDFAnnot_GetFormFieldFlags(formHandle, annot) & FPDF_FORMFLAG_READONLY) != 0) {
+        return false;
+    }
+    return (FPDFAnnot_GetFlags(annot) & FPDF_ANNOT_FLAG_HIDDEN) == 0;
+}
+
 static void initLibraryIfNeed(){
     Mutex::Autolock lock(sLibraryLock);
     if(sLibraryReferenceCount == 0){
@@ -1546,11 +1567,85 @@ JNI_FUNC(jboolean, PdfiumCore, nativeRemoveHighlightAnnotation)(JNI_ARGS,
     return removedAny && success;
 }
 
+static jobject buildFormFieldObject(JNIEnv* env, FPDF_FORMHANDLE formHandle,
+                                    FPDF_PAGE page, FPDF_ANNOTATION annot) {
+    int annotIndex = FPDFPage_GetAnnotIndex(page, annot);
+    if (annotIndex < 0) {
+        return NULL;
+    }
+    int fieldType = FPDFAnnot_GetFormFieldType(formHandle, annot);
+    int fieldFlags = FPDFAnnot_GetFormFieldFlags(formHandle, annot);
+    jboolean checked = FPDFAnnot_IsChecked(formHandle, annot);
+    jstring nameString = wideToJString(env,
+            getFormFieldWideString(&FPDFAnnot_GetFormFieldName, formHandle, annot));
+    jstring valueString = wideToJString(env,
+            getFormFieldWideString(&FPDFAnnot_GetFormFieldValue, formHandle, annot));
+
+    jobject fieldObject = NULL;
+    jclass fieldClass = env->FindClass("com/shockwave/pdfium/PdfDocument$FormField");
+    if (fieldClass != NULL) {
+        jmethodID fieldConstructor = env->GetMethodID(fieldClass, "<init>",
+                "(IIILjava/lang/String;Ljava/lang/String;Z)V");
+        if (fieldConstructor != NULL) {
+            fieldObject = env->NewObject(fieldClass, fieldConstructor,
+                    static_cast<jint>(annotIndex),
+                    static_cast<jint>(fieldType),
+                    static_cast<jint>(fieldFlags),
+                    nameString,
+                    valueString,
+                    checked);
+        }
+        env->DeleteLocalRef(fieldClass);
+    }
+    if (nameString != NULL) {
+        env->DeleteLocalRef(nameString);
+    }
+    if (valueString != NULL) {
+        env->DeleteLocalRef(valueString);
+    }
+    return fieldObject;
+}
+
+static FPDF_ANNOTATION findEditableFieldNear(FPDF_FORMHANDLE formHandle, FPDF_PAGE page,
+                                             float x, float y, float tolerance) {
+    FPDF_ANNOTATION best = NULL;
+    float bestDistance = 0;
+    int annotCount = FPDFPage_GetAnnotCount(page);
+    for (int i = 0; i < annotCount; i++) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (annot == NULL) {
+            continue;
+        }
+        FS_RECTF rect;
+        bool withinReach = FPDFAnnot_GetSubtype(annot) == FPDF_ANNOT_WIDGET
+                && isEditableFormField(formHandle, annot)
+                && FPDFAnnot_GetRect(annot, &rect)
+                && rectContainsWithTolerance(normalizedRect(rect), x, y, tolerance);
+        if (withinReach) {
+            FS_RECTF bounds = normalizedRect(rect);
+            float dx = (bounds.left + bounds.right) / 2 - x;
+            float dy = (bounds.top + bounds.bottom) / 2 - y;
+            float distance = dx * dx + dy * dy;
+            if (best == NULL || distance < bestDistance) {
+                if (best != NULL) {
+                    FPDFPage_CloseAnnot(best);
+                }
+                best = annot;
+                bestDistance = distance;
+                continue;
+            }
+        }
+        FPDFPage_CloseAnnot(annot);
+    }
+    return best;
+}
+
 JNI_FUNC(jobject, PdfiumCore, nativeGetFormFieldAtPoint)(JNI_ARGS,
     jlong docPtr,
     jlong pagePtr,
     jfloat x,
-    jfloat y
+    jfloat y,
+    jfloat tolerance
 ) {
     DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
@@ -1563,49 +1658,15 @@ JNI_FUNC(jobject, PdfiumCore, nativeGetFormFieldAtPoint)(JNI_ARGS,
     point.x = x;
     point.y = y;
     FPDF_ANNOTATION annot = FPDFAnnot_GetFormFieldAtPoint(formHandle, page, &point);
+    if (annot == NULL && tolerance > 0) {
+        annot = findEditableFieldNear(formHandle, page, x, y, tolerance);
+    }
     if (annot == NULL) {
         return NULL;
     }
 
-    int annotIndex = FPDFPage_GetAnnotIndex(page, annot);
-    int fieldType = FPDFAnnot_GetFormFieldType(formHandle, annot);
-    int fieldFlags = FPDFAnnot_GetFormFieldFlags(formHandle, annot);
-    jboolean checked = FPDFAnnot_IsChecked(formHandle, annot);
-    jstring nameString = wideToJString(env,
-            getFormFieldWideString(&FPDFAnnot_GetFormFieldName, formHandle, annot));
-    jstring valueString = wideToJString(env,
-            getFormFieldWideString(&FPDFAnnot_GetFormFieldValue, formHandle, annot));
+    jobject fieldObject = buildFormFieldObject(env, formHandle, page, annot);
     FPDFPage_CloseAnnot(annot);
-
-    if (annotIndex < 0) {
-        return NULL;
-    }
-
-    jclass fieldClass = env->FindClass("com/shockwave/pdfium/PdfDocument$FormField");
-    if (fieldClass == NULL) {
-        return NULL;
-    }
-    jmethodID fieldConstructor = env->GetMethodID(fieldClass, "<init>",
-            "(IIILjava/lang/String;Ljava/lang/String;Z)V");
-    if (fieldConstructor == NULL) {
-        env->DeleteLocalRef(fieldClass);
-        return NULL;
-    }
-
-    jobject fieldObject = env->NewObject(fieldClass, fieldConstructor,
-            static_cast<jint>(annotIndex),
-            static_cast<jint>(fieldType),
-            static_cast<jint>(fieldFlags),
-            nameString,
-            valueString,
-            checked);
-    env->DeleteLocalRef(fieldClass);
-    if (nameString != NULL) {
-        env->DeleteLocalRef(nameString);
-    }
-    if (valueString != NULL) {
-        env->DeleteLocalRef(valueString);
-    }
     return fieldObject;
 }
 
@@ -1619,20 +1680,6 @@ static FPDF_ANNOTATION getWidgetAnnot(FPDF_PAGE page, int annotIndex) {
         return NULL;
     }
     return annot;
-}
-
-static bool isEditableFormField(FPDF_FORMHANDLE formHandle, FPDF_ANNOTATION annot) {
-    int type = FPDFAnnot_GetFormFieldType(formHandle, annot);
-    bool editableType = type == FPDF_FORMFIELD_TEXTFIELD
-            || type == FPDF_FORMFIELD_CHECKBOX
-            || type == FPDF_FORMFIELD_RADIOBUTTON;
-    if (!editableType) {
-        return false;
-    }
-    if ((FPDFAnnot_GetFormFieldFlags(formHandle, annot) & FPDF_FORMFLAG_READONLY) != 0) {
-        return false;
-    }
-    return (FPDFAnnot_GetFlags(annot) & FPDF_ANNOT_FLAG_HIDDEN) == 0;
 }
 
 JNI_FUNC(jfloatArray, PdfiumCore, nativeGetFormFieldRects)(JNI_ARGS,

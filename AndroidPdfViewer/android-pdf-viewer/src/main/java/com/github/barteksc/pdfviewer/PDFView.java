@@ -119,6 +119,8 @@ public class PDFView extends RelativeLayout {
 
     private static final int FORM_FIELD_STROKE_COLOR = 0x662196F3; // 40% Material blue hairline
 
+    private static final float FORM_FIELD_TOUCH_TOLERANCE_DP = 12f;
+
     public static class ViewState {
 
         public final float zoom;
@@ -208,6 +210,11 @@ public class PDFView extends RelativeLayout {
 
     public void reloadPages() {
         clearCache();
+        loadPages();
+    }
+
+    public void refreshPage(int pageIndex) {
+        cacheManager.invalidatePageParts(pageIndex);
         loadPages();
     }
 
@@ -1879,12 +1886,19 @@ public class PDFView extends RelativeLayout {
 
         PointF point = pdfFile.documentToPdf(page, getZoom(), docX, docY);
         try {
-            PdfDocument.FormField field = pdfFile.getFormFieldAtPoint(page, point.x, point.y);
+            float tolerance = formFieldTouchTolerance(page, docX, docY, point);
+            PdfDocument.FormField field = pdfFile.getFormFieldAtPoint(page, point.x, point.y, tolerance);
             return field == null ? null : new FormField(page, field);
         } catch (Throwable throwable) {
             Log.e(TAG, "findFormFieldAt: failed to hit-test form field", throwable);
             return null;
         }
+    }
+
+    private float formFieldTouchTolerance(int page, float docX, float docY, PointF pdfPoint) {
+        float tolerancePx = FORM_FIELD_TOUCH_TOLERANCE_DP * getResources().getDisplayMetrics().density;
+        PointF shifted = pdfFile.documentToPdf(page, getZoom(), docX + tolerancePx, docY);
+        return (float) Math.hypot(shifted.x - pdfPoint.x, shifted.y - pdfPoint.y);
     }
 
     public boolean setFormFieldText(int pageIndex, int annotationIndex, String text) {
@@ -1894,7 +1908,7 @@ public class PDFView extends RelativeLayout {
         try {
             boolean updated = pdfFile.setFormFieldText(pageIndex, annotationIndex, text);
             if (updated) {
-                reloadPages();
+                refreshPage(pageIndex);
             }
             return updated;
         } catch (Throwable throwable) {
@@ -1910,7 +1924,7 @@ public class PDFView extends RelativeLayout {
         try {
             boolean updated = pdfFile.setFormFieldChecked(pageIndex, annotationIndex, checked);
             if (updated) {
-                reloadPages();
+                refreshPage(pageIndex);
             }
             return updated;
         } catch (Throwable throwable) {

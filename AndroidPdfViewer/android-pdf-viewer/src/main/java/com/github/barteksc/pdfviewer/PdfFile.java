@@ -811,7 +811,7 @@ class PdfFile {
         return rects;
     }
 
-    public PdfDocument.FormField getFormFieldAtPoint(int pageIndex, float pdfX, float pdfY) {
+    public PdfDocument.FormField getFormFieldAtPoint(int pageIndex, float pdfX, float pdfY, float tolerance) {
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return null;
@@ -821,7 +821,7 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return null;
         }
-        return pdfiumCore.getFormFieldAtPoint(pdfDocument, docPage, pdfX, pdfY);
+        return pdfiumCore.getFormFieldAtPoint(pdfDocument, docPage, pdfX, pdfY, tolerance);
     }
 
     public boolean setFormFieldText(int pageIndex, int annotationIndex, String text) {
