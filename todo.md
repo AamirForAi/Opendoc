@@ -28,6 +28,7 @@
 - [ ] Investigate missing form checkboxes when printing.
 - [ ] Remember per-document horizontal scroll lock.
 - [ ] Remember per-document zoom.
+- [ ] Add ability to jump back after clicking internal PDF references.
 
 ## Reading State And Persistence
 - [ ] Remember per-document orientation.
@@ -38,7 +39,6 @@
 ## Navigation And Reading Flow
 - [ ] Improve Go To Page behavior, to show page thumbnails.
 - [ ] Add navigation history for internal links, references, and TOC jumps.
-- [ ] Add ability to jump back after clicking internal PDF references.
 - [ ] Add browser-like scrolling mode.
 - [ ] Improve physical-book navigation feel.
 
