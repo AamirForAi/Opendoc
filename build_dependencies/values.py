@@ -68,6 +68,37 @@ PDFIUM_PATHS = {
     Arch.armeabi: "../../../../bblanchon/pdfium-android-arm.tgz",
 }
 
+PDFIUM_GIT_URL = "https://pdfium.googlesource.com/pdfium.git"
+DEPOT_TOOLS_GIT_URL = "https://chromium.googlesource.com/chromium/tools/depot_tools.git"
+PDFIUM_BRANCH = "chromium/7920"
+PDFIUM_SOURCE_DIR = "pdfium_source"
+
+PDFIUM_GN_CPU_NAMES = {
+    Arch.x86: "x86",
+    Arch.x86_64: "x64",
+    Arch.arm64: "arm64",
+    Arch.armeabi: "arm",
+}
+
+# Mirrors bblanchon/pdfium-binaries android args, plus speed optimization:
+# their releases omit optimize_for_size, so chromium defaults android builds
+# to -Oz, which is optimized for size instead of performance
+PDFIUM_GN_ARGS = [
+    'target_os = "android"',
+    'is_debug = false',
+    'is_component_build = false',
+    'pdf_is_standalone = true',
+    'pdf_use_partition_alloc = false',
+    'pdf_enable_v8 = false',
+    'pdf_enable_xfa = false',
+    'treat_warnings_as_errors = false',
+    'clang_use_chrome_plugins = false',
+    'default_min_sdk_version = 23',
+    'use_mold = false',
+    'optimize_for_size = false',
+    'use_thin_lto = true',
+]
+
 LIB_CPP_DIR_NAMES = {
     Arch.x86: "i686-linux-android",
     Arch.x86_64: "x86_64-linux-android",
