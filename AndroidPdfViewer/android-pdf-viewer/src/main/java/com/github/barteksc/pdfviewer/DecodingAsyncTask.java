@@ -48,10 +48,11 @@ class DecodingAsyncTask extends AsyncTask<Void, Void, Throwable> {
 
     @Override
     protected Throwable doInBackground(Void... params) {
+        PdfDocument pdfDocument = null;
         try {
             PDFView pdfView = pdfViewReference.get();
             if (pdfView != null) {
-                PdfDocument pdfDocument = docSource.createDocument(pdfView.getContext(), pdfiumCore, password);
+                pdfDocument = docSource.createDocument(pdfView.getContext(), pdfiumCore, password);
                 pdfFile = new PdfFile(pdfiumCore, pdfDocument, pdfView.getPageFitPolicy(), getViewSize(pdfView),
                         userPages, pdfView.isSwipeVertical(), pdfView.getSpacingPx(), pdfView.isAutoSpacingEnabled(),
                         pdfView.isFitEachPage(), pdfView.isCropMarginsEnabled(), pdfView.getCachedCropMargins(),
@@ -62,6 +63,13 @@ class DecodingAsyncTask extends AsyncTask<Void, Void, Throwable> {
             }
 
         } catch (Throwable t) {
+            if (pdfFile == null && pdfDocument != null) {
+                try {
+                    pdfiumCore.closeDocument(pdfDocument);
+                } catch (Throwable closeError) {
+                    Log.e(DecodingAsyncTask.class.getSimpleName(), "doInBackground: failed to close document", closeError);
+                }
+            }
             Log.e(DecodingAsyncTask.class.getSimpleName(), "doInBackground: ", t);
             return t;
         }
@@ -88,5 +96,14 @@ class DecodingAsyncTask extends AsyncTask<Void, Void, Throwable> {
     @Override
     protected void onCancelled() {
         cancelled = true;
+        if (pdfFile != null) {
+            pdfFile.dispose();
+            pdfFile = null;
+        }
+    }
+
+    @Override
+    protected void onCancelled(Throwable t) {
+        onCancelled();
     }
 }

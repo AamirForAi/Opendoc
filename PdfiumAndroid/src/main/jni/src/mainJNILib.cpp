@@ -546,12 +546,9 @@ struct rgb {
 };
 
 class DocumentFile {
-    private:
-    int fileFd;
-
     public:
     FPDF_DOCUMENT pdfDocument = NULL;
-    size_t fileSize;
+    jbyte *memBuffer = NULL;
     std::set<int> pagesWithAppHighlights;
     FPDF_FORMFILLINFO formFillInfo;
     FPDF_FORMHANDLE formHandle = NULL;
@@ -565,6 +562,9 @@ DocumentFile::~DocumentFile(){
     }
     if(pdfDocument != NULL){
         FPDF_CloseDocument(pdfDocument);
+    }
+    if(memBuffer != NULL){
+        delete[] memBuffer;
     }
 
     destroyLibraryIfNeed();
@@ -648,8 +648,8 @@ int jniThrowExceptionFmt(JNIEnv* env, const char* className, const char* fmt, ..
     va_start(args, fmt);
     char msgBuf[512];
     vsnprintf(msgBuf, sizeof(msgBuf), fmt, args);
-    return jniThrowException(env, className, msgBuf);
     va_end(args);
+    return jniThrowException(env, className, msgBuf);
 }
 
 jobject NewLong(JNIEnv* env, jlong value) {
@@ -768,6 +768,7 @@ JNI_FUNC(jlong, PdfiumCore, nativeOpenMemDocument)(JNI_ARGS, jbyteArray data, js
     }
 
     if (!document) {
+        delete[] cDataCopy;
         delete docFile;
 
         const long errorNum = FPDF_GetLastError();
@@ -786,6 +787,7 @@ JNI_FUNC(jlong, PdfiumCore, nativeOpenMemDocument)(JNI_ARGS, jbyteArray data, js
     }
 
     docFile->pdfDocument = document;
+    docFile->memBuffer = cDataCopy;
 
     return reinterpret_cast<jlong>(docFile);
 }

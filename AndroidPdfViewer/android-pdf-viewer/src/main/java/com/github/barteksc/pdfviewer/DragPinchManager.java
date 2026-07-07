@@ -17,6 +17,7 @@ package com.github.barteksc.pdfviewer;
 
 import static com.github.barteksc.pdfviewer.util.Constants.Pinch.MAXIMUM_ZOOM;
 import static com.github.barteksc.pdfviewer.util.Constants.Pinch.MINIMUM_ZOOM;
+import static com.github.barteksc.pdfviewer.util.Constants.Pinch.RENDER_DURING_SCALE_STEP;
 
 import android.graphics.PointF;
 import android.graphics.RectF;
@@ -45,6 +46,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
 
     private boolean scrolling = false;
     private boolean scaling = false;
+    private float scaleRenderZoom;
     private boolean enabled = false;
 
     DragPinchManager(PDFView pdfView, AnimationManager animationManager) {
@@ -301,7 +303,21 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             dr = maxZoom / pdfView.getZoom();
         }
         pdfView.zoomCenteredRelativeTo(dr, new PointF(detector.getFocusX(), detector.getFocusY()));
+        loadPagesDuringScaleStep();
         return true;
+    }
+
+    private void loadPagesDuringScaleStep() {
+        if (!pdfView.doRenderDuringScale()) {
+            return;
+        }
+        float zoom = pdfView.getZoom();
+        float step = zoom > scaleRenderZoom ? zoom / scaleRenderZoom : scaleRenderZoom / zoom;
+        if (step < RENDER_DURING_SCALE_STEP) {
+            return;
+        }
+        scaleRenderZoom = zoom;
+        pdfView.loadPages();
     }
 
     @Override
@@ -310,6 +326,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             return false;
         }
         scaling = true;
+        scaleRenderZoom = pdfView.getZoom();
         return true;
     }
 

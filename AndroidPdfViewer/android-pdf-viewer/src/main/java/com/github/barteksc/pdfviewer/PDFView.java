@@ -1406,7 +1406,7 @@ public class PDFView extends RelativeLayout {
     }
 
     void loadPageByOffset() {
-        if (0 == pdfFile.getPagesCount()) {
+        if (pdfFile == null || 0 == pdfFile.getPagesCount()) {
             return;
         }
 
@@ -1510,6 +1510,9 @@ public class PDFView extends RelativeLayout {
      * @return true if single page fills the entire screen in the scrolling direction
      */
     public boolean pageFillsScreen() {
+        if (pdfFile == null) {
+            return false;
+        }
         float start = -pdfFile.getPageOffset(currentPage, zoom);
         float end = start - pdfFile.getPageLength(currentPage, zoom);
         if (isSwipeVertical()) {
@@ -1568,6 +1571,9 @@ public class PDFView extends RelativeLayout {
      * @return true if whole document can displayed at once, false otherwise
      */
     public boolean documentFitsView() {
+        if (pdfFile == null) {
+            return true;
+        }
         float len = pdfFile.getDocLen(1);
         if (swipeVertical) {
             return len < getHeight();
@@ -2027,6 +2033,9 @@ public class PDFView extends RelativeLayout {
      * @return page number at given offset, starting from 0
      */
     public int getPageAtPositionOffset(float positionOffset) {
+        if (pdfFile == null) {
+            return 0;
+        }
         return pdfFile.getPageAtOffset(pdfFile.getDocLen(zoom) * positionOffset, zoom);
     }
 
@@ -2374,6 +2383,8 @@ public class PDFView extends RelativeLayout {
 
         private boolean pageSnap = false;
 
+        private boolean renderDuringScale = false;
+
         private boolean nightMode = false;
 
         private boolean textSelectionEnabled = false;
@@ -2569,6 +2580,11 @@ public class PDFView extends RelativeLayout {
             return this;
         }
 
+        public Configurator renderDuringScale(boolean renderDuringScale) {
+            this.renderDuringScale = renderDuringScale;
+            return this;
+        }
+
         public Configurator pageFling(boolean pageFling) {
             this.pageFling = pageFling;
             return this;
@@ -2616,7 +2632,7 @@ public class PDFView extends RelativeLayout {
             PDFView.this.enableAnnotationRendering(annotationRendering);
             PDFView.this.setScrollHandle(scrollHandle);
             PDFView.this.enableAntialiasing(antialiasing);
-            //PDFView.this.enableRenderDuringScale(true); // false is better from manual testing
+            PDFView.this.enableRenderDuringScale(renderDuringScale);
             PDFView.this.setSpacing(spacing);
             PDFView.this.setAutoSpacing(autoSpacing);
             PDFView.this.setAutoReleasingWhenDetachedFromWindow(autoReleasingWhenDetachedFromWindow);

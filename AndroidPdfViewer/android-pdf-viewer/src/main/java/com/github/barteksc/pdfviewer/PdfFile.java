@@ -45,6 +45,7 @@ class PdfFile {
     private static final Object lock = new Object();
     private PdfDocument pdfDocument;
     private PdfiumCore pdfiumCore;
+    private volatile boolean disposed = false;
     private int pagesCount = 0;
     /** Original page sizes */
     private List<Size> originalPageSizes = new ArrayList<>();
@@ -372,6 +373,9 @@ class PdfFile {
         }
 
         synchronized (lock) {
+            if (disposed || pdfDocument == null) {
+                return false;
+            }
             if (openedPages.indexOfKey(docPage) >= 0) {
                 if (openedPages.get(docPage, false)) {
                     textOpenedPages.delete(docPage);
@@ -621,8 +625,13 @@ class PdfFile {
     public void renderPageBitmap(Bitmap bitmap, int pageIndex, Rect bounds, boolean annotationRendering) {
         int docPage = documentPage(pageIndex);
         Rect renderBounds = mapCropRenderBoundsToFullPage(pageIndex, bounds.left, bounds.top, bounds.width(), bounds.height());
-        pdfiumCore.renderPageBitmap(pdfDocument, bitmap, docPage,
-                renderBounds.left, renderBounds.top, renderBounds.width(), renderBounds.height(), annotationRendering);
+        synchronized (lock) {
+            if (disposed || pdfDocument == null) {
+                return;
+            }
+            pdfiumCore.renderPageBitmap(pdfDocument, bitmap, docPage,
+                    renderBounds.left, renderBounds.top, renderBounds.width(), renderBounds.height(), annotationRendering);
+        }
     }
 
     private Rect mapCropRenderBoundsToFullPage(int pageIndex, int startX, int startY, int width, int height) {
@@ -908,18 +917,22 @@ class PdfFile {
     }
 
     public void dispose() {
-        if (pdfiumCore != null && pdfDocument != null) {
-            closeAllTextPages();
-            pdfiumCore.closeDocument(pdfDocument);
-        }
+        synchronized (lock) {
+            disposed = true;
+            if (pdfiumCore != null && pdfDocument != null) {
+                closeAllTextPages();
+                pdfiumCore.closeDocument(pdfDocument);
+            }
 
-        pdfDocument = null;
-        originalUserPages = null;
-        originalFullPageSizes.clear();
-        originalFullPagePointSizes.clear();
-        textOpenedPages.clear();
-        highlightAnnotationCache.clear();
-        formFieldRectCache.clear();
+            pdfDocument = null;
+            originalUserPages = null;
+            originalFullPageSizes.clear();
+            originalFullPagePointSizes.clear();
+            openedPages.clear();
+            textOpenedPages.clear();
+            highlightAnnotationCache.clear();
+            formFieldRectCache.clear();
+        }
     }
 
     /**

@@ -145,6 +145,9 @@ class MainActivity : AppCompatActivity() {
 
     private companion object {
         const val AUTO_SCROLL_SPEED_SAVE_DELAY = 300L
+        const val TILE_CACHE_PIXEL_BUDGET = 120 * 256 * 256
+        const val MIN_TILE_CACHE_SIZE = 24
+        const val MAX_TILE_CACHE_SIZE = 480
     }
 
     private val shouldStopExtracting: MutableMap<Int, Boolean> = mutableMapOf()
@@ -288,8 +291,7 @@ class MainActivity : AppCompatActivity() {
         brightness = Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 2
         inlineAnnotationActionController.configure { annotationSaveController.saveHighlights() }
 
-        Constants.THUMBNAIL_RATIO = pref.getThumbnailRation()
-        Constants.PART_SIZE = pref.getPartSize()
+        applyTileRenderingPreferences()
 
         // Show Intro Activity and Features Dialog on the first install
         if (pref.getFirstInstall()) {
@@ -606,6 +608,15 @@ class MainActivity : AppCompatActivity() {
         return result.direction.takeIf { result.cacheable }
     }
 
+    private fun applyTileRenderingPreferences() {
+        Constants.THUMBNAIL_RATIO = pref.getThumbnailRation()
+        val partSize = pref.getPartSize()
+        Constants.PART_SIZE = partSize
+        val tilePixels = partSize * partSize
+        Constants.Cache.CACHE_SIZE =
+            (TILE_CACHE_PIXEL_BUDGET / tilePixels).toInt().coerceIn(MIN_TILE_CACHE_SIZE, MAX_TILE_CACHE_SIZE)
+    }
+
     private fun initPdfViewAndLoad(
         viewConfigurator: Configurator,
         pageNumber: Int,
@@ -621,7 +632,7 @@ class MainActivity : AppCompatActivity() {
         horizontalSwipeDisabled: Boolean = false,
     ) {
         val pdfView = binding.pdfView
-        Constants.PART_SIZE = pref.getPartSize()
+        applyTileRenderingPreferences()
         pdfView.useBestQuality(pref.getHighQuality())
         pdfView.minZoom = Preferences.minZoomDefault
         pdfView.midZoom = Preferences.midZoomDefault
@@ -634,6 +645,7 @@ class MainActivity : AppCompatActivity() {
             .onPageChange { page: Int, pageCount: Int -> setCurrentPage(page, pageCount, fileHash, loadToken, documentUri) }
             .enableAnnotationRendering(Preferences.annotationRenderingDefault)
             .enableAntialiasing(pref.getAntiAliasing())
+            .renderDuringScale(true)
             .onDocumentInteraction { motionEvent -> autoScrollManager.handleUserInteraction(motionEvent) }
             .onTap { motionEvent -> handleReaderTap(motionEvent) }
             .onTapUp { motionEvent -> inlineAnnotationActionController.handleImmediatePdfTap(motionEvent) }

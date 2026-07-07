@@ -13,19 +13,17 @@ import android.view.Surface;
 import com.shockwave.pdfium.util.Size;
 import com.shockwave.pdfium.util.SizeF;
 
-import java.io.FileDescriptor;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class PdfiumCore {
     private static final String TAG = PdfiumCore.class.getName();
-    private static final Class FD_CLASS = FileDescriptor.class;
-    private static final String FD_FIELD_NAME = "descriptor";
 
     static {
         try {
@@ -159,22 +157,13 @@ public class PdfiumCore {
 
     /* synchronize native methods */
     private static final Object lock = new Object();
-    private static Field mFdField = null;
     private int mCurrentDpi;
 
     public static int getNumFd(ParcelFileDescriptor fdObj) {
         try {
-            if (mFdField == null) {
-                mFdField = FD_CLASS.getDeclaredField(FD_FIELD_NAME);
-                mFdField.setAccessible(true);
-            }
-
-            return mFdField.getInt(fdObj.getFileDescriptor());
-        } catch (NoSuchFieldException e) {
-            e.printStackTrace();
-            return -1;
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            return fdObj.getFd();
+        } catch (IllegalStateException e) {
+            Log.e(TAG, "getNumFd: file descriptor already closed", e);
             return -1;
         }
     }
@@ -484,15 +473,15 @@ public class PdfiumCore {
                            boolean renderAnnot) {
         synchronized (lock) {
             try {
-                //nativeRenderPage(doc.mNativePagesPtr.get(pageIndex), surface, mCurrentDpi);
-                nativeRenderPage(doc.mNativePagesPtr.get(pageIndex), surface, mCurrentDpi,
+                Long pagePtr = doc.mNativePagesPtr.get(pageIndex);
+                if (pagePtr == null || pagePtr == 0L) {
+                    Log.e(TAG, "renderPage: page " + pageIndex + " is not open");
+                    return;
+                }
+                nativeRenderPage(pagePtr, surface, mCurrentDpi,
                         startX, startY, drawSizeX, drawSizeY, renderAnnot);
-            } catch (NullPointerException e) {
-                Log.e(TAG, "mContext may be null");
-                e.printStackTrace();
             } catch (Exception e) {
-                Log.e(TAG, "Exception throw from native");
-                e.printStackTrace();
+                Log.e(TAG, "renderPage: exception thrown from native", e);
             }
         }
     }
@@ -523,14 +512,15 @@ public class PdfiumCore {
                                  boolean renderAnnot) {
         synchronized (lock) {
             try {
-                nativeRenderPageBitmap(doc.mNativeDocPtr, doc.mNativePagesPtr.get(pageIndex), bitmap, mCurrentDpi,
+                Long pagePtr = doc.mNativePagesPtr.get(pageIndex);
+                if (pagePtr == null || pagePtr == 0L) {
+                    Log.e(TAG, "renderPageBitmap: page " + pageIndex + " is not open");
+                    return;
+                }
+                nativeRenderPageBitmap(doc.mNativeDocPtr, pagePtr, bitmap, mCurrentDpi,
                         startX, startY, drawSizeX, drawSizeY, renderAnnot);
-            } catch (NullPointerException e) {
-                Log.e(TAG, "mContext may be null");
-                e.printStackTrace();
             } catch (Exception e) {
-                Log.e(TAG, "Exception throw from native");
-                e.printStackTrace();
+                Log.e(TAG, "renderPageBitmap: exception thrown from native", e);
             }
         }
     }
@@ -583,27 +573,28 @@ public class PdfiumCore {
             List<PdfDocument.Bookmark> topLevel = new ArrayList<>();
             Long first = nativeGetFirstChildBookmark(doc.mNativeDocPtr, null);
             if (first != null) {
-                recursiveGetBookmark(topLevel, doc, first);
+                recursiveGetBookmark(topLevel, doc, first, new HashSet<Long>());
             }
             return topLevel;
         }
     }
 
-    private void recursiveGetBookmark(List<PdfDocument.Bookmark> tree, PdfDocument doc, long bookmarkPtr) {
-        PdfDocument.Bookmark bookmark = new PdfDocument.Bookmark();
-        bookmark.mNativePtr = bookmarkPtr;
-        bookmark.title = nativeGetBookmarkTitle(bookmarkPtr);
-        bookmark.pageIdx = nativeGetBookmarkDestIndex(doc.mNativeDocPtr, bookmarkPtr);
-        tree.add(bookmark);
+    private void recursiveGetBookmark(List<PdfDocument.Bookmark> tree, PdfDocument doc, long bookmarkPtr,
+                                      Set<Long> visited) {
+        Long currentPtr = bookmarkPtr;
+        while (currentPtr != null && visited.add(currentPtr)) {
+            PdfDocument.Bookmark bookmark = new PdfDocument.Bookmark();
+            bookmark.mNativePtr = currentPtr;
+            bookmark.title = nativeGetBookmarkTitle(currentPtr);
+            bookmark.pageIdx = nativeGetBookmarkDestIndex(doc.mNativeDocPtr, currentPtr);
+            tree.add(bookmark);
 
-        Long child = nativeGetFirstChildBookmark(doc.mNativeDocPtr, bookmarkPtr);
-        if (child != null) {
-            recursiveGetBookmark(bookmark.getChildren(), doc, child);
-        }
+            Long child = nativeGetFirstChildBookmark(doc.mNativeDocPtr, currentPtr);
+            if (child != null) {
+                recursiveGetBookmark(bookmark.getChildren(), doc, child, visited);
+            }
 
-        Long sibling = nativeGetSiblingBookmark(doc.mNativeDocPtr, bookmarkPtr);
-        if (sibling != null) {
-            recursiveGetBookmark(tree, doc, sibling);
+            currentPtr = nativeGetSiblingBookmark(doc.mNativeDocPtr, currentPtr);
         }
     }
 
@@ -641,7 +632,11 @@ public class PdfiumCore {
         synchronized (lock) {
             Map<Integer, String> pagesText = new HashMap<>();
             for (int i = start; i <= end; ++i) {
-                long pagePtr = doc.mNativePagesPtr.get(i);
+                Long pagePtr = doc.mNativePagesPtr.get(i);
+                if (pagePtr == null || pagePtr == 0L) {
+                    pagesText.put(i, "");
+                    continue;
+                }
                 pagesText.put(i, normalizeExtractedText(nativeGetPageText(pagePtr)));
             }
             return pagesText;
@@ -651,6 +646,9 @@ public class PdfiumCore {
     public Rect[] createHighlightText(PdfDocument doc, int pageIndex, int start, int end, boolean padding) {
         synchronized (lock) {
             Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (nativePagePtr == null || nativePagePtr == 0L) {
+                return new Rect[0];
+            }
             Rect[] rects = nativeGetPageTextBounds(nativePagePtr, start, end);
             Log.d(TAG, "createHighlightText: rects.length: " + rects.length);
             for (Rect rect : rects) {
@@ -727,6 +725,9 @@ public class PdfiumCore {
     public void clearSearchResultsAnnot(PdfDocument doc, int pageIndex) {
         synchronized (lock) {
             Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (nativePagePtr == null || nativePagePtr == 0L) {
+                return;
+            }
             nativeClearSearchResultAnnot(nativePagePtr, pageIndex);
         }
     }
@@ -814,11 +815,13 @@ public class PdfiumCore {
      */
     public Point mapPageCoordsToDevice(PdfDocument doc, int pageIndex, int startX, int startY, int sizeX,
                                        int sizeY, int rotate, double pageX, double pageY) {
-        Long pagePtr = doc.mNativePagesPtr.get(pageIndex);
-        if (pagePtr == null) {
-            return null;
+        synchronized (lock) {
+            Long pagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (pagePtr == null || pagePtr == 0L) {
+                return null;
+            }
+            return nativePageCoordsToDevice(pagePtr, startX, startY, sizeX, sizeY, rotate, pageX, pageY);
         }
-        return nativePageCoordsToDevice(pagePtr, startX, startY, sizeX, sizeY, rotate, pageX, pageY);
     }
 
     /**

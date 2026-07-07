@@ -46,6 +46,9 @@ public class Constants {
 
         public static float MINIMUM_ZOOM = 0.5f;
 
+        /** Zoom ratio change during a pinch gesture that triggers a re-render of visible parts */
+        public static float RENDER_DURING_SCALE_STEP = 1.25f;
+
     }
 
 }

@@ -45,7 +45,7 @@ class RenderingHandler extends Handler {
     private RectF renderBounds = new RectF();
     private Rect roundedRenderBounds = new Rect();
     private Matrix renderMatrix = new Matrix();
-    private boolean running = false;
+    private volatile boolean running = false;
 
     RenderingHandler(Looper looper, PDFView pdfView) {
         super(looper);
@@ -61,6 +61,9 @@ class RenderingHandler extends Handler {
     @Override
     public void handleMessage(Message message) {
         RenderingTask task = (RenderingTask) message.obj;
+        if (!running) {
+            return;
+        }
         try {
             final PagePart part = proceed(task);
             if (part != null) {
@@ -87,6 +90,9 @@ class RenderingHandler extends Handler {
 
     private PagePart proceed(RenderingTask renderingTask) throws PageRenderingException {
         PdfFile pdfFile = pdfView.pdfFile;
+        if (pdfFile == null) {
+            return null;
+        }
         pdfFile.openPage(renderingTask.page);
 
         int w = Math.round(renderingTask.width);
