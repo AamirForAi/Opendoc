@@ -34,6 +34,12 @@ static Mutex sLibraryLock;
 
 static int sLibraryReferenceCount = 0;
 
+static double monotonicMillis() {
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return now.tv_sec * 1000.0 + now.tv_nsec / 1000000.0;
+}
+
 static std::vector<int> searchResultAnnotIndexes;
 
 struct FdFileWrite {
@@ -1137,6 +1143,8 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
         return;
     }
 
+    double startMs = monotonicMillis();
+
     void *tmp;
     int format;
     int sourceStride;
@@ -1178,10 +1186,12 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
     FPDFBitmap_FillRect( pdfBitmap, baseX, baseY, baseHorSize, baseVerSize,
                          0xFFFFFFFF); //White
 
+    double pageStartMs = monotonicMillis();
     FPDF_RenderPageBitmap(
         pdfBitmap, page, startX, startY, (int)drawSizeHor, (int)drawSizeVer, 0, flags
     );
 
+    double formsStartMs = monotonicMillis();
     DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
 
     FPDF_FORMHANDLE formHandle = ensureFormHandle(doc);
@@ -1191,12 +1201,21 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
         );
     }
 
+    double convertStartMs = monotonicMillis();
     if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
         rgbBitmapTo565(tmp, sourceStride, addr, &info);
         free(tmp);
     }
 
     AndroidBitmap_unlockPixels(env, bitmap);
+
+    double endMs = monotonicMillis();
+    LOGD("renderPageBitmap: %dx%d in %.1f ms (page %.1f, forms %.1f, convert %.1f)",
+         canvasHorSize, canvasVerSize,
+         endMs - startMs,
+         formsStartMs - pageStartMs,
+         convertStartMs - formsStartMs,
+         endMs - convertStartMs);
 }
 
 int mapToDisplay(int dpi, int x) {

@@ -1,3 +1,8 @@
+build_dependencies/depot_tools/
+build_dependencies/ndk/
+build_dependencies/pdfium_source/
+reports/
+__pycache__/
 .gradle/
 .idea/
 *.iml

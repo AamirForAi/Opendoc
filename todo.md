@@ -59,8 +59,7 @@
 - [x] Improve expanding search results after filtering.
 
 ## PDF Features
-- [ ] Add forms support.
-- [ ] Add fillable forms support.
+- [x] Add forms support.
 - [ ] Add handwritten/image signature support.
 - [x] Add highlight functionality.
 - [ ] Add custom PDF theming.
