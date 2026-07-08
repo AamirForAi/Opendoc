@@ -1,9 +1,12 @@
 package com.gitlab.mudlej.MjPdfReader.ui.main
 
+import android.content.DialogInterface
 import android.net.Uri
 import android.os.Environment
+import android.text.InputType
 import android.util.Log
 import android.view.View
+import androidx.core.net.toUri
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
@@ -11,7 +14,9 @@ import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.util.DownloadPDFFile
 import com.gitlab.mudlej.MjPdfReader.util.canWriteToDownloadFolder
 import com.gitlab.mudlej.MjPdfReader.util.writeBytesToFile
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputLayout
 import java.io.IOException
 
 class OnlinePdfController(
@@ -20,9 +25,59 @@ class OnlinePdfController(
     private val pdf: PDF,
     private val requestSaveToDownloadPermission: () -> Unit,
     private val loadFromBytes: (ByteArray?) -> Unit,
+    private val openConfirmedLink: (Uri) -> Unit,
 ) {
 
     data class RetainedPdfBytes(val uri: String?, val bytes: ByteArray?)
+
+    fun showOpenOnlinePdfDialog() {
+        val inputLayout = activity.layoutInflater.inflate(R.layout.input_layout, null) as TextInputLayout
+        inputLayout.hint = activity.getString(R.string.online_pdf_link)
+        inputLayout.setStartIconDrawable(R.drawable.ic_link)
+        inputLayout.editText?.apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            setSingleLine(true)
+        }
+
+        var confirmedHttpLink: String? = null
+        val dialog = MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.open_online_pdf)
+            .setView(inputLayout)
+            .setPositiveButton(R.string.open_online_pdf, null)
+            .setNegativeButton(R.string.cancel) { dialog, _ -> dialog.dismiss() }
+            .create()
+
+        dialog.setOnShowListener {
+            val openButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
+            openButton.setOnClickListener {
+                val link = inputLayout.editText?.text?.toString()?.trim().orEmpty()
+                val uri = link.toUri()
+                inputLayout.error = null
+
+                if (!uri.scheme.isOnlinePdfScheme() || uri.host.isNullOrBlank()) {
+                    confirmedHttpLink = null
+                    openButton.setText(R.string.open_online_pdf)
+                    inputLayout.error = activity.getString(R.string.invalid_online_pdf_link)
+                    return@setOnClickListener
+                }
+
+                if (uri.scheme.equals("http", ignoreCase = true) && confirmedHttpLink != link) {
+                    confirmedHttpLink = link
+                    openButton.setText(R.string.proceed_anyway)
+                    inputLayout.error = activity.getString(R.string.http_online_pdf_warning)
+                    return@setOnClickListener
+                }
+
+                dialog.dismiss()
+                openConfirmedLink(uri)
+            }
+        }
+        dialog.show()
+    }
+
+    private fun String?.isOnlinePdfScheme(): Boolean {
+        return equals("http", ignoreCase = true) || equals("https", ignoreCase = true)
+    }
 
     fun retainSnapshot(): RetainedPdfBytes {
         return RetainedPdfBytes(PdfBytesHolder.uri, PdfBytesHolder.pdfByte)

@@ -52,7 +52,6 @@ import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.*
-import android.text.InputType
 import android.util.Log
 import android.view.*
 import android.widget.*
@@ -62,7 +61,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import androidx.core.view.*
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
@@ -92,7 +90,6 @@ import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
-import com.google.android.material.textfield.TextInputLayout
 import com.shockwave.pdfium.PdfPasswordException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -110,7 +107,6 @@ class MainActivity : AppCompatActivity() {
         val backgroundSaveScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 
-    private val shouldStopExtracting: MutableMap<Int, Boolean> = mutableMapOf()
     private val TAG = "MainActivity"
     private lateinit var binding: ActivityMainBinding
 
@@ -155,6 +151,7 @@ class MainActivity : AppCompatActivity() {
             pdf,
             { launchers.saveToDownloadPermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE) },
             { bytes -> documentLoadController.initPdfViewAndLoad(binding.pdfView.fromBytes(bytes)) },
+            { uri -> runAfterDirtyAnnotationPrompt { displayFromUri(uri, savePassword = true) } },
         )
     }
     private val screenshotController by lazy {
@@ -175,6 +172,10 @@ class MainActivity : AppCompatActivity() {
     }
     private val readerMenu by lazy {
         ReaderMenu(this, actionResolver, ::hasFile) { toggleSecondBar() }
+    }
+    private val pageTextCopier by lazy { PageTextCopier(this, binding, pdf, lifecycleScope) }
+    private val readingDirectionController by lazy {
+        ReadingDirectionController(this, pdf, session, pref, databaseManager, lifecycleScope, documentLoadController)
     }
     private val documentLoadController by lazy {
         DocumentLoadController(
@@ -205,6 +206,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var actionBarMenu: Menu
+    private lateinit var appTitle: TextView
+    private lateinit var appTitlePageNumber: TextView
 
     private val launchers = Launchers(
         Launcher(this, pdf).pdfPicker(),
@@ -231,10 +234,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private lateinit var appTitle: TextView
-    private lateinit var appTitlePageNumber: TextView
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -245,7 +244,22 @@ class MainActivity : AppCompatActivity() {
         // To avoid FileUriExposedException, (https://stackoverflow.com/questions/38200282/)
         StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
 
-        // init
+        buildControllers()
+        documentLoadController.applyTileRenderingPreferences()
+
+        if (pref.getFirstInstall()) {
+            onFirstInstall()
+            finish()
+            return
+        }
+
+        openInitialDocument(savedInstanceState)
+        setButtonsFunctionalities()
+        showAppFeaturesDialogOnFirstRun()
+        overrideOnBackButtonPressed()
+    }
+
+    private fun buildControllers() {
         pref = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
         databaseManager = DatabaseManagerImpl(AppDatabase.getInstance(applicationContext))
         autoScrollManager = AutoScrollManagerImpl(binding, pdf, pref, autoScrollSpeedStore::onSpeedChanged)
@@ -325,19 +339,9 @@ class MainActivity : AppCompatActivity() {
         )
         permissionManager = PermissionManager(this)
         inlineAnnotationActionController.configure { annotationSaveController.saveHighlights() }
+    }
 
-        applyTileRenderingPreferences()
-
-        // Show Intro Activity and Features Dialog on the first install
-        if (pref.getFirstInstall()) {
-            onFirstInstall()
-            finish()
-            return
-        }
-
-        // navigate to settings to get permission to manage storage
-
-        // Create PDF by restoring it in case of an activity restart OR ...
+    private fun openInitialDocument(savedInstanceState: Bundle?) {
         if (savedInstanceState != null) {
             restoreInstanceState(savedInstanceState)
         }
@@ -351,9 +355,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         displayFromUri(pdf.uri, true)
-        setButtonsFunctionalities()
-        showAppFeaturesDialogOnFirstRun()
-        overrideOnBackButtonPressed()
     }
 
     fun initPdf(pdf: PDF, uri: Uri) {
@@ -367,28 +368,15 @@ class MainActivity : AppCompatActivity() {
         autoScrollSpeedStore.flushPendingSave()
         cropMarginsController.cancel()
         session.beginNewDocument(uri, pref.getAlwaysHideMargins())
-        shouldStopExtracting.clear()
-        showNoTextInPage = true
-        resetSearchResultState()
-        resetBookmarkState()
-        resetLinkJumpState()
+        pageTextCopier.resetForNewDocument()
+        readerNavigationController.resetSearchResultState()
+        readerNavigationController.resetBookmarkState()
+        readerNavigationController.resetLinkJumpState()
         inlineAnnotationActionController.hideActions()
         signatureController.cancelPlacement()
         PdfBytesHolder.clear()
         annotationController.resetForDocument(uri)
         updateAnnotationDirtyUi()
-    }
-
-    private fun resetSearchResultState() {
-        readerNavigationController.resetSearchResultState()
-    }
-
-    private fun resetBookmarkState() {
-        readerNavigationController.resetBookmarkState()
-    }
-
-    private fun resetLinkJumpState() {
-        readerNavigationController.resetLinkJumpState()
     }
 
     private fun isCropMarginsEnabled() = session.cropMarginsEnabled
@@ -479,10 +467,6 @@ class MainActivity : AppCompatActivity() {
     private fun updateAppTitle() {
         appTitle.text = pdf.getTitleWithPageNumber()
         fullScreenOptionsManager.refreshInfo()
-    }
-
-    private fun applyTileRenderingPreferences() {
-        documentLoadController.applyTileRenderingPreferences()
     }
 
     private fun onDocumentLoaded(
@@ -582,30 +566,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun copyPageText() {
-        val pageNumber = pdf.pageNumber
-        if (shouldStopExtracting.getOrElse(pageNumber) { false }) {
-            return
-        }
-
-        var pageText = ""
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                pageText = binding.pdfView.getPageText(pageNumber)
-            }
-            catch (e: Throwable) {
-                Log.e("PDFium", "extractPageText($pageNumber): error while extracting text", e)
-                showFailedExtractTextSnackbar(pageNumber)
-            }
-
-            withContext(Dispatchers.Main) {
-                if (pageText.isEmpty() || pageText.isBlank()) {
-                    showNoTextInPageMessage()
-                }
-                else {
-                    showCopyPageTextDialog(this@MainActivity, binding, pageNumber, pageText)
-                }
-            }
-        }
+        pageTextCopier.copyPageText()
     }
 
     private fun onAnnotationEdit(edit: AnnotationEdit) {
@@ -682,20 +643,6 @@ class MainActivity : AppCompatActivity() {
         if (params.bottomMargin != bottomMargin) {
             params.bottomMargin = bottomMargin
             binding.saveAnnotationsFab.layoutParams = params
-        }
-    }
-
-    private fun showFailedExtractTextSnackbar(pageNumber: Int) {
-        Snackbar.make(binding.root, "Failed to extract text of this file.", Snackbar.LENGTH_SHORT)
-            .setAction("Stop this message") { shouldStopExtracting[pageNumber] = true }
-            .show()
-    }
-
-    private var showNoTextInPage = true
-    private fun showNoTextInPageMessage() {
-        if (showNoTextInPage) {
-            Snackbar.make(binding.root, "Couldn't find text in this page.", Snackbar.LENGTH_LONG).show()
-            showNoTextInPage = false
         }
     }
 
@@ -1003,93 +950,7 @@ class MainActivity : AppCompatActivity() {
         if (!checkHasFile()) {
             return
         }
-
-        var selectedOverride = pdf.readingDirectionOverride
-        val dialogBuilder = MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.reading_direction)
-            .setSingleChoiceItems(
-                readingDirectionDialogItems(),
-                readingDirectionDialogSelectedIndex(selectedOverride),
-            ) { _, which ->
-                selectedOverride = readingDirectionOverrideForDialogIndex(which)
-            }
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                applyReadingDirectionOverride(selectedOverride)
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-        if (!pref.getHorizontalScroll()) {
-            dialogBuilder.setMessage(R.string.reading_direction_message)
-        }
-        dialogBuilder.show()
-    }
-
-    private fun readingDirectionDialogItems(): Array<String> {
-        val autoLabel = if (pdf.effectiveReadingDirection.isRightToLeft) {
-            R.string.reading_direction_auto_rtl
-        } else {
-            R.string.reading_direction_auto_ltr
-        }
-        return arrayOf(
-            getString(autoLabel),
-            getString(R.string.reading_direction_ltr),
-            getString(R.string.reading_direction_rtl),
-        )
-    }
-
-    private fun readingDirectionDialogSelectedIndex(direction: ReadingDirection?): Int {
-        return when (direction) {
-            null -> 0
-            ReadingDirection.LEFT_TO_RIGHT -> 1
-            ReadingDirection.RIGHT_TO_LEFT -> 2
-            ReadingDirection.UNKNOWN -> 0
-        }
-    }
-
-    private fun readingDirectionOverrideForDialogIndex(index: Int): ReadingDirection? {
-        return when (index) {
-            1 -> ReadingDirection.LEFT_TO_RIGHT
-            2 -> ReadingDirection.RIGHT_TO_LEFT
-            else -> null
-        }
-    }
-
-    private fun applyReadingDirectionOverride(direction: ReadingDirection?) {
-        val loadToken = session.currentLoadToken
-        val documentUri = pdf.uri
-        val oldEffectiveDirection = pdf.effectiveReadingDirection
-        lifecycleScope.launch {
-            val hash = pdf.fileHash ?: computeHash(this@MainActivity, pdf)
-            if (!session.isCurrent(loadToken, documentUri)) {
-                return@launch
-            }
-            if (hash == null) {
-                documentLoadController.showFailedToComputeHashError()
-                return@launch
-            }
-
-            pdf.fileHash = hash
-            databaseManager.setReadingDirectionOverride(hash, direction?.id)
-            if (!session.isCurrent(loadToken, documentUri)) {
-                return@launch
-            }
-
-            val detectedDirection = if (direction == null && pdf.detectedReadingDirection == null) {
-                documentLoadController.detectReadingDirectionIfNeeded(documentUri)
-            } else {
-                pdf.detectedReadingDirection
-            }
-            if (!session.isCurrent(loadToken, documentUri)) {
-                return@launch
-            }
-            detectedDirection?.let { databaseManager.setDetectedReadingDirection(hash, it.id) }
-
-            pdf.readingDirectionOverride = direction
-            pdf.detectedReadingDirection = detectedDirection
-            pdf.effectiveReadingDirection = ReadingDirection.effective(direction, detectedDirection)
-            if (pref.getHorizontalScroll() && pdf.effectiveReadingDirection != oldEffectiveDirection) {
-                recreate()
-            }
-        }
+        readingDirectionController.showDialog()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -1163,52 +1024,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showOpenOnlinePdfDialog() {
-        val inputLayout = layoutInflater.inflate(R.layout.input_layout, null) as TextInputLayout
-        inputLayout.hint = getString(R.string.online_pdf_link)
-        inputLayout.setStartIconDrawable(R.drawable.ic_link)
-        inputLayout.editText?.apply {
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
-            setSingleLine(true)
-        }
-
-        var confirmedHttpLink: String? = null
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.open_online_pdf)
-            .setView(inputLayout)
-            .setPositiveButton(R.string.open_online_pdf, null)
-            .setNegativeButton(R.string.cancel) { dialog, _ -> dialog.dismiss() }
-            .create()
-
-        dialog.setOnShowListener {
-            val openButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
-            openButton.setOnClickListener {
-                val link = inputLayout.editText?.text?.toString()?.trim().orEmpty()
-                val uri = link.toUri()
-                inputLayout.error = null
-
-                if (!uri.scheme.isOnlinePdfScheme() || uri.host.isNullOrBlank()) {
-                    confirmedHttpLink = null
-                    openButton.setText(R.string.open_online_pdf)
-                    inputLayout.error = getString(R.string.invalid_online_pdf_link)
-                    return@setOnClickListener
-                }
-
-                if (uri.scheme.equals("http", ignoreCase = true) && confirmedHttpLink != link) {
-                    confirmedHttpLink = link
-                    openButton.setText(R.string.proceed_anyway)
-                    inputLayout.error = getString(R.string.http_online_pdf_warning)
-                    return@setOnClickListener
-                }
-
-                dialog.dismiss()
-                runAfterDirtyAnnotationPrompt { displayFromUri(uri, savePassword = true) }
-            }
-        }
-        dialog.show()
-    }
-
-    private fun String?.isOnlinePdfScheme(): Boolean {
-        return equals("http", ignoreCase = true) || equals("https", ignoreCase = true)
+        onlinePdfController.showOpenOnlinePdfDialog()
     }
 
     private fun checkHasFile(): Boolean {
