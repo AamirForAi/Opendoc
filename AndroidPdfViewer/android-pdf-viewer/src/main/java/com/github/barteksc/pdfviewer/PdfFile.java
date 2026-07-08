@@ -753,8 +753,8 @@ class PdfFile {
         return created;
     }
 
-    public boolean createStampAnnotation(int pageIndex, RectF pdfRect, float[][] normalizedStrokes,
-                                         int color, float normalizedStrokeWidth) {
+    public boolean addSignature(int pageIndex, RectF pdfRect, float[][] normalizedStrokes,
+                                int color, float normalizedStrokeWidth) {
         int docPage = documentPage(pageIndex);
         if (docPage < 0 || pdfRect == null || pdfRect.width() <= 0
                 || normalizedStrokes == null || normalizedStrokes.length == 0) {
@@ -778,7 +778,7 @@ class PdfFile {
             pdfStrokes[i] = mapped;
         }
         float strokeWidthPts = normalizedStrokeWidth * rectWidth;
-        return pdfiumCore.createStampAnnotation(pdfDocument, docPage, pdfRect, pdfStrokes, color, strokeWidthPts);
+        return pdfiumCore.addSignatureContent(pdfDocument, docPage, pdfStrokes, color, strokeWidthPts);
     }
 
     public List<PdfDocument.HighlightAnnotation> getHighlightAnnotations(int pageIndex) {

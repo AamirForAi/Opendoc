@@ -1404,13 +1404,9 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
     return success;
 }
 
-JNI_FUNC(jboolean, PdfiumCore, nativeCreateStampAnnotation)(JNI_ARGS,
+JNI_FUNC(jboolean, PdfiumCore, nativeAddSignatureContent)(JNI_ARGS,
     jlong docPtr,
     jlong pagePtr,
-    jfloat left,
-    jfloat top,
-    jfloat right,
-    jfloat bottom,
     jobjectArray strokes,
     jint red,
     jint green,
@@ -1422,32 +1418,16 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateStampAnnotation)(JNI_ARGS,
     if (doc == NULL || page == NULL || strokes == NULL || strokeWidth <= 0) {
         return false;
     }
-    if (!FPDFAnnot_IsSupportedSubtype(FPDF_ANNOT_STAMP)) {
-        return false;
-    }
 
     jsize strokeCount = env->GetArrayLength(strokes);
     if (strokeCount <= 0) {
         return false;
     }
 
-    FS_RECTF rect;
-    rect.left = fmin(left, right);
-    rect.right = fmax(left, right);
-    rect.top = fmax(top, bottom);
-    rect.bottom = fmin(top, bottom);
-    if (rect.right <= rect.left || rect.top <= rect.bottom) {
-        return false;
-    }
+    bool success = true;
+    std::vector<FPDF_PAGEOBJECT> insertedPaths;
 
-    FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_STAMP);
-    if (annot == NULL) {
-        return false;
-    }
-
-    bool success = FPDFAnnot_SetRect(annot, &rect);
-
-    for (jsize i = 0; success && i < strokeCount; i++) {
+    for (jsize i = 0; i < strokeCount; i++) {
         jfloatArray strokeArray = static_cast<jfloatArray>(env->GetObjectArrayElement(strokes, i));
         if (strokeArray == NULL) {
             success = false;
@@ -1486,23 +1466,26 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateStampAnnotation)(JNI_ARGS,
                 && FPDFPageObj_SetStrokeWidth(path, strokeWidth)
                 && FPDFPageObj_SetLineCap(path, FPDF_LINECAP_ROUND)
                 && FPDFPageObj_SetLineJoin(path, FPDF_LINEJOIN_ROUND);
-        if (!pathSuccess || !FPDFAnnot_AppendObject(annot, path)) {
+        if (!pathSuccess) {
             FPDFPageObj_Destroy(path);
             success = false;
             break;
         }
+        FPDFPage_InsertObject(page, path);
+        insertedPaths.push_back(path);
     }
 
-    std::string name = makeAnnotName();
-    success = success
-            && FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT)
-            && setAnnotAsciiString(annot, "T", "MJ PDF")
-            && setAnnotAsciiString(annot, "NM", name.c_str());
-
-    int annotIndex = FPDFPage_GetAnnotIndex(page, annot);
-    FPDFPage_CloseAnnot(annot);
-    if (!success && annotIndex >= 0) {
-        FPDFPage_RemoveAnnot(page, annotIndex);
+    if (success) {
+        success = FPDFPage_GenerateContent(page);
+    }
+    if (!success && !insertedPaths.empty()) {
+        for (std::vector<FPDF_PAGEOBJECT>::reverse_iterator it = insertedPaths.rbegin();
+             it != insertedPaths.rend(); ++it) {
+            if (FPDFPage_RemoveObject(page, *it)) {
+                FPDFPageObj_Destroy(*it);
+            }
+        }
+        FPDFPage_GenerateContent(page);
     }
     return success;
 }

@@ -103,7 +103,7 @@ class SignatureController(
             return false
         }
         onAnnotationEdit(
-            AnnotationEdit.AddStamp(
+            AnnotationEdit.AddSignature(
                 page = pending.pageIndex,
                 rect = pending.pdfRect,
                 strokes = pending.strokes.toList(),

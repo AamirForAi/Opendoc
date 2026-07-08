@@ -38,6 +38,9 @@ public class Constants {
         public static int CACHE_SIZE = 120;
 
         public static int THUMBNAILS_CACHE_SIZE = 8;
+
+        /** Viewport snapshots kept at once: one previous per page, this many overall */
+        public static int SNAPSHOTS_CACHE_SIZE = 8;
     }
 
     public static class Pinch {

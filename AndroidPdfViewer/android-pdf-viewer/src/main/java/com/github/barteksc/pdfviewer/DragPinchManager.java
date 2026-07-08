@@ -308,11 +308,11 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             dr = maxZoom / pdfView.getZoom();
         }
         pdfView.zoomCenteredRelativeTo(dr, new PointF(detector.getFocusX(), detector.getFocusY()));
-        loadPagesDuringScaleStep();
+        loadSnapshotDuringScaleStep();
         return true;
     }
 
-    private void loadPagesDuringScaleStep() {
+    private void loadSnapshotDuringScaleStep() {
         if (!pdfView.doRenderDuringScale()) {
             return;
         }
@@ -322,7 +322,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             return;
         }
         scaleRenderZoom = zoom;
-        pdfView.loadPages();
+        pdfView.loadViewportSnapshot();
     }
 
     @Override

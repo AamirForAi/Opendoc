@@ -32,6 +32,8 @@ public class PagePart {
 
     private boolean stale;
 
+    private boolean snapshot;
+
     public PagePart(int page, Bitmap renderedBitmap, RectF pageRelativeBounds, boolean thumbnail, int cacheOrder) {
         super();
         this.page = page;
@@ -71,6 +73,14 @@ public class PagePart {
 
     public boolean isStale() {
         return stale;
+    }
+
+    public void markSnapshot() {
+        snapshot = true;
+    }
+
+    public boolean isSnapshot() {
+        return snapshot;
     }
 
     @Override

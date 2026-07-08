@@ -52,8 +52,8 @@ class RenderingHandler extends Handler {
         this.pdfView = pdfView;
     }
 
-    void addRenderingTask(int page, float width, float height, RectF bounds, boolean thumbnail, int cacheOrder, boolean bestQuality, boolean annotationRendering) {
-        RenderingTask task = new RenderingTask(width, height, bounds, page, thumbnail, cacheOrder, bestQuality, annotationRendering);
+    void addRenderingTask(int page, float width, float height, RectF bounds, boolean thumbnail, boolean snapshot, int cacheOrder, boolean bestQuality, boolean annotationRendering) {
+        RenderingTask task = new RenderingTask(width, height, bounds, page, thumbnail, snapshot, cacheOrder, bestQuality, annotationRendering);
         Message msg = obtainMessage(MSG_RENDER_TASK, task);
         sendMessage(msg);
     }
@@ -114,9 +114,13 @@ class RenderingHandler extends Handler {
         pdfFile.renderPageBitmap(render, renderingTask.page, roundedRenderBounds, renderingTask.annotationRendering);
         pdfFile.prewarmPageCaches(renderingTask.page);
 
-        return new PagePart(renderingTask.page, render,
+        PagePart part = new PagePart(renderingTask.page, render,
                 renderingTask.bounds, renderingTask.thumbnail,
                 renderingTask.cacheOrder);
+        if (renderingTask.snapshot) {
+            part.markSnapshot();
+        }
+        return part;
     }
 
     private void calculateBounds(int width, int height, RectF pageSliceBounds) {
@@ -147,18 +151,21 @@ class RenderingHandler extends Handler {
 
         boolean thumbnail;
 
+        boolean snapshot;
+
         int cacheOrder;
 
         boolean bestQuality;
 
         boolean annotationRendering;
 
-        RenderingTask(float width, float height, RectF bounds, int page, boolean thumbnail, int cacheOrder, boolean bestQuality, boolean annotationRendering) {
+        RenderingTask(float width, float height, RectF bounds, int page, boolean thumbnail, boolean snapshot, int cacheOrder, boolean bestQuality, boolean annotationRendering) {
             this.page = page;
             this.width = width;
             this.height = height;
             this.bounds = bounds;
             this.thumbnail = thumbnail;
+            this.snapshot = snapshot;
             this.cacheOrder = cacheOrder;
             this.bestQuality = bestQuality;
             this.annotationRendering = annotationRendering;

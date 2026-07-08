@@ -124,11 +124,10 @@ public class PdfiumCore {
 
     private native PdfDocument.HighlightAnnotation[] nativeGetHighlightAnnotations(long pagePtr);
 
-    private native boolean nativeCreateStampAnnotation(long docPtr, long pagePtr,
-                                                       float left, float top, float right, float bottom,
-                                                       float[][] strokes,
-                                                       int r, int g, int b,
-                                                       float strokeWidth);
+    private native boolean nativeAddSignatureContent(long docPtr, long pagePtr,
+                                                     float[][] strokes,
+                                                     int r, int g, int b,
+                                                     float strokeWidth);
 
     private native PdfDocument.FormField nativeGetFormFieldAtPoint(long docPtr, long pagePtr,
                                                                    float x, float y, float tolerance);
@@ -686,15 +685,14 @@ public class PdfiumCore {
         }
     }
 
-    public boolean createStampAnnotation(PdfDocument doc, int pageIndex, RectF pdfRect,
-                                         float[][] strokes, int color, float strokeWidthPts) {
+    public boolean addSignatureContent(PdfDocument doc, int pageIndex,
+                                       float[][] strokes, int color, float strokeWidthPts) {
         synchronized (lock) {
             Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
-            if (nativePagePtr == null || pdfRect == null || strokes == null || strokes.length == 0) {
+            if (nativePagePtr == null || strokes == null || strokes.length == 0) {
                 return false;
             }
-            return nativeCreateStampAnnotation(doc.mNativeDocPtr, nativePagePtr,
-                    pdfRect.left, pdfRect.top, pdfRect.right, pdfRect.bottom, strokes,
+            return nativeAddSignatureContent(doc.mNativeDocPtr, nativePagePtr, strokes,
                     Color.red(color), Color.green(color), Color.blue(color), strokeWidthPts);
         }
     }

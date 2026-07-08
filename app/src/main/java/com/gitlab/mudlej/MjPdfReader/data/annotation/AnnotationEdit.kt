@@ -42,7 +42,7 @@ sealed class AnnotationEdit {
         val checked: Boolean,
     ) : AnnotationEdit()
 
-    data class AddStamp(
+    data class AddSignature(
         override val page: Int,
         val rect: RectF,
         val strokes: List<FloatArray>,
@@ -76,7 +76,7 @@ sealed class AnnotationEdit {
                 json.addProperty(KEY_FIELD_NAME, fieldName)
                 json.addProperty(KEY_CHECKED, checked)
             }
-            is AddStamp -> {
+            is AddSignature -> {
                 json.addProperty(KEY_COLOR, color)
                 json.addProperty(KEY_STROKE_WIDTH, strokeWidth)
                 json.add(KEY_RECT, rectToJson(rect))
@@ -92,7 +92,7 @@ sealed class AnnotationEdit {
         is Delete -> OP_DELETE
         is SetFieldText -> OP_SET_FIELD_TEXT
         is SetFieldChecked -> OP_SET_FIELD_CHECKED
-        is AddStamp -> OP_ADD_STAMP
+        is AddSignature -> OP_ADD_SIGNATURE
     }
 
     companion object {
@@ -114,7 +114,7 @@ sealed class AnnotationEdit {
         private const val KEY_STROKE_WIDTH = "strokeWidth"
         private const val OP_SET_FIELD_TEXT = "setFieldText"
         private const val OP_SET_FIELD_CHECKED = "setFieldChecked"
-        private const val OP_ADD_STAMP = "addStamp"
+        private const val OP_ADD_SIGNATURE = "addSignature"
 
         fun fromJsonLine(line: String): AnnotationEdit? = runCatching {
             val json = JsonParser.parseString(line).asJsonObject
@@ -145,7 +145,7 @@ sealed class AnnotationEdit {
                     fieldName = json.get(KEY_FIELD_NAME).asString,
                     checked = json.get(KEY_CHECKED).asBoolean,
                 )
-                OP_ADD_STAMP -> AddStamp(
+                OP_ADD_SIGNATURE -> AddSignature(
                     page = page,
                     rect = rectFromJson(json.getAsJsonArray(KEY_RECT)),
                     strokes = strokesFromJson(json.getAsJsonArray(KEY_STROKES)),

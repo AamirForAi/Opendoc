@@ -16,6 +16,7 @@
 package com.github.barteksc.pdfviewer;
 
 import static com.github.barteksc.pdfviewer.util.Constants.Cache.CACHE_SIZE;
+import static com.github.barteksc.pdfviewer.util.Constants.Cache.SNAPSHOTS_CACHE_SIZE;
 import static com.github.barteksc.pdfviewer.util.Constants.Cache.THUMBNAILS_CACHE_SIZE;
 
 import android.graphics.Bitmap;
@@ -58,11 +59,57 @@ class CacheManager {
             removeAndRecycleEqual(activeCache, part);
             removeAndRecycleEqual(passiveCache, part);
 
+            if (part.isSnapshot()) {
+                pruneSnapshots(part);
+            }
+
             // If cache too big, remove and recycle
             makeAFreeSpace();
 
             // Then add part
             activeCache.offer(part);
+        }
+    }
+
+    /**
+     * Keeps at most one previous snapshot for the incoming part's page and
+     * {@link com.github.barteksc.pdfviewer.util.Constants.Cache#SNAPSHOTS_CACHE_SIZE}
+     * snapshots overall (leaving room for the incoming one), newest first.
+     */
+    private void pruneSnapshots(PagePart incoming) {
+        List<PagePart> snapshots = new ArrayList<>();
+        collectSnapshots(activeCache, snapshots);
+        collectSnapshots(passiveCache, snapshots);
+        Collections.sort(snapshots, orderComparator);
+
+        int samePageKept = 0;
+        int totalKept = 0;
+        for (int i = snapshots.size() - 1; i >= 0; i--) {
+            PagePart snapshot = snapshots.get(i);
+            boolean samePage = snapshot.getPage() == incoming.getPage();
+            boolean keep = totalKept < SNAPSHOTS_CACHE_SIZE - 1 && (!samePage || samePageKept < 1);
+            if (!keep) {
+                removeSnapshot(snapshot);
+                continue;
+            }
+            totalKept++;
+            if (samePage) {
+                samePageKept++;
+            }
+        }
+    }
+
+    private void removeSnapshot(PagePart snapshot) {
+        if (activeCache.remove(snapshot) || passiveCache.remove(snapshot)) {
+            recycleBitmap(snapshot);
+        }
+    }
+
+    private static void collectSnapshots(Collection<PagePart> parts, List<PagePart> into) {
+        for (PagePart part : parts) {
+            if (part.isSnapshot()) {
+                into.add(part);
+            }
         }
     }
 

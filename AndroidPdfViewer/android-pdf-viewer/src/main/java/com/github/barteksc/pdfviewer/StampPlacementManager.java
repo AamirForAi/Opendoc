@@ -11,9 +11,6 @@ import android.view.MotionEvent;
 
 import com.shockwave.pdfium.util.SizeF;
 
-import java.util.ArrayList;
-import java.util.List;
-
 final class StampPlacementManager {
 
     private static final float MIN_WIDTH_PAGE_FRACTION = 0.05f;
@@ -29,25 +26,6 @@ final class StampPlacementManager {
 
     private enum DragMode { NONE, MOVE, RESIZE_TL, RESIZE_TR, RESIZE_BL, RESIZE_BR }
 
-    private static final class CommittedStamp {
-        final int pageIndex;
-        final RectF pdfRect;
-        final Path normalizedPath;
-        final float aspect;
-        final float normalizedStrokeWidth;
-        final int color;
-
-        CommittedStamp(int pageIndex, RectF pdfRect, Path normalizedPath, float aspect,
-                       float normalizedStrokeWidth, int color) {
-            this.pageIndex = pageIndex;
-            this.pdfRect = pdfRect;
-            this.normalizedPath = normalizedPath;
-            this.aspect = aspect;
-            this.normalizedStrokeWidth = normalizedStrokeWidth;
-            this.color = color;
-        }
-    }
-
     private final PDFView pdfView;
     private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -56,7 +34,6 @@ final class StampPlacementManager {
     private final Path scratchPath = new Path();
     private final float handleRadius;
     private final float handleTouchRadius;
-    private final List<CommittedStamp> committedStamps = new ArrayList<>();
 
     private boolean active;
     private int pageIndex = -1;
@@ -138,31 +115,11 @@ final class StampPlacementManager {
         return dragMode != DragMode.NONE;
     }
 
-    void registerCommitted(int pageIndex, RectF rect, float[][] strokes, int color, float normalizedStrokeWidth) {
-        if (rect == null || rect.width() <= 0 || strokes == null || strokes.length == 0) {
-            return;
-        }
-        float stampAspect = Math.abs(rect.height()) / rect.width();
-        committedStamps.add(new CommittedStamp(pageIndex, new RectF(rect), buildPath(strokes),
-                stampAspect, normalizedStrokeWidth, color));
-    }
-
     void recycle() {
         cancel();
-        committedStamps.clear();
     }
 
     void draw(Canvas canvas) {
-        if (!pdfView.isAnnotationRendering()) {
-            for (CommittedStamp stamp : committedStamps) {
-                RectF docRect = docRectFor(stamp.pageIndex, stamp.pdfRect);
-                if (docRect == null || docRect.width() <= 0) {
-                    continue;
-                }
-                drawStamp(canvas, stamp.normalizedPath, docRect, stamp.aspect,
-                        stamp.normalizedStrokeWidth, stamp.color);
-            }
-        }
         if (!active || normalizedPath == null) {
             return;
         }

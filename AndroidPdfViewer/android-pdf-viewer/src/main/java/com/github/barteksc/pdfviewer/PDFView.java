@@ -1165,6 +1165,21 @@ public class PDFView extends RelativeLayout {
     }
 
     /**
+     * Render the visible region of each visible page as a single part,
+     * replacing any queued render tasks. Used for cheap whole-viewport
+     * refreshes during a pinch gesture.
+     */
+    void loadViewportSnapshot() {
+        if (pdfFile == null || renderingHandler == null) {
+            return;
+        }
+
+        renderingHandler.removeMessages(RenderingHandler.MSG_RENDER_TASK);
+        pagesLoader.loadViewportSnapshot();
+        redraw();
+    }
+
+    /**
      * Called when the PDF is loaded
      */
     void loadComplete(PdfFile pdfFile) {
@@ -1845,7 +1860,7 @@ public class PDFView extends RelativeLayout {
         if (pending == null) {
             return false;
         }
-        boolean added = addStampAnnotation(pending.pageIndex, pending.pdfRect, pending.strokes,
+        boolean added = addSignature(pending.pageIndex, pending.pdfRect, pending.strokes,
                 pending.color, pending.normalizedStrokeWidth);
         if (added) {
             stampPlacementManager.cancel();
@@ -1854,24 +1869,20 @@ public class PDFView extends RelativeLayout {
         return added;
     }
 
-    public boolean addStampAnnotation(int pageIndex, RectF pdfRect, float[][] strokes, int color,
-                                      float normalizedStrokeWidth) {
+    public boolean addSignature(int pageIndex, RectF pdfRect, float[][] strokes, int color,
+                                float normalizedStrokeWidth) {
         if (pdfFile == null) {
             return false;
         }
         try {
-            boolean created = pdfFile.createStampAnnotation(pageIndex, pdfRect, strokes, color,
+            boolean created = pdfFile.addSignature(pageIndex, pdfRect, strokes, color,
                     normalizedStrokeWidth);
             if (created) {
-                if (stampPlacementManager != null) {
-                    stampPlacementManager.registerCommitted(pageIndex, pdfRect, strokes, color,
-                            normalizedStrokeWidth);
-                }
                 refreshPage(pageIndex);
             }
             return created;
         } catch (Throwable throwable) {
-            Log.e(TAG, "addStampAnnotation: failed to create stamp", throwable);
+            Log.e(TAG, "addSignature: failed to add signature", throwable);
             return false;
         }
     }

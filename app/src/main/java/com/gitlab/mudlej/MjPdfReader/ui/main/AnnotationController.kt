@@ -118,8 +118,8 @@ class AnnotationController(
                 pdfView.setFormFieldText(edit.page, edit.fieldIndex, edit.text)
             is AnnotationEdit.SetFieldChecked ->
                 pdfView.setFormFieldChecked(edit.page, edit.fieldIndex, edit.checked)
-            is AnnotationEdit.AddStamp ->
-                pdfView.addStampAnnotation(edit.page, edit.rect, edit.strokes.toTypedArray(), edit.color, edit.strokeWidth)
+            is AnnotationEdit.AddSignature ->
+                pdfView.addSignature(edit.page, edit.rect, edit.strokes.toTypedArray(), edit.color, edit.strokeWidth)
         }
         if (!applied) {
             Log.w(TAG, "applyEdit: skipped ${edit.javaClass.simpleName} on page ${edit.page}")
