@@ -314,7 +314,6 @@ class PagesLoader {
     }
 
     void loadPages() {
-        cacheOrder = 1;
         xOffset = -MathUtils.max(pdfView.getCurrentXOffset(), 0);
         yOffset = -MathUtils.max(pdfView.getCurrentYOffset(), 0);
 

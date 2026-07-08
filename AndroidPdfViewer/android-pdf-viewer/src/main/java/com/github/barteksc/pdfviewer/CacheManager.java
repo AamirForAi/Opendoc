@@ -27,6 +27,7 @@ import com.github.barteksc.pdfviewer.model.PagePart;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -43,6 +44,8 @@ class CacheManager {
     private final Object passiveActiveLock = new Object();
 
     private final PagePartComparator orderComparator = new PagePartComparator();
+
+    private volatile boolean scaling = false;
 
     public CacheManager() {
         activeCache = new PriorityQueue<>(CACHE_SIZE, orderComparator);
@@ -89,7 +92,10 @@ class CacheManager {
         }
     }
 
-    private static void recycleBitmap(PagePart part) {
+    private static void recycleBitmap(@Nullable PagePart part) {
+        if (part == null) {
+            return;
+        }
         Bitmap bitmap = part.getRenderedBitmap();
         if (bitmap == null) {
             return;
@@ -106,14 +112,24 @@ class CacheManager {
         }
     }
 
+    public void setScaling(boolean scaling) {
+        this.scaling = scaling;
+    }
+
     private void makeAFreeSpace() {
         synchronized (passiveActiveLock) {
-            while ((activeCache.size() + passiveCache.size()) >= CACHE_SIZE &&
+            int limit = scaling ? CACHE_SIZE * 4 : CACHE_SIZE;
+
+            while ((activeCache.size() + passiveCache.size()) >= limit &&
                     !passiveCache.isEmpty()) {
                 recycleBitmap(passiveCache.poll());
             }
 
-            while ((activeCache.size() + passiveCache.size()) >= CACHE_SIZE &&
+            if (scaling) {
+                return;
+            }
+
+            while ((activeCache.size() + passiveCache.size()) >= limit &&
                     !activeCache.isEmpty()) {
                 recycleBitmap(activeCache.poll());
             }
@@ -203,6 +219,7 @@ class CacheManager {
         synchronized (passiveActiveLock) {
             List<PagePart> parts = new ArrayList<>(passiveCache);
             parts.addAll(activeCache);
+            Collections.sort(parts, orderComparator);
             return parts;
         }
     }
