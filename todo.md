@@ -24,15 +24,17 @@
 - [x] Support RTL reading direction in horizontal mode.
 - [x] Add search in TOC activity.
 - [x] Improve text mode a little
-- [ ] Investigate PDF corruption/rendering issues after files stay open for several hours.
-- [ ] Remember per-document horizontal scroll lock.
-- [ ] Remember per-document zoom.
-- [ ] Add ability to jump back after clicking internal PDF references.
+- [x] Add ability to jump back after clicking internal PDF references.
+- [x] Add forms support.
+- [x] Add handwritten signature support.
+- [x] Add highlight functionality.
+- [x] Replace current Text Mode with a proper dedicated Text Mode page.
+- [x] Add Reflow Mode.
+- [x] Add support for multiple fonts in Text Mode.
+- [x] Add live inline text selection.
+- [x] Improve expanding search results after filtering.
 
 ## Reading State And Persistence
-- [ ] Remember per-document orientation.
-- [ ] Remember per-document zoom.
-- [ ] Remember per-document zoom lock.
 - [ ] Add import/export for settings, reading progress, and app data.
 
 ## Navigation And Reading Flow
@@ -50,18 +52,10 @@
 - [ ] Add file info cards for library items.
 
 ## Text Mode, Search, And Reflow
-- [x] Replace current Text Mode with a proper dedicated Text Mode page.
-- [x] Add Reflow Mode.
-- [x] Add support for multiple fonts in Text Mode.
 - [ ] Add skip-empty-pages option in Text Mode.
-- [x] Add live inline text selection.
 - [ ] Add next/previous search-result navigation from the main reader.
-- [x] Improve expanding search results after filtering.
 
 ## PDF Features
-- [x] Add forms support.
-- [ ] Add handwritten/image signature support.
-- [x] Add highlight functionality.
 - [ ] Add custom PDF theming.
 
 ## External Input
