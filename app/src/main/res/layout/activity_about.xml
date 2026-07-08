@@ -69,6 +69,7 @@
                 android:layout_height="72dp"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="40dp"
+                android:importantForAccessibility="no"
                 android:src="@mipmap/ic_launcher" />
 
             <TextView

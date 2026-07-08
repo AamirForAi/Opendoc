@@ -107,8 +107,15 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
 
         if (::actionBarMenu.isInitialized) {
             configureSearchIcon(actionBarMenu, bookmarks.isNotEmpty())
+            configureExpandCollapseItems(actionBarMenu)
             restoreSearchViewState(actionBarMenu)
         }
+    }
+
+    private fun configureExpandCollapseItems(menu: Menu) {
+        val show = bookmarks.any { it.hasSubBookmarks() }
+        menu.findItem(R.id.expand_all_bookmarks)?.isVisible = show
+        menu.findItem(R.id.collapse_all_bookmarks)?.isVisible = show
     }
 
     private fun initActionBar() {
@@ -128,10 +135,11 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.search_menu, menu)
+        menuInflater.inflate(R.menu.toc_menu, menu)
         menu.tintIconsForChrome(this)
         actionBarMenu = menu
         configureSearchIcon(menu, bookmarks.isNotEmpty())
+        configureExpandCollapseItems(menu)
         initSearchView(menu)
         restoreSearchViewState(menu)
         return true
@@ -208,6 +216,8 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             android.R.id.home -> finish()
+            R.id.expand_all_bookmarks -> bookmarkAdapter.expandAll()
+            R.id.collapse_all_bookmarks -> bookmarkAdapter.collapseAll()
             else -> super.onOptionsItemSelected(item)
         }
         return true

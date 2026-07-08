@@ -2000,6 +2000,56 @@ JNI_FUNC(jstring, PdfiumCore, nativeGetPageText)(JNI_ARGS, jlong pagePtr) {
     }
 }
 
+extern "C" FPDF_EXPORT size_t FPDF_CALLCONV
+FPDFFont_GetFamilyName(FPDF_FONT font, char* buffer, size_t length);
+
+JNI_FUNC(jobjectArray, PdfiumCore, nativeGetPageFonts)(JNI_ARGS, jlong pagePtr) {
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    jclass stringCls = env->FindClass("java/lang/String");
+    if (page == NULL) {
+        return env->NewObjectArray(0, stringCls, NULL);
+    }
+
+    std::set<std::string> entries;
+    int objectCount = FPDFPage_CountObjects(page);
+    for (int i = 0; i < objectCount; i++) {
+        FPDF_PAGEOBJECT object = FPDFPage_GetObject(page, i);
+        if (object == NULL || FPDFPageObj_GetType(object) != FPDF_PAGEOBJ_TEXT) {
+            continue;
+        }
+        FPDF_FONT font = FPDFTextObj_GetFont(object);
+        if (font == NULL) {
+            continue;
+        }
+        size_t nameLength = FPDFFont_GetFamilyName(font, NULL, 0);
+        if (nameLength == 0) {
+            continue;
+        }
+        std::string name(nameLength, '\0');
+        FPDFFont_GetFamilyName(font, &name[0], nameLength);
+        while (!name.empty() && name[name.size() - 1] == '\0') {
+            name.resize(name.size() - 1);
+        }
+        if (name.empty()) {
+            continue;
+        }
+        int embedded = FPDFFont_GetIsEmbedded(font);
+        entries.insert(name + "\t" + (embedded == 1 ? "1" : "0"));
+    }
+
+    jobjectArray result = env->NewObjectArray((jsize) entries.size(), stringCls, NULL);
+    if (result == NULL) {
+        return NULL;
+    }
+    jsize index = 0;
+    for (std::set<std::string>::iterator it = entries.begin(); it != entries.end(); ++it) {
+        jstring entry = env->NewStringUTF(it->c_str());
+        env->SetObjectArrayElement(result, index++, entry);
+        env->DeleteLocalRef(entry);
+    }
+    return result;
+}
+
 JNI_FUNC(jobjectArray, PdfiumCore, nativeGetPageTextBounds)(JNI_ARGS, jlong pagePtr, jint start, jint count) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
     jclass rectCls = env->FindClass("android/graphics/Rect");

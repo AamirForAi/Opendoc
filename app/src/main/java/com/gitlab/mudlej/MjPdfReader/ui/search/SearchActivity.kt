@@ -15,13 +15,17 @@ import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.preference.PreferenceManager
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.data.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivitySearchBinding
 import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
 import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
+import com.gitlab.mudlej.MjPdfReader.util.accentInsensitiveRanges
 import com.gitlab.mudlej.MjPdfReader.util.configureSearchIcon
+import com.gitlab.mudlej.MjPdfReader.util.containsAccentInsensitive
 import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
 import com.gitlab.mudlej.MjPdfReader.util.indexesOf
 import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
@@ -53,6 +57,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     private var restoredNestedQueryApplied = false
     private var nestedQueryJob: Job? = null
     private var pendingResultClick: SearchResult? = null
+    private var ignoreAccents = false
 
     private val lastPageLiveData = MutableLiveData<Int>()
 
@@ -61,6 +66,10 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         binding = ActivitySearchBinding.inflate(layoutInflater)
         setContentView(binding.root)
         ColorUtil.colorize(this, window, supportActionBar)
+
+        val pref = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
+        ignoreAccents = pref.getSearchIgnoreAccents()
+        searchResultAdapter.ignoreAccents = ignoreAccents
 
         lifecycleScope.launch {
             initPdfExtractor()
@@ -162,7 +171,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         if (searchQuery.isBlank()) {
             return
         }
-        val cachedSession = SearchSessionCache.get(fileHash, searchQuery)
+        val cachedSession = SearchSessionCache.get(fileHash, searchQuery, ignoreAccents)
         if (cachedSession != null) {
             restoredListPosition = cachedSession.listPosition
             restoredListOffsetPx = cachedSession.listOffsetPx
@@ -178,7 +187,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         lifecycleScope.launch(Dispatchers.Default) {
             val results = cachedSession?.let { cachedSearchResults(searchQuery, it.hits) }
                 ?: search(searchQuery).also { results ->
-                    SearchSessionCache.put(fileHash, searchQuery, cacheHits(results))
+                    SearchSessionCache.put(fileHash, searchQuery, ignoreAccents, cacheHits(results))
                 }
             withContext(Dispatchers.Main) {
                 searchResults = results
@@ -204,15 +213,9 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
                     continue
                 }
 
-                pageText.indexesOf(query, ignoreCase = true).forEach { indexInPage ->
-//                    Log.d(tag, "search: ${
-//                        pageText.substring(
-//                            max(indexInPage - 10, indexInPage),
-//                            min(indexInPage + 10, pdfExtractor.getPageCount() + indexInPage + 10)
-//                        )}"
-//                    )
+                matchRanges(pageText, query).forEach { range ->
                     searchResults.add(
-                        getPageResult(query, indexInPage, pageText, pageNumber).apply {
+                        getPageResult(query, range.first, pageText, pageNumber, matchLength = range.last + 1 - range.first).apply {
                             searchResultIndexInList = searchResults.size
                         }
                     )
@@ -224,11 +227,20 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         return searchResults
     }
 
+    private fun matchRanges(text: String, query: String): List<IntRange> {
+        return if (ignoreAccents) {
+            text.accentInsensitiveRanges(query)
+        } else {
+            text.indexesOf(query, ignoreCase = true).map { it until it + query.length }
+        }
+    }
+
     private fun cachedSearchResults(query: String, hits: List<SearchSessionCache.Hit>): MutableList<SearchResult> {
         val pageTextCache = mutableMapOf<Int, String>()
         return hits.sortedBy { it.resultIndex }.mapNotNull { hit ->
             val pageText = pageTextCache.getOrPut(hit.pageNumber) { pdfExtractor.getPageText(hit.pageNumber) }
-            if (hit.originalIndex !in pageText.indices || hit.originalIndex + query.length > pageText.length) {
+            val matchLength = if (hit.matchLength > 0) hit.matchLength else query.length
+            if (hit.originalIndex !in pageText.indices || hit.originalIndex + matchLength > pageText.length) {
                 return@mapNotNull null
             }
             getPageResult(
@@ -238,6 +250,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
                 hit.pageNumber,
                 textOffset = if (hit.expanded) 200 else null,
                 expanded = hit.expanded,
+                matchLength = matchLength,
             ).apply {
                 searchResultIndexInList = hit.resultIndex
             }
@@ -251,6 +264,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
                 originalIndex = result.originalIndex,
                 resultIndex = result.searchResultIndexInList,
                 expanded = result.expanded,
+                matchLength = result.inputEnd - result.inputStart,
             )
         }
     }
@@ -259,6 +273,8 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         val query = searchResultAdapter.nestedQuery
         return if (query.isNullOrBlank()) {
             searchResults.toList()
+        } else if (ignoreAccents) {
+            searchResults.filter { it.text.containsAccentInsensitive(query) }
         } else {
             searchResults.filter { it.text.contains(query, true) }
         }
@@ -275,11 +291,12 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         pageText: String,
         pageNumber: Int,
         textOffset: Int? = null,
-        expanded: Boolean = false
+        expanded: Boolean = false,
+        matchLength: Int = query.length,
     ): SearchResult {
 
         val offset = textOffset ?: PDF.SEARCH_RESULT_OFFSET
-        val count = query.length
+        val count = matchLength
 
         val starting = max(0, indexInPage - offset)
         val ending = min(pageText.length, indexInPage + count + offset)
@@ -426,14 +443,15 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
                 pageText,
                 searchResult.pageNumber,
                 200,
-                expanded = true
+                expanded = true,
+                matchLength = searchResult.inputEnd - searchResult.inputStart,
             )
             newSearchResult.searchResultIndexInList = searchResultIndex
             if (searchResultIndex !in searchResults.indices) {
                 return@launch
             }
             searchResults[searchResultIndex] = newSearchResult
-            SearchSessionCache.setExpanded(fileHash, searchQuery, searchResultIndex, expanded = true)
+            SearchSessionCache.setExpanded(fileHash, searchQuery, ignoreAccents, searchResultIndex, expanded = true)
             searchResultAdapter.submitList(visibleResultRows())
         }
     }
@@ -448,6 +466,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             SearchSessionCache.updateUiState(
                 fileHash,
                 searchQuery,
+                ignoreAccents,
                 clicked.searchResultIndexInList,
                 0,
                 nestedQuery = null,
@@ -465,6 +484,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         SearchSessionCache.updateUiState(
             fileHash,
             searchQuery,
+            ignoreAccents,
             position,
             offsetPx,
             searchResultAdapter.nestedQuery,

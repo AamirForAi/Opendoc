@@ -28,7 +28,7 @@ enum class ConfigurableAction(
     SEARCH("search", R.string.search, R.drawable.search_icon),
     GO_TO_PAGE("go_to_page", R.string.go_to_page, R.drawable.ic_shortcut),
     EXTRACT_TEXT("extract_text", R.string.copy_page_text, R.drawable.ic_copy),
-    TEXT_READER("text_reader", R.string.text_reader, R.drawable.ic_text),
+    TEXT_MODE("text_mode", R.string.text_mode, R.drawable.ic_text),
     SHARE("share", R.string.share_file, R.drawable.ic_share),
     SETTINGS("settings", R.string.settings, R.drawable.ic_settings),
     FILE_METADATA("file_metadata", R.string.file_metadata, R.drawable.meta_info),
@@ -54,7 +54,7 @@ enum class ConfigurableAction(
             OPEN_ONLINE,
             SEARCH,
             GO_TO_PAGE,
-            TEXT_READER,
+            TEXT_MODE,
             SHARE,
             SETTINGS,
             FILE_METADATA,
@@ -79,7 +79,7 @@ enum class ConfigurableAction(
             RELOAD,
             SEARCH,
             GO_TO_PAGE,
-            TEXT_READER,
+            TEXT_MODE,
             TABLE_OF_CONTENTS,
         )
 
@@ -98,7 +98,7 @@ enum class ConfigurableAction(
             SEARCH,
             GO_TO_PAGE,
             EXTRACT_TEXT,
-            TEXT_READER,
+            TEXT_MODE,
             SHARE,
             SETTINGS,
             FILE_METADATA,
@@ -147,7 +147,7 @@ enum class ConfigurableAction(
             READING_DIRECTION,
             SEARCH,
             GO_TO_PAGE,
-            TEXT_READER,
+            TEXT_MODE,
             TABLE_OF_CONTENTS,
         )
 

@@ -124,6 +124,8 @@ public class PdfiumCore {
 
     private native PdfDocument.HighlightAnnotation[] nativeGetHighlightAnnotations(long pagePtr);
 
+    private native String[] nativeGetPageFonts(long pagePtr);
+
     private native boolean nativeAddSignatureContent(long docPtr, long pagePtr,
                                                      float[][] strokes,
                                                      int r, int g, int b,
@@ -710,6 +712,39 @@ public class PdfiumCore {
                     if (annotation != null) {
                         result.add(annotation);
                     }
+                }
+            }
+            return result;
+        }
+    }
+
+    public List<PdfDocument.FontInfo> getPageFonts(PdfDocument doc, int pageIndex) {
+        synchronized (lock) {
+            boolean wasOpen = doc.mNativePagesPtr.get(pageIndex) != null;
+            long pagePtr = openPage(doc, pageIndex);
+            List<PdfDocument.FontInfo> result = new ArrayList<>();
+            if (pagePtr == 0L) {
+                return result;
+            }
+            try {
+                String[] entries = nativeGetPageFonts(pagePtr);
+                if (entries != null) {
+                    for (String entry : entries) {
+                        if (entry == null || entry.isEmpty()) {
+                            continue;
+                        }
+                        int separator = entry.lastIndexOf('\t');
+                        if (separator <= 0) {
+                            continue;
+                        }
+                        String name = entry.substring(0, separator);
+                        boolean embedded = "1".equals(entry.substring(separator + 1));
+                        result.add(new PdfDocument.FontInfo(name, embedded));
+                    }
+                }
+            } finally {
+                if (!wasOpen) {
+                    closePage(doc, pageIndex);
                 }
             }
             return result;

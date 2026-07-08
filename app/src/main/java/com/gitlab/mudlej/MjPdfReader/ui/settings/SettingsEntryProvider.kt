@@ -211,10 +211,10 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
         return listOf(
             switchEntry(
                 page = SettingsPage.TEXT,
-                titleRes = R.string.default_text_reader,
-                key = Preferences.defaultTextReaderKey,
-                defaultValue = Preferences.defaultTextReaderDefault,
-                summaryRes = R.string.default_text_reader_summary,
+                titleRes = R.string.default_text_mode,
+                key = Preferences.defaultTextModeKey,
+                defaultValue = Preferences.defaultTextModeDefault,
+                summaryRes = R.string.default_text_mode_summary,
                 keywords = listOf("text", "extract", "mode"),
             ),
             switchEntry(
@@ -224,6 +224,22 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 defaultValue = Preferences.inlineTextSelectionDefault,
                 summaryRes = R.string.inline_text_selection_summary,
                 keywords = listOf("inline", "selection", "copy", "text"),
+            ),
+            switchEntry(
+                page = SettingsPage.TEXT,
+                titleRes = R.string.detect_existing_highlights_title,
+                key = Preferences.detectExistingHighlightsKey,
+                defaultValue = Preferences.detectExistingHighlightsDefault,
+                summaryRes = R.string.detect_existing_highlights_summary,
+                keywords = listOf("highlight", "annotation", "selection", "detect"),
+            ),
+            switchEntry(
+                page = SettingsPage.TEXT,
+                titleRes = R.string.search_ignore_accents_title,
+                key = Preferences.searchIgnoreAccentsKey,
+                defaultValue = Preferences.searchIgnoreAccentsDefault,
+                summaryRes = R.string.search_ignore_accents_summary,
+                keywords = listOf("search", "accents", "diacritics"),
             ),
         )
     }

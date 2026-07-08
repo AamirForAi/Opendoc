@@ -13,6 +13,7 @@ class SearchResultAdapter(
 
     var nestedQuery: String? = null
     var progressBar: ProgressBar? = null
+    var ignoreAccents = false
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SearchResultViewHolder {
         return SearchResultViewHolder(parent.context,
@@ -23,7 +24,7 @@ class SearchResultAdapter(
 
     override fun onBindViewHolder(holder: SearchResultViewHolder, index: Int) {
         getItem(index)?.let {
-            holder.bind(it)
+            holder.bind(it, ignoreAccents)
         }
     }
 

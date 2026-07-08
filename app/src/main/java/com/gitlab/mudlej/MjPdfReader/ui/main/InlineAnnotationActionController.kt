@@ -24,6 +24,7 @@ class InlineAnnotationActionController(
     private val clearActiveSearchResultHighlight: () -> Unit,
     private val onAnnotationEdit: (AnnotationEdit) -> Unit,
     private val updateSaveUiPosition: () -> Unit,
+    private val isDetectExistingHighlightsEnabled: () -> Boolean,
     private val toggleReaderChrome: () -> Unit,
 ) {
     private var activeHighlightAnnotation: PDFView.HighlightAnnotation? = null
@@ -64,12 +65,27 @@ class InlineAnnotationActionController(
     }
 
     fun showSelectionActions(viewBounds: RectF?) {
+        val matchingAnnotation = findAnnotationMatchingSelection()
+        if (matchingAnnotation != null) {
+            binding.pdfView.clearTextSelection()
+            showHighlightAnnotationActions(matchingAnnotation)
+            return
+        }
+
         activeHighlightAnnotation = null
         binding.pdfView.clearSelectedHighlightAnnotation()
         binding.textSelectionCopyButton.visibility = View.VISIBLE
         binding.textSelectionSearchWebButton.visibility = View.VISIBLE
         binding.textSelectionDeleteHighlightButton.visibility = View.GONE
         showCard(viewBounds)
+    }
+
+    private fun findAnnotationMatchingSelection(): PDFView.HighlightAnnotation? {
+        if (!isDetectExistingHighlightsEnabled()) {
+            return null
+        }
+        val request = binding.pdfView.getHighlightRequest() ?: return null
+        return binding.pdfView.findHighlightAnnotationMatching(request)
     }
 
     fun hideActions() {

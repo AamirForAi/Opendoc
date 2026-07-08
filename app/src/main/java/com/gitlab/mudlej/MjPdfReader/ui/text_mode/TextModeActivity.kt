@@ -1,4 +1,4 @@
-package com.gitlab.mudlej.MjPdfReader.ui.text_reader
+package com.gitlab.mudlej.MjPdfReader.ui.text_mode
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -20,8 +20,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
-import com.gitlab.mudlej.MjPdfReader.databinding.ActivityTextReaderBinding
-import com.gitlab.mudlej.MjPdfReader.databinding.TextReaderTypographySheetBinding
+import com.gitlab.mudlej.MjPdfReader.databinding.ActivityTextModeBinding
+import com.gitlab.mudlej.MjPdfReader.databinding.TextModeTypographySheetBinding
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManagerImpl
 import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
@@ -46,10 +46,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.Collections
 
-class TextReaderActivity : AppCompatActivity() {
+class TextModeActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityTextReaderBinding
-    private lateinit var adapter: TextReaderPageAdapter
+    private lateinit var binding: ActivityTextModeBinding
+    private lateinit var adapter: TextModePageAdapter
     private lateinit var layoutManager: LinearLayoutManager
     private lateinit var pdfExtractor: PdfExtractor
     private lateinit var databaseManager: DatabaseManager
@@ -63,7 +63,7 @@ class TextReaderActivity : AppCompatActivity() {
     private var resultPrepared = false
     @Volatile
     private var isClosing = false
-    private var settings = TextReaderSettings()
+    private var settings = TextModeSettings()
     private var bookmarkState = BookmarkState()
     private var savedPageIndex = -1
 
@@ -83,13 +83,13 @@ class TextReaderActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityTextReaderBinding.inflate(layoutInflater)
+        binding = ActivityTextModeBinding.inflate(layoutInflater)
         setContentView(binding.root)
         ColorUtil.colorize(this, window, supportActionBar)
 
         databaseManager = DatabaseManagerImpl(AppDatabase.getInstance(applicationContext))
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-        settings = TextReaderSettings.load(sharedPreferences)
+        settings = TextModeSettings.load(sharedPreferences)
         controlsHideDelayMillis = Preferences(sharedPreferences).getHideDelay().toLong() + CONTROLS_EXTRA_HIDE_DELAY_MS
         restoreState(savedInstanceState)
         initPdfProperties()
@@ -110,7 +110,7 @@ class TextReaderActivity : AppCompatActivity() {
                 return@launch
             }
             if (fileHash == null) {
-                fileHash = computeHash(this@TextReaderActivity, PDF(uri = pdfUri))
+                fileHash = computeHash(this@TextModeActivity, PDF(uri = pdfUri))
             }
             currentPageIndex = currentPageIndex.coerceIn(0, pageCount - 1)
             initReader()
@@ -141,7 +141,7 @@ class TextReaderActivity : AppCompatActivity() {
         return withContext(Dispatchers.IO) {
             extractionMutex.withLock {
                 try {
-                    createPdfExtractor(this@TextReaderActivity, pdfUri, pdfPassword).also { extractor ->
+                    createPdfExtractor(this@TextModeActivity, pdfUri, pdfPassword).also { extractor ->
                         if (isClosing) {
                             extractor.close()
                         } else {
@@ -176,7 +176,7 @@ class TextReaderActivity : AppCompatActivity() {
 
     private fun initReader() {
         val initialPageIndex = currentPageIndex
-        adapter = TextReaderPageAdapter(::retryPage)
+        adapter = TextModePageAdapter(::retryPage)
         layoutManager = LinearLayoutManager(this)
         binding.textPagesRecyclerView.adapter = adapter
         binding.textPagesRecyclerView.layoutManager = layoutManager
@@ -305,7 +305,7 @@ class TextReaderActivity : AppCompatActivity() {
 
     private fun showTypographySheet() {
         val dialog = BottomSheetDialog(this)
-        val sheetBinding = TextReaderTypographySheetBinding.inflate(layoutInflater)
+        val sheetBinding = TextModeTypographySheetBinding.inflate(layoutInflater)
         dialog.setContentView(sheetBinding.root)
 
         syncTypographySheet(sheetBinding)
@@ -328,6 +328,11 @@ class TextReaderActivity : AppCompatActivity() {
                 updateSettings(settings.copy(horizontalMargin = slider.value.toInt()))
             }
         })
+        sheetBinding.readableLineLengthSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (settings.readableLineLength != isChecked) {
+                updateSettings(settings.copy(readableLineLength = isChecked))
+            }
+        }
         configureThemeButton(sheetBinding.systemThemeButton, sheetBinding, ReaderTheme.SYSTEM)
         configureThemeButton(sheetBinding.lightThemeButton, sheetBinding, ReaderTheme.LIGHT)
         configureThemeButton(sheetBinding.sepiaThemeButton, sheetBinding, ReaderTheme.SEPIA)
@@ -338,13 +343,13 @@ class TextReaderActivity : AppCompatActivity() {
         configureFontButton(sheetBinding.serifFontButton, sheetBinding, ReaderFontFamily.SERIF)
         configureFontButton(sheetBinding.monoFontButton, sheetBinding, ReaderFontFamily.MONO)
         sheetBinding.resetSettingsButton.setOnClickListener {
-            updateSettings(TextReaderSettings())
+            updateSettings(TextModeSettings())
             syncTypographySheet(sheetBinding)
         }
         dialog.show()
     }
 
-    private fun syncTypographySheet(sheetBinding: TextReaderTypographySheetBinding) {
+    private fun syncTypographySheet(sheetBinding: TextModeTypographySheetBinding) {
         sheetBinding.fontSizeSlider.value = settings.fontSize.coerceIn(
             sheetBinding.fontSizeSlider.valueFrom,
             sheetBinding.fontSizeSlider.valueTo,
@@ -357,6 +362,7 @@ class TextReaderActivity : AppCompatActivity() {
             sheetBinding.marginSlider.valueFrom,
             sheetBinding.marginSlider.valueTo,
         )
+        sheetBinding.readableLineLengthSwitch.isChecked = settings.readableLineLength
 
         val checkedThemeButtonId = themeButtonId(settings.theme)
         listOf(
@@ -384,7 +390,7 @@ class TextReaderActivity : AppCompatActivity() {
 
     private fun configureThemeButton(
         button: MaterialButton,
-        sheetBinding: TextReaderTypographySheetBinding,
+        sheetBinding: TextModeTypographySheetBinding,
         theme: ReaderTheme,
     ) {
         button.setOnClickListener {
@@ -395,7 +401,7 @@ class TextReaderActivity : AppCompatActivity() {
 
     private fun configureFontButton(
         button: MaterialButton,
-        sheetBinding: TextReaderTypographySheetBinding,
+        sheetBinding: TextModeTypographySheetBinding,
         fontFamily: ReaderFontFamily,
     ) {
         button.setOnClickListener {
@@ -404,7 +410,7 @@ class TextReaderActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateSettings(newSettings: TextReaderSettings) {
+    private fun updateSettings(newSettings: TextModeSettings) {
         settings = newSettings
         settings.save(PreferenceManager.getDefaultSharedPreferences(this))
         applySettingsToPages()
@@ -423,7 +429,7 @@ class TextReaderActivity : AppCompatActivity() {
 
     private fun applyReaderTheme() {
         val colors = settings.theme.colors(binding.root)
-        binding.textReaderRoot.setBackgroundColor(colors.background)
+        binding.textModeRoot.setBackgroundColor(colors.background)
         binding.textPagesRecyclerView.setBackgroundColor(colors.background)
         binding.message.setTextColor(colors.label)
     }
@@ -488,8 +494,8 @@ class TextReaderActivity : AppCompatActivity() {
 
         textCache[pageIndex]?.let { cachedText ->
             val currentState = adapter.pageState(pageIndex)
-            if (currentState !is TextReaderPageState.Ready || currentState.text != cachedText) {
-                updatePageState(TextReaderPageState.Ready(pageIndex, cachedText))
+            if (currentState !is TextModePageState.Ready || currentState.text != cachedText) {
+                updatePageState(TextModePageState.Ready(pageIndex, cachedText))
                 scheduleLoadVisiblePages()
             }
             return
@@ -497,33 +503,33 @@ class TextReaderActivity : AppCompatActivity() {
         if (loadingPages.contains(pageIndex)) return
         if (!force) {
             when (adapter.pageState(pageIndex)) {
-                is TextReaderPageState.Ready,
-                is TextReaderPageState.Empty,
-                is TextReaderPageState.Error -> return
+                is TextModePageState.Ready,
+                is TextModePageState.Empty,
+                is TextModePageState.Error -> return
                 else -> Unit
             }
         }
 
         loadingPages.add(pageIndex)
-        updatePageState(TextReaderPageState.Loading(pageIndex))
+        updatePageState(TextModePageState.Loading(pageIndex))
         val job = lifecycleScope.launch(Dispatchers.IO) {
             val state = try {
                 val rawText = extractionMutex.withLock {
                     pdfExtractor.getPageTextOrThrow(pageIndex + 1)
                 }
-                val text = TextReaderTextFormatter.format(rawText)
+                val text = TextModeTextFormatter.format(rawText)
                 if (text.isBlank()) {
-                    TextReaderPageState.Empty(pageIndex)
+                    TextModePageState.Empty(pageIndex)
                 } else {
-                    TextReaderPageState.Ready(pageIndex, text)
+                    TextModePageState.Ready(pageIndex, text)
                 }
             } catch (throwable: Throwable) {
-                TextReaderPageState.Error(pageIndex, throwable.message.orEmpty())
+                TextModePageState.Error(pageIndex, throwable.message.orEmpty())
             }
 
             withContext(Dispatchers.Main) {
                 loadingPages.remove(pageIndex)
-                if (state is TextReaderPageState.Ready) {
+                if (state is TextModePageState.Ready) {
                     cacheText(state.pageIndex, state.text)
                 }
                 updatePageState(state)
@@ -534,7 +540,7 @@ class TextReaderActivity : AppCompatActivity() {
         job.invokeOnCompletion { extractionJobs.remove(job) }
     }
 
-    private fun updatePageState(state: TextReaderPageState) {
+    private fun updatePageState(state: TextModePageState) {
         if (binding.textPagesRecyclerView.isComputingLayout) {
             binding.textPagesRecyclerView.post { updatePageState(state) }
         } else {
@@ -548,7 +554,7 @@ class TextReaderActivity : AppCompatActivity() {
             val eldestPageIndex = textCache.entries.iterator().next().key
             textCache.remove(eldestPageIndex)
             if (eldestPageIndex != pageIndex) {
-                updatePageState(TextReaderPageState.NotLoaded(eldestPageIndex))
+                updatePageState(TextModePageState.NotLoaded(eldestPageIndex))
             }
         }
     }
@@ -592,7 +598,7 @@ class TextReaderActivity : AppCompatActivity() {
     private fun updatePageControls() {
         if (pageCount <= 0) return
 
-        binding.pageButton.text = getString(R.string.text_reader_page_counter, currentPageIndex + 1, pageCount)
+        binding.pageButton.text = getString(R.string.text_mode_page_counter, currentPageIndex + 1, pageCount)
         binding.pageSlider.value = (currentPageIndex + 1).toFloat().coerceIn(binding.pageSlider.valueFrom, binding.pageSlider.valueTo)
         binding.previousPageButton.isEnabled = currentPageIndex > 0
         binding.nextPageButton.isEnabled = currentPageIndex < pageCount - 1
@@ -682,7 +688,7 @@ class TextReaderActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val CURRENT_PAGE_KEY = "CURRENT_TEXT_READER_PAGE"
+        private const val CURRENT_PAGE_KEY = "CURRENT_TEXT_MODE_PAGE"
         private const val PREFETCH_DISTANCE = 2
         private const val JUMP_LOAD_AHEAD = 8
         private const val CACHE_PAGE_LIMIT = 24

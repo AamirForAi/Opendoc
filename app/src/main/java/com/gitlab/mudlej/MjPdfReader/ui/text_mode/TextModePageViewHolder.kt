@@ -1,4 +1,4 @@
-package com.gitlab.mudlej.MjPdfReader.ui.text_reader
+package com.gitlab.mudlej.MjPdfReader.ui.text_mode
 
 import android.app.SearchManager
 import android.content.ActivityNotFoundException
@@ -9,24 +9,26 @@ import android.view.ActionMode
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.databinding.TextReaderPageItemBinding
+import com.gitlab.mudlej.MjPdfReader.databinding.TextModePageItemBinding
 import com.gitlab.mudlej.MjPdfReader.util.plainTextShareIntent
 
-class TextReaderPageViewHolder(
-    private val binding: TextReaderPageItemBinding,
+class TextModePageViewHolder(
+    private val binding: TextModePageItemBinding,
     private val onRetry: (Int) -> Unit,
 ) : RecyclerView.ViewHolder(binding.root) {
 
-    fun bind(state: TextReaderPageState, settings: TextReaderSettings) {
+    fun bind(state: TextModePageState, settings: TextModeSettings) {
         val context = binding.root.context
         val colors = settings.theme.colors(binding.root)
         val horizontalPadding = dp(settings.horizontalMargin)
 
         binding.root.setBackgroundColor(colors.background)
         binding.pageContainer.setPadding(horizontalPadding, dp(18), horizontalPadding, dp(18))
-        binding.pageLabel.text = context.getString(R.string.text_reader_page_label, state.pageIndex + 1)
+        applyReadableLineLength(settings)
+        binding.pageLabel.text = context.getString(R.string.text_mode_page_label, state.pageIndex + 1)
         binding.pageLabel.setTextColor(colors.label)
         binding.pageMessage.setTextColor(colors.label)
         binding.pageText.setTextColor(colors.text)
@@ -41,25 +43,25 @@ class TextReaderPageViewHolder(
         binding.pageMessage.setOnClickListener(null)
 
         when (state) {
-            is TextReaderPageState.NotLoaded,
-            is TextReaderPageState.Loading -> {
+            is TextModePageState.NotLoaded,
+            is TextModePageState.Loading -> {
                 binding.pageProgressBar.visibility = View.VISIBLE
                 binding.pageMessage.visibility = View.VISIBLE
-                binding.pageMessage.text = context.getString(R.string.text_reader_loading_page)
+                binding.pageMessage.text = context.getString(R.string.text_mode_loading_page)
             }
-            is TextReaderPageState.Ready -> {
+            is TextModePageState.Ready -> {
                 binding.pageText.visibility = View.VISIBLE
                 binding.pageText.text = state.text
             }
-            is TextReaderPageState.Empty -> {
+            is TextModePageState.Empty -> {
                 binding.pageMessage.visibility = View.VISIBLE
-                binding.pageMessage.text = context.getString(R.string.text_reader_no_text)
+                binding.pageMessage.text = context.getString(R.string.text_mode_no_text)
             }
-            is TextReaderPageState.Error -> {
+            is TextModePageState.Error -> {
                 binding.pageMessage.visibility = View.VISIBLE
                 binding.pageMessage.text = context.getString(
-                    R.string.text_reader_failed_page,
-                ) + " " + context.getString(R.string.text_reader_retry)
+                    R.string.text_mode_failed_page,
+                ) + " " + context.getString(R.string.text_mode_retry)
                 binding.pageMessage.setOnClickListener { onRetry(state.pageIndex) }
             }
         }
@@ -108,6 +110,19 @@ class TextReaderPageViewHolder(
             context.startActivity(searchIntent)
         } catch (e: ActivityNotFoundException) {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=${Uri.encode(text)}")))
+        }
+    }
+
+    private fun applyReadableLineLength(settings: TextModeSettings) {
+        val params = binding.pageContainer.layoutParams as ConstraintLayout.LayoutParams
+        val maxWidth = if (settings.readableLineLength) {
+            binding.root.resources.getDimensionPixelSize(R.dimen.text_mode_content_max_width)
+        } else {
+            0
+        }
+        if (params.matchConstraintMaxWidth != maxWidth) {
+            params.matchConstraintMaxWidth = maxWidth
+            binding.pageContainer.layoutParams = params
         }
     }
 

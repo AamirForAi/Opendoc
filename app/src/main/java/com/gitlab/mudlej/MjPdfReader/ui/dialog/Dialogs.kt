@@ -69,6 +69,8 @@ import com.gitlab.mudlej.MjPdfReader.ui.search.SearchActivity
 import com.gitlab.mudlej.MjPdfReader.util.copyToClipboard
 import com.gitlab.mudlej.MjPdfReader.util.convertDateString
 import com.gitlab.mudlej.MjPdfReader.util.sizeInMb
+import androidx.preference.PreferenceManager
+import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
@@ -93,7 +95,13 @@ fun showAppFeaturesDialog(context: Context) {
     }
 }
 
-fun showMetaDialog(context: Context, meta: PdfDocument.Meta?, file: File?) {
+fun showMetaDialog(
+    context: Context,
+    meta: PdfDocument.Meta?,
+    file: File?,
+    pageSize: String? = null,
+    fonts: String? = null,
+) {
     if (meta == null) {
         Toast.makeText(context, "Cannot read PDF's meta data!", Toast.LENGTH_SHORT).show()
         return
@@ -101,7 +109,7 @@ fun showMetaDialog(context: Context, meta: PdfDocument.Meta?, file: File?) {
     try {
         MaterialAlertDialogBuilder(context)
             .setTitle(R.string.file_properties)
-            .setView(createMetadataView(context, meta, file))
+            .setView(createMetadataView(context, meta, file, pageSize, fonts))
             .setPositiveButton(android.R.string.ok, null)
             .show()
     }
@@ -111,7 +119,13 @@ fun showMetaDialog(context: Context, meta: PdfDocument.Meta?, file: File?) {
     }
 }
 
-private fun createMetadataView(context: Context, meta: PdfDocument.Meta, file: File?): View {
+private fun createMetadataView(
+    context: Context,
+    meta: PdfDocument.Meta,
+    file: File?,
+    pageSize: String?,
+    fonts: String?,
+): View {
     val content = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(context, 24), dp(context, 8), dp(context, 24), 0)
@@ -121,12 +135,14 @@ private fun createMetadataView(context: Context, meta: PdfDocument.Meta, file: F
     addMetadataRow(content, R.string.pdf_title, meta.title)
     addMetadataRow(content, R.string.pdf_author, meta.author)
     addMetadataRow(content, R.string.pdf_pages, String.format(Locale.getDefault(), "%d", meta.totalPages))
+    addMetadataRow(content, R.string.pdf_page_size, pageSize)
     addMetadataRow(content, R.string.pdf_subject, meta.subject)
     addMetadataRow(content, R.string.pdf_keywords, meta.keywords)
     addMetadataRow(content, R.string.pdf_created, convertDateString(meta.creationDate) ?: meta.creationDate)
     addMetadataRow(content, R.string.pdf_modified, convertDateString(meta.modDate) ?: meta.modDate)
     addMetadataRow(content, R.string.pdf_created_by, meta.creator)
     addMetadataRow(content, R.string.pdf_produced_by, meta.producer)
+    addMetadataRow(content, R.string.pdf_fonts, fonts)
     addMetadataRow(content, R.string.pdf_file_size, file?.let { String.format(Locale.US, "%.2f MB", it.sizeInMb) } ?: "--")
 
     return ScrollView(context).apply { addView(content) }
@@ -240,11 +256,30 @@ fun showCopyPageTextDialog(
 }
 
 fun showSearchDialog(activity: Activity, pdf: PDF) {
+    val pref = Preferences(PreferenceManager.getDefaultSharedPreferences(activity))
     val searchLayout = LayoutInflater.from(activity).inflate(R.layout.input_layout, null) as TextInputLayout
+    val ignoreAccentsCheckBox = MaterialCheckBox(activity).apply {
+        text = activity.getString(R.string.search_ignore_accents_title)
+        isChecked = pref.getSearchIgnoreAccents()
+        setOnCheckedChangeListener { _, isChecked -> pref.setSearchIgnoreAccents(isChecked) }
+    }
+    val checkBoxParams = LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+    ).apply {
+        marginStart = dp(activity, 24)
+        marginEnd = dp(activity, 24)
+        topMargin = dp(activity, 4)
+    }
+    val dialogContent = LinearLayout(activity).apply {
+        orientation = LinearLayout.VERTICAL
+        addView(searchLayout)
+        addView(ignoreAccentsCheckBox, checkBoxParams)
+    }
     MaterialAlertDialogBuilder(activity)
         .setTitle(activity.getString(R.string.search))
         .setMessage(activity.getString(R.string.search_dialog_message))
-        .setView(searchLayout)
+        .setView(dialogContent)
         .setPositiveButton(activity.getText(R.string.search)) { searchDialog, _ ->
             val query = searchLayout.editText?.text ?: return@setPositiveButton
             val queryText = query.toString().trim()

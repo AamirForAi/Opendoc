@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.SearchResultItemBinding
+import com.gitlab.mudlej.MjPdfReader.util.accentInsensitiveRanges
 import com.gitlab.mudlej.MjPdfReader.util.indexesOf
 
 class SearchResultViewHolder(
@@ -26,9 +27,9 @@ class SearchResultViewHolder(
         private const val COLLAPSED_MAX_LINES = 4
     }
 
-    fun bind(row: SearchResultRow) {
+    fun bind(row: SearchResultRow, ignoreAccents: Boolean = false) {
         val searchResult = row.result
-        val text = stylizeText(searchResult, row.nestedQuery)
+        val text = stylizeText(searchResult, row.nestedQuery, ignoreAccents)
         binding.apply {
             resultText.setText(text, TextView.BufferType.SPANNABLE)
             resultPageNumber.text = "PAGE\n${searchResult.pageNumber}"
@@ -54,7 +55,7 @@ class SearchResultViewHolder(
         }
     }
 
-    private fun stylizeText(searchResult: SearchResult, nestedQuery: String?): Spannable {
+    private fun stylizeText(searchResult: SearchResult, nestedQuery: String?, ignoreAccents: Boolean): Spannable {
         val color = ContextCompat.getColor(context, R.color.search)
         val spannable = SpannableString(searchResult.text)
         val length = spannable.length
@@ -65,13 +66,18 @@ class SearchResultViewHolder(
                 return@let
             }
 
-            val indexes = searchResult.text.indexesOf(query, ignoreCase = true)
-            for (index in indexes) {
+            val ranges = if (ignoreAccents) {
+                searchResult.text.accentInsensitiveRanges(query)
+            } else {
+                searchResult.text.indexesOf(query, ignoreCase = true).map { it until it + query.length }
+            }
+            for (range in ranges) {
+                val index = range.first
                 if (index == searchResult.inputStart) {
                     continue // skip the main query string
                 }
 
-                val end = (index + query.length).coerceAtMost(length)
+                val end = (range.last + 1).coerceAtMost(length)
                 if (index !in 0 until end) continue
 
                 spannable.setSpan(UnderlineSpan(), index, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)

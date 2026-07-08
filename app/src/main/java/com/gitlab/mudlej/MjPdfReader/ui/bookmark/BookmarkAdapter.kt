@@ -46,6 +46,25 @@ class BookmarkAdapter(
         refresh()
     }
 
+    fun expandAll() {
+        addExpandablePaths(roots)
+        refresh()
+    }
+
+    fun collapseAll() {
+        expandedBookmarkPaths.clear()
+        refresh()
+    }
+
+    private fun addExpandablePaths(bookmarks: List<Bookmark>) {
+        bookmarks.forEach { bookmark ->
+            if (bookmark.hasSubBookmarks()) {
+                expandedBookmarkPaths.add(bookmark.path)
+                addExpandablePaths(bookmark.subBookmarks)
+            }
+        }
+    }
+
     fun setExpandedBookmarkPaths(paths: Collection<String>) {
         expandedBookmarkPaths.clear()
         expandedBookmarkPaths.addAll(paths)

@@ -1,33 +1,66 @@
 package com.gitlab.mudlej.MjPdfReader.util
 
-import android.util.Log
 import java.time.LocalDateTime
+import java.time.YearMonth
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
-fun convertDateString(input: String): String? {
-    try {
-        Log.d("TAG", "convertDateString: input=$input ")
-        // Step 1: Parse the string to extract date, time, and timezone information
-        val dateTimePart = input.substring(2, 16)  // "20230320004150"
-        val zonePart = input.substring(16)         // "+00'0'"
+fun convertDateString(input: String?): String? {
+    if (input.isNullOrBlank()) return null
 
-        // Step 2: Define the original format (assuming the time is UTC)
-        val originalFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
+    return try {
+        val value = input.trim().removePrefix("D:")
+        val digits = value.takeWhile { it.isDigit() }
+        if (digits.length < 4) return null
 
-        // Step 3: Parse the datetime part
-        val dateTime = LocalDateTime.parse(dateTimePart, originalFormatter)
+        fun component(start: Int, end: Int, default: Int): Int =
+            if (digits.length >= end) digits.substring(start, end).toInt() else default
 
-        // Step 4: Handle the timezone part to create a ZonedDateTime
-        val offsetHours = zonePart.substring(0, 3).toInt() // "+00"
-        val zonedDateTime = dateTime.atOffset(ZoneOffset.ofHours(offsetHours)).toZonedDateTime()
+        val year = digits.substring(0, 4).toInt()
+        val month = component(4, 6, 1).coerceIn(1, 12)
+        val day = component(6, 8, 1).coerceIn(1, YearMonth.of(year, month).lengthOfMonth())
+        val hour = component(8, 10, 0).coerceIn(0, 23)
+        val minute = component(10, 12, 0).coerceIn(0, 59)
+        val second = component(12, 14, 0).coerceIn(0, 59)
+        val hasTime = digits.length >= 10
 
-        //val outputFormatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm '(UTC'x')'")
-        val outputFormatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy")
-        return zonedDateTime.format(outputFormatter)
+        val dateTime = LocalDateTime.of(year, month, day, hour, minute, second)
+        val offset = parsePdfUtcOffset(value.substring(digits.length))
+        val localized = if (offset != null && hasTime) {
+            dateTime.atOffset(offset).atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime()
+        } else {
+            dateTime
+        }
+
+        val formatter = if (hasTime) {
+            DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+        } else {
+            DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+        }
+        localized.format(formatter.withLocale(Locale.getDefault()))
     }
     catch (throwable: Throwable) {
-        Log.e("DateUtil", "convertDateString: Failed!", throwable)
-        return null
+        null
     }
+}
+
+private fun parsePdfUtcOffset(zone: String): ZoneOffset? {
+    val trimmed = zone.trim()
+    if (trimmed.isEmpty()) return null
+    if (trimmed.startsWith("Z")) return ZoneOffset.UTC
+
+    val sign = when (trimmed.first()) {
+        '+' -> 1
+        '-' -> -1
+        else -> return null
+    }
+    val numbers = trimmed.drop(1).filter { it.isDigit() }
+    if (numbers.length < 2) return null
+
+    val hours = numbers.substring(0, 2).toIntOrNull() ?: return null
+    val minutes = if (numbers.length >= 4) numbers.substring(2, 4).toIntOrNull() ?: 0 else 0
+    return runCatching { ZoneOffset.ofHoursMinutes(sign * hours, sign * minutes) }.getOrNull()
 }

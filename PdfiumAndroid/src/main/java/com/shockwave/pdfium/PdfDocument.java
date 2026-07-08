@@ -160,6 +160,41 @@ public class PdfDocument {
         }
     }
 
+    public static class FontInfo {
+        private final String name;
+        private final boolean embedded;
+
+        public FontInfo(String name, boolean embedded) {
+            this.name = name == null ? "" : name;
+            this.embedded = embedded;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public boolean isEmbedded() {
+            return embedded;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) {
+                return true;
+            }
+            if (!(other instanceof FontInfo)) {
+                return false;
+            }
+            FontInfo that = (FontInfo) other;
+            return embedded == that.embedded && name.equals(that.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return name.hashCode() * 31 + (embedded ? 1 : 0);
+        }
+    }
+
     public static class FormField {
         public static final int TYPE_CHECKBOX = 2;
         public static final int TYPE_RADIO_BUTTON = 3;

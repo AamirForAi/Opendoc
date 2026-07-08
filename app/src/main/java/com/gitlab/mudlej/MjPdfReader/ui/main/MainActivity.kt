@@ -75,8 +75,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.github.barteksc.pdfviewer.PDFView
 import com.github.barteksc.pdfviewer.PDFView.Configurator
+import com.github.barteksc.pdfviewer.link.DefaultLinkHandler
+import com.github.barteksc.pdfviewer.link.LinkHandler
 import com.github.barteksc.pdfviewer.listener.OnTextSelectionChangeListener
 import com.github.barteksc.pdfviewer.model.CropMargins
+import com.github.barteksc.pdfviewer.model.LinkTapEvent
 import com.github.barteksc.pdfviewer.scroll.DefaultScrollHandle
 import com.github.barteksc.pdfviewer.scroll.ScrollHandle
 import com.github.barteksc.pdfviewer.util.Constants
@@ -110,7 +113,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.home.HomeActivity
 import com.gitlab.mudlej.MjPdfReader.ui.link.LinksActivity
 import com.gitlab.mudlej.MjPdfReader.ui.search.SearchActivity
 import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
-import com.gitlab.mudlej.MjPdfReader.ui.text_reader.TextReaderActivity
+import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
 import com.gitlab.mudlej.MjPdfReader.util.FileUtil.fileFromUri
 import com.google.android.material.color.MaterialColors
@@ -179,6 +182,7 @@ class MainActivity : AppCompatActivity() {
     private var pendingViewState: PDFView.ViewState? = null
     private var activeSearchResultPageNumber: Int? = null
     private var activeBookmarksSnackbar: Snackbar? = null
+    private var activeLinkJumpSnackbar: Snackbar? = null
     private var bookmarkState = BookmarkState()
     private var autoScrollSpeedSaveJob: Job? = null
     private var pendingAutoScrollSpeedSave: PendingAutoScrollSpeed? = null
@@ -289,6 +293,7 @@ class MainActivity : AppCompatActivity() {
             ::clearActiveSearchResultHighlight,
             ::onAnnotationEdit,
             ::updateAnnotationSaveUiPosition,
+            { pref.getDetectExistingHighlights() },
         ) { fullScreenOptionsManager.showAllTemporarilyOrHide() }
         formFieldController = FormFieldController(this, binding, ::onAnnotationEdit)
         signatureController = SignatureController(
@@ -374,6 +379,7 @@ class MainActivity : AppCompatActivity() {
         showNoTextInPage = true
         resetSearchResultState()
         resetBookmarkState()
+        resetLinkJumpState()
         inlineAnnotationActionController.hideActions()
         signatureController.cancelPlacement()
         PdfBytesHolder.clear()
@@ -391,6 +397,11 @@ class MainActivity : AppCompatActivity() {
         activeBookmarksSnackbar?.dismiss()
         activeBookmarksSnackbar = null
         bookmarkState = BookmarkState()
+    }
+
+    private fun resetLinkJumpState() {
+        activeLinkJumpSnackbar?.dismiss()
+        activeLinkJumpSnackbar = null
     }
 
     private fun isCropMarginsEnabled() = cropMarginsEnabledForCurrentDocument
@@ -665,6 +676,7 @@ class MainActivity : AppCompatActivity() {
             .onDocumentInteraction { motionEvent -> autoScrollManager.handleUserInteraction(motionEvent) }
             .onTap { motionEvent -> handleReaderTap(motionEvent) }
             .onTapUp { motionEvent -> inlineAnnotationActionController.handleImmediatePdfTap(motionEvent) }
+            .linkHandler(BackTrackingLinkHandler())
             .scrollHandle(createScrollHandle())
             .spacing(spacing)
             .onError { exception: Throwable ->
@@ -748,8 +760,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openTextModeByDefault() {
-        if (pref.getDefaultTextReader()) {
-            navToTextReader()
+        if (pref.getDefaultTextMode()) {
+            navToTextMode()
         }
     }
 
@@ -794,7 +806,7 @@ class MainActivity : AppCompatActivity() {
             search = { showSearchDialog(this, pdf) },
             goToPage = ::goToPage,
             extractText = ::copyPageText,
-            textReader = ::navToTextReader,
+            textMode = ::navToTextMode,
             share = { shareFile(pdf.uri, FileType.PDF) },
             settings = ::navToAppSettings,
             fileMetadata = ::showFileMetadata,
@@ -1568,6 +1580,7 @@ class MainActivity : AppCompatActivity() {
         pdf.pageNumber = pageNumber
         setPdfLength(pageCount)
         updateAppTitle()
+        binding.pdfView.announceForAccessibility(getString(R.string.page_x_of_y, pageNumber + 1, pageCount))
 
         lifecycleScope.launch {
             if (!isCurrentDocument(loadToken, documentUri)) {
@@ -1725,6 +1738,48 @@ class MainActivity : AppCompatActivity() {
         snackbar.show()
     }
 
+    private inner class BackTrackingLinkHandler : LinkHandler {
+        private val defaultLinkHandler = DefaultLinkHandler(binding.pdfView)
+
+        override fun handleLinkEvent(event: LinkTapEvent) {
+            val destPageIndex = event.link.destPageIdx
+            if (event.link.uri.isNullOrEmpty() && destPageIndex != null) {
+                val originPageIndex = binding.pdfView.currentPage
+                val originViewState = binding.pdfView.captureViewState()
+                binding.pdfView.jumpTo(destPageIndex)
+                showLinkJumpBackSnackbar(originPageIndex, originViewState)
+            } else {
+                defaultLinkHandler.handleLinkEvent(event)
+            }
+        }
+    }
+
+    private fun showLinkJumpBackSnackbar(originPageIndex: Int, originViewState: PDFView.ViewState?) {
+        resetSearchResultState()
+        activeBookmarksSnackbar?.dismiss()
+        activeLinkJumpSnackbar?.dismiss()
+
+        val snackbar = Snackbar.make(binding.root, getString(R.string.back_to_page, originPageIndex + 1), Snackbar.LENGTH_INDEFINITE)
+        activeLinkJumpSnackbar = snackbar
+        snackbar.addCallback(object : Snackbar.Callback() {
+            override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                if (activeLinkJumpSnackbar === transientBottomBar) {
+                    activeLinkJumpSnackbar = null
+                }
+            }
+        })
+        snackbar.setAction(getString(R.string.done)) {
+            snackbar.dismiss()
+        }
+        setSnackbarTextAction(snackbar) {
+            snackbar.dismiss()
+            if (!binding.pdfView.applyViewState(originViewState)) {
+                binding.pdfView.jumpTo(originPageIndex)
+            }
+        }
+        snackbar.show()
+    }
+
     private fun setSnackbarTextAction(snackbar: Snackbar, onClick: () -> Unit) {
         val snackbarView = snackbar.view
         val textView = snackbarView.findViewById<View>(com.google.android.material.R.id.snackbar_text) as TextView
@@ -1855,14 +1910,14 @@ class MainActivity : AppCompatActivity() {
         return super.onKeyDown(keyCode, event)
     }
 
-    private fun navToTextReader() {
+    private fun navToTextMode() {
         if (!checkHasFile()) {
             return
         }
 
         val currentPageIndex = currentPdfViewPageIndex()
         pdf.pageNumber = currentPageIndex
-        Intent(this, TextReaderActivity::class.java).also {
+        Intent(this, TextModeActivity::class.java).also {
             it.putExtra(PDF.filePathKey, pdf.uri.toString())
             it.putExtra(PDF.passwordKey, pdf.password)
             it.putExtra(PDF.pageNumberKey, currentPageIndex)
@@ -1899,7 +1954,7 @@ class MainActivity : AppCompatActivity() {
             ReaderAction(R.string.toggle_shortcuts, R.drawable.ic_awesome, visible = hasFile) {
                 toggleSecondBar()
             },
-            readerAction(ConfigurableAction.TEXT_READER),
+            readerAction(ConfigurableAction.TEXT_MODE),
             readerAction(ConfigurableAction.LINKS_IN_FILE),
             readerAction(ConfigurableAction.SHARE),
             readerAction(ConfigurableAction.PRINT),
@@ -1925,16 +1980,28 @@ class MainActivity : AppCompatActivity() {
         }
 
         val uri = pdf.uri
-        var file: File? = null
-        if (uri != null) {
-            try {
-                file = fileFromUri(this@MainActivity, uri, pdf.name)
+        lifecycleScope.launch {
+            var file: File? = null
+            if (uri != null) {
+                try {
+                    file = fileFromUri(this@MainActivity, uri, pdf.name)
+                }
+                catch (throwable: Throwable) {
+                    Log.e(TAG, "showFileMetadata: Failed to createFileFromUri", throwable)
+                }
             }
-            catch (throwable: Throwable) {
-                Log.e(TAG, "showFileMetadata: Failed to createFileFromUri", throwable)
+            val pageSize = withContext(Dispatchers.Default) {
+                PdfPropertiesSummary.formatPageSizes(binding.pdfView, getString(R.string.pdf_page_size_mixed))
             }
+            val fonts = withContext(Dispatchers.Default) {
+                PdfPropertiesSummary.formatFonts(
+                    binding.pdfView,
+                    getString(R.string.font_embedded),
+                    getString(R.string.font_not_embedded),
+                )
+            }
+            showMetaDialog(this@MainActivity, binding.pdfView.documentMeta, file, pageSize, fonts)
         }
-        showMetaDialog(this, binding.pdfView.documentMeta, file)
     }
 
     private fun showOpenOnlinePdfDialog() {

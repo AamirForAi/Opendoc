@@ -81,7 +81,9 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val uriKey = "uri"
         const val finishedExtractionDialogKey = "finishedExtraction"
         const val inlineTextSelectionKey = "inlineTextSelection"
-        const val defaultTextReaderKey = "defaultTextReader"
+        const val detectExistingHighlightsKey = "detectExistingHighlights"
+        const val searchIgnoreAccentsKey = "searchIgnoreAccents"
+        const val defaultTextModeKey = "defaultTextMode"
         const val turnPageByVolumeButtonsKey = "turnPageByVolumeButtons"
         const val showScrollHandlePageCountKey = "showScrollHandlePageCount"
         const val alwaysHideMarginsKey = "alwaysHideMargins"
@@ -123,7 +125,9 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val thumbnailRatioDefault = 0.45f
         const val pdfLengthDefault = 0
         const val inlineTextSelectionDefault = true
-        const val defaultTextReaderDefault = false
+        const val detectExistingHighlightsDefault = true
+        const val searchIgnoreAccentsDefault = false
+        const val defaultTextModeDefault = false
         const val turnPageByVolumeButtonsDefault = false
         const val showScrollHandlePageCountDefault = false
         const val alwaysHideMarginsDefault = false
@@ -183,7 +187,9 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getThumbnailRation() = prefMan.getFloat(thumbnailRatioKey, thumbnailRatioDefault)
     fun getMaxZoom() = prefMan.getFloat(maxZoomKey, maxZoomDefault)
     fun getInlineTextSelection() = prefMan.getBoolean(inlineTextSelectionKey, inlineTextSelectionDefault)
-    fun getDefaultTextReader() = prefMan.getBoolean(defaultTextReaderKey, defaultTextReaderDefault)
+    fun getDetectExistingHighlights() = prefMan.getBoolean(detectExistingHighlightsKey, detectExistingHighlightsDefault)
+    fun getSearchIgnoreAccents() = prefMan.getBoolean(searchIgnoreAccentsKey, searchIgnoreAccentsDefault)
+    fun getDefaultTextMode() = prefMan.getBoolean(defaultTextModeKey, defaultTextModeDefault)
     fun getTurnPageByVolumeButtons() = prefMan.getBoolean(turnPageByVolumeButtonsKey, turnPageByVolumeButtonsDefault)
     fun getShowScrollHandlePageCount() = prefMan.getBoolean(showScrollHandlePageCountKey, showScrollHandlePageCountDefault)
     fun getAlwaysHideMargins() = prefMan.getBoolean(alwaysHideMarginsKey, alwaysHideMarginsDefault)
@@ -257,7 +263,9 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setThumbnailRatio(value: Float) = prefMan.edit().putFloat(thumbnailRatioKey, value).apply()
     fun setMaxZoom(value: Float) = prefMan.edit().putFloat(maxZoomKey, value).apply()
     fun setInlineTextSelection(value: Boolean) = prefMan.edit().putBoolean(inlineTextSelectionKey, value).apply()
-    fun setDefaultTextReader(value: Boolean) = prefMan.edit().putBoolean(defaultTextReaderKey, value).apply()
+    fun setDetectExistingHighlights(value: Boolean) = prefMan.edit().putBoolean(detectExistingHighlightsKey, value).apply()
+    fun setSearchIgnoreAccents(value: Boolean) = prefMan.edit().putBoolean(searchIgnoreAccentsKey, value).apply()
+    fun setDefaultTextMode(value: Boolean) = prefMan.edit().putBoolean(defaultTextModeKey, value).apply()
     fun setTurnPageByVolumeButtons(value: Boolean) = prefMan.edit().putBoolean(turnPageByVolumeButtonsKey, value).apply()
     fun setShowScrollHandlePageCount(value: Boolean) = prefMan.edit().putBoolean(showScrollHandlePageCountKey, value).apply()
     fun setAlwaysHideMargins(value: Boolean) = prefMan.edit().putBoolean(alwaysHideMarginsKey, value).apply()

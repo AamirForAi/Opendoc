@@ -7,7 +7,8 @@
     <dimen name="fs_button_padding">6dp</dimen>
     <dimen name="fs_button_padding_end">16dp</dimen>
     <dimen name="fullscreen_info_max_width">280dp</dimen>
-    <dimen name="text_reader_controls_max_width">560dp</dimen>
+    <dimen name="text_mode_controls_max_width">560dp</dimen>
+    <dimen name="text_mode_content_max_width">640dp</dimen>
 
     <dimen name="properties_padding">5dp</dimen>
 

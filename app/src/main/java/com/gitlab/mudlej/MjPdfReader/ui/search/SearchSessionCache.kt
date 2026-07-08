@@ -4,13 +4,14 @@ object SearchSessionCache {
     private const val MAX_SESSIONS = 5
     private const val NO_POSITION = -1
 
-    data class Key(val fileHash: String, val query: String)
+    data class Key(val fileHash: String, val query: String, val ignoreAccents: Boolean)
 
     data class Hit(
         val pageNumber: Int,
         val originalIndex: Int,
         val resultIndex: Int,
         val expanded: Boolean = false,
+        val matchLength: Int = 0,
     )
 
     data class Session(
@@ -28,14 +29,14 @@ object SearchSessionCache {
     }
 
     @Synchronized
-    fun get(fileHash: String?, query: String): Session? {
-        val key = key(fileHash, query) ?: return null
+    fun get(fileHash: String?, query: String, ignoreAccents: Boolean): Session? {
+        val key = key(fileHash, query, ignoreAccents) ?: return null
         return sessions[key]
     }
 
     @Synchronized
-    fun put(fileHash: String?, query: String, hits: List<Hit>) {
-        val key = key(fileHash, query) ?: return
+    fun put(fileHash: String?, query: String, ignoreAccents: Boolean, hits: List<Hit>) {
+        val key = key(fileHash, query, ignoreAccents) ?: return
         sessions[key] = Session(key, hits.toList())
     }
 
@@ -43,11 +44,12 @@ object SearchSessionCache {
     fun updateUiState(
         fileHash: String?,
         query: String,
+        ignoreAccents: Boolean,
         listPosition: Int,
         listOffsetPx: Int,
         nestedQuery: String?,
     ) {
-        val key = key(fileHash, query) ?: return
+        val key = key(fileHash, query, ignoreAccents) ?: return
         val session = sessions[key] ?: return
         sessions[key] = session.copy(
             listPosition = listPosition,
@@ -57,8 +59,8 @@ object SearchSessionCache {
     }
 
     @Synchronized
-    fun setExpanded(fileHash: String?, query: String, resultIndex: Int, expanded: Boolean) {
-        val key = key(fileHash, query) ?: return
+    fun setExpanded(fileHash: String?, query: String, ignoreAccents: Boolean, resultIndex: Int, expanded: Boolean) {
+        val key = key(fileHash, query, ignoreAccents) ?: return
         val session = sessions[key] ?: return
         sessions[key] = session.copy(
             hits = session.hits.map { hit ->
@@ -67,9 +69,9 @@ object SearchSessionCache {
         )
     }
 
-    private fun key(fileHash: String?, query: String): Key? {
+    private fun key(fileHash: String?, query: String, ignoreAccents: Boolean): Key? {
         val hash = fileHash?.takeIf { it.isNotBlank() } ?: return null
         val trimmedQuery = query.trim().takeIf { it.isNotBlank() } ?: return null
-        return Key(hash, trimmedQuery)
+        return Key(hash, trimmedQuery, ignoreAccents)
     }
 }

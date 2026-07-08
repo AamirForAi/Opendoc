@@ -36,9 +36,9 @@
                 android:value="" />
         </activity>
         <activity
-            android:name=".ui.text_reader.TextReaderActivity"
+            android:name=".ui.text_mode.TextModeActivity"
             android:exported="false"
-            android:theme="@style/TextReaderTheme" />
+            android:theme="@style/TextModeTheme" />
         <activity
             android:name=".ui.main.MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"

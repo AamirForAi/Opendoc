@@ -114,6 +114,7 @@ public class PDFView extends RelativeLayout {
     public static final float NORMAL_SCALE = 1.0f;
 
     private static final float HIGHLIGHT_HIT_TOLERANCE = 2.5f;
+    private static final float HIGHLIGHT_MATCH_TOLERANCE = 1.5f;
 
     private static final int FORM_FIELD_FILL_COLOR = 0x282196F3; // 16% Material blue tint
 
@@ -1216,6 +1217,10 @@ public class PDFView extends RelativeLayout {
     private boolean restoreDefaultViewState() {
         ViewState viewState = defaultViewState;
         defaultViewState = null;
+        return applyViewState(viewState);
+    }
+
+    public boolean applyViewState(ViewState viewState) {
         if (viewState == null || pdfFile == null || pdfFile.getPagesCount() == 0) {
             return false;
         }
@@ -1953,6 +1958,104 @@ public class PDFView extends RelativeLayout {
         );
     }
 
+    public HighlightAnnotation findHighlightAnnotationMatching(HighlightRequest request) {
+        if (pdfFile == null || request == null || request.pdfRects.isEmpty()) {
+            return null;
+        }
+        int page = request.pageIndex;
+        if (page < 0 || page >= pdfFile.getPagesCount()) {
+            return null;
+        }
+        List<PdfDocument.HighlightAnnotation> annotations;
+        try {
+            annotations = pdfFile.getHighlightAnnotations(page);
+        } catch (Throwable throwable) {
+            Log.e(TAG, "findHighlightAnnotationMatching: failed to read highlights", throwable);
+            return null;
+        }
+        if (annotations == null || annotations.isEmpty()) {
+            return null;
+        }
+
+        Map<String, List<PdfDocument.HighlightAnnotation>> groups = new HashMap<>();
+        for (PdfDocument.HighlightAnnotation candidate : annotations) {
+            String group = candidate.getGroupKey();
+            if (group == null || group.isEmpty()) {
+                continue;
+            }
+            List<PdfDocument.HighlightAnnotation> members = groups.get(group);
+            if (members == null) {
+                members = new ArrayList<>();
+                groups.put(group, members);
+            }
+            members.add(candidate);
+        }
+
+        for (Map.Entry<String, List<PdfDocument.HighlightAnnotation>> entry : groups.entrySet()) {
+            if (!groupMatchesRects(entry.getValue(), request.pdfRects)) {
+                continue;
+            }
+            PdfDocument.HighlightAnnotation first = entry.getValue().get(0);
+            String group = entry.getKey();
+            RectF pdfBounds = unionGroupBounds(annotations, group, first.getBounds());
+            RectF viewBounds = null;
+            if (pdfBounds != null) {
+                viewBounds = pdfFile.pdfRectToDocument(
+                        page,
+                        getZoom(),
+                        pdfBounds.left,
+                        pdfBounds.bottom,
+                        pdfBounds.right,
+                        pdfBounds.top
+                );
+                if (viewBounds != null) {
+                    viewBounds.offset(getCurrentXOffset(), getCurrentYOffset());
+                }
+            }
+            return new HighlightAnnotation(
+                    page,
+                    first.getAnnotationIndex(),
+                    group,
+                    viewBounds,
+                    pdfBounds,
+                    first.getContents()
+            );
+        }
+        return null;
+    }
+
+    private static boolean groupMatchesRects(List<PdfDocument.HighlightAnnotation> members, List<RectF> rects) {
+        if (members.size() != rects.size()) {
+            return false;
+        }
+        boolean[] used = new boolean[members.size()];
+        for (RectF rect : rects) {
+            boolean matched = false;
+            for (int i = 0; i < members.size(); i++) {
+                if (used[i]) {
+                    continue;
+                }
+                RectF bounds = members.get(i).getBounds();
+                if (bounds != null && pdfRectsAlmostEqual(rect, bounds, HIGHLIGHT_MATCH_TOLERANCE)) {
+                    used[i] = true;
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean pdfRectsAlmostEqual(RectF a, RectF b, float tolerance) {
+        return Math.abs(Math.min(a.left, a.right) - Math.min(b.left, b.right)) <= tolerance
+                && Math.abs(Math.max(a.left, a.right) - Math.max(b.left, b.right)) <= tolerance
+                && Math.abs(Math.min(a.top, a.bottom) - Math.min(b.top, b.bottom)) <= tolerance
+                && Math.abs(Math.max(a.top, a.bottom) - Math.max(b.top, b.bottom)) <= tolerance;
+    }
+
     private static boolean pdfRectContainsPoint(RectF rect, float x, float y, float tolerance) {
         float left = Math.min(rect.left, rect.right);
         float right = Math.max(rect.left, rect.right);
@@ -2364,6 +2467,20 @@ public class PDFView extends RelativeLayout {
             return Collections.emptyList();
         }
         return pdfFile.getBookmarks();
+    }
+
+    public SizeF getPagePointSize(int pageIndex) {
+        if (pdfFile == null) {
+            return null;
+        }
+        return pdfFile.getPagePointSize(pageIndex);
+    }
+
+    public List<PdfDocument.FontInfo> getAllFonts(int maxPages) {
+        if (pdfFile == null) {
+            return Collections.emptyList();
+        }
+        return pdfFile.getAllFonts(maxPages);
     }
 
     /**

@@ -1,6 +1,6 @@
-package com.gitlab.mudlej.MjPdfReader.ui.text_reader
+package com.gitlab.mudlej.MjPdfReader.ui.text_mode
 
-object TextReaderTextFormatter {
+object TextModeTextFormatter {
     fun format(text: String): String {
         return text
             .replace("\r\n", "\n")

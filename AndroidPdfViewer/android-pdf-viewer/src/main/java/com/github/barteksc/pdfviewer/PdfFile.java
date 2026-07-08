@@ -182,6 +182,26 @@ class PdfFile {
         return getOriginalFullPagePointSize(pageIndex);
     }
 
+    public List<PdfDocument.FontInfo> getAllFonts(int maxPages) {
+        List<PdfDocument.FontInfo> fonts = new ArrayList<>();
+        if (pdfiumCore == null || pdfDocument == null) {
+            return fonts;
+        }
+        int pagesToScan = Math.min(pagesCount, maxPages);
+        for (int pageIndex = 0; pageIndex < pagesToScan; pageIndex++) {
+            int docPage = documentPage(pageIndex);
+            if (docPage < 0) {
+                continue;
+            }
+            for (PdfDocument.FontInfo font : pdfiumCore.getPageFonts(pdfDocument, docPage)) {
+                if (!fonts.contains(font)) {
+                    fonts.add(font);
+                }
+            }
+        }
+        return fonts;
+    }
+
     /**
      * Call after view size change to recalculate page sizes, offsets and document length
      *

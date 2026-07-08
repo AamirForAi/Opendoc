@@ -1,4 +1,4 @@
-package com.gitlab.mudlej.MjPdfReader.ui.text_reader
+package com.gitlab.mudlej.MjPdfReader.ui.text_mode
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -8,12 +8,13 @@ import android.view.View
 import com.gitlab.mudlej.MjPdfReader.R
 import com.google.android.material.color.MaterialColors
 
-data class TextReaderSettings(
+data class TextModeSettings(
     val fontSize: Float = DEFAULT_FONT_SIZE,
     val lineSpacing: Float = DEFAULT_LINE_SPACING,
     val horizontalMargin: Int = DEFAULT_HORIZONTAL_MARGIN,
     val theme: ReaderTheme = ReaderTheme.SYSTEM,
     val fontFamily: ReaderFontFamily = ReaderFontFamily.SANS,
+    val readableLineLength: Boolean = DEFAULT_READABLE_LINE_LENGTH,
 ) {
     fun save(preferences: SharedPreferences) {
         preferences.edit()
@@ -22,6 +23,7 @@ data class TextReaderSettings(
             .putInt(HORIZONTAL_MARGIN_KEY, horizontalMargin)
             .putString(THEME_KEY, theme.name)
             .putString(FONT_FAMILY_KEY, fontFamily.name)
+            .putBoolean(READABLE_LINE_LENGTH_KEY, readableLineLength)
             .apply()
     }
 
@@ -29,15 +31,17 @@ data class TextReaderSettings(
         const val DEFAULT_FONT_SIZE = 18f
         const val DEFAULT_LINE_SPACING = 1.35f
         const val DEFAULT_HORIZONTAL_MARGIN = 20
+        const val DEFAULT_READABLE_LINE_LENGTH = true
 
-        private const val FONT_SIZE_KEY = "textReaderFontSize"
-        private const val LINE_SPACING_KEY = "textReaderLineSpacing"
-        private const val HORIZONTAL_MARGIN_KEY = "textReaderHorizontalMargin"
-        private const val THEME_KEY = "textReaderTheme"
-        private const val FONT_FAMILY_KEY = "textReaderFontFamily"
+        private const val FONT_SIZE_KEY = "textModeFontSize"
+        private const val LINE_SPACING_KEY = "textModeLineSpacing"
+        private const val HORIZONTAL_MARGIN_KEY = "textModeHorizontalMargin"
+        private const val THEME_KEY = "textModeTheme"
+        private const val FONT_FAMILY_KEY = "textModeFontFamily"
+        private const val READABLE_LINE_LENGTH_KEY = "textModeReadableLineLength"
 
-        fun load(preferences: SharedPreferences): TextReaderSettings {
-            return TextReaderSettings(
+        fun load(preferences: SharedPreferences): TextModeSettings {
+            return TextModeSettings(
                 fontSize = preferences.getFloat(FONT_SIZE_KEY, DEFAULT_FONT_SIZE),
                 lineSpacing = preferences.getFloat(LINE_SPACING_KEY, DEFAULT_LINE_SPACING),
                 horizontalMargin = preferences.getInt(HORIZONTAL_MARGIN_KEY, DEFAULT_HORIZONTAL_MARGIN),
@@ -47,6 +51,7 @@ data class TextReaderSettings(
                 fontFamily = preferences.getString(FONT_FAMILY_KEY, ReaderFontFamily.SANS.name)
                     ?.let { runCatching { ReaderFontFamily.valueOf(it) }.getOrNull() }
                     ?: ReaderFontFamily.SANS,
+                readableLineLength = preferences.getBoolean(READABLE_LINE_LENGTH_KEY, DEFAULT_READABLE_LINE_LENGTH),
             )
         }
     }
@@ -97,9 +102,9 @@ enum class ReaderFontFamily {
 
     fun label(context: Context): String {
         return when (this) {
-            SANS -> context.getString(R.string.text_reader_font_sans)
-            SERIF -> context.getString(R.string.text_reader_font_serif)
-            MONO -> context.getString(R.string.text_reader_font_mono)
+            SANS -> context.getString(R.string.text_mode_font_sans)
+            SERIF -> context.getString(R.string.text_mode_font_serif)
+            MONO -> context.getString(R.string.text_mode_font_mono)
         }
     }
 }

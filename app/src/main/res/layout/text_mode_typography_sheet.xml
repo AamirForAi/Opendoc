@@ -22,7 +22,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/text_reader_appearance"
+                android:text="@string/text_mode_appearance"
                 android:textSize="20sp"
                 android:textStyle="bold" />
 
@@ -51,7 +51,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/text_reader_line_spacing" />
+            android:text="@string/text_mode_line_spacing" />
 
         <com.google.android.material.slider.Slider
             android:id="@+id/lineSpacingSlider"
@@ -64,7 +64,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/text_reader_margins" />
+            android:text="@string/text_mode_margins" />
 
         <com.google.android.material.slider.Slider
             android:id="@+id/marginSlider"
@@ -74,11 +74,30 @@
             android:valueFrom="8"
             android:valueTo="48" />
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/text_mode_readable_line_length" />
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/readableLineLengthSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:text="@string/text_reader_theme" />
+            android:text="@string/text_mode_theme" />
 
         <GridLayout
             android:id="@+id/themeGrid"
@@ -169,7 +188,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="@string/text_reader_font" />
+            android:text="@string/text_mode_font" />
 
         <GridLayout
             android:id="@+id/fontGrid"
@@ -188,7 +207,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:minWidth="0dp"
-                android:text="@string/text_reader_font_sans" />
+                android:text="@string/text_mode_font_sans" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/serifFontButton"
@@ -201,7 +220,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:minWidth="0dp"
-                android:text="@string/text_reader_font_serif" />
+                android:text="@string/text_mode_font_serif" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/monoFontButton"
@@ -214,7 +233,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:minWidth="0dp"
-                android:text="@string/text_reader_font_mono" />
+                android:text="@string/text_mode_font_mono" />
         </GridLayout>
     </LinearLayout>
 </ScrollView>

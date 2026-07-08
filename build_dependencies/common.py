@@ -4,8 +4,6 @@ import subprocess
 import sys
 import tarfile
 
-import requests
-
 from build_dependencies.values import LIB_DIR_PATH, ARCH_NAMES, DEFAULT_TOOLCHAIN, ANDROID_TOOLCHAIN_FILENAME, \
     get_toolchain_path, FILE_NAMES, Lib
 
@@ -41,6 +39,8 @@ def delete_file_if_exists(path):
 
 
 def download_file(url, filename=None, show_done_message=False):
+    import requests
+
     if not filename:
         filename = url.split('/')[-1] + ".tar.xz"
 
