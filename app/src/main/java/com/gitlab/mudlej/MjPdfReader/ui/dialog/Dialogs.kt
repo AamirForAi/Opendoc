@@ -98,7 +98,8 @@ fun showAppFeaturesDialog(context: Context) {
 fun showMetaDialog(
     context: Context,
     meta: PdfDocument.Meta?,
-    file: File?,
+    fileName: String?,
+    fileSizeBytes: Long?,
     pageSize: String? = null,
     fonts: String? = null,
 ) {
@@ -109,7 +110,7 @@ fun showMetaDialog(
     try {
         MaterialAlertDialogBuilder(context)
             .setTitle(R.string.file_properties)
-            .setView(createMetadataView(context, meta, file, pageSize, fonts))
+            .setView(createMetadataView(context, meta, fileName, fileSizeBytes, pageSize, fonts))
             .setPositiveButton(android.R.string.ok, null)
             .show()
     }
@@ -122,7 +123,8 @@ fun showMetaDialog(
 private fun createMetadataView(
     context: Context,
     meta: PdfDocument.Meta,
-    file: File?,
+    fileName: String?,
+    fileSizeBytes: Long?,
     pageSize: String?,
     fonts: String?,
 ): View {
@@ -131,7 +133,7 @@ private fun createMetadataView(
         setPadding(dp(context, 24), dp(context, 8), dp(context, 24), 0)
     }
 
-    addMetadataRow(content, R.string.pdf_file_name, file?.name)
+    addMetadataRow(content, R.string.pdf_file_name, fileName)
     addMetadataRow(content, R.string.pdf_title, meta.title)
     addMetadataRow(content, R.string.pdf_author, meta.author)
     addMetadataRow(content, R.string.pdf_pages, String.format(Locale.getDefault(), "%d", meta.totalPages))
@@ -143,7 +145,11 @@ private fun createMetadataView(
     addMetadataRow(content, R.string.pdf_created_by, meta.creator)
     addMetadataRow(content, R.string.pdf_produced_by, meta.producer)
     addMetadataRow(content, R.string.pdf_fonts, fonts)
-    addMetadataRow(content, R.string.pdf_file_size, file?.let { String.format(Locale.US, "%.2f MB", it.sizeInMb) } ?: "--")
+    addMetadataRow(
+        content,
+        R.string.pdf_file_size,
+        fileSizeBytes?.let { String.format(Locale.US, "%.2f MB", it / (1024.0 * 1024.0)) } ?: "--"
+    )
 
     return ScrollView(context).apply { addView(content) }
 }

@@ -32,17 +32,17 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <androidx.core.widget.ContentLoadingProgressBar
-        style="?android:attr/progressBarStyleHorizontal"
+    <ProgressBar
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
         android:id="@+id/searchProgressBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="32dp"
+        android:layout_marginTop="-6dp"
+        android:indeterminate="false"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
         />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

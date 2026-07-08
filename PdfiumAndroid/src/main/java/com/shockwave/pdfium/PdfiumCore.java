@@ -214,13 +214,16 @@ public class PdfiumCore {
     /** Get total numer of pages in document */
     public int getPageCount(PdfDocument doc) {
         synchronized (lock) {
+            if (doc.closed) {
+                return 0;
+            }
             return nativeGetPageCount(doc.mNativeDocPtr);
         }
     }
 
     public boolean saveAsCopy(PdfDocument doc, ParcelFileDescriptor fd) {
         synchronized (lock) {
-            if (doc == null || fd == null) {
+            if (doc == null || fd == null || doc.closed) {
                 return false;
             }
             return nativeSaveAsCopy(doc.mNativeDocPtr, getNumFd(fd));
@@ -231,6 +234,9 @@ public class PdfiumCore {
     public long openPage(PdfDocument doc, int pageIndex) {
         long pagePtr;
         synchronized (lock) {
+            if (doc.closed) {
+                return 0L;
+            }
             Long existing = doc.mNativePagesPtr.get(pageIndex);
             if (existing != null) {
                 return existing;
@@ -257,6 +263,9 @@ public class PdfiumCore {
 
     public long openTextPage(PdfDocument doc, int pageIndex) {
         synchronized (lock) {
+            if (doc.closed) {
+                return 0L;
+            }
             Long existing = doc.mNativeTextPagesPtr.get(pageIndex);
             if (existing != null && existing != 0L) {
                 return existing;
@@ -375,6 +384,9 @@ public class PdfiumCore {
     public long[] openPages(PdfDocument doc, int fromIndex, int toIndex) {
         long[] pagesPtr;
         synchronized (lock) {
+            if (doc.closed) {
+                return new long[0];
+            }
             pagesPtr = nativeLoadPages(doc.mNativeDocPtr, fromIndex, toIndex);
             int pageIndex = fromIndex;
             for (long page : pagesPtr) {
@@ -449,6 +461,9 @@ public class PdfiumCore {
      */
     public Size getPageSize(PdfDocument doc, int index) {
         synchronized (lock) {
+            if (doc.closed) {
+                return new Size(0, 0);
+            }
             return nativeGetPageSizeByIndex(doc.mNativeDocPtr, index, mCurrentDpi);
         }
     }
@@ -458,6 +473,9 @@ public class PdfiumCore {
      */
     public SizeF getPageSizePoint(PdfDocument doc, int index) {
         synchronized (lock) {
+            if (doc.closed) {
+                return new SizeF(0, 0);
+            }
             return nativeGetPageSizePointByIndex(doc.mNativeDocPtr, index);
         }
     }
@@ -535,6 +553,10 @@ public class PdfiumCore {
     /** Release native resources and opened file */
     public void closeDocument(PdfDocument doc) {
         synchronized (lock) {
+            if (doc.closed) {
+                return;
+            }
+            doc.closed = true;
             closeTextPages(doc);
             for (Integer index : doc.mNativePagesPtr.keySet()) {
                 Long pagePtr = doc.mNativePagesPtr.get(index);
@@ -561,6 +583,9 @@ public class PdfiumCore {
     public PdfDocument.Meta getDocumentMeta(PdfDocument doc) {
         synchronized (lock) {
             PdfDocument.Meta meta = new PdfDocument.Meta();
+            if (doc.closed) {
+                return meta;
+            }
             meta.title = nativeGetDocumentMetaText(doc.mNativeDocPtr, "Title");
             meta.author = nativeGetDocumentMetaText(doc.mNativeDocPtr, "Author");
             meta.subject = nativeGetDocumentMetaText(doc.mNativeDocPtr, "Subject");
@@ -578,6 +603,9 @@ public class PdfiumCore {
     public List<PdfDocument.Bookmark> getTableOfContents(PdfDocument doc) {
         synchronized (lock) {
             List<PdfDocument.Bookmark> topLevel = new ArrayList<>();
+            if (doc.closed) {
+                return topLevel;
+            }
             Long first = nativeGetFirstChildBookmark(doc.mNativeDocPtr, null);
             if (first != null) {
                 recursiveGetBookmark(topLevel, doc, first, new HashSet<Long>());

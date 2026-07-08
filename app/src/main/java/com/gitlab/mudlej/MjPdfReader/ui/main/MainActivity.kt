@@ -115,7 +115,6 @@ import com.gitlab.mudlej.MjPdfReader.ui.search.SearchActivity
 import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
-import com.gitlab.mudlej.MjPdfReader.util.FileUtil.fileFromUri
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -1981,15 +1980,7 @@ class MainActivity : AppCompatActivity() {
 
         val uri = pdf.uri
         lifecycleScope.launch {
-            var file: File? = null
-            if (uri != null) {
-                try {
-                    file = fileFromUri(this@MainActivity, uri, pdf.name)
-                }
-                catch (throwable: Throwable) {
-                    Log.e(TAG, "showFileMetadata: Failed to createFileFromUri", throwable)
-                }
-            }
+            val fileSizeBytes = withContext(Dispatchers.IO) { queryFileSizeBytes(uri) }
             val pageSize = withContext(Dispatchers.Default) {
                 PdfPropertiesSummary.formatPageSizes(binding.pdfView, getString(R.string.pdf_page_size_mixed))
             }
@@ -2000,8 +1991,23 @@ class MainActivity : AppCompatActivity() {
                     getString(R.string.font_not_embedded),
                 )
             }
-            showMetaDialog(this@MainActivity, binding.pdfView.documentMeta, file, pageSize, fonts)
+            showMetaDialog(this@MainActivity, binding.pdfView.documentMeta, pdf.name, fileSizeBytes, pageSize, fonts)
         }
+    }
+
+    private fun queryFileSizeBytes(uri: Uri?): Long? {
+        if (uri == null) {
+            return null
+        }
+        val heldBytes = if (PdfBytesHolder.uri == uri.toString()) PdfBytesHolder.pdfByte else null
+        if (heldBytes != null) {
+            return heldBytes.size.toLong()
+        }
+        return runCatching {
+            contentResolver.openFileDescriptor(uri, "r")?.use { fd ->
+                fd.statSize.takeIf { it >= 0 }
+            }
+        }.getOrNull()
     }
 
     private fun showOpenOnlinePdfDialog() {
@@ -2341,6 +2347,12 @@ class MainActivity : AppCompatActivity() {
                     snackbar.show()
 
                     binding.pdfView.jumpUsingPageNumber(searchResult.pageNumber)
+                }
+                else if (activeSearchResultPageNumber != null || activeSearchResultsSnackbar != null) {
+                    clearActiveSearchResultHighlight()
+                    activeSearchResultsSnackbar?.dismiss()
+                    activeSearchResultsSnackbar = null
+                    binding.pdfView.reloadPages()
                 }
             }
         }

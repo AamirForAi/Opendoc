@@ -25,6 +25,7 @@ import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.concurrent.thread
 
 class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
     private lateinit var binding: ActivityBookmarksBinding
@@ -69,11 +70,13 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
         binding.progressBar.visibility = View.VISIBLE
     }
 
-    private fun initPdfExtractor() {
+    private suspend fun initPdfExtractor() {
         val pdfPath = intent.getStringExtra(PDF.filePathKey)
         val pdfPassword = intent.getStringExtra(PDF.passwordKey)
         try {
-            pdfExtractor = createPdfExtractor(this, Uri.parse(pdfPath), pdfPassword)
+            pdfExtractor = withContext(Dispatchers.IO) {
+                createPdfExtractor(this@BookmarksActivity, Uri.parse(pdfPath), pdfPassword)
+            }
         }
         catch (throwable: Throwable) {
             Toast.makeText(
@@ -82,6 +85,14 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
                 Toast.LENGTH_SHORT
             ).show()
         }
+    }
+
+    override fun onDestroy() {
+        if (::pdfExtractor.isInitialized) {
+            val extractor = pdfExtractor
+            thread { runCatching { extractor.close() } }
+        }
+        super.onDestroy()
     }
 
     private fun initBookmarks() {

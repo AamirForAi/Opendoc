@@ -9,6 +9,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.gitlab.mudlej.MjPdfReader.R
@@ -25,12 +26,15 @@ import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
+import kotlin.concurrent.thread
 
 class LinksActivity : AppCompatActivity(), LinkFunctions {
     private lateinit var binding: ActivityLinkBinding
     private lateinit var pdfExtractor: PdfExtractor
     private val linkAdapter = LinkAdapter(this, this)
     private var links: List<Link> = listOf()
+    private val lastPageLiveData = MutableLiveData<Int>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,11 +60,13 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
         binding.progressBar.visibility = View.VISIBLE
     }
 
-    private fun initPdfExtractor() {
+    private suspend fun initPdfExtractor() {
         val pdfPath = intent.getStringExtra(PDF.filePathKey)
         val pdfPassword = intent.getStringExtra(PDF.passwordKey)
         try {
-            pdfExtractor = createPdfExtractor(this, Uri.parse(pdfPath), pdfPassword)
+            pdfExtractor = withContext(Dispatchers.IO) {
+                createPdfExtractor(this@LinksActivity, Uri.parse(pdfPath), pdfPassword)
+            }
         }
         catch (throwable: Throwable) {
             Toast.makeText(
@@ -71,14 +77,55 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
         }
     }
 
-    private fun initLinks() {
-        lifecycleScope.launch(Dispatchers.Default) {
-            links = pdfExtractor.getAllLinks()
-            linkAdapter.submitList(links)
+    override fun onDestroy() {
+        if (::pdfExtractor.isInitialized) {
+            val extractor = pdfExtractor
+            thread { runCatching { extractor.close() } }
+        }
+        super.onDestroy()
+    }
 
-            // back to the UI
+    private fun initLinks() {
+        val pageCount = pdfExtractor.getPageCount()
+        binding.progressBar.visibility = View.GONE
+        binding.linksProgressBar.max = pageCount
+        binding.linksProgressBar.progress = 0
+        binding.linksProgressBar.visibility = View.VISIBLE
+        lastPageLiveData.observe(this) { pageNumber ->
+            binding.linksProgressBar.progress = pageNumber
+        }
+
+        lifecycleScope.launch(Dispatchers.Default) {
+            val collected = mutableListOf<Link>()
+            var lastSubmittedCount = 0
+
+            for (pageIndex in 0 until pageCount) {
+                yield()
+                for (pageLink in pdfExtractor.getPageLinks(pageIndex)) {
+                    val url = pageLink.uri
+                    if (url.isNullOrBlank()) {
+                        continue
+                    }
+                    collected.add(Link(text = "", url = url, pageNumber = pageIndex + 1))
+                }
+                lastPageLiveData.postValue(pageIndex + 1)
+
+                val isBatchBoundary = pageIndex % LINKS_BATCH_PAGES == 0 || pageIndex == pageCount - 1
+                if (isBatchBoundary && collected.size > lastSubmittedCount) {
+                    lastSubmittedCount = collected.size
+                    val snapshot = collected.toList()
+                    withContext(Dispatchers.Main) {
+                        links = snapshot
+                        linkAdapter.submitList(snapshot)
+                        binding.message.visibility = View.GONE
+                    }
+                }
+            }
+
             withContext(Dispatchers.Main) {
-                binding.progressBar.visibility = View.GONE
+                links = collected.toList()
+                linkAdapter.submitList(links)
+                binding.linksProgressBar.visibility = View.GONE
                 postGettingLinks()
             }
         }
@@ -193,6 +240,7 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
 
     companion object {
         const val TAG = "LinksActivity"
+        private const val LINKS_BATCH_PAGES = 50
     }
 
 }

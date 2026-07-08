@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.PdfData
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityHomeBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.RecordAboutDialogBinding
@@ -262,9 +263,16 @@ class HomeActivity : AppCompatActivity(), RecordFunctions {
     }
 
     override fun onAboutClicked(record: PdfRecord) {
-        //val aboutView = layoutInflater.inflate(R.layout.record_about_dialog, null) as RecordAboutDialogBinding
+        lifecycleScope.launch {
+            val pdfData = withContext(Dispatchers.IO) {
+                FileUtil.getPdfData(this@HomeActivity, pdfiumCore, record.uri, reduceSize = false)
+            }
+            showRecordAboutDialog(record, pdfData)
+        }
+    }
+
+    private fun showRecordAboutDialog(record: PdfRecord, pdfData: PdfData?) {
         val aboutView = RecordAboutDialogBinding.inflate(layoutInflater, null, false)
-        val pdfData = FileUtil.getPdfData(pdfiumCore, record.uri, reduceSize = false)
 
         aboutView.apply {
             title.text = record.fileName

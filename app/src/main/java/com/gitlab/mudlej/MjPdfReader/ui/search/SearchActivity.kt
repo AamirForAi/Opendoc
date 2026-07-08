@@ -36,6 +36,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
+import kotlin.concurrent.thread
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
@@ -119,11 +121,13 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         title = getString(R.string.searching)
     }
 
-    private fun initPdfExtractor() {
+    private suspend fun initPdfExtractor() {
         val pdfPath = intent.getStringExtra(PDF.filePathKey)
         val pdfPassword = intent.getStringExtra(PDF.passwordKey)
         try {
-            pdfExtractor = createPdfExtractor(this, Uri.parse(pdfPath), pdfPassword)
+            pdfExtractor = withContext(Dispatchers.IO) {
+                createPdfExtractor(this@SearchActivity, Uri.parse(pdfPath), pdfPassword)
+            }
         }
         catch (throwable: Throwable) {
             Toast.makeText(
@@ -132,6 +136,14 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
                 Toast.LENGTH_SHORT
             ).show()
         }
+    }
+
+    override fun onDestroy() {
+        if (::pdfExtractor.isInitialized) {
+            val extractor = pdfExtractor
+            thread { runCatching { extractor.close() } }
+        }
+        super.onDestroy()
     }
 
     private fun initRecyclerView() {
@@ -204,27 +216,39 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         return
     }
 
-    private fun search(query: String): MutableList<SearchResult> {
-        val searchResults = mutableListOf<SearchResult>()
+    private suspend fun search(query: String): MutableList<SearchResult> {
+        val results = mutableListOf<SearchResult>()
+        var lastSubmittedCount = 0
+        val pageCount = pdfExtractor.getPageCount()
         val time = measureTimeMillis {
-            for (pageNumber in 1 .. pdfExtractor.getPageCount()) {
+            for (pageNumber in 1 .. pageCount) {
+                yield()
                 val pageText = pdfExtractor.getPageText(pageNumber)
-                if (pageText.isEmpty() || pageText.isBlank()) {
-                    continue
-                }
-
-                matchRanges(pageText, query).forEach { range ->
-                    searchResults.add(
-                        getPageResult(query, range.first, pageText, pageNumber, matchLength = range.last + 1 - range.first).apply {
-                            searchResultIndexInList = searchResults.size
-                        }
-                    )
+                if (pageText.isNotBlank()) {
+                    matchRanges(pageText, query).forEach { range ->
+                        results.add(
+                            getPageResult(query, range.first, pageText, pageNumber, matchLength = range.last + 1 - range.first).apply {
+                                searchResultIndexInList = results.size
+                            }
+                        )
+                    }
                 }
                 lastPageLiveData.postValue(pageNumber)
+
+                val isBatchBoundary = pageNumber % SEARCH_BATCH_PAGES == 0 || pageNumber == pageCount
+                if (isBatchBoundary && results.size > lastSubmittedCount) {
+                    lastSubmittedCount = results.size
+                    val snapshot = results.toMutableList()
+                    withContext(Dispatchers.Main) {
+                        searchResults = snapshot
+                        searchResultAdapter.submitList(visibleResultRows())
+                        title = "${"%,d".format(snapshot.size)} ${getString(R.string.search_results)}"
+                    }
+                }
             }
         }
         Log.d(tag, "getSearchResults: elapsed time: ${time / 1000F}s")
-        return searchResults
+        return results
     }
 
     private fun matchRanges(text: String, query: String): List<IntRange> {
@@ -493,5 +517,6 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
 
     companion object {
         private const val NESTED_QUERY_DEBOUNCE_MS = 200L
+        private const val SEARCH_BATCH_PAGES = 20
     }
 }

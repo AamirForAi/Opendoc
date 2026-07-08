@@ -253,9 +253,14 @@ public class PdfDocument {
 
     /*package*/ long mNativeDocPtr;
     /*package*/ ParcelFileDescriptor parcelFileDescriptor;
+    /*package*/ volatile boolean closed = false;
 
     /*package*/ final Map<Integer, Long> mNativePagesPtr = new ArrayMap<>();
     /*package*/ final Map<Integer, Long> mNativeTextPagesPtr = new ArrayMap<>();
+
+    public boolean isClosed() {
+        return closed;
+    }
 
     public boolean hasPage(int index) {
         return mNativePagesPtr.containsKey(index);

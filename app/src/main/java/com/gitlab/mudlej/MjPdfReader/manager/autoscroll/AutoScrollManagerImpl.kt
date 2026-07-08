@@ -9,6 +9,7 @@ import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import kotlin.math.absoluteValue
+import kotlin.math.roundToInt
 import kotlin.math.sign
 
 class AutoScrollManagerImpl(
@@ -19,16 +20,27 @@ class AutoScrollManagerImpl(
 ) : AutoScrollManager {
 
     private companion object {
-        const val AUTO_SCROLL_DELAY = 1L
         const val SPEED_UPDATE_DELAY = 100L
+        const val PAGES_LOAD_INTERVAL_MS = 300L
+        const val MAX_FRAME_DELTA_SECONDS = 0.1
+        const val SPEED_FACTOR = 50
     }
 
-    private val autoScrollHandler = Handler(Looper.getMainLooper())
     private val speedUpdateHandler = Handler(Looper.getMainLooper())
     private var speedUpdateRunnable: Runnable? = null
     private var scrollBy = 0.0
     private var interactionPointerCount = 0
     private var pausedByInteraction = false
+    private var lastFrameTimeNanos = 0L
+    private var lastPagesLoadMs = 0L
+    private var frameScheduled = false
+
+    private val frameRunnable = object : Runnable {
+        override fun run() {
+            frameScheduled = false
+            onFrame()
+        }
+    }
 
     override fun setup() {
         setSpeed(pdf.autoScrollSpeed ?: preferences.getScrollSpeed())
@@ -48,10 +60,14 @@ class AutoScrollManagerImpl(
 
     override fun stop() {
         binding.toggleAutoScrollButton.setIconResource(R.drawable.ic_play_arrow)
-        autoScrollHandler.removeCallbacksAndMessages(null)
+        cancelFrame()
         interactionPointerCount = 0
         pausedByInteraction = false
+        val wasScrolling = pdf.isAutoScrolling
         pdf.isAutoScrolling = false
+        if (wasScrolling) {
+            binding.pdfView.loadPages()
+        }
     }
 
     override fun hideControls() {
@@ -122,35 +138,66 @@ class AutoScrollManagerImpl(
     }
 
     private fun start() {
-        autoScrollHandler.removeCallbacksAndMessages(null)
-        scheduleTick()
+        cancelFrame()
+        lastFrameTimeNanos = 0L
+        lastPagesLoadMs = 0L
+        scheduleFrame()
     }
 
-    private fun scheduleTick() {
-        autoScrollHandler.postDelayed({
-            if (!pdf.isAutoScrolling || pausedByInteraction) {
-                return@postDelayed
-            }
-            if (!shouldContinueAutoScrolling(scrollBy)) {
-                stop()
-                return@postDelayed
-            }
+    private fun scheduleFrame() {
+        if (frameScheduled) {
+            return
+        }
+        frameScheduled = true
+        binding.pdfView.postOnAnimation(frameRunnable)
+    }
+
+    private fun cancelFrame() {
+        binding.pdfView.removeCallbacks(frameRunnable)
+        frameScheduled = false
+        lastFrameTimeNanos = 0L
+    }
+
+    private fun onFrame() {
+        if (!pdf.isAutoScrolling || pausedByInteraction) {
+            return
+        }
+        if (!shouldContinueAutoScrolling(scrollBy)) {
+            stop()
+            return
+        }
+
+        val frameTimeNanos = System.nanoTime()
+        if (lastFrameTimeNanos != 0L) {
+            val deltaSeconds = ((frameTimeNanos - lastFrameTimeNanos) / 1_000_000_000.0)
+                .coerceAtMost(MAX_FRAME_DELTA_SECONDS)
+            val distance = (scrollBy * SPEED_FACTOR * deltaSeconds).toFloat()
 
             if (preferences.getHorizontalScroll()) {
-                binding.pdfView.moveRelativeTo(scrollBy.toFloat(), 0F)
+                binding.pdfView.moveRelativeTo(distance, 0F)
             }
             else {
-                binding.pdfView.moveRelativeTo(0F, scrollBy.toFloat())
+                binding.pdfView.moveRelativeTo(0F, distance)
             }
-            binding.pdfView.loadPages()
+            loadPagesThrottled()
+        }
+        lastFrameTimeNanos = frameTimeNanos
 
-            if (pdf.isAutoScrolling && shouldContinueAutoScrolling(scrollBy)) {
-                scheduleTick()
-            }
-            else if (pdf.isAutoScrolling) {
-                stop()
-            }
-        }, AUTO_SCROLL_DELAY)
+        if (pdf.isAutoScrolling && shouldContinueAutoScrolling(scrollBy)) {
+            scheduleFrame()
+        }
+        else if (pdf.isAutoScrolling) {
+            stop()
+        }
+    }
+
+    private fun loadPagesThrottled() {
+        val now = System.currentTimeMillis()
+        if (now - lastPagesLoadMs < PAGES_LOAD_INTERVAL_MS) {
+            return
+        }
+        lastPagesLoadMs = now
+        binding.pdfView.loadPages()
     }
 
     private fun pauseForInteraction(motionEvent: MotionEvent) {
@@ -159,7 +206,7 @@ class AutoScrollManagerImpl(
             return
         }
 
-        autoScrollHandler.removeCallbacksAndMessages(null)
+        cancelFrame()
         pausedByInteraction = true
     }
 
@@ -186,7 +233,8 @@ class AutoScrollManagerImpl(
     }
 
     private fun setScrollBy(newScrollBy: Double, notify: Boolean = true) {
-        scrollBy = newScrollBy
+        val direction = if (newScrollBy > 0) 1.0 else -1.0
+        scrollBy = direction * newScrollBy.absoluteValue.coerceAtLeast(Preferences.AUTO_SCROLL_UNIT)
         val speed = simplifySpeed(scrollBy)
         binding.autoScrollSpeedText.text = speed.toString()
         if (notify) {
@@ -196,7 +244,7 @@ class AutoScrollManagerImpl(
     }
 
     private fun simplifySpeed(scrollBy: Double): Int {
-        return (scrollBy.absoluteValue * (1 / Preferences.AUTO_SCROLL_UNIT)).toInt()
+        return (scrollBy.absoluteValue * (1 / Preferences.AUTO_SCROLL_UNIT)).roundToInt().coerceAtLeast(1)
     }
 
     private fun changeScrollingSpeed(scrollBy: Double, interval: Double, isIncreasing: Boolean): Double {

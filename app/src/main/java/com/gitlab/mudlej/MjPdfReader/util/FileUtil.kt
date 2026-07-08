@@ -3,9 +3,7 @@ package com.gitlab.mudlej.MjPdfReader.util
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
-import android.os.ParcelFileDescriptor
 import android.util.Log
-import androidx.core.net.toFile
 import androidx.core.net.toUri
 import com.gitlab.mudlej.MjPdfReader.data.PdfData
 import com.shockwave.pdfium.PdfiumCore
@@ -50,26 +48,34 @@ object FileUtil {
     /**
      * Return PdfData which has the length of the PDF and an image of a page number, the cover if not specified
      */
-    fun getPdfData(pdfium: PdfiumCore, uri: Uri, pageNumber: Int = 0, reduceSize: Boolean = true): PdfData? {
+    fun getPdfData(context: Context, pdfium: PdfiumCore, uri: Uri, pageNumber: Int = 0, reduceSize: Boolean = true): PdfData? {
         try {
-            val fd = ParcelFileDescriptor.open(uri.toFile(), ParcelFileDescriptor.MODE_READ_ONLY)
-            val pdfDocument = pdfium.newDocument(fd)
-            pdfium.openPage(pdfDocument, pageNumber)
-            val length = pdfium.getPageCount(pdfDocument)
-
-            val width = pdfium.getPageWidthPoint(pdfDocument, pageNumber)
-            val height = pdfium.getPageHeightPoint(pdfDocument, pageNumber)
-            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
-
-            pdfium.renderPageBitmap(pdfDocument, bitmap, pageNumber, 0, 0, width, height)
-            pdfium.closeDocument(pdfDocument)
-
-            val cover = if (reduceSize) {
-                getResizedBitmap(bitmap, 800)
-            } else {
-                bitmap
+            val fd = context.contentResolver.openFileDescriptor(uri, "r") ?: return null
+            val pdfDocument = try {
+                pdfium.newDocument(fd)
+            } catch (throwable: Throwable) {
+                runCatching { fd.close() }
+                throw throwable
             }
-            return PdfData(cover, length)
+            try {
+                pdfium.openPage(pdfDocument, pageNumber)
+                val length = pdfium.getPageCount(pdfDocument)
+
+                val width = pdfium.getPageWidthPoint(pdfDocument, pageNumber)
+                val height = pdfium.getPageHeightPoint(pdfDocument, pageNumber)
+                val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+
+                pdfium.renderPageBitmap(pdfDocument, bitmap, pageNumber, 0, 0, width, height)
+
+                val cover = if (reduceSize) {
+                    getResizedBitmap(bitmap, 800)
+                } else {
+                    bitmap
+                }
+                return PdfData(cover, length)
+            } finally {
+                pdfium.closeDocument(pdfDocument)
+            }
         }
         catch(throwable: Throwable) {
             Log.e("FileUtils", "getPdfData: Error while trying to get the data about PDF", throwable)
@@ -87,19 +93,14 @@ object FileUtil {
     * */
     @Throws(IOException::class)
     fun fileFromUri(context: Context, uri: Uri, fileName: String = "temp-file.pdf"): File? {
-        val contentResolver = context.contentResolver
+        val inputStream = context.contentResolver.openInputStream(uri) ?: return null
 
-        // Open an InputStream from the URI using ContentResolver
-        val inputStream = contentResolver.openInputStream(uri)
-
-        inputStream?.let {
-            val file = File(context.cacheDir, fileName )
-            val outputStream = FileOutputStream(file)
-            inputStream.copyTo(outputStream)
-            outputStream.close()
-            inputStream.close()
+        inputStream.use { input ->
+            val file = File(context.cacheDir, fileName)
+            FileOutputStream(file).use { output ->
+                input.copyTo(output)
+            }
             return file
         }
-        return null
     }
 }
