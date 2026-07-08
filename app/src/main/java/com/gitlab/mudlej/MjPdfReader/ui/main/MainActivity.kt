@@ -54,11 +54,7 @@ import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.*
-import android.print.PrintManager
-import android.provider.MediaStore
-import android.provider.Settings
 import android.text.InputType
-import android.text.format.DateFormat
 import android.util.Log
 import android.view.*
 import android.widget.*
@@ -102,14 +98,12 @@ import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManagerImpl
 import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManager
 import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManagerImpl
 import com.gitlab.mudlej.MjPdfReader.manager.permission.PermissionManager
-import com.gitlab.mudlej.MjPdfReader.manager.print.PdfDocumentAdapter
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.ui.*
 import com.gitlab.mudlej.MjPdfReader.ui.about.AboutActivity
 import com.gitlab.mudlej.MjPdfReader.ui.bookmark.BookmarksActivity
 import com.gitlab.mudlej.MjPdfReader.ui.bookmark.BookmarkState
-import com.gitlab.mudlej.MjPdfReader.ui.home.HomeActivity
 import com.gitlab.mudlej.MjPdfReader.ui.link.LinksActivity
 import com.gitlab.mudlej.MjPdfReader.ui.search.SearchActivity
 import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
@@ -124,7 +118,6 @@ import com.google.gson.reflect.TypeToken
 import com.shockwave.pdfium.PdfPasswordException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -136,10 +129,6 @@ import kotlin.system.exitProcess
 
 class MainActivity : AppCompatActivity() {
 
-    private data class RetainedPdfBytes(val uri: String?, val bytes: ByteArray?)
-
-    private data class PendingAutoScrollSpeed(val fileHash: String, val speed: Int)
-
     private data class ReadingDirectionLoadState(
         val overrideDirection: ReadingDirection?,
         val detectedDirection: ReadingDirection?,
@@ -147,7 +136,6 @@ class MainActivity : AppCompatActivity() {
     )
 
     private companion object {
-        const val AUTO_SCROLL_SPEED_SAVE_DELAY = 300L
         const val TILE_CACHE_PIXEL_BUDGET = 2 * 120 * 256 * 256
         const val MIN_TILE_CACHE_SIZE = 24
         const val MAX_TILE_CACHE_SIZE = 480
@@ -172,6 +160,31 @@ class MainActivity : AppCompatActivity() {
     private lateinit var inlineAnnotationActionController: InlineAnnotationActionController
     private lateinit var formFieldController: FormFieldController
     private lateinit var signatureController: SignatureController
+    private val printController by lazy { PrintController(this, binding, pdf, lifecycleScope) }
+    private val volumeKeyPager by lazy { VolumeKeyPager(binding, pdf, pref) }
+    private val zoomSwipeLockController by lazy { ZoomSwipeLockController(binding, ::drawableOf) }
+    private val brightnessController by lazy { BrightnessController(this, binding, pdf) }
+    private val autoScrollSpeedStore by lazy {
+        AutoScrollSpeedStore(pdf, databaseManager, lifecycleScope, backgroundSaveScope)
+    }
+    private val onlinePdfController: OnlinePdfController by lazy {
+        OnlinePdfController(
+            this,
+            binding,
+            pdf,
+            { launchers.saveToDownloadPermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE) },
+            { bytes -> initPdfViewAndLoad(binding.pdfView.fromBytes(bytes)) },
+        )
+    }
+    private val screenshotController by lazy {
+        ScreenshotController(
+            this,
+            binding,
+            pdf,
+            { fullScreenOptionsManager.showAllTemporarilyOrHide() },
+            { uri -> shareFile(uri, FileType.IMAGE) },
+        )
+    }
     private lateinit var annotationSaveController: AnnotationSaveController
     private lateinit var pref: Preferences
     private val pdf = PDF()
@@ -181,14 +194,14 @@ class MainActivity : AppCompatActivity() {
     private val linkJumpSnackbar by lazy { JumpBackSnackbar(binding.root) }
     private var activeSearchResultPageNumber: Int? = null
     private var bookmarkState = BookmarkState()
-    private var autoScrollSpeedSaveJob: Job? = null
-    private var pendingAutoScrollSpeedSave: PendingAutoScrollSpeed? = null
 
     private lateinit var actionBarMenu: Menu
 
     private val launchers = Launchers(
         Launcher(this, pdf).pdfPicker(),
-        Launcher(this, pdf).saveToDownloadPermission(::saveDownloadedFileAfterPermissionRequest),
+        Launcher(this, pdf).saveToDownloadPermission { granted: Boolean ->
+            onlinePdfController.saveDownloadedFileAfterPermissionRequest(granted)
+        },
         Launcher(this, pdf).readFileErrorPermission(::restartAppIfGranted),
         Launcher(this, pdf).settings(::displayFromUri)
     )
@@ -211,7 +224,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var appTitle: TextView
     private lateinit var appTitlePageNumber: TextView
-    private var brightness: Int = -1
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -226,7 +238,8 @@ class MainActivity : AppCompatActivity() {
 
         // init
         pref = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
-        autoScrollManager = AutoScrollManagerImpl(binding, pdf, pref, ::onAutoScrollSpeedChanged)
+        databaseManager = DatabaseManagerImpl(AppDatabase.getInstance(applicationContext))
+        autoScrollManager = AutoScrollManagerImpl(binding, pdf, pref, autoScrollSpeedStore::onSpeedChanged)
         fullScreenOptionsManager = FullScreenOptionsManagerImpl(
             binding, pdf, pref.getHideDelay().toLong(), pref
         )
@@ -248,14 +261,13 @@ class MainActivity : AppCompatActivity() {
             actionResolver,
             fullScreenOptionsManager,
             autoScrollManager,
-        ) { hideBrightnessControl(binding) }
+        ) { brightnessController.hideControl() }
         shortcutBarController = ShortcutBarController(
             this,
             binding,
             pref,
             actionResolver,
         ) { pdf.isFullScreenToggled }
-        databaseManager = DatabaseManagerImpl(AppDatabase.getInstance(applicationContext))
         cropMarginsController = CropMarginsController(
             this,
             binding,
@@ -301,7 +313,6 @@ class MainActivity : AppCompatActivity() {
             ::updateAnnotationDirtyUi,
         )
         permissionManager = PermissionManager(this)
-        brightness = Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128) / 2
         inlineAnnotationActionController.configure { annotationSaveController.saveHighlights() }
 
         applyTileRenderingPreferences()
@@ -349,7 +360,7 @@ class MainActivity : AppCompatActivity() {
         if (pdf.uri == uri) {
             return
         }
-        flushPendingAutoScrollSpeedSave()
+        autoScrollSpeedStore.flushPendingSave()
         cropMarginsController.cancel()
         session.beginNewDocument(uri, pref.getAlwaysHideMargins())
         shouldStopExtracting.clear()
@@ -762,9 +773,9 @@ class MainActivity : AppCompatActivity() {
             toggleFullscreen = ::toggleFullscreen,
             exitFullscreen = ::exitFullscreen,
             rotate = ::rotateScreen,
-            toggleHorizontalLock = { horizontalSwipeButtonListener(binding) },
+            toggleHorizontalLock = { zoomSwipeLockController.toggleHorizontalSwipeLock() },
             readingDirection = ::showReadingDirectionDialog,
-            toggleZoomLock = { zoomLockButtonListener(binding) },
+            toggleZoomLock = { zoomSwipeLockController.toggleZoomLock() },
             toggleCropMargins = ::toggleCropMargins,
             screenshot = ::takeScreenshot,
             switchTheme = ::switchPdfTheme,
@@ -784,40 +795,6 @@ class MainActivity : AppCompatActivity() {
             print = ::printFile,
             addSignature = { signatureController.showSignatureDialog() },
         )
-    }
-
-    private fun onAutoScrollSpeedChanged(speed: Int) {
-        pdf.autoScrollSpeed = speed
-        val fileHash = pdf.fileHash ?: return
-        val pending = PendingAutoScrollSpeed(fileHash, speed)
-
-        pendingAutoScrollSpeedSave = pending
-        autoScrollSpeedSaveJob?.cancel()
-        autoScrollSpeedSaveJob = lifecycleScope.launch {
-            delay(AUTO_SCROLL_SPEED_SAVE_DELAY)
-            savePendingAutoScrollSpeed(pending)
-        }
-    }
-
-    private suspend fun savePendingAutoScrollSpeed(pending: PendingAutoScrollSpeed) {
-        if (pendingAutoScrollSpeedSave != pending) {
-            return
-        }
-
-        databaseManager.setAutoScrollSpeed(pending.fileHash, pending.speed)
-        if (pendingAutoScrollSpeedSave == pending) {
-            pendingAutoScrollSpeedSave = null
-        }
-    }
-
-    private fun flushPendingAutoScrollSpeedSave() {
-        val pending = pendingAutoScrollSpeedSave ?: return
-        autoScrollSpeedSaveJob?.cancel()
-        autoScrollSpeedSaveJob = null
-        pendingAutoScrollSpeedSave = null
-        backgroundSaveScope.launch {
-            databaseManager.setAutoScrollSpeed(pending.fileHash, pending.speed)
-        }
     }
 
     private fun checkAutoFullScreen() {
@@ -1055,13 +1032,13 @@ class MainActivity : AppCompatActivity() {
     private fun setButtonsFunctionalities() {
         exitFullScreenListener(binding)
         autoScrollManager.setup()
-        setBrightnessSeekbarListener(binding)
+        brightnessController.attachSeekbarListener()
         binding.apply {
             rotateScreenButton.setOnClickListener { rotateScreen() }
-            brightnessButton.setOnClickListener { setBrightnessButtonListeners(binding) }
+            brightnessButton.setOnClickListener { brightnessController.toggleControlVisibility() }
             screenshotButton.setOnClickListener { takeScreenshot() }
-            toggleHorizontalSwipeButton.setOnClickListener { horizontalSwipeButtonListener(binding) }
-            toggleZoomLockButton.setOnClickListener { zoomLockButtonListener(binding) }
+            toggleHorizontalSwipeButton.setOnClickListener { zoomSwipeLockController.toggleHorizontalSwipeLock() }
+            toggleZoomLockButton.setOnClickListener { zoomSwipeLockController.toggleZoomLock() }
             toggleLabelButton.setOnClickListener { toggleLabelButtonListener() }
             pickFileButton.setOnClickListener { pickFile() }
         }
@@ -1088,85 +1065,6 @@ class MainActivity : AppCompatActivity() {
         pdf.togglePortrait()
     }
 
-    private fun zoomLockButtonListener(binding: ActivityMainBinding) {
-        binding.apply {
-            if (pdfView.isZoomDisabled) {
-                enableZooming(binding)
-            }
-            else {
-                disableZooming(binding)
-            }
-        }
-    }
-
-    private fun horizontalSwipeButtonListener(binding: ActivityMainBinding) {
-        binding.apply {
-            if (pdfView.isHorizontalSwipeDisabled) {
-                enableHorizontalSwiping(binding)
-            }
-            else {
-                disableHorizontalSwiping(binding)
-            }
-        }
-    }
-
-    private fun enableZooming(binding: ActivityMainBinding) {
-        binding.toggleZoomLockButton.icon = drawableOf(R.drawable.ic_zoom_out)
-        binding.pdfView.isZoomDisabled = false
-    }
-
-    private fun disableZooming(binding: ActivityMainBinding) {
-        binding.toggleZoomLockButton.icon = drawableOf(R.drawable.ic_lock)
-        binding.pdfView.isZoomDisabled = true
-    }
-
-    private fun enableHorizontalSwiping(binding: ActivityMainBinding) {
-        binding.toggleHorizontalSwipeButton.icon = drawableOf(R.drawable.ic_allow_horizontal_swipe)
-        binding.pdfView.isHorizontalSwipeDisabled = false
-    }
-
-    private fun disableHorizontalSwiping(binding: ActivityMainBinding) {
-        binding.toggleHorizontalSwipeButton.icon = drawableOf(R.drawable.ic_horizontal_swipe_locked)
-        binding.pdfView.isHorizontalSwipeDisabled = true
-    }
-
-    private fun setBrightnessButtonListeners(binding: ActivityMainBinding) {
-        if (binding.brightnessLayout.isVisible) hideBrightnessControl(binding) else showBrightnessControl(binding)
-    }
-
-    private fun hideBrightnessControl(binding: ActivityMainBinding) {
-        binding.brightnessLayout.visibility = View.GONE
-        pdf.isBrightnessClicked = false
-    }
-
-    private fun showBrightnessControl(binding: ActivityMainBinding) {
-        binding.brightnessLayout.visibility = View.VISIBLE
-        pdf.isBrightnessClicked = true
-    }
-
-    private fun setBrightnessSeekbarListener(binding: ActivityMainBinding) {
-        // init the seekbar
-        val brightness = Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128)
-        binding.brightnessSeekBar.progress = brightness
-        binding.brightnessPercentage.text = "$brightness%"
-        binding.brightnessSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStartTrackingTouch(p0: SeekBar?) {}
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (seekBar == null) return
-                // Don't override system's brightness if the user didn't manually asked for it
-                if (fromUser) updateBrightness(progress)
-            }
-        })
-
-    }
-
-    private fun updateBrightness(brightness: Int) {
-        binding.brightnessPercentage.text = "$brightness%"
-        window.attributes.screenBrightness = brightness.toFloat() / 100
-        window.attributes = window.attributes // apply it
-    }
-
     private fun exitFullScreenListener(binding: ActivityMainBinding) {
         binding.exitFullScreenButton.setOnClickListener { exitFullscreen() }
     }
@@ -1177,10 +1075,10 @@ class MainActivity : AppCompatActivity() {
         }
         toggleFullscreen()
         autoScrollManager.stop()
-        enableZooming(binding)
-        hideBrightnessControl(binding)
+        zoomSwipeLockController.enableZooming()
+        brightnessController.hideControl()
         autoScrollManager.hideControls()
-        enableHorizontalSwiping(binding)
+        zoomSwipeLockController.enableHorizontalSwiping()
 
         // A try to give the brightness control back to the system but this won't work
     }
@@ -1419,39 +1317,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun downloadOrShowDownloadedFile(uri: Uri) {
-        if (PdfBytesHolder.pdfByte == null) {
-            val retained = lastCustomNonConfigurationInstance as? RetainedPdfBytes
-            if (retained?.uri == uri.toString()) {
-                PdfBytesHolder.set(retained.uri, retained.bytes)
-            }
-        }
-        if (PdfBytesHolder.pdfByte != null && PdfBytesHolder.uri != uri.toString()) {
-            PdfBytesHolder.clear()
-        }
-        if (PdfBytesHolder.pdfByte != null) {
-            initPdfViewAndLoad(binding.pdfView.fromBytes(PdfBytesHolder.pdfByte))
-        }
-        else {
-            // we will get the pdf asynchronously with the DownloadPDFFile object
-            binding.progressBar.isIndeterminate = true
-            binding.progressBar.progress = 0
-            binding.progressBar.visibility = View.VISIBLE
-            val downloadPDFFile = DownloadPDFFile(this, binding, uri.toString())
-            downloadPDFFile.execute(uri.toString())
-        }
+        onlinePdfController.downloadOrShowDownloadedFile(uri, lastCustomNonConfigurationInstance)
     }
 
     override fun onRetainCustomNonConfigurationInstance(): Any? {
-        return RetainedPdfBytes(PdfBytesHolder.uri, PdfBytesHolder.pdfByte)
+        return onlinePdfController.retainSnapshot()
     }
 
     override fun onStop() {
-        flushPendingAutoScrollSpeedSave()
+        autoScrollSpeedStore.flushPendingSave()
         super.onStop()
     }
 
     override fun onDestroy() {
-        flushPendingAutoScrollSpeedSave()
+        autoScrollSpeedStore.flushPendingSave()
         if (::cropMarginsController.isInitialized) {
             cropMarginsController.cancel()
         }
@@ -1472,47 +1351,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun saveToFileAndDisplay(pdfFileContent: ByteArray?) {
-        PdfBytesHolder.set(pdf.uri?.toString(), pdfFileContent)
-        saveToDownloadFolderIfAllowed(pdfFileContent)
-        initPdfViewAndLoad(binding.pdfView.fromBytes(pdfFileContent))
-    }
-
-    private fun saveToDownloadFolderIfAllowed(fileContent: ByteArray?) {
-        if (canWriteToDownloadFolder(this)) {
-            trySaveToDownloads(fileContent, false)
-        }
-        else {
-            launchers.saveToDownloadPermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        }
-    }
-
-    private fun trySaveToDownloads(fileContent: ByteArray?, showSuccessMessage: Boolean) {
-        try {
-            val downloadDirectory =
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            writeBytesToFile(downloadDirectory, pdf.name, fileContent)
-            if (showSuccessMessage) {
-                Snackbar.make(binding.root, R.string.saved_to_download, Snackbar.LENGTH_SHORT).show()
-            }
-        }
-        catch (e: IOException) {
-            Log.e(TAG, getString(R.string.save_to_download_failed), e)
-            Snackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun saveDownloadedFileAfterPermissionRequest(isPermissionGranted: Boolean) {
-        if (isPermissionGranted) {
-            val bytes = if (PdfBytesHolder.uri == pdf.uri?.toString()) PdfBytesHolder.pdfByte else null
-            if (bytes != null) {
-                trySaveToDownloads(bytes, true)
-            } else {
-                Snackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
-            }
-        }
-        else {
-            Snackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
-        }
+        onlinePdfController.saveToFileAndDisplay(pdfFileContent)
     }
 
     private fun navToAppSettings() {
@@ -1570,35 +1409,7 @@ class MainActivity : AppCompatActivity() {
         if (!checkHasFile()) {
             return
         }
-        val documentUri = pdf.uri
-        val bytes = if (PdfBytesHolder.uri == documentUri?.toString()) PdfBytesHolder.pdfByte else null
-        if (bytes == null) {
-            printUri(documentUri)
-            return
-        }
-        lifecycleScope.launch {
-            val tempUri = withContext(Dispatchers.IO) {
-                runCatching {
-                    val tempFile = File(cacheDir, "print_temp.pdf")
-                    tempFile.writeBytes(bytes)
-                    Uri.fromFile(tempFile)
-                }.getOrNull()
-            }
-            printUri(tempUri ?: documentUri)
-        }
-    }
-
-    private fun printUri(uri: Uri?) {
-        val printManager = getSystemService(Context.PRINT_SERVICE) as PrintManager
-        try {
-            printManager.print(
-                pdf.name,
-                PdfDocumentAdapter(this, uri), null
-            )
-        }
-        catch (e: Throwable) {
-            Snackbar.make(binding.root, "Failed to print. Error message: ${e.message}", Snackbar.LENGTH_LONG).show()
-        }
+        printController.printFile()
     }
 
     private fun askForPdfPassword() {
@@ -1808,17 +1619,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (pref.getTurnPageByVolumeButtons()) {
-            when (keyCode) {
-                KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                    binding.pdfView.jumpTo(pdf.pageNumber + 1)
-                    return true
-                }
-                KeyEvent.KEYCODE_VOLUME_UP -> {
-                    binding.pdfView.jumpTo(pdf.pageNumber - 1)
-                    return true
-                }
-            }
+        if (volumeKeyPager.handleKeyDown(keyCode)) {
+            return true
         }
         return super.onKeyDown(keyCode, event)
     }
@@ -2017,70 +1819,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun screenShot(view: View): Bitmap {
-        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        view.draw(canvas)
-        return bitmap
-    }
-
     private fun takeScreenshot() {
-        val now = DateFormat.format("yyyy_MM_dd-hh_mm_ss", Date())
-        try {
-            val fileName = "${pdf.name.removeSuffix(".pdf")} - ${now}.jpg"
-            val imageFile = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), fileName)
-
-            fullScreenOptionsManager.showAllTemporarilyOrHide()
-            val bitmap = screenShot(binding.pdfView)
-
-            val outputStream = FileOutputStream(imageFile)
-            bitmap.compress(Bitmap.CompressFormat.JPEG, PDF.SCREENSHOT_IMAGE_QUALITY, outputStream)
-            outputStream.flush()
-            outputStream.close()
-
-            val uri = saveImage(bitmap, fileName)
-            Snackbar.make(binding.root, getString(R.string.screenshot_saved), Snackbar.LENGTH_SHORT).also {
-                it.setAction(getString(R.string.share)) { shareFile(uri, FileType.IMAGE) }
-                it.show()
-            }
-        }
-        catch (e: Throwable) {
-            // Several error may come out with file handling or DOM
-            Snackbar.make(binding.root, getString(R.string.failed_save_screenshot), Snackbar.LENGTH_LONG).show()
-            e.printStackTrace()
-        }
-    }
-
-    @Throws(IOException::class)
-    private fun saveImage(bitmap: Bitmap, fileName: String): Uri? {
-        val (fileOutputStream: OutputStream?, imageUri: Uri?) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val contentValues = ContentValues()
-            contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-            contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/*")
-
-            // e.g.     ~/Pictures/app_name/screenshot1.jpg
-            contentValues.put(
-                MediaStore.MediaColumns.RELATIVE_PATH,
-                Environment.DIRECTORY_PICTURES + "/${getString(R.string.mj_app_name)}/"
-            )
-
-            val imageUri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-            Pair(imageUri?.let { contentResolver.openOutputStream(it) }, imageUri)
-        }
-        else {
-            val imagesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString()
-            val image = File(imagesDir, fileName)
-            Pair(FileOutputStream(image), image.toUri())
-        }
-        if (fileOutputStream != null) {
-            bitmap.compress(
-                Bitmap.CompressFormat.JPEG,
-                PDF.SCREENSHOT_IMAGE_QUALITY,
-                fileOutputStream
-            )
-        }
-        fileOutputStream?.close()
-        return imageUri
+        screenshotController.takeScreenshot()
     }
 
     private fun drawableOf(id: Int): Drawable? {
