@@ -465,7 +465,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateAppTitle() {
-        appTitle.text = pdf.getTitleWithPageNumber()
+        appTitle.text = pdf.getTitle()
+        appTitlePageNumber.text = pdf.getPageCounterText()
+        appTitlePageNumber.visibility = if (pref.getShowAppBarPageCount() && pdf.hasFile() && pdf.length > 0) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
         fullScreenOptionsManager.refreshInfo()
     }
 

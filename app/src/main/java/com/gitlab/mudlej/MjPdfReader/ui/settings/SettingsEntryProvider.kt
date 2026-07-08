@@ -76,6 +76,14 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 summaryRes = R.string.show_scroll_handle_page_count_summary,
                 keywords = listOf("scroll", "handle", "page count"),
             ),
+            switchEntry(
+                page = SettingsPage.APPEARANCE,
+                titleRes = R.string.show_app_bar_page_count_title,
+                key = Preferences.showAppBarPageCountKey,
+                defaultValue = Preferences.showAppBarPageCountDefault,
+                summaryRes = R.string.show_app_bar_page_count_summary,
+                keywords = listOf("app bar", "toolbar", "title", "page count"),
+            ),
         )
     }
 

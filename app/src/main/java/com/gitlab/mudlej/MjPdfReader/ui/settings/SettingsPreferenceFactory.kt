@@ -13,6 +13,7 @@ package com.gitlab.mudlej.MjPdfReader.ui.settings
 import android.content.DialogInterface
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.Typeface
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.SeekBar
@@ -375,6 +376,7 @@ internal class SettingsPreferenceFactory(
 
         override fun onBindViewHolder(holder: PreferenceViewHolder) {
             super.onBindViewHolder(holder)
+            (holder.findViewById(R.id.theme_choice_title) as TextView).text = titleText
 
             val group = holder.findViewById(R.id.theme_choice_group) as MaterialButtonToggleGroup
             group.clearOnButtonCheckedListeners()
@@ -398,6 +400,7 @@ internal class SettingsPreferenceFactory(
                 val selected = button.id == checkedId
                 button.backgroundTintList = ColorStateList.valueOf(if (selected) selectedBackground else Color.TRANSPARENT)
                 button.setTextColor(if (selected) selectedText else unselectedText)
+                button.setTypeface(button.typeface, if (selected) Typeface.BOLD else Typeface.NORMAL)
             }
         }
 
