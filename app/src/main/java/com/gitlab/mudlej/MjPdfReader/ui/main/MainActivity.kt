@@ -45,7 +45,6 @@ package com.gitlab.mudlej.MjPdfReader.ui.main
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.ActivityManager
 import android.content.*
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
@@ -67,14 +66,7 @@ import androidx.core.net.toUri
 import androidx.core.view.*
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
-import com.github.barteksc.pdfviewer.PDFView
-import com.github.barteksc.pdfviewer.PDFView.Configurator
-import com.github.barteksc.pdfviewer.listener.OnTextSelectionChangeListener
 import com.github.barteksc.pdfviewer.model.CropMargins
-import com.github.barteksc.pdfviewer.scroll.DefaultScrollHandle
-import com.github.barteksc.pdfviewer.scroll.ScrollHandle
-import com.github.barteksc.pdfviewer.util.Constants
-import com.github.barteksc.pdfviewer.util.FitPolicy
 import com.gitlab.mudlej.MjPdfReader.Launcher
 import com.gitlab.mudlej.MjPdfReader.Launchers
 import com.gitlab.mudlej.MjPdfReader.R
@@ -93,13 +85,11 @@ import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManager
 import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManagerImpl
 import com.gitlab.mudlej.MjPdfReader.manager.permission.PermissionManager
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
-import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.ui.*
 import com.gitlab.mudlej.MjPdfReader.ui.about.AboutActivity
 import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
-import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
@@ -111,22 +101,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.*
-import java.time.LocalDateTime
 import java.util.*
 import kotlin.system.exitProcess
 
 class MainActivity : AppCompatActivity() {
 
-    private data class ReadingDirectionLoadState(
-        val overrideDirection: ReadingDirection?,
-        val detectedDirection: ReadingDirection?,
-        val effectiveDirection: ReadingDirection,
-    )
-
     private companion object {
-        const val TILE_CACHE_PIXEL_BUDGET = 2 * 120 * 256 * 256
-        const val MIN_TILE_CACHE_SIZE = 24
-        const val MAX_TILE_CACHE_SIZE = 480
         val backgroundSaveScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 
@@ -174,7 +154,7 @@ class MainActivity : AppCompatActivity() {
             binding,
             pdf,
             { launchers.saveToDownloadPermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE) },
-            { bytes -> initPdfViewAndLoad(binding.pdfView.fromBytes(bytes)) },
+            { bytes -> documentLoadController.initPdfViewAndLoad(binding.pdfView.fromBytes(bytes)) },
         )
     }
     private val screenshotController by lazy {
@@ -195,6 +175,33 @@ class MainActivity : AppCompatActivity() {
     }
     private val readerMenu by lazy {
         ReaderMenu(this, actionResolver, ::hasFile) { toggleSecondBar() }
+    }
+    private val documentLoadController by lazy {
+        DocumentLoadController(
+            this,
+            binding,
+            pdf,
+            session,
+            pref,
+            databaseManager,
+            lifecycleScope,
+            annotationSaveController,
+            cropMarginsController,
+            autoScrollManager,
+            pdfThemeController,
+            readerNavigationController,
+            fullScreenOptionsManager,
+            inlineAnnotationActionController,
+            ::prepareNewDocument,
+            ::updateActionBarButtons,
+            ::updateAppTitle,
+            ::downloadOrShowDownloadedFile,
+            ::handleReaderTap,
+            ::goToPage,
+            ::hideProgressBar,
+            ::handleFileOpeningError,
+            ::onDocumentLoaded,
+        )
     }
 
     private lateinit var actionBarMenu: Menu
@@ -279,7 +286,9 @@ class MainActivity : AppCompatActivity() {
             ::isCropMarginsEnabled,
             ::setCropMarginsEnabled,
             session::isCurrent,
-            ::reloadWithCropMargins,
+            { configurator, pageNumber, cropMargins, viewState ->
+                documentLoadController.reloadWithCropMargins(configurator, pageNumber, cropMargins, viewState)
+            },
         )
         annotationController = AnnotationController(this, binding, pdf)
         annotationSaveController = AnnotationSaveController(
@@ -348,14 +357,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun initPdf(pdf: PDF, uri: Uri) {
-        prepareNewDocument(uri)
-        val loadToken = session.currentLoadToken
-        lifecycleScope.launch {
-            val hash = computeHash(this@MainActivity, pdf)
-            if (session.isCurrent(loadToken, uri)) {
-                pdf.fileHash = hash
-            }
-        }
+        documentLoadController.initPdf(pdf, uri)
     }
 
     private fun prepareNewDocument(uri: Uri) {
@@ -471,40 +473,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun displayFromUri(uri: Uri?, savePassword: Boolean = false) {
-        if (uri == null) {
-            updateActionBarButtons()
-            return
-        }
-
-        prepareNewDocument(uri)
-
-        pdf.name = getFileName(this, uri)
-        updateActionBarButtons()
-        updateAppTitle()
-        pdf.resetLength()
-
-        setTaskDescription(ActivityManager.TaskDescription(pdf.name))
-        val scheme = uri.scheme
-        if (scheme != null && scheme.contains("http")) {
-            downloadOrShowDownloadedFile(uri)
-        } // temporary solution for files opened via nextcloud
-        else if (scheme != null && scheme.contains("org.nextcloud.documents")){
-            downloadOrShowDownloadedFile(uri)
-        }
-        else {
-            loadCurrentDocument(savePassword)
-        }
-    }
-
-    private fun loadCurrentDocument(savePassword: Boolean = false) {
-        val uri = pdf.uri ?: return
-        val bytes = if (PdfBytesHolder.uri == uri.toString()) PdfBytesHolder.pdfByte else null
-        val configurator = if (bytes != null) {
-            binding.pdfView.fromBytes(bytes)
-        } else {
-            binding.pdfView.fromUri(uri)
-        }
-        initPdfViewAndLoad(configurator, savePassword = savePassword)
+        documentLoadController.displayFromUri(uri, savePassword)
     }
 
     private fun updateAppTitle() {
@@ -512,230 +481,32 @@ class MainActivity : AppCompatActivity() {
         fullScreenOptionsManager.refreshInfo()
     }
 
-    private fun initPdfViewAndLoad(viewConfigurator: Configurator, savePassword: Boolean = false) {
-        val loadToken = session.currentLoadToken
-        val documentUri = pdf.uri
-        val viewState = session.pendingViewState
-        lifecycleScope.launch {
-            val hash = pdf.fileHash ?: computeHash(this@MainActivity, pdf)
-            if (!session.isCurrent(loadToken, documentUri)) {
-                return@launch
-            }
-            if (hash == null && pdf.pageNumber == 0) {
-                showFailedToComputeHashError()
-                return@launch
-            }
-
-            if (hash != null) {
-                pdf.fileHash = hash
-            }
-
-            annotationSaveController.resolveCurrentDestination(documentUri)
-            if (!session.isCurrent(loadToken, documentUri)) {
-                return@launch
-            }
-
-            val pageNumber = if (pdf.pageNumber == 0 && hash != null) {
-                databaseManager.findPageNumber(hash)
-            } else {
-                pdf.pageNumber
-            }
-            if (!session.isCurrent(loadToken, documentUri)) {
-                return@launch
-            }
-
-            val autoScrollSpeed = hash?.let { databaseManager.findAutoScrollSpeed(it) }
-            if (!session.isCurrent(loadToken, documentUri)) {
-                return@launch
-            }
-
-            val readingDirectionState = resolveReadingDirection(hash, documentUri)
-            if (!session.isCurrent(loadToken, documentUri)) {
-                return@launch
-            }
-
-            val cachedCropMargins = cropMarginsController.findCached(hash)
-            if (!session.isCurrent(loadToken, documentUri)) {
-                return@launch
-            }
-            pdf.pageNumber = pageNumber
-            pdf.autoScrollSpeed = pdf.autoScrollSpeed ?: autoScrollSpeed
-            pdf.readingDirectionOverride = readingDirectionState.overrideDirection
-            pdf.detectedReadingDirection = readingDirectionState.detectedDirection
-            pdf.effectiveReadingDirection = readingDirectionState.effectiveDirection
-            withContext(Dispatchers.Main) {
-                if (session.isCurrent(loadToken, documentUri)) {
-                    autoScrollManager.setSpeed(pdf.autoScrollSpeed ?: pref.getScrollSpeed())
-                    initPdfViewAndLoad(
-                        viewConfigurator,
-                        pageNumber,
-                        savePassword,
-                        cachedCropMargins,
-                        hash,
-                        loadToken,
-                        documentUri,
-                        readingDirectionState.effectiveDirection,
-                        viewState,
-                    )
-                }
-            }
-        }
-    }
-
-    private suspend fun resolveReadingDirection(fileHash: String?, documentUri: Uri?): ReadingDirectionLoadState {
-        val overrideDirection = fileHash
-            ?.let { databaseManager.findReadingDirectionOverride(it) }
-            ?.let { ReadingDirection.fromOverrideId(it) }
-        val storedDetectedDirection = fileHash
-            ?.let { databaseManager.findDetectedReadingDirection(it) }
-            ?.let { ReadingDirection.fromId(it) }
-        if (overrideDirection != null) {
-            return ReadingDirectionLoadState(
-                overrideDirection,
-                detectedDirection = storedDetectedDirection,
-                effectiveDirection = overrideDirection,
-            )
-        }
-
-        val detectedDirection = storedDetectedDirection ?: detectReadingDirectionIfNeeded(documentUri)
-
-        return ReadingDirectionLoadState(
-            overrideDirection,
-            detectedDirection,
-            ReadingDirection.effective(overrideDirection, detectedDirection),
-        )
-    }
-
-    private suspend fun detectReadingDirectionIfNeeded(documentUri: Uri?): ReadingDirection? {
-        if (!pref.getHorizontalScroll() || documentUri == null) {
-            return null
-        }
-        val result = ReadingDirectionDetector.detect(this, documentUri, pdf.password)
-        return result.direction.takeIf { result.cacheable }
-    }
-
     private fun applyTileRenderingPreferences() {
-        Constants.THUMBNAIL_RATIO = pref.getThumbnailRation()
-        val partSize = pref.getPartSize()
-        Constants.PART_SIZE = partSize
-        val tilePixels = partSize * partSize
-        Constants.Cache.CACHE_SIZE =
-            (TILE_CACHE_PIXEL_BUDGET / tilePixels).toInt().coerceIn(MIN_TILE_CACHE_SIZE, MAX_TILE_CACHE_SIZE)
+        documentLoadController.applyTileRenderingPreferences()
     }
 
-    private fun initPdfViewAndLoad(
-        viewConfigurator: Configurator,
-        pageNumber: Int,
-        savePassword: Boolean,
+    private fun onDocumentLoaded(
+        pageCount: Int,
         cachedCropMargins: CropMargins?,
         fileHash: String?,
         loadToken: Long,
         documentUri: Uri?,
-        readingDirection: ReadingDirection = pdf.effectiveReadingDirection,
-        viewState: PDFView.ViewState? = null,
-        applyDocumentLoadDefaults: Boolean = true,
-        zoomDisabled: Boolean = false,
-        horizontalSwipeDisabled: Boolean = false,
+        applyDocumentLoadDefaults: Boolean,
     ) {
-        val pdfView = binding.pdfView
-        applyTileRenderingPreferences()
-        pdfView.useBestQuality(pref.getHighQuality())
-        pdfView.minZoom = Preferences.minZoomDefault
-        pdfView.midZoom = Preferences.midZoomDefault
-        pdfView.maxZoom = pref.getMaxZoom()
-        val spacing = if (pref.getSpaceBetweenPages()) Preferences.spacingDefault else 0
-
-        viewConfigurator   // creates a PDFView.Configurator
-            .defaultPage(pageNumber)
-            .defaultViewState(viewState)
-            .onPageChange { page: Int, pageCount: Int -> setCurrentPage(page, pageCount, fileHash, loadToken, documentUri) }
-            .enableAnnotationRendering(Preferences.annotationRenderingDefault)
-            .enableAntialiasing(pref.getAntiAliasing())
-            .renderDuringScale(true)
-            .onDocumentInteraction { motionEvent -> autoScrollManager.handleUserInteraction(motionEvent) }
-            .onTap { motionEvent -> handleReaderTap(motionEvent) }
-            .onTapUp { motionEvent -> inlineAnnotationActionController.handleImmediatePdfTap(motionEvent) }
-            .linkHandler(readerNavigationController.createLinkHandler())
-            .scrollHandle(createScrollHandle())
-            .spacing(spacing)
-            .onError { exception: Throwable ->
-                hideProgressBar(loadToken, documentUri)
-                handleFileOpeningError(exception)
-            }
-            .onPageError { page: Int, error: Throwable -> reportLoadPageError(page, error) }
-            .pageFitPolicy(FitPolicy.WIDTH)
-            .password(pdf.password)
-            .swipeHorizontal(pref.getHorizontalScroll())
-            .horizontalReadingDirectionRtl(pref.getHorizontalScroll() && readingDirection.isRightToLeft)
-            .disableHorizontalSwipe(horizontalSwipeDisabled)
-            .zoomDisabled(zoomDisabled)
-            .autoSpacing(pref.getHorizontalScroll())
-            .pageSnap(pref.getPageSnap())
-            .pageFling(pref.getPageFling())
-            .nightMode(pdfThemeController.effectivePdfDarkTheme())
-            .enableTextSelection(pref.getInlineTextSelection())
-            .textSelectionColor(MaterialColors.getColor(binding.root, R.attr.colorPrimary))
-            .onTextSelectionChange(object : OnTextSelectionChangeListener {
-                override fun onTextSelectionChanged(viewBounds: RectF?, pageIndex: Int) {
-                    inlineAnnotationActionController.showSelectionActions(viewBounds)
-                }
-
-                override fun onTextSelectionCleared() {
-                    inlineAnnotationActionController.hideActions()
-                }
-            })
-            .cropMargins(isCropMarginsEnabled())
-            .cachedCropMargins(cachedCropMargins)
-            .onLoad { pageCount ->
-                if (session.pendingViewState === viewState) {
-                    session.pendingViewState = null
-                }
-                hideProgressBar(loadToken, documentUri)
-                pdfThemeController.configureTheme()
-                createPdfRecord(savePassword, pdf, fileHash, loadToken, documentUri)
-                if (applyDocumentLoadDefaults) {
-                    checkAutoFullScreen()
-                    checkAlwaysHorizontal()
-                    openTextModeByDefault()
-                    configureButtonsLabels()
-                }
-                if (pdf.uri != null) {
-                    setUpSecondBar()
-                }
-                fullScreenButtonController.configure()
-                fullscreenController.reapplyStateAfterLoad()
-                cropMarginsController.startIfNeeded(cachedCropMargins, fileHash, loadToken, documentUri, pageCount)
-                maybeRestoreAnnotations(documentUri, loadToken)
-                signatureController.resumeRestoredPlacementIfNeeded()
-            }
-            .load()
-
-        // Show the page scroll handler for a while when the pdf is loaded then hide it.
-        pdfView.performTap()
-    }
-
-    private fun reloadWithCropMargins(
-        configurator: Configurator,
-        pageNumber: Int,
-        cropMargins: CropMargins,
-        viewState: PDFView.ViewState?,
-    ) {
-        val zoomDisabled = binding.pdfView.isZoomDisabled
-        val horizontalSwipeDisabled = binding.pdfView.isHorizontalSwipeDisabled
-        initPdfViewAndLoad(
-            configurator,
-            pageNumber,
-            savePassword = false,
-            cachedCropMargins = cropMargins,
-            fileHash = pdf.fileHash,
-            loadToken = session.currentLoadToken,
-            documentUri = pdf.uri,
-            readingDirection = pdf.effectiveReadingDirection,
-            viewState = viewState,
-            applyDocumentLoadDefaults = false,
-            zoomDisabled = zoomDisabled,
-            horizontalSwipeDisabled = horizontalSwipeDisabled,
-        )
+        if (applyDocumentLoadDefaults) {
+            checkAutoFullScreen()
+            checkAlwaysHorizontal()
+            openTextModeByDefault()
+            configureButtonsLabels()
+        }
+        if (pdf.uri != null) {
+            setUpSecondBar()
+        }
+        fullScreenButtonController.configure()
+        fullscreenController.reapplyStateAfterLoad()
+        cropMarginsController.startIfNeeded(cachedCropMargins, fileHash, loadToken, documentUri, pageCount)
+        maybeRestoreAnnotations(documentUri, loadToken)
+        signatureController.resumeRestoredPlacementIfNeeded()
     }
 
     private fun openTextModeByDefault() {
@@ -808,100 +579,6 @@ class MainActivity : AppCompatActivity() {
         if (!pref.getAlwaysHorizontal() && !pdf.isPortrait) {
             rotateScreen()
         }
-    }
-
-    private fun createPdfRecord(
-        savePassword: Boolean,
-        pdf: PDF,
-        expectedFileHash: String?,
-        loadToken: Long,
-        documentUri: Uri?,
-    ) {
-        val password = if (savePassword) pdf.password else null
-        lifecycleScope.launch {
-            if (!session.isCurrent(loadToken, documentUri)) {
-                return@launch
-            }
-
-            // cannot use elvis operator ?: with a suspend function, it won't wait
-            if (pdf.fileHash == null && expectedFileHash == null) {
-                val computedHash = computeHash(this@MainActivity, pdf)
-                if (!session.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                pdf.fileHash = computedHash
-            }
-            if (!session.isCurrent(loadToken, documentUri)) {
-                return@launch
-            }
-
-            val fileHash = expectedFileHash ?: pdf.fileHash
-            if (fileHash == null) {
-                Log.e(TAG, "createPdfRecord: Failed to compute fileHash while creating PdfRecord")
-                return@launch
-            }
-            pdf.fileHash = fileHash
-
-            if (databaseManager.hasRecord(fileHash)) {
-                if (!session.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                databaseManager.setLastOpened(fileHash, LocalDateTime.now())
-                if (!session.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                if (password != null) {
-                    databaseManager.setPassword(fileHash, password)
-                }
-                if (!session.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                pdf.autoScrollSpeed?.let { databaseManager.setAutoScrollSpeed(fileHash, it) }
-                if (!session.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                saveReadingDirectionState(fileHash)
-                if (!session.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                cropMarginsController.onRecordAvailable(fileHash)
-            }
-            else {
-                if (!session.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                val record = PdfRecord.from(fileHash, this@MainActivity.pdf, password)
-                databaseManager.saveRecordInBackground(record)
-                if (!session.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                pdf.autoScrollSpeed?.let { databaseManager.setAutoScrollSpeed(fileHash, it) }
-                if (!session.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                cropMarginsController.onRecordAvailable(fileHash)
-            }
-        }
-    }
-
-    private suspend fun saveReadingDirectionState(fileHash: String) {
-        databaseManager.setReadingDirectionOverride(fileHash, pdf.readingDirectionOverride?.id)
-        pdf.detectedReadingDirection?.let {
-            databaseManager.setDetectedReadingDirection(fileHash, it.id)
-        }
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    private fun createScrollHandle(): ScrollHandle {
-        // hiding the handle if the pdf.length is 1 will happen when pdf.length is set in setPdfLength()
-        val handle = DefaultScrollHandle(this, false, pref.getShowScrollHandlePageCount())
-        val fullScreenTouchListener = fullScreenOptionsManager.getOnTouchListener()
-        handle.setOnTouchListener { view, motionEvent ->
-            autoScrollManager.handleUserInteraction(motionEvent)
-            fullScreenTouchListener.onTouch(view, motionEvent)
-        }
-        handle.setOnClickListener { goToPage() }
-        return handle
     }
 
     private fun copyPageText() {
@@ -1138,12 +815,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun reportLoadPageError(page: Int, error: Throwable) {
-        val message = resources.getString(R.string.cannot_load_page) + page + " " + error
-        Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
-        Log.e(TAG, message)
-    }
-
     private fun handleFileOpeningError(exception: Throwable) {
         val fileHash = pdf.fileHash
         if (exception is PdfPasswordException && fileHash != null) {
@@ -1251,65 +922,12 @@ class MainActivity : AppCompatActivity() {
         binding.progressBar.progress = 0
     }
 
-    private fun hideProgressBar(loadToken: Long, documentUri: Uri?) {
-        if (session.isCurrent(loadToken, documentUri)) {
-            hideProgressBar()
-        }
-    }
-
     fun saveToFileAndDisplay(pdfFileContent: ByteArray?) {
         onlinePdfController.saveToFileAndDisplay(pdfFileContent)
     }
 
     private fun navToAppSettings() {
         launchers.settings.launch(Intent(this, SettingsActivity::class.java))
-    }
-
-    private fun setCurrentPage(
-        pageNumber: Int,
-        pageCount: Int,
-        expectedFileHash: String?,
-        loadToken: Long,
-        documentUri: Uri?,
-    ) {
-        if (!session.isCurrent(loadToken, documentUri)) {
-            return
-        }
-        pdf.pageNumber = pageNumber
-        setPdfLength(pageCount)
-        updateAppTitle()
-        binding.pdfView.announceForAccessibility(getString(R.string.page_x_of_y, pageNumber + 1, pageCount))
-
-        lifecycleScope.launch {
-            if (!session.isCurrent(loadToken, documentUri)) {
-                return@launch
-            }
-            // cannot use elvis operator ?: with a suspend function, it won't wait
-            val hash = pdf.fileHash ?: expectedFileHash ?: computeHash(this@MainActivity, pdf)
-            if (!session.isCurrent(loadToken, documentUri)) {
-                return@launch
-            }
-            if (hash != null) {  // Ensure hash is not null
-                pdf.fileHash = hash
-                databaseManager.setPageNumber(hash, pageNumber)  // Set the page number in the database
-            }
-            else {
-                showFailedToComputeHashError()
-            }
-        }
-    }
-
-    private fun showFailedToComputeHashError() {
-        val message = "Can't hash the file! Last visited page won't be remembered in this session."
-        Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
-        Log.e(TAG, "showFailedToComputeHashError: $message", RuntimeException())
-    }
-
-    private fun setPdfLength(pageCount: Int) {
-        pdf.initPdfLength(pageCount)
-        if (pageCount == 1) {
-            fullScreenOptionsManager.permanentlyHidePageHandle()
-        }
     }
 
     private fun printFile() {
@@ -1445,7 +1063,7 @@ class MainActivity : AppCompatActivity() {
                 return@launch
             }
             if (hash == null) {
-                showFailedToComputeHashError()
+                documentLoadController.showFailedToComputeHashError()
                 return@launch
             }
 
@@ -1456,7 +1074,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             val detectedDirection = if (direction == null && pdf.detectedReadingDirection == null) {
-                detectReadingDirectionIfNeeded(documentUri)
+                documentLoadController.detectReadingDirectionIfNeeded(documentUri)
             } else {
                 pdf.detectedReadingDirection
             }
