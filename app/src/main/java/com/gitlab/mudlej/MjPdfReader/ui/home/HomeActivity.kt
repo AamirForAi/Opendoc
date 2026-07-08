@@ -37,7 +37,6 @@ import com.gitlab.mudlej.MjPdfReader.util.StringUtil.formatTitleToEnum
 import com.gitlab.mudlej.MjPdfReader.util.divideToPercent
 import com.gitlab.mudlej.MjPdfReader.util.showOptionalIcons
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.snackbar.Snackbar
 import com.shockwave.pdfium.PdfiumCore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -228,7 +227,6 @@ class HomeActivity : AppCompatActivity(), RecordFunctions {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.searchOptionInHome -> Snackbar.make(binding.root, "Search", Snackbar.LENGTH_SHORT).show()
             R.id.openFileOptionInHome -> permissionManager.launchPicker()
             R.id.listFilterOptionInHome -> showListFilterDialog()
             else -> return super.onOptionsItemSelected(item)
@@ -346,9 +344,6 @@ class HomeActivity : AppCompatActivity(), RecordFunctions {
         }
         else {
             aboutView.favoriteIcon.setImageResource(R.drawable.ic_favorite_inactive)
-//            aboutView.favoriteLabel.setTextColor(
-//                ContextCompat.getColor(this@HomeActivity, R.color.onDarkBackground)
-//            )
         }
     }
 

@@ -175,13 +175,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var annotationSaveController: AnnotationSaveController
     private lateinit var pref: Preferences
     private val pdf = PDF()
-    private var documentLoadToken = 0L
-    private var cropMarginsEnabledForCurrentDocument = false
-    private var activeSearchResultsSnackbar: Snackbar? = null
-    private var pendingViewState: PDFView.ViewState? = null
+    private val session = DocumentSession(pdf) { annotationController.acceptsDocumentUri(it) }
+    private val searchResultsSnackbar by lazy { JumpBackSnackbar(binding.root) }
+    private val bookmarksSnackbar by lazy { JumpBackSnackbar(binding.root) }
+    private val linkJumpSnackbar by lazy { JumpBackSnackbar(binding.root) }
     private var activeSearchResultPageNumber: Int? = null
-    private var activeBookmarksSnackbar: Snackbar? = null
-    private var activeLinkJumpSnackbar: Snackbar? = null
     private var bookmarkState = BookmarkState()
     private var autoScrollSpeedSaveJob: Job? = null
     private var pendingAutoScrollSpeedSave: PendingAutoScrollSpeed? = null
@@ -217,7 +215,6 @@ class MainActivity : AppCompatActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        Log.i(TAG, "-----------onCreate: ${pdf.name} ")
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -267,7 +264,7 @@ class MainActivity : AppCompatActivity() {
             lifecycleScope,
             ::isCropMarginsEnabled,
             ::setCropMarginsEnabled,
-            ::isCurrentDocument,
+            session::isCurrent,
             ::reloadWithCropMargins,
         )
         annotationController = AnnotationController(this, binding, pdf)
@@ -317,7 +314,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         // navigate to settings to get permission to manage storage
-        //permissionManager.checkStoragePermission { }
 
         // Create PDF by restoring it in case of an activity restart OR ...
         if (savedInstanceState != null) {
@@ -327,7 +323,6 @@ class MainActivity : AppCompatActivity() {
             val intentUri = intent.data
             if (intentUri == null) {
                 pickFile()
-                //goToHomePage()
             } else {
                 prepareNewDocument(intentUri)
             }
@@ -339,19 +334,12 @@ class MainActivity : AppCompatActivity() {
         overrideOnBackButtonPressed()
     }
 
-    private fun goToHomePage() {
-        Intent(this, HomeActivity::class.java).also {
-            startActivity(it)
-        }
-        finish()
-    }
-
     fun initPdf(pdf: PDF, uri: Uri) {
         prepareNewDocument(uri)
-        val loadToken = documentLoadToken
+        val loadToken = session.currentLoadToken
         lifecycleScope.launch {
             val hash = computeHash(this@MainActivity, pdf)
-            if (isCurrentDocument(loadToken, uri)) {
+            if (session.isCurrent(loadToken, uri)) {
                 pdf.fileHash = hash
             }
         }
@@ -363,17 +351,7 @@ class MainActivity : AppCompatActivity() {
         }
         flushPendingAutoScrollSpeedSave()
         cropMarginsController.cancel()
-        documentLoadToken++
-        pdf.uri = uri
-        pdf.fileHash = null
-        pdf.pageNumber = 0
-        pdf.zoom = 1F
-        pendingViewState = null
-        pdf.autoScrollSpeed = null
-        pdf.readingDirectionOverride = null
-        pdf.detectedReadingDirection = null
-        pdf.effectiveReadingDirection = ReadingDirection.LEFT_TO_RIGHT
-        cropMarginsEnabledForCurrentDocument = pref.getAlwaysHideMargins()
+        session.beginNewDocument(uri, pref.getAlwaysHideMargins())
         shouldStopExtracting.clear()
         showNoTextInPage = true
         resetSearchResultState()
@@ -388,30 +366,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun resetSearchResultState() {
         clearActiveSearchResultHighlight()
-        activeSearchResultsSnackbar?.dismiss()
-        activeSearchResultsSnackbar = null
+        searchResultsSnackbar.dismiss()
     }
 
     private fun resetBookmarkState() {
-        activeBookmarksSnackbar?.dismiss()
-        activeBookmarksSnackbar = null
+        bookmarksSnackbar.dismiss()
         bookmarkState = BookmarkState()
     }
 
     private fun resetLinkJumpState() {
-        activeLinkJumpSnackbar?.dismiss()
-        activeLinkJumpSnackbar = null
+        linkJumpSnackbar.dismiss()
     }
 
-    private fun isCropMarginsEnabled() = cropMarginsEnabledForCurrentDocument
+    private fun isCropMarginsEnabled() = session.cropMarginsEnabled
 
     private fun setCropMarginsEnabled(enabled: Boolean) {
-        cropMarginsEnabledForCurrentDocument = enabled
+        session.cropMarginsEnabled = enabled
         refreshConfiguredActions()
-    }
-
-    private fun isCurrentDocument(loadToken: Long, uri: Uri?): Boolean {
-        return documentLoadToken == loadToken && annotationController.acceptsDocumentUri(uri)
     }
 
     fun isDisplayingUri(uri: String): Boolean {
@@ -432,7 +403,6 @@ class MainActivity : AppCompatActivity() {
         fun titleClickListener() {
             val title = pdf.getTitle()
             if (title.isNotBlank()) {
-                //Toast.makeText(this, title, Toast.LENGTH_LONG).show()
                 Snackbar.make(binding.root, title, Snackbar.LENGTH_LONG).show()
             }
         }
@@ -463,7 +433,6 @@ class MainActivity : AppCompatActivity() {
         }
         catch (e: ActivityNotFoundException) {
             // alert user that file manager not working
-            //Toast.makeText(this, R.string.toast_pick_file_error, Toast.LENGTH_LONG).show()
             Snackbar.make(binding.root, R.string.toast_pick_file_error, Snackbar.LENGTH_LONG).show()
         }
     }
@@ -533,12 +502,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initPdfViewAndLoad(viewConfigurator: Configurator, savePassword: Boolean = false) {
-        val loadToken = documentLoadToken
+        val loadToken = session.currentLoadToken
         val documentUri = pdf.uri
-        val viewState = pendingViewState
+        val viewState = session.pendingViewState
         lifecycleScope.launch {
             val hash = pdf.fileHash ?: computeHash(this@MainActivity, pdf)
-            if (!isCurrentDocument(loadToken, documentUri)) {
+            if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
             if (hash == null && pdf.pageNumber == 0) {
@@ -551,7 +520,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             annotationSaveController.resolveCurrentDestination(documentUri)
-            if (!isCurrentDocument(loadToken, documentUri)) {
+            if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
 
@@ -560,22 +529,22 @@ class MainActivity : AppCompatActivity() {
             } else {
                 pdf.pageNumber
             }
-            if (!isCurrentDocument(loadToken, documentUri)) {
+            if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
 
             val autoScrollSpeed = hash?.let { databaseManager.findAutoScrollSpeed(it) }
-            if (!isCurrentDocument(loadToken, documentUri)) {
+            if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
 
             val readingDirectionState = resolveReadingDirection(hash, documentUri)
-            if (!isCurrentDocument(loadToken, documentUri)) {
+            if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
 
             val cachedCropMargins = cropMarginsController.findCached(hash)
-            if (!isCurrentDocument(loadToken, documentUri)) {
+            if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
             pdf.pageNumber = pageNumber
@@ -584,7 +553,7 @@ class MainActivity : AppCompatActivity() {
             pdf.detectedReadingDirection = readingDirectionState.detectedDirection
             pdf.effectiveReadingDirection = readingDirectionState.effectiveDirection
             withContext(Dispatchers.Main) {
-                if (isCurrentDocument(loadToken, documentUri)) {
+                if (session.isCurrent(loadToken, documentUri)) {
                     autoScrollManager.setSpeed(pdf.autoScrollSpeed ?: pref.getScrollSpeed())
                     initPdfViewAndLoad(
                         viewConfigurator,
@@ -707,8 +676,8 @@ class MainActivity : AppCompatActivity() {
             .cropMargins(isCropMarginsEnabled())
             .cachedCropMargins(cachedCropMargins)
             .onLoad { pageCount ->
-                if (pendingViewState === viewState) {
-                    pendingViewState = null
+                if (session.pendingViewState === viewState) {
+                    session.pendingViewState = null
                 }
                 hideProgressBar(loadToken, documentUri)
                 configureTheme()
@@ -748,7 +717,7 @@ class MainActivity : AppCompatActivity() {
             savePassword = false,
             cachedCropMargins = cropMargins,
             fileHash = pdf.fileHash,
-            loadToken = documentLoadToken,
+            loadToken = session.currentLoadToken,
             documentUri = pdf.uri,
             readingDirection = pdf.effectiveReadingDirection,
             viewState = viewState,
@@ -875,19 +844,19 @@ class MainActivity : AppCompatActivity() {
     ) {
         val password = if (savePassword) pdf.password else null
         lifecycleScope.launch {
-            if (!isCurrentDocument(loadToken, documentUri)) {
+            if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
 
             // cannot use elvis operator ?: with a suspend function, it won't wait
             if (pdf.fileHash == null && expectedFileHash == null) {
                 val computedHash = computeHash(this@MainActivity, pdf)
-                if (!isCurrentDocument(loadToken, documentUri)) {
+                if (!session.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 pdf.fileHash = computedHash
             }
-            if (!isCurrentDocument(loadToken, documentUri)) {
+            if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
 
@@ -899,40 +868,40 @@ class MainActivity : AppCompatActivity() {
             pdf.fileHash = fileHash
 
             if (databaseManager.hasRecord(fileHash)) {
-                if (!isCurrentDocument(loadToken, documentUri)) {
+                if (!session.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 databaseManager.setLastOpened(fileHash, LocalDateTime.now())
-                if (!isCurrentDocument(loadToken, documentUri)) {
+                if (!session.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 if (password != null) {
                     databaseManager.setPassword(fileHash, password)
                 }
-                if (!isCurrentDocument(loadToken, documentUri)) {
+                if (!session.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 pdf.autoScrollSpeed?.let { databaseManager.setAutoScrollSpeed(fileHash, it) }
-                if (!isCurrentDocument(loadToken, documentUri)) {
+                if (!session.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 saveReadingDirectionState(fileHash)
-                if (!isCurrentDocument(loadToken, documentUri)) {
+                if (!session.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 cropMarginsController.onRecordAvailable(fileHash)
             }
             else {
-                if (!isCurrentDocument(loadToken, documentUri)) {
+                if (!session.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 val record = PdfRecord.from(fileHash, this@MainActivity.pdf, password)
                 databaseManager.saveRecordInBackground(record)
-                if (!isCurrentDocument(loadToken, documentUri)) {
+                if (!session.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 pdf.autoScrollSpeed?.let { databaseManager.setAutoScrollSpeed(fileHash, it) }
-                if (!isCurrentDocument(loadToken, documentUri)) {
+                if (!session.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 cropMarginsController.onRecordAvailable(fileHash)
@@ -1007,7 +976,7 @@ class MainActivity : AppCompatActivity() {
         val uri = documentUri ?: return
         lifecycleScope.launch {
             val hasJournal = withContext(Dispatchers.IO) { annotationController.hasJournal(uri) }
-            if (!hasJournal || !isCurrentDocument(loadToken, uri)) {
+            if (!hasJournal || !session.isCurrent(loadToken, uri)) {
                 return@launch
             }
             if (annotationController.isSessionOwned(uri)) {
@@ -1034,7 +1003,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun replayAnnotations(documentUri: Uri, loadToken: Long) {
-        if (!isCurrentDocument(loadToken, documentUri)) {
+        if (!session.isCurrent(loadToken, documentUri)) {
             return
         }
         annotationController.replayJournal()
@@ -1103,10 +1072,6 @@ class MainActivity : AppCompatActivity() {
         if (pref.getHideButtonsLabels() == fullScreenOptionsManager.isLabelsVisible()) {
             fullScreenOptionsManager.toggleLabelVisibility(this@MainActivity, ::drawableOf, ::getString)
         }
-    }
-
-    private fun toggleZoomDisabled(binding: ActivityMainBinding) {
-        binding.pdfView.isZoomDisabled = !binding.pdfView.isZoomDisabled
     }
 
     private fun toggleLabelButtonListener() {
@@ -1218,7 +1183,6 @@ class MainActivity : AppCompatActivity() {
         enableHorizontalSwiping(binding)
 
         // A try to give the brightness control back to the system but this won't work
-        // updateBrightness(brightness)
     }
 
     private fun unlockScreenOrientation() {
@@ -1235,7 +1199,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     public override fun onResume() {
-        Log.i(TAG, "-----------onResume: ${pdf.name} ")
         super.onResume()
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         if (pref.getScreenOn()) {
@@ -1254,7 +1217,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         // check if there is a pdf at first
-        // if (pdf.uri == null) return
 
         if (pdf.uri != null) {
             binding.pickFileButton.visibility = View.GONE
@@ -1297,7 +1259,6 @@ class MainActivity : AppCompatActivity() {
             startActivity(sharingIntent)
         }
         catch (e: Throwable) {
-            //Toast.makeText(this, "Error sharing the file. (${e.message})", Toast.LENGTH_LONG).show()
             Snackbar.make(binding.root, "Error sharing the file. (${e.message})", Snackbar.LENGTH_LONG).show()
         }
     }
@@ -1338,7 +1299,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun reportLoadPageError(page: Int, error: Throwable) {
         val message = resources.getString(R.string.cannot_load_page) + page + " " + error
-        //Toast.makeText(this, message, Toast.LENGTH_LONG).show()
         Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
         Log.e(TAG, message)
     }
@@ -1347,7 +1307,6 @@ class MainActivity : AppCompatActivity() {
         val fileHash = pdf.fileHash
         if (exception is PdfPasswordException && fileHash != null) {
             if (pdf.password != null) {
-                //Toast.makeText(this, R.string.wrong_password, Toast.LENGTH_SHORT).show()
                 Snackbar.make(binding.root, R.string.wrong_password, Snackbar.LENGTH_SHORT).show()
                 pdf.password = null         // prevent the toast if the user rotates the screen
             }
@@ -1368,7 +1327,6 @@ class MainActivity : AppCompatActivity() {
             launchers.readFileErrorPermission.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
         else {
-            //Toast.makeText(this, R.string.file_opening_error, Toast.LENGTH_LONG).show()
             Snackbar.make(binding.root, R.string.file_opening_error, Snackbar.LENGTH_LONG).show()
             Log.e(TAG, getString(R.string.file_opening_error), exception)
         }
@@ -1391,7 +1349,6 @@ class MainActivity : AppCompatActivity() {
             exitProcess(0)
         }
         else {
-            //Toast.makeText(this, R.string.file_opening_error, Toast.LENGTH_LONG).show()
             Snackbar.make(binding.root, R.string.file_opening_error, Snackbar.LENGTH_LONG).show()
         }
     }
@@ -1451,7 +1408,7 @@ class MainActivity : AppCompatActivity() {
         if (enableCropMargins) {
             cropMarginsController.startOrApply(
                 pdf.fileHash,
-                documentLoadToken,
+                session.currentLoadToken,
                 pdf.uri,
                 binding.pdfView.pageCount,
             )
@@ -1509,13 +1466,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun hideProgressBar(loadToken: Long, documentUri: Uri?) {
-        if (isCurrentDocument(loadToken, documentUri)) {
+        if (session.isCurrent(loadToken, documentUri)) {
             hideProgressBar()
         }
     }
 
     fun saveToFileAndDisplay(pdfFileContent: ByteArray?) {
-        Log.d(TAG, "saveToFileAndDisplay pdfFileContent is set to: $pdfFileContent: ")
         PdfBytesHolder.set(pdf.uri?.toString(), pdfFileContent)
         saveToDownloadFolderIfAllowed(pdfFileContent)
         initPdfViewAndLoad(binding.pdfView.fromBytes(pdfFileContent))
@@ -1536,13 +1492,11 @@ class MainActivity : AppCompatActivity() {
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             writeBytesToFile(downloadDirectory, pdf.name, fileContent)
             if (showSuccessMessage) {
-                //Toast.makeText(this, R.string.saved_to_download, Toast.LENGTH_SHORT).show()
                 Snackbar.make(binding.root, R.string.saved_to_download, Snackbar.LENGTH_SHORT).show()
             }
         }
         catch (e: IOException) {
             Log.e(TAG, getString(R.string.save_to_download_failed), e)
-            //Toast.makeText(this, R.string.save_to_download_failed, Toast.LENGTH_SHORT).show()
             Snackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
         }
     }
@@ -1557,7 +1511,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         else {
-            //Toast.makeText(this, R.string.save_to_download_failed, Toast.LENGTH_SHORT).show()
             Snackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
         }
     }
@@ -1573,7 +1526,7 @@ class MainActivity : AppCompatActivity() {
         loadToken: Long,
         documentUri: Uri?,
     ) {
-        if (!isCurrentDocument(loadToken, documentUri)) {
+        if (!session.isCurrent(loadToken, documentUri)) {
             return
         }
         pdf.pageNumber = pageNumber
@@ -1582,12 +1535,12 @@ class MainActivity : AppCompatActivity() {
         binding.pdfView.announceForAccessibility(getString(R.string.page_x_of_y, pageNumber + 1, pageCount))
 
         lifecycleScope.launch {
-            if (!isCurrentDocument(loadToken, documentUri)) {
+            if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
             // cannot use elvis operator ?: with a suspend function, it won't wait
             val hash = pdf.fileHash ?: expectedFileHash ?: computeHash(this@MainActivity, pdf)
-            if (!isCurrentDocument(loadToken, documentUri)) {
+            if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
             if (hash != null) {  // Ensure hash is not null
@@ -1716,25 +1669,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun showBookmarkNavigationSnackbar() {
         resetSearchResultState()
-        activeBookmarksSnackbar?.dismiss()
-
-        val snackbar = Snackbar.make(binding.root, getString(R.string.back_to_table_of_contents), Snackbar.LENGTH_INDEFINITE)
-        activeBookmarksSnackbar = snackbar
-        snackbar.addCallback(object : Snackbar.Callback() {
-            override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
-                if (activeBookmarksSnackbar === transientBottomBar) {
-                    activeBookmarksSnackbar = null
-                }
-            }
-        })
-        snackbar.setAction(getString(R.string.done)) {
-            snackbar.dismiss()
-        }
-        setSnackbarTextAction(snackbar) {
-            snackbar.dismiss()
+        bookmarksSnackbar.show(getString(R.string.back_to_table_of_contents)) {
             showBookmarks()
         }
-        snackbar.show()
     }
 
     private inner class BackTrackingLinkHandler : LinkHandler {
@@ -1755,35 +1692,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun showLinkJumpBackSnackbar(originPageIndex: Int, originViewState: PDFView.ViewState?) {
         resetSearchResultState()
-        activeBookmarksSnackbar?.dismiss()
-        activeLinkJumpSnackbar?.dismiss()
-
-        val snackbar = Snackbar.make(binding.root, getString(R.string.back_to_page, originPageIndex + 1), Snackbar.LENGTH_INDEFINITE)
-        activeLinkJumpSnackbar = snackbar
-        snackbar.addCallback(object : Snackbar.Callback() {
-            override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
-                if (activeLinkJumpSnackbar === transientBottomBar) {
-                    activeLinkJumpSnackbar = null
-                }
-            }
-        })
-        snackbar.setAction(getString(R.string.done)) {
-            snackbar.dismiss()
-        }
-        setSnackbarTextAction(snackbar) {
-            snackbar.dismiss()
+        bookmarksSnackbar.dismiss()
+        linkJumpSnackbar.show(getString(R.string.back_to_page, originPageIndex + 1)) {
             if (!binding.pdfView.applyViewState(originViewState)) {
                 binding.pdfView.jumpTo(originPageIndex)
             }
         }
-        snackbar.show()
-    }
-
-    private fun setSnackbarTextAction(snackbar: Snackbar, onClick: () -> Unit) {
-        val snackbarView = snackbar.view
-        val textView = snackbarView.findViewById<View>(com.google.android.material.R.id.snackbar_text) as TextView
-        textView.setTextColor(MaterialColors.getColor(snackbarView, com.google.android.material.R.attr.colorPrimaryInverse))
-        textView.setOnClickListener { onClick() }
     }
 
     private fun clearActiveSearchResultHighlight() {
@@ -1855,12 +1769,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyReadingDirectionOverride(direction: ReadingDirection?) {
-        val loadToken = documentLoadToken
+        val loadToken = session.currentLoadToken
         val documentUri = pdf.uri
         val oldEffectiveDirection = pdf.effectiveReadingDirection
         lifecycleScope.launch {
             val hash = pdf.fileHash ?: computeHash(this@MainActivity, pdf)
-            if (!isCurrentDocument(loadToken, documentUri)) {
+            if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
             if (hash == null) {
@@ -1870,7 +1784,7 @@ class MainActivity : AppCompatActivity() {
 
             pdf.fileHash = hash
             databaseManager.setReadingDirectionOverride(hash, direction?.id)
-            if (!isCurrentDocument(loadToken, documentUri)) {
+            if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
 
@@ -1879,7 +1793,7 @@ class MainActivity : AppCompatActivity() {
             } else {
                 pdf.detectedReadingDirection
             }
-            if (!isCurrentDocument(loadToken, documentUri)) {
+            if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
             detectedDirection?.let { databaseManager.setDetectedReadingDirection(hash, it.id) }
@@ -2132,7 +2046,6 @@ class MainActivity : AppCompatActivity() {
         }
         catch (e: Throwable) {
             // Several error may come out with file handling or DOM
-            //Toast.makeText(this, getString(R.string.failed_save_screenshot), Toast.LENGTH_LONG).show()
             Snackbar.make(binding.root, getString(R.string.failed_save_screenshot), Snackbar.LENGTH_LONG).show()
             e.printStackTrace()
         }
@@ -2174,33 +2087,6 @@ class MainActivity : AppCompatActivity() {
         return AppCompatResources.getDrawable(this, id)
     }
 
-    private fun saveViewState(outState: Bundle): PDFView.ViewState? {
-        val viewState = binding.pdfView.captureViewState() ?: pendingViewState ?: return null
-        outState.putBoolean(PDF.viewStateSavedKey, true)
-        outState.putFloat(PDF.viewStateZoomKey, viewState.zoom)
-        outState.putInt(PDF.viewStatePageIndexKey, viewState.pageIndex)
-        outState.putBoolean(PDF.viewStateSwipeVerticalKey, viewState.swipeVertical)
-        outState.putBoolean(PDF.viewStateHorizontalReadingDirectionRtlKey, viewState.horizontalReadingDirectionRtl)
-        outState.putFloat(PDF.viewStateRelativeCrossAxisCenterKey, viewState.relativeCrossAxisCenter)
-        outState.putFloat(PDF.viewStatePageCenterOffsetRatioKey, viewState.pageCenterOffsetRatio)
-        return viewState
-    }
-
-    private fun restoreViewState(savedState: Bundle): PDFView.ViewState? {
-        if (!savedState.getBoolean(PDF.viewStateSavedKey, false)) {
-            return null
-        }
-
-        return PDFView.ViewState(
-            savedState.getFloat(PDF.viewStateZoomKey, 1f),
-            savedState.getInt(PDF.viewStatePageIndexKey, 0),
-            savedState.getBoolean(PDF.viewStateSwipeVerticalKey, true),
-            savedState.getBoolean(PDF.viewStateHorizontalReadingDirectionRtlKey, false),
-            savedState.getFloat(PDF.viewStateRelativeCrossAxisCenterKey, 0.5f),
-            savedState.getFloat(PDF.viewStatePageCenterOffsetRatioKey, 0.5f),
-        )
-    }
-
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putParcelable(PDF.uriKey, pdf.uri)
         outState.putString(PDF.fileHashKey, pdf.fileHash)
@@ -2215,7 +2101,7 @@ class MainActivity : AppCompatActivity() {
         outState.putBoolean(PDF.isFullScreenToggledKey, pdf.isFullScreenToggled)
         pdf.autoScrollSpeed?.let { outState.putInt(PDF.autoScrollSpeedKey, it) }
         outState.putBoolean(PDF.cropMarginsEnabledKey, isCropMarginsEnabled())
-        val viewState = saveViewState(outState)
+        val viewState = session.saveViewState(outState, binding.pdfView.captureViewState())
         outState.putFloat(PDF.zoomKey, viewState?.zoom ?: pdf.zoom)
         outState.putBoolean(PDF.isExtractingTextFinishedKey, pdf.isExtractingTextFinished)
         bookmarkState.putInto(outState)
@@ -2239,9 +2125,9 @@ class MainActivity : AppCompatActivity() {
         pdf.isFullScreenToggled = savedState.getBoolean(PDF.isFullScreenToggledKey)
         pdf.autoScrollSpeed = savedState.takeIf { it.containsKey(PDF.autoScrollSpeedKey) }
             ?.getInt(PDF.autoScrollSpeedKey)
-        cropMarginsEnabledForCurrentDocument = savedState.getBoolean(PDF.cropMarginsEnabledKey, pref.getAlwaysHideMargins())
-        pendingViewState = restoreViewState(savedState)
-        pdf.zoom = pendingViewState?.zoom ?: savedState.getFloat(PDF.zoomKey, 1f)
+        session.cropMarginsEnabled = savedState.getBoolean(PDF.cropMarginsEnabledKey, pref.getAlwaysHideMargins())
+        session.pendingViewState = session.restoreViewState(savedState)
+        pdf.zoom = session.pendingViewState?.zoom ?: savedState.getFloat(PDF.zoomKey, 1f)
         pdf.isExtractingTextFinished = savedState.getBoolean(PDF.isExtractingTextFinishedKey)
         bookmarkState = BookmarkState.from(savedState)
         annotationController.resetForDocument(pdf.uri)
@@ -2292,7 +2178,7 @@ class MainActivity : AppCompatActivity() {
                     val searchResult = Gson().fromJson<SearchResult>(searchResultJson, searchResultType)
 
                     clearActiveSearchResultHighlight()
-                    activeSearchResultsSnackbar?.dismiss()
+                    searchResultsSnackbar.dismiss()
 
                     // highlight the result text
                     val textBound = binding.pdfView.createHighlightText(
@@ -2305,11 +2191,6 @@ class MainActivity : AppCompatActivity() {
                     if (textBound.isEmpty()) {
                         Snackbar.make(binding.root, "Failed to highlight search result", Snackbar.LENGTH_SHORT).show()
                     }
-                    // I disabled this because I couldn't get the zooming in to work properly in all cases, it is ~80% of the time correct.
-                    // else if (textBound.size == 1) {
-                    //     binding.pdfView.zoomWithAnimation(textBound[0].toRectF(), 3f, searchResult.pageNumber)
-                    //     binding.pdfView.reloadPages()    // to show the highlighting
-                    //}
                     else {
                         activeSearchResultPageNumber = searchResult.pageNumber
                         // because the user may not see the highlight if it was zoomed in before searching
@@ -2318,22 +2199,11 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     // show a snackbar with a button that will remove the highlight (it wills still be cached for a bit)
-                    val snackbar = Snackbar.make(binding.root, getString(R.string.results), Snackbar.LENGTH_INDEFINITE)
-                    activeSearchResultsSnackbar = snackbar
-                    snackbar.addCallback(object : Snackbar.Callback() {
-                        override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
-                            if (activeSearchResultsSnackbar === transientBottomBar) {
-                                activeSearchResultsSnackbar = null
-                            }
-                        }
-                    })
-                    snackbar.setAction(getString(R.string.done)) {
-                        clearActiveSearchResultHighlight()
-                        snackbar.dismiss()
-                    }
-                    setSnackbarTextAction(snackbar) {
-                        //binding.pdfView.resetZoomWithAnimation()
-                        //Handler(Looper.getMainLooper()).postDelayed({
+                    searchResultsSnackbar.show(
+                        getString(R.string.results),
+                        onDone = { clearActiveSearchResultHighlight() },
+                        dismissOnTap = false,
+                    ) {
                         Intent(this@MainActivity, SearchActivity::class.java).also { searchIntent ->
                             searchIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
                             searchIntent.putExtra(PDF.passwordKey, pdf.password)
@@ -2342,16 +2212,13 @@ class MainActivity : AppCompatActivity() {
                             searchIntent.putExtra(PDF.resultPositionInListKey, searchResult.searchResultIndexInList)
                             startActivityForResult(searchIntent, PDF.startSearchActivity)
                         }
-                        //}, 400) // same as zoom-out animation duration (not a good way to do it, I know)
                     }
-                    snackbar.show()
 
                     binding.pdfView.jumpUsingPageNumber(searchResult.pageNumber)
                 }
-                else if (activeSearchResultPageNumber != null || activeSearchResultsSnackbar != null) {
+                else if (activeSearchResultPageNumber != null || searchResultsSnackbar.isShowing) {
                     clearActiveSearchResultHighlight()
-                    activeSearchResultsSnackbar?.dismiss()
-                    activeSearchResultsSnackbar = null
+                    searchResultsSnackbar.dismiss()
                     binding.pdfView.reloadPages()
                 }
             }
@@ -2362,7 +2229,6 @@ class MainActivity : AppCompatActivity() {
     private fun overrideOnBackButtonPressed() {
         val onBackPressedCallback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                Log.d("BackPress", "onBackPressed called: doubleBackToExitPressedOnce = $doubleBackToExitPressedOnce")
                 if (annotationController.hasUnsavedAnnotations) {
                     runAfterDirtyAnnotationPrompt {
                         isEnabled = false
@@ -2379,7 +2245,6 @@ class MainActivity : AppCompatActivity() {
 
                     lifecycleScope.launch {
                         delay(2500)
-                        Log.d("BackPress", "Coroutine executing: resetting doubleBackToExitPressedOnce")
                         doubleBackToExitPressedOnce = false
                     }
                 }

@@ -56,7 +56,6 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.manager.permission.PermissionManager
 
 class MainIntroActivity : AppIntro() {
-    //private var themeColor = "#263238"
     private var themeColor = "#202020"
     var bg = Color.parseColor(themeColor)
 

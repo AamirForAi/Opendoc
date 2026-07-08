@@ -60,11 +60,9 @@ fun toggleViewStartConstraint(dynamicView: LinearLayoutCompat, staticView: Int) 
     val isCurrentlyAlignedToParent = currentConstraint.layout.startToStart == ConstraintSet.PARENT_ID
 
     if (isCurrentlyAlignedToParent) {
-        //Log.d("UiUtil", "AlignToButtonsStart")
         constraintSet.clear(dynamicView.id, ConstraintSet.START)
         constraintSet.connect(dynamicView.id, ConstraintSet.START, staticView, ConstraintSet.END)
     } else {
-        //Log.d("UiUtil", "AlignToParentStart")
         constraintSet.clear(dynamicView.id, ConstraintSet.START)
         constraintSet.connect(dynamicView.id, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START)
     }

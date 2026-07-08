@@ -40,7 +40,6 @@ import kotlinx.coroutines.yield
 import kotlin.concurrent.thread
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.random.Random
 import kotlin.system.measureTimeMillis
 
 class SearchActivity : AppCompatActivity(), SearchResultFunctions {
@@ -167,7 +166,6 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         if (position in 0 until searchResultAdapter.itemCount) {
             Log.d(SearchActivity::class.simpleName, "restorePositionInList: $position")
             val layoutManager = binding.searchRecyclerView.layoutManager as? LinearLayoutManager ?: return
-            //layoutManager.smoothScrollToPosition(binding.searchRecyclerView, RecyclerView.State(), position)
             layoutManager.scrollToPositionWithOffset(position, restoredListOffsetPx)
         } else {
             Log.e(
@@ -364,27 +362,6 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
 
         // restore if not the first time
         Handler(Looper.getMainLooper()).postDelayed({ restorePositionInList() }, 100)
-    }
-
-    private fun initFakeData(size: Int = 5000) {
-        // generate fake data
-        val input = "big"
-        val texts = listOf(
-            "When the big guy hit the big wall with a very very very big hammer.",
-            "When the big guy have big hammer.",
-            "Change the color of a few characters, make them big clickable, scale the size of the text or even draw custom bullet points",
-        )
-
-        fun createSearchResult(): SearchResult {
-            val index = Random.nextInt(0, texts.size)
-            val start = texts[index].indexOf(input)
-            val end = start + input.length
-            return SearchResult(originalIndex = start, start, end, texts[index], pageNumber = Random.nextInt())
-        }
-
-        searchResults = MutableList(size) { index ->
-            createSearchResult().apply { searchResultIndexInList = index }
-        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

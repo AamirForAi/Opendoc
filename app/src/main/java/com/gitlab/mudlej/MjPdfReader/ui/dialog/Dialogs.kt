@@ -57,7 +57,6 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.text.isDigitsOnly
-import com.github.barteksc.pdfviewer.PDFView
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
@@ -212,25 +211,6 @@ fun showAskForPasswordDialog(
     alert.show()
 }
 
-fun showBookmarksDialog(activity: MainActivity, pdfView: PDFView) {
-    // get bookmarks or set an appropriate message for the user
-    var bookmarks = pdfView.tableOfContents.map { "${it.title} - P${it.pageIdx + 1}" }
-
-    if (bookmarks.isEmpty()) bookmarks = listOf(activity.getString(R.string.no_bookmarks))
-
-    // create and show the bookmarks dialog
-    MaterialAlertDialogBuilder(activity)
-        .setTitle(activity.getString(R.string.bookmarks))
-        .setItems(bookmarks.toTypedArray()) { dialog, which ->
-            if (pdfView.tableOfContents.isEmpty()) return@setItems
-
-            val page = pdfView.tableOfContents[which].pageIdx
-            pdfView.jumpTo(page.toInt())
-            dialog.dismiss()
-        }
-        .show()
-}
-
 fun showCopyPageTextDialog(
     activity: MainActivity,
     binding: ActivityMainBinding,
@@ -246,8 +226,6 @@ fun showCopyPageTextDialog(
 
     val scrollView = ScrollView(activity)
     scrollView.addView(pageTextView)
-    //scrollView.scrollBarStyle = View.SCROLLBARS_INSIDE_OVERLAY
-    //scrollView.scrollBarSize = 2
 
     MaterialAlertDialogBuilder(activity)
         .setView(scrollView)
@@ -345,7 +323,6 @@ fun showGoToPageDialog(
 
             // check if the user provided input
             if (query.isEmpty()) {
-                //Toast.makeText(activity, activity.getString(R.string.no_input), Toast.LENGTH_SHORT).show()
                 Snackbar.make(view, activity.getString(R.string.no_input), Snackbar.LENGTH_SHORT).show()
                 return@setPositiveButton
             }

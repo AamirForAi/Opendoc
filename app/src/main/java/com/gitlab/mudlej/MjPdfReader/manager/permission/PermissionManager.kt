@@ -30,13 +30,6 @@ class PermissionManager(private val activity: AppCompatActivity) {
                 storageGrantedFunc()
             }
         }
-//        else {
-//            AlertDialog.Builder(activity)
-//                .setCancelable(false)
-//                .setTitle("Not Supported")
-//                .setMessage("This app doesn't support anything below SDK 30 (Android 10) yet.")
-//                .show()
-//        }
         return false;
     }
 
@@ -48,7 +41,6 @@ class PermissionManager(private val activity: AppCompatActivity) {
                     .setTitle("Really?")
                     .setMessage("For real? How can I work right now?!")
                     .setPositiveButton("Ask Again") { _, _ -> checkStoragePermission(storageGrantedFunc) }
-                    //.setNegativeButton("I'm stupid") { dialog, _ -> dialog.dismiss() }
                     .show()
             }
             else {
@@ -70,7 +62,6 @@ class PermissionManager(private val activity: AppCompatActivity) {
             val pdfUri = result?.data?.data ?: return@registerForActivityResult
 
             Intent(activity, MainActivity::class.java).also { intent ->
-                //intent.putExtra("pdfUri", pdfUri.toString())
                 intent.data = pdfUri
                 activity.startActivity(intent)
             }

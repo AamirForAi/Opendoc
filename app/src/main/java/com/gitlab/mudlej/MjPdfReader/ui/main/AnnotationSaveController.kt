@@ -14,6 +14,7 @@ import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
 import com.gitlab.mudlej.MjPdfReader.repository.PdfAnnotationSaveDestination
 import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
+import com.gitlab.mudlej.MjPdfReader.util.computeHash
 import com.gitlab.mudlej.MjPdfReader.util.getFileName
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -22,8 +23,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.math.BigInteger
-import java.security.MessageDigest
 import java.time.LocalDateTime
 
 class AnnotationSaveController(
@@ -277,14 +276,6 @@ class AnnotationSaveController(
         } finally {
             tmp.delete()
         }
-    }
-
-    private fun computeHash(bytes: ByteArray): String? {
-        return runCatching {
-            val digester = MessageDigest.getInstance("MD5")
-            digester.update(bytes, 0, minOf(PDF.HASH_SIZE, bytes.size))
-            String.format("%032x", BigInteger(1, digester.digest()))
-        }.getOrNull()
     }
 
     private fun showSaveFailed() {

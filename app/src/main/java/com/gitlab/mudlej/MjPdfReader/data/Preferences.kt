@@ -76,10 +76,6 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val partSizeKey = "partSize"
         const val thumbnailRatioKey = "thumbnailRatio"
         const val maxZoomKey = "maxZoom"
-        const val pdfTextKey = "pdfText"
-        const val pdfLengthKey = "pdfLength"
-        const val uriKey = "uri"
-        const val finishedExtractionDialogKey = "finishedExtraction"
         const val inlineTextSelectionKey = "inlineTextSelection"
         const val detectExistingHighlightsKey = "detectExistingHighlights"
         const val searchIgnoreAccentsKey = "searchIgnoreAccents"
@@ -123,7 +119,6 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val maxZoomDefault = 10.0f
         const val partSizeDefault = 512f
         const val thumbnailRatioDefault = 0.45f
-        const val pdfLengthDefault = 0
         const val inlineTextSelectionDefault = true
         const val detectExistingHighlightsDefault = true
         const val searchIgnoreAccentsDefault = false
@@ -140,7 +135,6 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val doubleTapToExitEnabledDefault = true
         const val autoFullScreenDefault = false
         const val alwaysHorizontalDefault = false
-        const val autoFullScreenHorizontalDefault = false
         const val scrollSpeedDefault = 3
         const val listFilterDefault = "RECENT"  // ListFilter.RECENT.name
         const val themeSystem = "system"

@@ -53,12 +53,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
-import android.text.InputType
 import android.util.Log
-import android.view.Gravity
-import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
@@ -98,28 +93,34 @@ fun openSelectedDocument(activity: MainActivity, pdf: PDF, selectedDocumentUri: 
     }
 }
 
+fun computeHash(bytes: ByteArray): String? {
+    return runCatching {
+        val digester = MessageDigest.getInstance("MD5")
+        digester.update(bytes, 0, min(PDF.HASH_SIZE, bytes.size))
+        String.format("%032x", BigInteger(1, digester.digest()))
+    }.getOrNull()
+}
+
 suspend fun computeHash(context: Context, pdf: PDF): String? {
     if (pdf.uri == null) return null
+    val cachedBytes = PdfBytesHolder.pdfByte
+    if (cachedBytes != null && PdfBytesHolder.uri == pdf.uri?.toString()) {
+        return computeHash(cachedBytes)
+    }
     return try {
         val digester = MessageDigest.getInstance("MD5")
-        if (PdfBytesHolder.pdfByte != null && PdfBytesHolder.uri == pdf.uri?.toString()) {
-            val size = min(PDF.HASH_SIZE, PdfBytesHolder.pdfByte!!.size)
-            digester.update(PdfBytesHolder.pdfByte as ByteArray, 0, size)
-        } else {
-            // Perform IO operations on the IO dispatcher
-            withContext(Dispatchers.IO) {
-                val inputStream = context.contentResolver.openInputStream(pdf.uri as Uri) ?: return@withContext null
-                inputStream.use { stream ->
-                    val buffer = ByteArray(PDF.HASH_SIZE)
-                    var totalRead = 0
-                    while (totalRead < buffer.size) {
-                        val amountRead = stream.read(buffer, totalRead, buffer.size - totalRead)
-                        if (amountRead == -1) break
-                        totalRead += amountRead
-                    }
-                    if (totalRead == 0) return@withContext null
-                    digester.update(buffer, 0, totalRead)
+        withContext(Dispatchers.IO) {
+            val inputStream = context.contentResolver.openInputStream(pdf.uri as Uri) ?: return@withContext null
+            inputStream.use { stream ->
+                val buffer = ByteArray(PDF.HASH_SIZE)
+                var totalRead = 0
+                while (totalRead < buffer.size) {
+                    val amountRead = stream.read(buffer, totalRead, buffer.size - totalRead)
+                    if (amountRead == -1) break
+                    totalRead += amountRead
                 }
+                if (totalRead == 0) return@withContext null
+                digester.update(buffer, 0, totalRead)
             }
         }
         val hash = String.format("%032x", BigInteger(1, digester.digest()))
@@ -251,35 +252,6 @@ fun readBytesToEnd(inputStream: InputStream): ByteArray? {
     return output.toByteArray()
 }
 
-class ExtendedDataHolder private constructor() {
-    companion object {
-        val instance = ExtendedDataHolder()
-    }
-
-    private val extras: MutableMap<String, Any> = HashMap()
-
-    fun putExtra(name: String, obj: Any) { extras[name] = obj }
-    fun getExtra(name: String): Any? = extras[name]
-    fun hasExtra(name: String): Boolean = extras.containsKey(name)
-    fun clear() = extras.clear()
-}
-
-
-fun putEditTextInLinearLayout(activity: MainActivity, searchInput: EditText, layout: LinearLayout) {
-    val layoutParams = LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
-    )
-    layoutParams.setMargins(16, 0, 16, 0)
-    layout.layoutParams = layoutParams
-    layout.gravity = Gravity.CENTER
-    
-    searchInput.maxLines = 1
-    searchInput.inputType = InputType.TYPE_CLASS_TEXT
-    searchInput.hint = activity.getString(R.string.enter_text_to_search)
-    searchInput.layoutParams = layoutParams
-    
-    layout.addView(searchInput)
-}
 
 fun copyToClipboard(activity: Activity, label: String, text: String) {
     val clipboard: ClipboardManager = activity.getSystemService(Context.CLIPBOARD_SERVICE)
@@ -389,17 +361,7 @@ fun String.containsAccentInsensitive(pattern: String): Boolean =
 val File.size get() = if (!exists()) 0.0 else length().toDouble()
 val File.sizeInKb get() = size / 1024
 val File.sizeInMb get() = sizeInKb / 1024
-val File.sizeInGb get() = sizeInMb / 1024
-val File.sizeInTb get() = sizeInGb / 1024
 
-
-private fun openScreenshot(activity: Activity, imageFile: File) {
-    val intent = Intent()
-    intent.action = Intent.ACTION_VIEW
-    val uri = Uri.fromFile(imageFile)
-    intent.setDataAndType(uri, "image/*")
-    activity.startActivity(intent)
-}
 
 fun Int.divideToPercent(divideTo: Int): Int {
     return if (divideTo == 0) 0

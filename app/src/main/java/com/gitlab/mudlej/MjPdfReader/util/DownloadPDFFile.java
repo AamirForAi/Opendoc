@@ -106,19 +106,15 @@ public class DownloadPDFFile extends AsyncTask<String, Void, Object> {
         if (activity != null && activity.isDisplayingUri(url)) {
             if (result == null) {
                 activity.hideProgressBar();
-                //Toast.makeText(activity, R.string.toast_generic_download_error, Toast.LENGTH_LONG).show();
                 Snackbar.make(binding.getRoot(), R.string.toast_generic_download_error, Snackbar.LENGTH_LONG).show();
             } else if (result instanceof Integer) {
                 activity.hideProgressBar();
-                //Toast.makeText(activity, R.string.toast_http_code_error, Toast.LENGTH_LONG).show();
                 Snackbar.make(binding.getRoot(), R.string.toast_http_code_error, Snackbar.LENGTH_LONG).show();
             } else if (result instanceof SSLException) {
                 activity.hideProgressBar();
-                //Toast.makeText(activity, R.string.toast_ssl_error, Toast.LENGTH_LONG).show();
                 Snackbar.make(binding.getRoot(), R.string.toast_ssl_error, Snackbar.LENGTH_LONG).show();
             } else if (result instanceof IOException) {
                 activity.hideProgressBar();
-                //Toast.makeText(activity, R.string.toast_generic_download_error, Toast.LENGTH_LONG).show();
                 Snackbar.make(binding.getRoot(), R.string.toast_generic_download_error, Snackbar.LENGTH_LONG).show();
             } else if (result instanceof byte[]) {
                 activity.saveToFileAndDisplay((byte[]) result);

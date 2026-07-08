@@ -125,7 +125,6 @@ class AboutActivity : AppCompatActivity() {
                 APP_VERSION_RELEASE
             ))
         } catch (e: ActivityNotFoundException) {
-            //Toast.makeText(this, email, Toast.LENGTH_SHORT).show()
             Snackbar.make(binding.root, email, Snackbar.LENGTH_SHORT).show()
         }
     }

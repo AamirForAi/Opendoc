@@ -27,6 +27,5 @@ class DataConverter {
     @TypeConverter fun fromLocalDateTime(obj: LocalDateTime?): String = obj.toString()
     @TypeConverter fun toLocalDateTime(json: String?): LocalDateTime? {
         return LocalDateTime.parse(json)
-        //return gson.fromJson(json, object : TypeToken<LocalDateTime>() {}.type)
     }
 }

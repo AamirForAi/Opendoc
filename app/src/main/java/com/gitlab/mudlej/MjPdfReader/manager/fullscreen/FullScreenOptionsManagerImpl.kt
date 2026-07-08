@@ -233,11 +233,10 @@ class FullScreenOptionsManagerImpl(
 
     private fun makeButtonCircular(context: Context, button: MaterialButton) {
         val scale = context.resources.displayMetrics.density
-        //val iconSizeDp = context.resources.getDimension(R.dimen.fs_button_size) / scale
         val iconSizeDp = 24
         val iconSizePx = (iconSizeDp * scale).toInt()
 
-        val circleFactor = 1.9  // 1.5
+        val circleFactor = 1.9
         val buttonWidthPx = iconSizePx * circleFactor
 
         val params = button.layoutParams
