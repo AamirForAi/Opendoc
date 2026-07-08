@@ -653,13 +653,25 @@ int jniThrowExceptionFmt(JNIEnv* env, const char* className, const char* fmt, ..
 
 jobject NewLong(JNIEnv* env, jlong value) {
     jclass cls = env->FindClass("java/lang/Long");
+    if (cls == NULL) {
+        return NULL;
+    }
     jmethodID methodID = env->GetMethodID(cls, "<init>", "(J)V");
+    if (methodID == NULL) {
+        return NULL;
+    }
     return env->NewObject(cls, methodID, value);
 }
 
 jobject NewInteger(JNIEnv* env, jint value) {
     jclass cls = env->FindClass("java/lang/Integer");
+    if (cls == NULL) {
+        return NULL;
+    }
     jmethodID methodID = env->GetMethodID(cls, "<init>", "(I)V");
+    if (methodID == NULL) {
+        return NULL;
+    }
     return env->NewObject(cls, methodID, value);
 }
 
@@ -872,29 +884,28 @@ JNI_FUNC(jlongArray, PdfiumCore, nativeLoadPages)(JNI_ARGS, jlong docPtr, jint f
     DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
 
     if(toIndex < fromIndex) return NULL;
-    jlong pages[ toIndex - fromIndex + 1 ];
+    std::vector<jlong> pages;
+    pages.reserve((size_t)(toIndex - fromIndex + 1));
 
-    int i;
-    for(i = 0; i <= (toIndex - fromIndex); i++){
-        pages[i] = loadPageInternal(env, doc, (int)(i + fromIndex));
+    for(int i = 0; i <= (toIndex - fromIndex); i++){
+        jlong page = loadPageInternal(env, doc, (int)(i + fromIndex));
+        if (page == -1 || env->ExceptionCheck()) {
+            return NULL;
+        }
+        pages.push_back(page);
     }
 
-    jlongArray javaPages = env -> NewLongArray( (jsize)(toIndex - fromIndex + 1) );
-    env -> SetLongArrayRegion(javaPages, 0, (jsize)(toIndex - fromIndex + 1), (const jlong*)pages);
+    jlongArray javaPages = env -> NewLongArray( (jsize)pages.size() );
+    if (javaPages == NULL) {
+        return NULL;
+    }
+    env -> SetLongArrayRegion(javaPages, 0, (jsize)pages.size(), pages.data());
 
     return javaPages;
 }
 
 JNI_FUNC(void, PdfiumCore, nativeClosePage)(JNI_ARGS, jlong pagePtr) {
     closePageInternal(pagePtr);
-}
-
-JNI_FUNC(void, PdfiumCore, nativeClosePages)(JNI_ARGS, jlongArray pagesPtr) {
-    int length = (int)(env -> GetArrayLength(pagesPtr));
-    jlong *pages = env -> GetLongArrayElements(pagesPtr, NULL);
-
-    int i;
-    for(i = 0; i < length; i++){ closePageInternal(pages[i]); }
 }
 
 JNI_FUNC(jint, PdfiumCore, nativeGetPageWidthPixel)(JNI_ARGS, jlong pagePtr, jint dpi) {
@@ -1012,7 +1023,7 @@ static void renderPageInternal(
                            drawSizeHor, drawSizeVer,
                            0, flags );
 
-    // TODO: You need to use FPDF_FFLDraw after FPDF_RenderPageBitmap to render form annotations
+    FPDFBitmap_Destroy(pdfBitmap);
 }
 
 JNI_FUNC(void, PdfiumCore, nativeRenderPage)(JNI_ARGS, jlong pagePtr, jobject objSurface,
@@ -1203,6 +1214,7 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
     }
 
     double convertStartMs = monotonicMillis();
+    FPDFBitmap_Destroy(pdfBitmap);
     if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
         rgbBitmapTo565(tmp, sourceStride, addr, &info);
         free(tmp);
@@ -1240,8 +1252,9 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateAnnotInPage)(JNI_ARGS,
 ) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
 
-    if (FPDFAnnot_IsObjectSupportedSubtype(FPDF_ANNOT_HIGHLIGHT)) return false;
+    if (page == NULL || !FPDFAnnot_IsSupportedSubtype(FPDF_ANNOT_HIGHLIGHT)) return false;
     FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_HIGHLIGHT);
+    if (annot == NULL) return false;
 
     setAnnotAsciiString(annot, "MJSearch", "1");
 
@@ -2059,6 +2072,10 @@ JNI_FUNC(jobjectArray, PdfiumCore, nativeGetPageTextBounds)(JNI_ARGS, jlong page
     }
 
     int rectsCount = FPDFText_CountRects(pageText, start, count);
+    if (rectsCount < 0) {
+        FPDFText_ClosePage(pageText);
+        return env->NewObjectArray(0, rectCls, 0);
+    }
     jmethodID constructorID = env->GetMethodID(rectCls, "<init>", "(IIII)V");
     jobjectArray array = env->NewObjectArray(rectsCount, rectCls, 0);
 
@@ -2075,36 +2092,6 @@ JNI_FUNC(jobjectArray, PdfiumCore, nativeGetPageTextBounds)(JNI_ARGS, jlong page
 
     FPDFText_ClosePage(pageText);
     return array;
-}
-
-JNI_FUNC(jstring, PdfiumCore, nativeGetPagesText)(JNI_ARGS, jlong pagePtr, jlong start, jlong end) {
-    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
-    FPDF_TEXTPAGE text = FPDFText_LoadPage(page);
-    if (text == NULL) {
-        return env->NewStringUTF("");
-    }
-
-    auto length = FPDFText_CountChars(text);
-    if (length <= 0) {
-        FPDFText_ClosePage(text);
-        return env->NewStringUTF("");
-    }
-    jchar *str = (jchar *) malloc((length + 1) * sizeof(jchar));
-    if (str == NULL) {
-        FPDFText_ClosePage(text);
-        return env->NewStringUTF("");
-    }
-    int len = FPDFText_GetText(text, 0, length, str);
-    if (len > 0) {
-        jstring s = env->NewString(str, len - 1);   // no trailing zero
-        free(str);
-        FPDFText_ClosePage(text);
-        return s;
-    } else {
-        free(str);
-        FPDFText_ClosePage(text);
-        return env->NewStringUTF("");
-    }
 }
 
 JNI_FUNC(jlong, PdfiumCore, nativeLoadTextPage)(JNI_ARGS, jlong pagePtr) {
@@ -2286,6 +2273,7 @@ JNI_FUNC(jstring, PdfiumCore, nativeGetDocumentMetaText)(JNI_ARGS, jlong docPtr,
 
     size_t bufferLen = FPDF_GetMetaText(doc->pdfDocument, ctag, NULL, 0);
     if (bufferLen <= 2) {
+        env->ReleaseStringUTFChars(tag, ctag);
         return env->NewStringUTF("");
     }
     std::wstring text;
@@ -2347,15 +2335,22 @@ JNI_FUNC(jlong, PdfiumCore, nativeGetBookmarkDestIndex)(JNI_ARGS, jlong docPtr, 
 
 JNI_FUNC(jlongArray, PdfiumCore, nativeGetPageLinks)(JNI_ARGS, jlong pagePtr) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
-    int pos = 0;
     std::vector<jlong> links;
-    FPDF_LINK link;
-    while (FPDFLink_Enumerate(page, &pos, &link)) {
-        links.push_back(reinterpret_cast<jlong>(link));
+    if (page != NULL) {
+        int pos = 0;
+        FPDF_LINK link;
+        while (FPDFLink_Enumerate(page, &pos, &link)) {
+            links.push_back(reinterpret_cast<jlong>(link));
+        }
     }
 
     jlongArray result = env->NewLongArray(links.size());
-    env->SetLongArrayRegion(result, 0, links.size(), &links[0]);
+    if (result == NULL) {
+        return NULL;
+    }
+    if (!links.empty()) {
+        env->SetLongArrayRegion(result, 0, links.size(), links.data());
+    }
     return result;
 }
 

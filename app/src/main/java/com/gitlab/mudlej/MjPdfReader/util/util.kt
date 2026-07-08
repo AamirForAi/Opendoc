@@ -268,8 +268,10 @@ fun createPdfExtractor(activity: Activity, uri: Uri, password: String?): PdfExtr
     }
     try {
         Log.d(activity::class.simpleName, "createPdfExtractor: Trying to use PdfBytesHolder.pdfByte")
-        if (PdfBytesHolder.pdfByte != null && PdfBytesHolder.uri == uri.toString()) {
-            return PdfExtractorFactory.create(activity, PdfBytesHolder.pdfByte!!, password)
+        val heldBytes = PdfBytesHolder.pdfByte
+        val heldUri = PdfBytesHolder.uri
+        if (heldBytes != null && heldUri == uri.toString()) {
+            return PdfExtractorFactory.create(activity, heldBytes, password)
         }
         else {
             Log.e(activity::class.simpleName, "createPdfExtractor: PdfBytesHolder.pdfByte is null!", )

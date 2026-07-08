@@ -63,11 +63,15 @@ class SignatureController(
     }
 
     private fun configureColorSwatches(sheetBinding: DialogSignatureBinding) {
-        val swatches = mapOf(
-            sheetBinding.signatureColorBlackButton to SignatureView.DEFAULT_INK_COLOR,
-            sheetBinding.signatureColorBlueButton to INK_BLUE,
-            sheetBinding.signatureColorRedButton to INK_RED,
-            sheetBinding.signatureColorGreenButton to INK_GREEN,
+        val swatches = listOf(
+            SignatureColorSwatch(
+                sheetBinding.signatureColorBlackButton,
+                sheetBinding.signatureColorBlackSwatch,
+                SignatureView.DEFAULT_INK_COLOR,
+            ),
+            SignatureColorSwatch(sheetBinding.signatureColorBlueButton, sheetBinding.signatureColorBlueSwatch, INK_BLUE),
+            SignatureColorSwatch(sheetBinding.signatureColorRedButton, sheetBinding.signatureColorRedSwatch, INK_RED),
+            SignatureColorSwatch(sheetBinding.signatureColorGreenButton, sheetBinding.signatureColorGreenSwatch, INK_GREEN),
         )
         val selectedStroke = MaterialColors.getColor(
             sheetBinding.root, androidx.appcompat.R.attr.colorPrimary)
@@ -75,24 +79,30 @@ class SignatureController(
             sheetBinding.root, com.google.android.material.R.attr.colorOutline)
         val density = activity.resources.displayMetrics.density
         fun applySelection(selectedColor: Int) {
-            for ((swatch, color) in swatches) {
-                val selected = color == selectedColor
-                swatch.strokeColor = if (selected) selectedStroke else defaultStroke
-                swatch.strokeWidth = ((if (selected) 3f else 1f) * density).toInt()
+            for (swatch in swatches) {
+                val selected = swatch.color == selectedColor
+                swatch.colorView.strokeColor = if (selected) selectedStroke else defaultStroke
+                swatch.colorView.strokeWidth = ((if (selected) 3f else 1f) * density).toInt()
             }
         }
-        for ((swatch, color) in swatches) {
-            swatch.setOnClickListener {
-                sheetBinding.signatureView.setInkColor(color)
-                applySelection(color)
+        for (swatch in swatches) {
+            swatch.hitTarget.setOnClickListener {
+                sheetBinding.signatureView.setInkColor(swatch.color)
+                applySelection(swatch.color)
             }
         }
         val initialColor = sheetBinding.signatureView.currentInkColor()
-        if (initialColor !in swatches.values) {
+        if (swatches.none { it.color == initialColor }) {
             sheetBinding.signatureView.setInkColor(SignatureView.DEFAULT_INK_COLOR)
         }
         applySelection(sheetBinding.signatureView.currentInkColor())
     }
+
+    private data class SignatureColorSwatch(
+        val hitTarget: android.view.View,
+        val colorView: com.google.android.material.card.MaterialCardView,
+        val color: Int,
+    )
 
     fun hasPendingPlacement(): Boolean = binding.pdfView.hasPendingStampPlacement()
 

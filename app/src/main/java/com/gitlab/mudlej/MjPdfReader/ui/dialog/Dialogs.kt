@@ -239,7 +239,7 @@ fun showCopyPageTextDialog(
         .show()
 }
 
-fun showSearchDialog(activity: Activity, pdf: PDF) {
+fun showSearchDialog(activity: Activity, pdf: PDF, launchSearch: (Intent) -> Unit) {
     val pref = Preferences(PreferenceManager.getDefaultSharedPreferences(activity))
     val searchLayout = LayoutInflater.from(activity).inflate(R.layout.input_layout, null) as TextInputLayout
     val ignoreAccentsCheckBox = MaterialCheckBox(activity).apply {
@@ -274,7 +274,7 @@ fun showSearchDialog(activity: Activity, pdf: PDF) {
                     pdf.fileHash?.let { searchIntent.putExtra(PDF.fileHashKey, it) }
                     searchIntent.putExtra(PDF.searchQueryKey, queryText)
                     pdf.lastQuery = queryText
-                    activity.startActivityForResult(searchIntent, PDF.startSearchActivity)
+                    launchSearch(searchIntent)
                 }
             }
             if (queryText.isBlank() || queryText.length < PDF.MIN_SEARCH_QUERY) {
@@ -287,7 +287,7 @@ fun showSearchDialog(activity: Activity, pdf: PDF) {
                     .setPositiveButton(activity.getText(R.string.ok)) { badQueryDialog, _ ->
                         searchDialog.dismiss()
                         badQueryDialog.dismiss()
-                        showSearchDialog(activity, pdf)
+                        showSearchDialog(activity, pdf, launchSearch)
                     }
                     .show()
             }
@@ -326,8 +326,9 @@ fun showGoToPageDialog(
                 Snackbar.make(view, activity.getString(R.string.no_input), Snackbar.LENGTH_SHORT).show()
                 return@setPositiveButton
             }
-            if (query.isDigitsOnly())
-                goToPageFunc(query.toInt() - 1)
+            query.toIntOrNull()?.let { pageNumber ->
+                goToPageFunc(pageNumber - 1)
+            }
 
             dialog.dismiss()
         }

@@ -1193,8 +1193,7 @@ public class PDFView extends RelativeLayout {
         }
 
         if (renderingHandlerThread == null) {
-            Log.e(TAG, "loadComplete: renderingHandlerThread is nul!!");
-            return;
+            renderingHandlerThread = new HandlerThread("PDF renderer");
         }
 
         if (!renderingHandlerThread.isAlive()) {

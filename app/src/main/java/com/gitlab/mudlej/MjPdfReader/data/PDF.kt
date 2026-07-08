@@ -121,10 +121,6 @@ class PDF(
         const val fileHashKey = "fileHashKey"
         const val searchResultKey = "searchInput"
         const val linkResultKey = "linkResult"
-        const val startBookmarksActivity = 84418
-        const val startSearchActivity = 91234
-        const val startTextActivity =70134
-        const val startLinksActivity = 54217
         const val searchQueryKey = "searchQuery"
         const val resultPositionInListKey = "searchResultPositionKey"
         const val filePathKey = "filePathKey"

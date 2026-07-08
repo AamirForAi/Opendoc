@@ -11,22 +11,37 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
-import com.gitlab.mudlej.MjPdfReader.util.DownloadPDFFile
 import com.gitlab.mudlej.MjPdfReader.util.canWriteToDownloadFolder
+import com.gitlab.mudlej.MjPdfReader.util.readBytesToEnd
 import com.gitlab.mudlej.MjPdfReader.util.writeBytesToFile
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
+import javax.net.ssl.SSLException
 
 class OnlinePdfController(
     private val activity: MainActivity,
     private val binding: ActivityMainBinding,
     private val pdf: PDF,
+    private val scope: CoroutineScope,
     private val requestSaveToDownloadPermission: () -> Unit,
     private val loadFromBytes: (ByteArray?) -> Unit,
     private val openConfirmedLink: (Uri) -> Unit,
 ) {
+
+    private sealed class DownloadResult {
+        class Success(val bytes: ByteArray?) : DownloadResult()
+        data object HttpError : DownloadResult()
+        data object SslError : DownloadResult()
+        data object GenericError : DownloadResult()
+    }
 
     data class RetainedPdfBytes(val uri: String?, val bytes: ByteArray?)
 
@@ -97,13 +112,61 @@ class OnlinePdfController(
             loadFromBytes(PdfBytesHolder.pdfByte)
         }
         else {
-            // we will get the pdf asynchronously with the DownloadPDFFile object
-            binding.progressBar.isIndeterminate = true
-            binding.progressBar.progress = 0
-            binding.progressBar.visibility = View.VISIBLE
-            val downloadPDFFile = DownloadPDFFile(activity, binding, uri.toString())
-            downloadPDFFile.execute(uri.toString())
+            startDownload(uri.toString())
         }
+    }
+
+    private fun startDownload(url: String) {
+        binding.progressBar.isIndeterminate = true
+        binding.progressBar.progress = 0
+        binding.progressBar.visibility = View.VISIBLE
+        scope.launch {
+            val result = withContext(Dispatchers.IO) { download(url) }
+            if (!activity.isDisplayingUri(url)) {
+                return@launch
+            }
+            when (result) {
+                is DownloadResult.Success -> {
+                    val bytes = result.bytes
+                    if (bytes != null) {
+                        saveToFileAndDisplay(bytes)
+                    } else {
+                        showDownloadError(R.string.toast_generic_download_error)
+                    }
+                }
+                is DownloadResult.HttpError -> showDownloadError(R.string.toast_http_code_error)
+                is DownloadResult.SslError -> showDownloadError(R.string.toast_ssl_error)
+                is DownloadResult.GenericError -> showDownloadError(R.string.toast_generic_download_error)
+            }
+        }
+    }
+
+    private fun download(url: String): DownloadResult {
+        var connection: HttpURLConnection? = null
+        return try {
+            connection = URL(url).openConnection() as HttpURLConnection
+            connection.connect()
+            val responseCode = connection.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                DownloadResult.Success(readBytesToEnd(connection.inputStream))
+            } else {
+                Log.e(TAG, "Error during http request, response code : $responseCode")
+                DownloadResult.HttpError
+            }
+        } catch (e: SSLException) {
+            Log.e(TAG, "Error cannot get file at URL : $url", e)
+            DownloadResult.SslError
+        } catch (e: IOException) {
+            Log.e(TAG, "Error cannot get file at URL : $url", e)
+            DownloadResult.GenericError
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
+    private fun showDownloadError(messageRes: Int) {
+        activity.hideProgressBar()
+        Snackbar.make(binding.root, messageRes, Snackbar.LENGTH_LONG).show()
     }
 
     fun saveToFileAndDisplay(pdfFileContent: ByteArray?) {

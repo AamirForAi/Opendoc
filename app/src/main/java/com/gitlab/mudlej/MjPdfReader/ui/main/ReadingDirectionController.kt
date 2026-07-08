@@ -17,6 +17,7 @@ class ReadingDirectionController(
     private val pref: Preferences,
     private val databaseManager: DatabaseManager,
     private val scope: CoroutineScope,
+    private val resolver: ReadingDirectionResolver,
     private val documentLoadController: DocumentLoadController,
 ) {
 
@@ -91,7 +92,7 @@ class ReadingDirectionController(
             }
 
             val detectedDirection = if (direction == null && pdf.detectedReadingDirection == null) {
-                documentLoadController.detectReadingDirectionIfNeeded(documentUri)
+                resolver.detectIfNeeded(documentUri)
             } else {
                 pdf.detectedReadingDirection
             }

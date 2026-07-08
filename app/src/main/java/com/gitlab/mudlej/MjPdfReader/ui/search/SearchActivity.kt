@@ -259,7 +259,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
 
     private fun cachedSearchResults(query: String, hits: List<SearchSessionCache.Hit>): MutableList<SearchResult> {
         val pageTextCache = mutableMapOf<Int, String>()
-        return hits.sortedBy { it.resultIndex }.mapNotNull { hit ->
+        val results = hits.sortedBy { it.resultIndex }.mapNotNull { hit ->
             val pageText = pageTextCache.getOrPut(hit.pageNumber) { pdfExtractor.getPageText(hit.pageNumber) }
             val matchLength = if (hit.matchLength > 0) hit.matchLength else query.length
             if (hit.originalIndex !in pageText.indices || hit.originalIndex + matchLength > pageText.length) {
@@ -277,6 +277,12 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
                 searchResultIndexInList = hit.resultIndex
             }
         }.toMutableList()
+
+        if (results.size != hits.size) {
+            results.forEachIndexed { index, result -> result.searchResultIndexInList = index }
+            SearchSessionCache.put(fileHash, query, ignoreAccents, cacheHits(results))
+        }
+        return results
     }
 
     private fun cacheHits(results: List<SearchResult>): List<SearchSessionCache.Hit> {

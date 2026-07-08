@@ -53,8 +53,6 @@ public class PdfiumCore {
 
     private native void nativeClosePage(long pagePtr);
 
-    private native void nativeClosePages(long[] pagesPtr);
-
     private native int nativeGetPageWidthPixel(long pagePtr, int dpi);
 
     private native int nativeGetPageHeightPixel(long pagePtr, int dpi);
@@ -149,8 +147,6 @@ public class PdfiumCore {
                                                            String groupKey);
 
     private native int nativeClearSearchResultAnnot(long pagePtr, int pageIndex);
-
-    private native String nativeGetPagesText(long docPtr, long start, long end);
 
     private native Integer nativeGetDestPageIndex(long docPtr, long linkPtr);
 

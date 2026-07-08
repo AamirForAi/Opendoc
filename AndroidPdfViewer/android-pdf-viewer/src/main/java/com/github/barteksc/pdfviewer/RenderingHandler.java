@@ -85,6 +85,8 @@ class RenderingHandler extends Handler {
                     pdfView.onPageError(ex);
                 }
             });
+        } catch (RuntimeException ex) {
+            Log.e(TAG, "handleMessage: rendering task failed", ex);
         }
     }
 

@@ -63,6 +63,8 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
 
     void disable() {
         enabled = false;
+        scaling = false;
+        pdfView.cacheManager.setScaling(false);
     }
 
     void disableLongpress(){

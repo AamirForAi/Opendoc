@@ -815,8 +815,13 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return new ArrayList<>();
         }
-        List<PdfDocument.HighlightAnnotation> annotations =
-                pdfiumCore.getHighlightAnnotations(pdfDocument, docPage);
+        List<PdfDocument.HighlightAnnotation> annotations;
+        synchronized (lock) {
+            if (disposed || pdfDocument == null) {
+                return new ArrayList<>();
+            }
+            annotations = pdfiumCore.getHighlightAnnotations(pdfDocument, docPage);
+        }
         List<PdfDocument.HighlightAnnotation> snapshot = annotations == null
                 ? Collections.<PdfDocument.HighlightAnnotation>emptyList()
                 : Collections.unmodifiableList(annotations);
@@ -889,7 +894,13 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return new float[0];
         }
-        float[] rects = pdfiumCore.getFormFieldRects(pdfDocument, docPage);
+        float[] rects;
+        synchronized (lock) {
+            if (disposed || pdfDocument == null) {
+                return new float[0];
+            }
+            rects = pdfiumCore.getFormFieldRects(pdfDocument, docPage);
+        }
         formFieldRectCache.put(pageIndex, rects);
         return rects;
     }
@@ -1035,11 +1046,12 @@ class PdfFile {
 
     public int documentPage(int userPage) {
         int documentPage = userPage;
-        if (originalUserPages != null) {
-            if (userPage < 0 || userPage >= originalUserPages.length) {
+        int[] userPages = originalUserPages;
+        if (userPages != null) {
+            if (userPage < 0 || userPage >= userPages.length) {
                 return -1;
             } else {
-                documentPage = originalUserPages[userPage];
+                documentPage = userPages[userPage];
             }
         }
 

@@ -1,12 +1,15 @@
 package com.gitlab.mudlej.MjPdfReader.manager.permission
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.ui.main.MainActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -30,11 +33,31 @@ class PermissionManager(private val activity: AppCompatActivity) {
                 storageGrantedFunc()
             }
         }
+        else {
+            if (hasLegacyStoragePermission()) {
+                storageGrantedFunc()
+            }
+            else {
+                legacyPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+        }
         return false;
     }
 
+    private fun hasLegacyStoragePermission(): Boolean {
+        return ContextCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+            PackageManager.PERMISSION_GRANTED
+    }
+
+    private val legacyPermissionLauncher =
+        activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted && ::storageGrantedFunc.isInitialized) {
+                storageGrantedFunc()
+            }
+        }
+
     val requestPermissionLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ ->
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && ::storageGrantedFunc.isInitialized) {
             if (!Environment.isExternalStorageManager()) {
                 MaterialAlertDialogBuilder(activity)
                     .setCancelable(false)

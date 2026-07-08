@@ -31,18 +31,22 @@ class PageTextCopier(
             return
         }
 
-        var pageText = ""
         scope.launch(Dispatchers.IO) {
+            var pageText = ""
+            var extractionFailed = false
             try {
                 pageText = binding.pdfView.getPageText(pageNumber)
             }
             catch (e: Throwable) {
                 Log.e("PDFium", "extractPageText($pageNumber): error while extracting text", e)
-                showFailedExtractTextSnackbar(pageNumber)
+                extractionFailed = true
             }
 
             withContext(Dispatchers.Main) {
-                if (pageText.isEmpty() || pageText.isBlank()) {
+                if (extractionFailed) {
+                    showFailedExtractTextSnackbar(pageNumber)
+                }
+                else if (pageText.isBlank()) {
                     showNoTextInPageMessage()
                 }
                 else {

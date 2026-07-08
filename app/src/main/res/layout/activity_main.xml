@@ -164,70 +164,112 @@
             android:layout_height="wrap_content"
             android:padding="12dp">
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/textSelectionHighlightYellowButton"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:clickable="true"
-                android:contentDescription="@string/highlight_yellow"
-                android:focusable="true"
-                app:cardBackgroundColor="#FFF176"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="0dp"
-                app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="1dp" />
+            <LinearLayout
+                android:id="@+id/textSelectionHighlightColorGroup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/textSelectionHighlightOrangeButton"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:clickable="true"
-                android:contentDescription="@string/highlight_orange"
-                android:focusable="true"
-                app:cardBackgroundColor="#FFB74D"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="0dp"
-                app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="1dp" />
+                <FrameLayout
+                    android:id="@+id/textSelectionHighlightYellowButton"
+                    android:layout_width="52dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:contentDescription="@string/highlight_yellow"
+                    android:focusable="true">
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/textSelectionHighlightRedButton"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:clickable="true"
-                android:contentDescription="@string/highlight_pink_red"
-                android:focusable="true"
-                app:cardBackgroundColor="#F06292"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="0dp"
-                app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="1dp" />
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_gravity="center"
+                        app:cardBackgroundColor="#FFF176"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="?attr/colorOutline"
+                        app:strokeWidth="1dp" />
+                </FrameLayout>
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/textSelectionHighlightBlueButton"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:clickable="true"
-                android:contentDescription="@string/highlight_blue"
-                android:focusable="true"
-                app:cardBackgroundColor="#64B5F6"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="0dp"
-                app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="1dp" />
+                <FrameLayout
+                    android:id="@+id/textSelectionHighlightOrangeButton"
+                    android:layout_width="52dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:contentDescription="@string/highlight_orange"
+                    android:focusable="true">
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/textSelectionHighlightGreenButton"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:clickable="true"
-                android:contentDescription="@string/highlight_green"
-                android:focusable="true"
-                app:cardBackgroundColor="#81C784"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="0dp"
-                app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="1dp" />
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_gravity="center"
+                        app:cardBackgroundColor="#FFB74D"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="?attr/colorOutline"
+                        app:strokeWidth="1dp" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/textSelectionHighlightRedButton"
+                    android:layout_width="52dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:contentDescription="@string/highlight_pink_red"
+                    android:focusable="true">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_gravity="center"
+                        app:cardBackgroundColor="#F06292"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="?attr/colorOutline"
+                        app:strokeWidth="1dp" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/textSelectionHighlightBlueButton"
+                    android:layout_width="52dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:contentDescription="@string/highlight_blue"
+                    android:focusable="true">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_gravity="center"
+                        app:cardBackgroundColor="#64B5F6"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="?attr/colorOutline"
+                        app:strokeWidth="1dp" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/textSelectionHighlightGreenButton"
+                    android:layout_width="52dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:contentDescription="@string/highlight_green"
+                    android:focusable="true">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_gravity="center"
+                        app:cardBackgroundColor="#81C784"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="?attr/colorOutline"
+                        app:strokeWidth="1dp" />
+                </FrameLayout>
+            </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/textSelectionDeleteHighlightButton"
@@ -294,7 +336,7 @@
                 android:id="@+id/textSelectionActionFlow"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                app:constraint_referenced_ids="textSelectionHighlightYellowButton,textSelectionHighlightOrangeButton,textSelectionHighlightRedButton,textSelectionHighlightBlueButton,textSelectionHighlightGreenButton,textSelectionDeleteHighlightButton,textSelectionCopyButton,textSelectionSearchWebButton"
+                app:constraint_referenced_ids="textSelectionHighlightColorGroup,textSelectionDeleteHighlightButton,textSelectionCopyButton,textSelectionSearchWebButton"
                 app:flow_horizontalAlign="center"
                 app:flow_horizontalGap="16dp"
                 app:flow_horizontalStyle="packed"

@@ -41,6 +41,7 @@ class DocumentLoadController(
     private val session: DocumentSession,
     private val pref: Preferences,
     private val databaseManager: DatabaseManager,
+    private val readingDirectionResolver: ReadingDirectionResolver,
     private val scope: CoroutineScope,
     private val annotationSaveController: AnnotationSaveController,
     private val cropMarginsController: CropMarginsController,
@@ -66,12 +67,6 @@ class DocumentLoadController(
         applyDocumentLoadDefaults: Boolean,
     ) -> Unit,
 ) {
-
-    private data class ReadingDirectionLoadState(
-        val overrideDirection: ReadingDirection?,
-        val detectedDirection: ReadingDirection?,
-        val effectiveDirection: ReadingDirection,
-    )
 
     fun initPdf(pdf: PDF, uri: Uri) {
         prepareNewDocument(uri)
@@ -158,7 +153,7 @@ class DocumentLoadController(
                 return@launch
             }
 
-            val readingDirectionState = resolveReadingDirection(hash, documentUri)
+            val readingDirectionState = readingDirectionResolver.resolve(hash, documentUri)
             if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
@@ -302,38 +297,6 @@ class DocumentLoadController(
         pdfView.performTap()
     }
 
-    private suspend fun resolveReadingDirection(fileHash: String?, documentUri: Uri?): ReadingDirectionLoadState {
-        val overrideDirection = fileHash
-            ?.let { databaseManager.findReadingDirectionOverride(it) }
-            ?.let { ReadingDirection.fromOverrideId(it) }
-        val storedDetectedDirection = fileHash
-            ?.let { databaseManager.findDetectedReadingDirection(it) }
-            ?.let { ReadingDirection.fromId(it) }
-        if (overrideDirection != null) {
-            return ReadingDirectionLoadState(
-                overrideDirection,
-                detectedDirection = storedDetectedDirection,
-                effectiveDirection = overrideDirection,
-            )
-        }
-
-        val detectedDirection = storedDetectedDirection ?: detectReadingDirectionIfNeeded(documentUri)
-
-        return ReadingDirectionLoadState(
-            overrideDirection,
-            detectedDirection,
-            ReadingDirection.effective(overrideDirection, detectedDirection),
-        )
-    }
-
-    suspend fun detectReadingDirectionIfNeeded(documentUri: Uri?): ReadingDirection? {
-        if (!pref.getHorizontalScroll() || documentUri == null) {
-            return null
-        }
-        val result = ReadingDirectionDetector.detect(activity, documentUri, pdf.password)
-        return result.direction.takeIf { result.cacheable }
-    }
-
     private fun createPdfRecord(
         savePassword: Boolean,
         pdf: PDF,
@@ -384,7 +347,7 @@ class DocumentLoadController(
                 if (!session.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
-                saveReadingDirectionState(fileHash)
+                readingDirectionResolver.saveState(fileHash)
                 if (!session.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
@@ -405,13 +368,6 @@ class DocumentLoadController(
                 }
                 cropMarginsController.onRecordAvailable(fileHash)
             }
-        }
-    }
-
-    private suspend fun saveReadingDirectionState(fileHash: String) {
-        databaseManager.setReadingDirectionOverride(fileHash, pdf.readingDirectionOverride?.id)
-        pdf.detectedReadingDirection?.let {
-            databaseManager.setDetectedReadingDirection(fileHash, it.id)
         }
     }
 

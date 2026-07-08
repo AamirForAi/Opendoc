@@ -49,6 +49,22 @@ import com.gitlab.mudlej.MjPdfReader.enums.ListFilter
 
 class Preferences(private val prefMan: SharedPreferences) {
 
+    init {
+        migrateLegacyKey("spaceBetweenPagesKey", spaceBetweenPagesKey)
+        migrateLegacyKey("alwaysHorizontalKey", alwaysHorizontalKey)
+    }
+
+    private fun migrateLegacyKey(legacyKey: String, key: String) {
+        if (!prefMan.contains(legacyKey)) {
+            return
+        }
+        val editor = prefMan.edit()
+        if (!prefMan.contains(key)) {
+            editor.putBoolean(key, prefMan.getBoolean(legacyKey, false))
+        }
+        editor.remove(legacyKey).apply()
+    }
+
     companion object {
         // Preferences keys
         const val firstInstallKey = "firstInstall"
@@ -71,7 +87,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val shortcutBarActionsKey = "shortcutBarActions"
         const val shortcutBarActionOrderKey = "shortcutBarActionOrder"
         const val screenOnKey = "screenOn"
-        const val spaceBetweenPagesKey = "spaceBetweenPagesKey"
+        const val spaceBetweenPagesKey = "spaceBetweenPages"
         const val hideDelayKey = "hideDelay"
         const val partSizeKey = "partSize"
         const val thumbnailRatioKey = "thumbnailRatio"
@@ -92,7 +108,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val fullScreenInfoShowReadingPercentageKey = "fullScreenInfoShowReadingPercentage"
         const val doubleTapToExitEnabledKey = "doubleTapToExitEnabled"
         const val autoFullScreenKey = "autoFullScreenSwitch"
-        const val alwaysHorizontalKey = "alwaysHorizontalKey"
+        const val alwaysHorizontalKey = "alwaysHorizontal"
         const val scrollSpeedKey = "scrollSpeed"
         const val listFilterKey = "listFilter"
 

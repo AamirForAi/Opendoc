@@ -14,10 +14,9 @@ import kotlin.system.measureTimeMillis
 
 class StorageManager {
 
-    private var filesMap = sortedMapOf<String, File>()
-
     suspend fun scanPdfFilesWithHash(activity: Activity): SortedMap<String, File> {
         return withContext(Dispatchers.IO) {
+            val filesMap = sortedMapOf<String, File>()
             val time = measureTimeMillis {
                 readAllFiles()
                     .filter { file -> file.extension == PDF_EXTENSION }
@@ -29,7 +28,6 @@ class StorageManager {
                     }
             }
             Log.d(TAG, "scanPdfFilesWithHash: timeElapsed: ${time / 1000F}s")
-            printFilesMap()
             return@withContext filesMap
         }
     }
@@ -42,16 +40,6 @@ class StorageManager {
                 && file != DATA_DIR                        // it is not data directory
                 && !File(file, ".nomedia").exists()   // there is no .nomedia file inside
             }
-    }
-
-    private fun printFilesMap() {
-        Log.d(
-            TAG,
-            "scanPdfFilesWithHash pairs: ${filesMap
-                .map { " \"${it.key}\" to \"${it.value}\"" }
-                .joinToString(", \n")
-            }"
-        )
     }
 
     companion object {

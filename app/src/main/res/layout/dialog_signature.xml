@@ -29,59 +29,88 @@
         android:gravity="center"
         android:orientation="horizontal">
 
-        <com.google.android.material.card.MaterialCardView
+        <FrameLayout
             android:id="@+id/signatureColorBlackButton"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="12dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:clickable="true"
             android:contentDescription="@string/signature_color_black"
-            android:focusable="true"
-            app:cardBackgroundColor="#1A1A1A"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="0dp"
-            app:strokeColor="?attr/colorOutline"
-            app:strokeWidth="1dp" />
+            android:focusable="true">
 
-        <com.google.android.material.card.MaterialCardView
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/signatureColorBlackSwatch"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                app:cardBackgroundColor="#1A1A1A"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp" />
+        </FrameLayout>
+
+        <FrameLayout
             android:id="@+id/signatureColorBlueButton"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="12dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:clickable="true"
             android:contentDescription="@string/signature_color_blue"
-            android:focusable="true"
-            app:cardBackgroundColor="#1E4FC2"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="0dp"
-            app:strokeColor="?attr/colorOutline"
-            app:strokeWidth="1dp" />
+            android:focusable="true">
 
-        <com.google.android.material.card.MaterialCardView
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/signatureColorBlueSwatch"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                app:cardBackgroundColor="#1E4FC2"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp" />
+        </FrameLayout>
+
+        <FrameLayout
             android:id="@+id/signatureColorRedButton"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="12dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:clickable="true"
             android:contentDescription="@string/signature_color_red"
-            android:focusable="true"
-            app:cardBackgroundColor="#C62828"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="0dp"
-            app:strokeColor="?attr/colorOutline"
-            app:strokeWidth="1dp" />
+            android:focusable="true">
 
-        <com.google.android.material.card.MaterialCardView
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/signatureColorRedSwatch"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                app:cardBackgroundColor="#C62828"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp" />
+        </FrameLayout>
+
+        <FrameLayout
             android:id="@+id/signatureColorGreenButton"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:clickable="true"
             android:contentDescription="@string/signature_color_green"
-            android:focusable="true"
-            app:cardBackgroundColor="#2E7D32"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="0dp"
-            app:strokeColor="?attr/colorOutline"
-            app:strokeWidth="1dp" />
+            android:focusable="true">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/signatureColorGreenSwatch"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                app:cardBackgroundColor="#2E7D32"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp" />
+        </FrameLayout>
     </LinearLayout>
 </LinearLayout>

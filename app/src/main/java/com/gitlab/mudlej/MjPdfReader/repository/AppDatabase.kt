@@ -52,6 +52,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import com.gitlab.mudlej.MjPdfReader.util.DataConverter
+import java.io.File
 
 @Database(
     entities = [PdfRecord::class, PdfAnnotationSaveDestination::class],
@@ -73,17 +74,48 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun pdfAnnotationSaveDestinationDao(): PdfAnnotationSaveDestinationDao
 
     companion object {
+        @Volatile
         private var INSTANCE: AppDatabase? = null
         private const val DATABASE_NAME = "app-db.db"
+
         fun getInstance(context: Context): AppDatabase {
-            if (INSTANCE != null) {
-                return INSTANCE as AppDatabase
+            INSTANCE?.let { return it }
+            synchronized(this) {
+                INSTANCE?.let { return it }
+                moveDatabaseOutOfCacheDir(context)
+                val created = Room.databaseBuilder(context, AppDatabase::class.java, DATABASE_NAME)
+                    .addMigrations(AppDatabaseMigrations.MIGRATION_7_TO_8)
+                    .build()
+                INSTANCE = created
+                return created
             }
-            val location = context.cacheDir.absolutePath + "/" + DATABASE_NAME
-            INSTANCE = Room.databaseBuilder(context, AppDatabase::class.java, location)
-                .addMigrations(AppDatabaseMigrations.MIGRATION_7_TO_8)
-                .build()
-            return INSTANCE as AppDatabase
+        }
+
+        private fun moveDatabaseOutOfCacheDir(context: Context) {
+            val newDbFile = context.getDatabasePath(DATABASE_NAME)
+            val newDbDir = newDbFile.parentFile ?: return
+            val oldDbFile = File(context.cacheDir, DATABASE_NAME)
+            if (!oldDbFile.exists() || newDbFile.exists()) {
+                return
+            }
+
+            val copied = runCatching {
+                newDbDir.mkdirs()
+                for (suffix in listOf("-wal", "-shm", "")) {
+                    val oldFile = File(context.cacheDir, DATABASE_NAME + suffix)
+                    if (oldFile.exists()) {
+                        oldFile.copyTo(File(newDbDir, DATABASE_NAME + suffix), overwrite = true)
+                    }
+                }
+            }.isSuccess
+
+            for (suffix in listOf("", "-wal", "-shm")) {
+                if (copied) {
+                    File(context.cacheDir, DATABASE_NAME + suffix).delete()
+                } else {
+                    File(newDbDir, DATABASE_NAME + suffix).delete()
+                }
+            }
         }
     }
 

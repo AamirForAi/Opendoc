@@ -31,6 +31,7 @@ class AnnotationSaveController(
     private val pdf: PDF,
     private val annotationController: AnnotationController,
     private val databaseManager: DatabaseManager,
+    private val session: DocumentSession,
     private val scope: CoroutineScope,
     private val updateDestinationLauncher: ActivityResultLauncher<Intent>,
     private val createDestinationLauncher: ActivityResultLauncher<Intent>,
@@ -201,6 +202,7 @@ class AnnotationSaveController(
         clearActiveSearchResultHighlight()
         annotationController.setSaving(true)
         updateDirtyUi()
+        val loadToken = session.currentLoadToken
 
         scope.launch {
             val oldHash = pdf.fileHash
@@ -216,10 +218,13 @@ class AnnotationSaveController(
 
             val destinationName = getFileName(activity, destinationUri)
             val newHash = saveResult.hash
-            pdf.uri = destinationUri
-            pdf.name = destinationName
-            pdf.fileHash = newHash
-            PdfBytesHolder.set(destinationUri.toString(), saveResult.bytes)
+            val isCurrent = session.isCurrent(loadToken, sourceUri)
+            if (isCurrent) {
+                pdf.uri = destinationUri
+                pdf.name = destinationName
+                pdf.fileHash = newHash
+                PdfBytesHolder.set(destinationUri.toString(), saveResult.bytes)
+            }
 
             if (oldHash != null) {
                 databaseManager.copyOrUpdateRecordIdentity(
@@ -229,7 +234,7 @@ class AnnotationSaveController(
                     destinationUri,
                     destinationName.removeSuffix(".pdf"),
                 )
-            } else {
+            } else if (isCurrent) {
                 databaseManager.saveRecordInBackground(PdfRecord.from(newHash, pdf, pdf.password))
             }
             if (saveDestinationDurably) {
@@ -244,9 +249,13 @@ class AnnotationSaveController(
             }
 
             annotationController.clearJournal(sourceUri)
-            annotationController.setCurrentSaveDestination(destinationUri, durable = saveDestinationDurably)
             annotationController.setSaving(false)
             updateDirtyUi()
+            if (!isCurrent) {
+                pendingPostSaveAction = null
+                return@launch
+            }
+            annotationController.setCurrentSaveDestination(destinationUri, durable = saveDestinationDurably)
             onDocumentSaved()
             activity.setTaskDescription(ActivityManager.TaskDescription(pdf.name))
             Snackbar.make(binding.root, R.string.highlights_saved, Snackbar.LENGTH_SHORT).show()

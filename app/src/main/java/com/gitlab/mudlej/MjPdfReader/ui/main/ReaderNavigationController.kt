@@ -24,6 +24,9 @@ class ReaderNavigationController(
     private val binding: ActivityMainBinding,
     private val pdf: PDF,
     private val updateAppTitle: () -> Unit,
+    private val launchBookmarks: (Intent) -> Unit,
+    private val launchLinks: (Intent) -> Unit,
+    private val launchSearch: (Intent) -> Unit,
 ) {
 
     private val searchResultsSnackbar = JumpBackSnackbar(binding.root)
@@ -38,7 +41,7 @@ class ReaderNavigationController(
         Intent(activity, LinksActivity::class.java).also { linksIntent ->
             linksIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
             linksIntent.putExtra(PDF.passwordKey, pdf.password)
-            activity.startActivityForResult(linksIntent, PDF.startLinksActivity)
+            launchLinks(linksIntent)
         }
     }
 
@@ -47,7 +50,7 @@ class ReaderNavigationController(
             bookmarkIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
             bookmarkIntent.putExtra(PDF.passwordKey, pdf.password)
             bookmarkState.putInto(bookmarkIntent)
-            activity.startActivityForResult(bookmarkIntent, PDF.startBookmarksActivity)
+            launchBookmarks(bookmarkIntent)
         }
     }
 
@@ -80,38 +83,35 @@ class ReaderNavigationController(
         bookmarkState = BookmarkState.from(savedState)
     }
 
-    fun handleActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
-        when (requestCode) {
-            PDF.startBookmarksActivity -> {
-                saveBookmarkState(intent)
-                if (resultCode == PDF.BOOKMARK_RESULT_OK) {
-                    val pageIndex = intent?.getIntExtra(PDF.chosenBookmarkKey, pdf.pageNumber) ?: return
-                    binding.pdfView.jumpTo(pageIndex)
-                    showBookmarkNavigationSnackbar()
-                }
-            }
-            PDF.startTextActivity -> {
-                if (resultCode == Activity.RESULT_OK) {
-                    val pageIndex = intent?.getIntExtra(PDF.pageNumberKey, pdf.pageNumber) ?: return
-                    val pageCount = binding.pdfView.pageCount
-                    val boundedPageIndex = if (pageCount > 0) pageIndex.coerceIn(0, pageCount - 1) else pageIndex.coerceAtLeast(0)
-                    pdf.pageNumber = boundedPageIndex
-                    updateAppTitle()
-                    binding.pdfView.jumpTo(boundedPageIndex)
-                }
-            }
-            PDF.startLinksActivity -> {
-                if (resultCode == PDF.LINK_RESULT_OK) {
-                    val pageNumber = intent?.getIntExtra(PDF.linkResultKey, pdf.pageNumber) ?: return
-                    val pageIndex = pageNumber - 1
-                    binding.pdfView.jumpTo(pageIndex)
-                }
-            }
-            PDF.startSearchActivity -> handleSearchResult(resultCode, intent)
+    fun handleBookmarksResult(resultCode: Int, intent: Intent?) {
+        saveBookmarkState(intent)
+        if (resultCode == PDF.BOOKMARK_RESULT_OK) {
+            val pageIndex = intent?.getIntExtra(PDF.chosenBookmarkKey, pdf.pageNumber) ?: return
+            binding.pdfView.jumpTo(pageIndex)
+            showBookmarkNavigationSnackbar()
         }
     }
 
-    private fun handleSearchResult(resultCode: Int, intent: Intent?) {
+    fun handleTextModeResult(resultCode: Int, intent: Intent?) {
+        if (resultCode == Activity.RESULT_OK) {
+            val pageIndex = intent?.getIntExtra(PDF.pageNumberKey, pdf.pageNumber) ?: return
+            val pageCount = binding.pdfView.pageCount
+            val boundedPageIndex = if (pageCount > 0) pageIndex.coerceIn(0, pageCount - 1) else pageIndex.coerceAtLeast(0)
+            pdf.pageNumber = boundedPageIndex
+            updateAppTitle()
+            binding.pdfView.jumpTo(boundedPageIndex)
+        }
+    }
+
+    fun handleLinksResult(resultCode: Int, intent: Intent?) {
+        if (resultCode == PDF.LINK_RESULT_OK) {
+            val pageNumber = intent?.getIntExtra(PDF.linkResultKey, pdf.pageNumber) ?: return
+            val pageIndex = pageNumber - 1
+            binding.pdfView.jumpTo(pageIndex)
+        }
+    }
+
+    fun handleSearchResult(resultCode: Int, intent: Intent?) {
         if (resultCode == PDF.SEARCH_RESULT_OK) {
             val searchResultJson = intent?.getStringExtra(PDF.searchResultKey) ?: return
             val searchResultType = object : TypeToken<SearchResult>() {}.type
@@ -150,7 +150,7 @@ class ReaderNavigationController(
                     pdf.fileHash?.let { searchIntent.putExtra(PDF.fileHashKey, it) }
                     pdf.lastQuery?.let { searchIntent.putExtra(PDF.searchQueryKey, it.trim()) }
                     searchIntent.putExtra(PDF.resultPositionInListKey, searchResult.searchResultIndexInList)
-                    activity.startActivityForResult(searchIntent, PDF.startSearchActivity)
+                    launchSearch(searchIntent)
                 }
             }
 

@@ -11,6 +11,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.core.view.doOnNextLayout
@@ -66,6 +67,17 @@ class TextModeActivity : AppCompatActivity() {
     private var settings = TextModeSettings()
     private var bookmarkState = BookmarkState()
     private var savedPageIndex = -1
+
+    private val bookmarksLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        result.data?.let { bookmarkState = BookmarkState.from(it) }
+        if (result.resultCode == PDF.BOOKMARK_RESULT_OK) {
+            val pageIndex = result.data?.getIntExtra(PDF.chosenBookmarkKey, currentPageIndex)
+                ?: return@registerForActivityResult
+            scrollToPage(pageIndex)
+        }
+    }
 
     private val extractionMutex = Mutex()
     private val extractionJobs = Collections.synchronizedSet(mutableSetOf<Job>())
@@ -609,18 +621,7 @@ class TextModeActivity : AppCompatActivity() {
             bookmarkIntent.putExtra(PDF.filePathKey, pdfUri.toString())
             bookmarkIntent.putExtra(PDF.passwordKey, pdfPassword)
             bookmarkState.putInto(bookmarkIntent)
-            startActivityForResult(bookmarkIntent, PDF.startBookmarksActivity)
-        }
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == PDF.startBookmarksActivity) {
-            data?.let { bookmarkState = BookmarkState.from(it) }
-            if (resultCode == PDF.BOOKMARK_RESULT_OK) {
-                val pageIndex = data?.getIntExtra(PDF.chosenBookmarkKey, currentPageIndex) ?: return
-                scrollToPage(pageIndex)
-            }
+            bookmarksLauncher.launch(bookmarkIntent)
         }
     }
 

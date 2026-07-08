@@ -100,9 +100,20 @@ class CacheManager {
     }
 
     private void removeSnapshot(PagePart snapshot) {
-        if (activeCache.remove(snapshot) || passiveCache.remove(snapshot)) {
+        if (removeByIdentity(activeCache, snapshot) || removeByIdentity(passiveCache, snapshot)) {
             recycleBitmap(snapshot);
         }
+    }
+
+    private static boolean removeByIdentity(PriorityQueue<PagePart> queue, PagePart part) {
+        Iterator<PagePart> iterator = queue.iterator();
+        while (iterator.hasNext()) {
+            if (iterator.next() == part) {
+                iterator.remove();
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void collectSnapshots(Collection<PagePart> parts, List<PagePart> into) {
@@ -185,13 +196,13 @@ class CacheManager {
 
     public void cacheThumbnail(PagePart part) {
         synchronized (thumbnails) {
+            // Add thumbnail first so a duplicate doesn't evict a live one
+            addWithoutDuplicates(thumbnails, part);
+
             // If cache too big, remove and recycle
-            while (thumbnails.size() >= THUMBNAILS_CACHE_SIZE) {
+            while (thumbnails.size() > THUMBNAILS_CACHE_SIZE) {
                 recycleBitmap(thumbnails.remove(0));
             }
-
-            // Then add thumbnail
-            addWithoutDuplicates(thumbnails, part);
         }
 
     }
@@ -278,6 +289,7 @@ class CacheManager {
     }
 
     public void recycle() {
+        scaling = false;
         synchronized (passiveActiveLock) {
             for (PagePart part : passiveCache) {
                 recycleBitmap(part);

@@ -149,6 +149,7 @@ class MainActivity : AppCompatActivity() {
             this,
             binding,
             pdf,
+            lifecycleScope,
             { launchers.saveToDownloadPermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE) },
             { bytes -> documentLoadController.initPdfViewAndLoad(binding.pdfView.fromBytes(bytes)) },
             { uri -> runAfterDirtyAnnotationPrompt { displayFromUri(uri, savePassword = true) } },
@@ -167,15 +168,33 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pref: Preferences
     private val pdf = PDF()
     private val session = DocumentSession(pdf) { annotationController.acceptsDocumentUri(it) }
-    private val readerNavigationController by lazy {
-        ReaderNavigationController(this, binding, pdf, ::updateAppTitle)
+    private val readerNavigationController: ReaderNavigationController by lazy {
+        ReaderNavigationController(
+            this,
+            binding,
+            pdf,
+            ::updateAppTitle,
+            { intent -> bookmarksLauncher.launch(intent) },
+            { intent -> linksLauncher.launch(intent) },
+            { intent -> searchLauncher.launch(intent) },
+        )
     }
     private val readerMenu by lazy {
         ReaderMenu(this, actionResolver, ::hasFile) { toggleSecondBar() }
     }
     private val pageTextCopier by lazy { PageTextCopier(this, binding, pdf, lifecycleScope) }
+    private val readingDirectionResolver by lazy { ReadingDirectionResolver(this, pdf, pref, databaseManager) }
     private val readingDirectionController by lazy {
-        ReadingDirectionController(this, pdf, session, pref, databaseManager, lifecycleScope, documentLoadController)
+        ReadingDirectionController(
+            this,
+            pdf,
+            session,
+            pref,
+            databaseManager,
+            lifecycleScope,
+            readingDirectionResolver,
+            documentLoadController,
+        )
     }
     private val documentLoadController by lazy {
         DocumentLoadController(
@@ -185,6 +204,7 @@ class MainActivity : AppCompatActivity() {
             session,
             pref,
             databaseManager,
+            readingDirectionResolver,
             lifecycleScope,
             annotationSaveController,
             cropMarginsController,
@@ -232,6 +252,26 @@ class MainActivity : AppCompatActivity() {
         } else {
             annotationSaveController.clearPendingRequests()
         }
+    }
+
+    private val bookmarksLauncher = registerForActivityResult(StartActivityForResult()) { result ->
+        hideProgressBar()
+        readerNavigationController.handleBookmarksResult(result.resultCode, result.data)
+    }
+
+    private val linksLauncher = registerForActivityResult(StartActivityForResult()) { result ->
+        hideProgressBar()
+        readerNavigationController.handleLinksResult(result.resultCode, result.data)
+    }
+
+    private val searchLauncher = registerForActivityResult(StartActivityForResult()) { result ->
+        hideProgressBar()
+        readerNavigationController.handleSearchResult(result.resultCode, result.data)
+    }
+
+    private val textModeLauncher = registerForActivityResult(StartActivityForResult()) { result ->
+        hideProgressBar()
+        readerNavigationController.handleTextModeResult(result.resultCode, result.data)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -311,6 +351,7 @@ class MainActivity : AppCompatActivity() {
             pdf,
             annotationController,
             databaseManager,
+            session,
             lifecycleScope,
             updateAnnotationDestinationLauncher,
             createAnnotationDestinationLauncher,
@@ -543,7 +584,7 @@ class MainActivity : AppCompatActivity() {
             reload = ::reloadPdf,
             openLocal = ::pickFile,
             openOnline = ::showOpenOnlinePdfDialog,
-            search = { showSearchDialog(this, pdf) },
+            search = { showSearchDialog(this, pdf) { intent -> searchLauncher.launch(intent) } },
             goToPage = ::goToPage,
             extractText = ::copyPageText,
             textMode = ::navToTextMode,
@@ -875,10 +916,6 @@ class MainActivity : AppCompatActivity() {
         binding.progressBar.progress = 0
     }
 
-    fun saveToFileAndDisplay(pdfFileContent: ByteArray?) {
-        onlinePdfController.saveToFileAndDisplay(pdfFileContent)
-    }
-
     private fun navToAppSettings() {
         launchers.settings.launch(Intent(this, SettingsActivity::class.java))
     }
@@ -897,7 +934,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun showAppFeaturesDialogOnFirstRun() {
         if (pref.getShowFeaturesDialog()) {
-            Handler(mainLooper).postDelayed({ showAppFeaturesDialog(this) }, 500)
+            lifecycleScope.launch {
+                delay(500)
+                if (!isFinishing) {
+                    showAppFeaturesDialog(this@MainActivity)
+                }
+            }
             pref.setShowFeaturesDialog(false)
         }
     }
@@ -978,7 +1020,7 @@ class MainActivity : AppCompatActivity() {
             it.putExtra(PDF.passwordKey, pdf.password)
             it.putExtra(PDF.pageNumberKey, currentPageIndex)
             pdf.fileHash?.let { fileHash -> it.putExtra(PDF.fileHashKey, fileHash) }
-            startActivityForResult(it, PDF.startTextActivity)
+            textModeLauncher.launch(it)
         }
     }
 
@@ -1109,12 +1151,6 @@ class MainActivity : AppCompatActivity() {
         }
         signatureController.restoreState(savedState)
         updateAnnotationDirtyUi()
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
-        super.onActivityResult(requestCode, resultCode, intent)
-        hideProgressBar()
-        readerNavigationController.handleActivityResult(requestCode, resultCode, intent)
     }
 
 

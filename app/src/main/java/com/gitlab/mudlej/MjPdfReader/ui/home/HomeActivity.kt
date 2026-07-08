@@ -2,7 +2,6 @@ package com.gitlab.mudlej.MjPdfReader.ui.home
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -120,16 +119,14 @@ class HomeActivity : AppCompatActivity(), RecordFunctions {
 
     private fun filterRecordsList(listFilter: ListFilter, filter: (PdfRecord) -> Boolean) {
         val title = listFilter.name.formatEnumToTitle()
-        lifecycleScope.launch(Dispatchers.IO) {
-            records = findAllRecords()
-                .filter(filter)
-                .sortedByDescending { record -> record.lastOpened }
-
-            Log.d("HomeActivity", "onCreate: PDFs: $records")
-            recordAdapter.submitList(records)
-            withContext(Dispatchers.Main) {
-                postSetFilter(title)
+        lifecycleScope.launch {
+            records = withContext(Dispatchers.IO) {
+                findAllRecords()
+                    .filter(filter)
+                    .sortedByDescending { record -> record.lastOpened }
             }
+            recordAdapter.submitList(records)
+            postSetFilter(title)
         }
     }
 
@@ -170,7 +167,11 @@ class HomeActivity : AppCompatActivity(), RecordFunctions {
             ): Boolean = false
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val record = recordAdapter.currentList[viewHolder.adapterPosition] ?: return
+                val position = viewHolder.bindingAdapterPosition
+                if (position == RecyclerView.NO_POSITION) {
+                    return
+                }
+                val record = recordAdapter.currentList.getOrNull(position) ?: return
                 onPdfRecordSwiped(record)
             }
         }).attachToRecyclerView(binding.recordRecyclerView)
@@ -181,11 +182,9 @@ class HomeActivity : AppCompatActivity(), RecordFunctions {
             .setTitle(getString(R.string.delete_dialog_title))
             .setMessage(getString(R.string.delete_dialog_message))
             .setPositiveButton(getString(R.string.delete)) { _, _ ->
-                lifecycleScope.launchWhenStarted {
+                lifecycleScope.launch {
                     databaseManager.removeRecord(record)
-                    withContext(Dispatchers.Main) {
-                        initRecordList()
-                    }
+                    initRecordList()
                 }
             }
             .setNegativeButton(getString(R.string.cancel)) { _, _ ->
@@ -292,14 +291,12 @@ class HomeActivity : AppCompatActivity(), RecordFunctions {
 
             favorite.setOnClickListener {
                 val newFavorite = !record.favorite
-                lifecycleScope.launchWhenStarted {
+                lifecycleScope.launch {
                     databaseManager.setFavorite(record.hash, newFavorite)
-                    withContext(Dispatchers.Main) {
-                        setFavorite(aboutView, newFavorite)
-                        record.favorite = newFavorite
-                    }
+                    setFavorite(aboutView, newFavorite)
+                    record.favorite = newFavorite
+                    initRecordList()
                 }
-                initRecordList()
             }
 
             val statusAdapter =  ArrayAdapter(
@@ -312,8 +309,8 @@ class HomeActivity : AppCompatActivity(), RecordFunctions {
             statusSpinner.setSelection(statusAdapter.getPosition(record.reading.name.formatEnumToTitle()))
             statusSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                    lifecycleScope.launchWhenStarted {
-                        val choice = statusAdapter.getItem(position)?.formatTitleToEnum() ?: return@launchWhenStarted
+                    lifecycleScope.launch {
+                        val choice = statusAdapter.getItem(position)?.formatTitleToEnum() ?: return@launch
                         databaseManager.setReading(record.hash, ReadingStatus.valueOf(choice))
                         initRecordList()
                     }
