@@ -37,6 +37,7 @@ class AnnotationSaveController(
     private val createDestinationLauncher: ActivityResultLauncher<Intent>,
     private val clearActiveSearchResultHighlight: () -> Unit,
     private val updateDirtyUi: () -> Unit,
+    private val beforeSave: () -> Boolean,
     private val onDocumentSaved: () -> Unit,
 ) {
     private data class SaveBytes(val bytes: ByteArray, val hash: String)
@@ -46,6 +47,9 @@ class AnnotationSaveController(
 
     fun saveHighlights(postSaveAction: (() -> Unit)? = null) {
         if (!annotationController.hasUnsavedAnnotations || annotationController.isSaving) {
+            return
+        }
+        if (!beforeSave()) {
             return
         }
         pendingPostSaveAction = postSaveAction

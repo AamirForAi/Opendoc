@@ -203,6 +203,11 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             return true;
         }
 
+        StampPlacementManager stampPlacementManager = pdfView.getStampPlacementManager();
+        if (stampPlacementManager != null && stampPlacementManager.isDragging()) {
+            return true;
+        }
+
         scrolling = true;
         if (pdfView.isZooming() || pdfView.isSwipeEnabled()) {
             if (pdfView.isHorizontalSwipeDisabled()) distanceX = 0;
@@ -352,6 +357,11 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             animationManager.stopFling();
         }
         if (textSelectionManager != null && textSelectionManager.handleTouch(event)) {
+            return true;
+        }
+
+        StampPlacementManager stampPlacementManager = pdfView.getStampPlacementManager();
+        if (stampPlacementManager != null && stampPlacementManager.handleTouch(event)) {
             return true;
         }
 

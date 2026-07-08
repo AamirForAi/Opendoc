@@ -346,6 +346,20 @@
         app:srcCompat="@drawable/ic_save"
         app:tint="?attr/colorOnPrimaryContainer" />
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/cancelSignatureFab"
+        style="@style/Widget.Material3.FloatingActionButton.Small.Primary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:contentDescription="@string/signature_cancel_placement"
+        android:visibility="gone"
+        app:backgroundTint="?attr/colorErrorContainer"
+        app:layout_constraintBottom_toTopOf="@id/unsavedHighlightsChip"
+        app:layout_constraintEnd_toEndOf="@id/saveAnnotationsFab"
+        app:srcCompat="@drawable/close_icon"
+        app:tint="?attr/colorOnErrorContainer" />
+
     <View
         android:id="@+id/appBarBottomShadow"
         android:layout_width="match_parent"

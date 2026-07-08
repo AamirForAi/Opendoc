@@ -1404,6 +1404,109 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
     return success;
 }
 
+JNI_FUNC(jboolean, PdfiumCore, nativeCreateStampAnnotation)(JNI_ARGS,
+    jlong docPtr,
+    jlong pagePtr,
+    jfloat left,
+    jfloat top,
+    jfloat right,
+    jfloat bottom,
+    jobjectArray strokes,
+    jint red,
+    jint green,
+    jint blue,
+    jfloat strokeWidth
+) {
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (doc == NULL || page == NULL || strokes == NULL || strokeWidth <= 0) {
+        return false;
+    }
+    if (!FPDFAnnot_IsSupportedSubtype(FPDF_ANNOT_STAMP)) {
+        return false;
+    }
+
+    jsize strokeCount = env->GetArrayLength(strokes);
+    if (strokeCount <= 0) {
+        return false;
+    }
+
+    FS_RECTF rect;
+    rect.left = fmin(left, right);
+    rect.right = fmax(left, right);
+    rect.top = fmax(top, bottom);
+    rect.bottom = fmin(top, bottom);
+    if (rect.right <= rect.left || rect.top <= rect.bottom) {
+        return false;
+    }
+
+    FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_STAMP);
+    if (annot == NULL) {
+        return false;
+    }
+
+    bool success = FPDFAnnot_SetRect(annot, &rect);
+
+    for (jsize i = 0; success && i < strokeCount; i++) {
+        jfloatArray strokeArray = static_cast<jfloatArray>(env->GetObjectArrayElement(strokes, i));
+        if (strokeArray == NULL) {
+            success = false;
+            break;
+        }
+        jsize length = env->GetArrayLength(strokeArray);
+        if (length < 2 || (length - 2) % 6 != 0) {
+            env->DeleteLocalRef(strokeArray);
+            success = false;
+            break;
+        }
+        std::vector<jfloat> values(length);
+        env->GetFloatArrayRegion(strokeArray, 0, length, values.data());
+        env->DeleteLocalRef(strokeArray);
+        if (env->ExceptionCheck()) {
+            success = false;
+            break;
+        }
+
+        FPDF_PAGEOBJECT path = FPDFPageObj_CreateNewPath(values[0], values[1]);
+        if (path == NULL) {
+            success = false;
+            break;
+        }
+        bool pathSuccess = true;
+        for (jsize k = 2; k + 5 < length; k += 6) {
+            if (!FPDFPath_BezierTo(path, values[k], values[k + 1], values[k + 2],
+                                   values[k + 3], values[k + 4], values[k + 5])) {
+                pathSuccess = false;
+                break;
+            }
+        }
+        pathSuccess = pathSuccess
+                && FPDFPath_SetDrawMode(path, 0, true)
+                && FPDFPageObj_SetStrokeColor(path, red, green, blue, 255)
+                && FPDFPageObj_SetStrokeWidth(path, strokeWidth)
+                && FPDFPageObj_SetLineCap(path, FPDF_LINECAP_ROUND)
+                && FPDFPageObj_SetLineJoin(path, FPDF_LINEJOIN_ROUND);
+        if (!pathSuccess || !FPDFAnnot_AppendObject(annot, path)) {
+            FPDFPageObj_Destroy(path);
+            success = false;
+            break;
+        }
+    }
+
+    std::string name = makeAnnotName();
+    success = success
+            && FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT)
+            && setAnnotAsciiString(annot, "T", "MJ PDF")
+            && setAnnotAsciiString(annot, "NM", name.c_str());
+
+    int annotIndex = FPDFPage_GetAnnotIndex(page, annot);
+    FPDFPage_CloseAnnot(annot);
+    if (!success && annotIndex >= 0) {
+        FPDFPage_RemoveAnnot(page, annotIndex);
+    }
+    return success;
+}
+
 JNI_FUNC(jobjectArray, PdfiumCore, nativeGetHighlightAnnotations)(JNI_ARGS,
     jlong pagePtr
 ) {

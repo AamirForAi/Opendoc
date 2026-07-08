@@ -35,7 +35,8 @@ enum class ConfigurableAction(
     ABOUT("about", R.string.action_about, R.drawable.info_icon),
     TABLE_OF_CONTENTS("table_of_contents", R.string.table_of_contents, R.drawable.ic_book_bookmark),
     LINKS_IN_FILE("links_in_file", R.string.links_in_file, R.drawable.ic_links_in_file),
-    PRINT("print", R.string.print_file, R.drawable.ic_print);
+    PRINT("print", R.string.print_file, R.drawable.ic_print),
+    ADD_SIGNATURE("add_signature", R.string.add_signature, R.drawable.ic_signature);
 
     companion object {
         val toolbarActions = listOf(
@@ -61,6 +62,7 @@ enum class ConfigurableAction(
             TABLE_OF_CONTENTS,
             LINKS_IN_FILE,
             PRINT,
+            ADD_SIGNATURE,
         )
 
         val fullScreenOverlayActions = listOf(
@@ -104,6 +106,7 @@ enum class ConfigurableAction(
             TABLE_OF_CONTENTS,
             LINKS_IN_FILE,
             PRINT,
+            ADD_SIGNATURE,
         )
 
         val defaultShortcutBarSelectedActions = listOf(

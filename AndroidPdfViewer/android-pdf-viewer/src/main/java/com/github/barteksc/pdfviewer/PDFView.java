@@ -256,6 +256,8 @@ public class PDFView extends RelativeLayout {
 
     private TextSelectionManager textSelectionManager;
 
+    private StampPlacementManager stampPlacementManager;
+
     PdfFile pdfFile;
 
     /**
@@ -457,6 +459,7 @@ public class PDFView extends RelativeLayout {
         cacheManager = new CacheManager();
         animationManager = new AnimationManager(this);
         textSelectionManager = new TextSelectionManager(this);
+        stampPlacementManager = new StampPlacementManager(this);
         dragPinchManager = new DragPinchManager(this, animationManager);
         pagesLoader = new PagesLoader(this);
 
@@ -710,6 +713,9 @@ public class PDFView extends RelativeLayout {
         if (textSelectionManager != null) {
             textSelectionManager.recycle();
         }
+        if (stampPlacementManager != null) {
+            stampPlacementManager.recycle();
+        }
         selectedHighlightAnnotation = null;
 
         if (pdfFile != null) {
@@ -938,6 +944,10 @@ public class PDFView extends RelativeLayout {
 
         if (textSelectionManager != null) {
             textSelectionManager.draw(canvas);
+        }
+
+        if (stampPlacementManager != null) {
+            stampPlacementManager.draw(canvas);
         }
 
         canvas.translate(-currentXOffset, -currentYOffset);
@@ -1653,6 +1663,14 @@ public class PDFView extends RelativeLayout {
         return textSelectionManager;
     }
 
+    StampPlacementManager getStampPlacementManager() {
+        return stampPlacementManager;
+    }
+
+    boolean isNightModeEnabled() {
+        return nightMode;
+    }
+
     boolean startTextSelectionAt(float viewX, float viewY) {
         return textSelectionManager != null && textSelectionManager.startWordSelectionAt(viewX, viewY);
     }
@@ -1733,6 +1751,127 @@ public class PDFView extends RelativeLayout {
             return created;
         } catch (Throwable throwable) {
             Log.e(TAG, "addHighlightAnnotation: failed to create highlight", throwable);
+            return false;
+        }
+    }
+
+    public static class PendingStamp {
+        public final int pageIndex;
+        public final RectF pdfRect;
+        public final float[][] strokes;
+        public final int color;
+        public final float normalizedStrokeWidth;
+
+        PendingStamp(int pageIndex, RectF pdfRect, float[][] strokes, int color, float normalizedStrokeWidth) {
+            this.pageIndex = pageIndex;
+            this.pdfRect = pdfRect;
+            this.strokes = strokes;
+            this.color = color;
+            this.normalizedStrokeWidth = normalizedStrokeWidth;
+        }
+    }
+
+    public void startStampPlacement(int pageIndex, RectF pdfRect, float[][] strokes, int color,
+                                    float normalizedStrokeWidth) {
+        if (stampPlacementManager == null) {
+            return;
+        }
+        stampPlacementManager.start(pageIndex, pdfRect, strokes, color, normalizedStrokeWidth);
+        invalidate();
+    }
+
+    public boolean startStampPlacementAtViewCenter(float[][] strokes, int color,
+                                                   float normalizedStrokeWidth, float aspect,
+                                                   float pageWidthFraction) {
+        if (stampPlacementManager == null || pdfFile == null || aspect <= 0 || pageWidthFraction <= 0) {
+            return false;
+        }
+        float docX = -currentXOffset + getWidth() / 2f;
+        float docY = -currentYOffset + getHeight() / 2f;
+        int page = pdfFile.getPageAtOffset(isSwipeVertical() ? docY : docX, zoom);
+        if (page < 0 || page >= pdfFile.getPagesCount()) {
+            return false;
+        }
+        PointF center = pdfFile.documentToPdf(page, zoom, docX, docY);
+        if (center == null) {
+            return false;
+        }
+        SizeF pageSize = pdfFile.getPagePointSize(page);
+        float pageWidth = pageSize.getWidth();
+        float pageHeight = pageSize.getHeight();
+        if (pageWidth <= 0 || pageHeight <= 0) {
+            return false;
+        }
+        float width = pageWidthFraction * pageWidth;
+        float height = width * aspect;
+        if (height > pageHeight) {
+            height = pageHeight;
+            width = height / aspect;
+        }
+        float left = center.x - width / 2f;
+        float bottom = center.y - height / 2f;
+        left = Math.max(0, Math.min(left, pageWidth - width));
+        bottom = Math.max(0, Math.min(bottom, pageHeight - height));
+        RectF rect = new RectF(left, bottom + height, left + width, bottom);
+        startStampPlacement(page, rect, strokes, color, normalizedStrokeWidth);
+        return true;
+    }
+
+    public void cancelStampPlacement() {
+        if (stampPlacementManager == null) {
+            return;
+        }
+        stampPlacementManager.cancel();
+        invalidate();
+    }
+
+    public boolean hasPendingStampPlacement() {
+        return stampPlacementManager != null && stampPlacementManager.hasPending();
+    }
+
+    public PendingStamp getPendingStampPlacement() {
+        if (stampPlacementManager == null || !stampPlacementManager.hasPending()) {
+            return null;
+        }
+        return new PendingStamp(stampPlacementManager.getPendingPageIndex(),
+                stampPlacementManager.getPendingRect(),
+                stampPlacementManager.getPendingStrokes(),
+                stampPlacementManager.getPendingColor(),
+                stampPlacementManager.getPendingNormalizedStrokeWidth());
+    }
+
+    public boolean commitPendingStampPlacement() {
+        PendingStamp pending = getPendingStampPlacement();
+        if (pending == null) {
+            return false;
+        }
+        boolean added = addStampAnnotation(pending.pageIndex, pending.pdfRect, pending.strokes,
+                pending.color, pending.normalizedStrokeWidth);
+        if (added) {
+            stampPlacementManager.cancel();
+            invalidate();
+        }
+        return added;
+    }
+
+    public boolean addStampAnnotation(int pageIndex, RectF pdfRect, float[][] strokes, int color,
+                                      float normalizedStrokeWidth) {
+        if (pdfFile == null) {
+            return false;
+        }
+        try {
+            boolean created = pdfFile.createStampAnnotation(pageIndex, pdfRect, strokes, color,
+                    normalizedStrokeWidth);
+            if (created) {
+                if (stampPlacementManager != null) {
+                    stampPlacementManager.registerCommitted(pageIndex, pdfRect, strokes, color,
+                            normalizedStrokeWidth);
+                }
+                refreshPage(pageIndex);
+            }
+            return created;
+        } catch (Throwable throwable) {
+            Log.e(TAG, "addStampAnnotation: failed to create stamp", throwable);
             return false;
         }
     }
@@ -2108,7 +2247,7 @@ public class PDFView extends RelativeLayout {
     }
 
     public boolean isAnnotationRendering() {
-        return annotationRendering && !nightMode;
+        return annotationRendering;
     }
 
     public void enableRenderDuringScale(boolean renderDuringScale) {

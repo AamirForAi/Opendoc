@@ -190,6 +190,17 @@
     <string name="highlight_update_failed">Couldn\'t update highlight</string>
     <string name="form_field">Form field</string>
     <string name="form_field_update_failed">Couldn\'t update form field</string>
+    <string name="add_signature">Add signature</string>
+    <string name="signature_dialog_title">Draw your signature</string>
+    <string name="signature_clear">Clear</string>
+    <string name="signature_place">Place</string>
+    <string name="signature_pending_hint">Drag to position, then press save to apply</string>
+    <string name="signature_cancel_placement">Cancel signature placement</string>
+    <string name="signature_color_black">Black ink</string>
+    <string name="signature_color_blue">Blue ink</string>
+    <string name="signature_color_red">Red ink</string>
+    <string name="signature_color_green">Green ink</string>
+    <string name="signature_commit_failed">Couldn\'t add signature</string>
     <string name="increase_text_size">Increase Size</string>
     <string name="decrease_text_size">Decrease Size</string>
     <string name="search_dialog_message">This app tries to extract text from PDF, so it may not be accurate or correct</string>

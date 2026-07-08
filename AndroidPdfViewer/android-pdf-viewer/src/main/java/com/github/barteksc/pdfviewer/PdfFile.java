@@ -178,6 +178,10 @@ class PdfFile {
         return originalFullPagePointSizes.get(pageIndex);
     }
 
+    public SizeF getPagePointSize(int pageIndex) {
+        return getOriginalFullPagePointSize(pageIndex);
+    }
+
     /**
      * Call after view size change to recalculate page sizes, offsets and document length
      *
@@ -570,6 +574,11 @@ class PdfFile {
     }
 
     public RectF pdfRectToDocument(int pageIndex, float zoom, float left, float bottom, float right, float top) {
+        return pdfRectToDocument(pageIndex, zoom, left, bottom, right, top, true);
+    }
+
+    public RectF pdfRectToDocument(int pageIndex, float zoom, float left, float bottom, float right, float top,
+                                   boolean clipToPage) {
         SizeF fullSize = getOriginalFullPagePointSize(pageIndex);
         SizeF renderedSize = getScaledPageSize(pageIndex, zoom);
         if (fullSize.getWidth() <= 0 || fullSize.getHeight() <= 0
@@ -597,6 +606,9 @@ class PdfFile {
                 pageOriginY + localBottom
         );
         rect.sort();
+        if (!clipToPage) {
+            return rect;
+        }
         return clipToPageBounds(rect, pageOriginX, pageOriginY, renderedSize.getWidth(), renderedSize.getHeight());
     }
 
@@ -739,6 +751,34 @@ class PdfFile {
             invalidateHighlightAnnotationCache(pageIndex);
         }
         return created;
+    }
+
+    public boolean createStampAnnotation(int pageIndex, RectF pdfRect, float[][] normalizedStrokes,
+                                         int color, float normalizedStrokeWidth) {
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0 || pdfRect == null || pdfRect.width() <= 0
+                || normalizedStrokes == null || normalizedStrokes.length == 0) {
+            return false;
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return false;
+        }
+        float rectWidth = pdfRect.width();
+        float top = Math.max(pdfRect.top, pdfRect.bottom);
+        float[][] pdfStrokes = new float[normalizedStrokes.length][];
+        for (int i = 0; i < normalizedStrokes.length; i++) {
+            float[] stroke = normalizedStrokes[i];
+            float[] mapped = new float[stroke.length];
+            for (int k = 0; k + 1 < stroke.length; k += 2) {
+                mapped[k] = pdfRect.left + stroke[k] * rectWidth;
+                mapped[k + 1] = top - stroke[k + 1] * rectWidth;
+            }
+            pdfStrokes[i] = mapped;
+        }
+        float strokeWidthPts = normalizedStrokeWidth * rectWidth;
+        return pdfiumCore.createStampAnnotation(pdfDocument, docPage, pdfRect, pdfStrokes, color, strokeWidthPts);
     }
 
     public List<PdfDocument.HighlightAnnotation> getHighlightAnnotations(int pageIndex) {

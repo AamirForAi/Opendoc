@@ -86,6 +86,7 @@ import com.gitlab.mudlej.MjPdfReader.Launchers
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.*
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
+import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
 import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
@@ -168,6 +169,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var annotationController: AnnotationController
     private lateinit var inlineAnnotationActionController: InlineAnnotationActionController
     private lateinit var formFieldController: FormFieldController
+    private lateinit var signatureController: SignatureController
     private lateinit var annotationSaveController: AnnotationSaveController
     private lateinit var pref: Preferences
     private val pdf = PDF()
@@ -277,6 +279,7 @@ class MainActivity : AppCompatActivity() {
             createAnnotationDestinationLauncher,
             ::clearActiveSearchResultHighlight,
             ::updateAnnotationDirtyUi,
+            { signatureController.commitPendingSignature() },
         ) {
             updateAppTitle()
         }
@@ -288,6 +291,14 @@ class MainActivity : AppCompatActivity() {
             ::updateAnnotationSaveUiPosition,
         ) { fullScreenOptionsManager.showAllTemporarilyOrHide() }
         formFieldController = FormFieldController(this, binding, ::onAnnotationEdit)
+        signatureController = SignatureController(
+            this,
+            binding,
+            SignatureStore(this),
+            annotationController,
+            ::onAnnotationEdit,
+            ::updateAnnotationDirtyUi,
+        )
         permissionManager = PermissionManager(this)
         brightness = Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128) / 2
         inlineAnnotationActionController.configure { annotationSaveController.saveHighlights() }
@@ -364,6 +375,7 @@ class MainActivity : AppCompatActivity() {
         resetSearchResultState()
         resetBookmarkState()
         inlineAnnotationActionController.hideActions()
+        signatureController.cancelPlacement()
         PdfBytesHolder.clear()
         annotationController.resetForDocument(uri)
         updateAnnotationDirtyUi()
@@ -458,6 +470,7 @@ class MainActivity : AppCompatActivity() {
                 annotationSaveController.saveHighlights(postSaveAction = discardAction)
             }
             .setNegativeButton(R.string.discard) { _, _ ->
+                signatureController.cancelPlacement()
                 annotationSaveController.clearPendingRequests()
                 annotationController.clearJournal()
                 updateAnnotationDirtyUi()
@@ -702,6 +715,7 @@ class MainActivity : AppCompatActivity() {
                 reapplyFullscreenStateAfterLoad()
                 cropMarginsController.startIfNeeded(cachedCropMargins, fileHash, loadToken, documentUri, pageCount)
                 maybeRestoreAnnotations(documentUri, loadToken)
+                signatureController.resumeRestoredPlacementIfNeeded()
             }
             .load()
 
@@ -788,6 +802,7 @@ class MainActivity : AppCompatActivity() {
             tableOfContents = ::showBookmarks,
             linksInFile = ::showLinks,
             print = ::printFile,
+            addSignature = { signatureController.showSignatureDialog() },
         )
     }
 
@@ -1879,6 +1894,7 @@ class MainActivity : AppCompatActivity() {
             readerAction(ConfigurableAction.READING_DIRECTION),
             readerAction(ConfigurableAction.CROP_MARGINS),
             readerAction(ConfigurableAction.EXTRACT_TEXT),
+            readerAction(ConfigurableAction.ADD_SIGNATURE),
             readerAction(ConfigurableAction.SETTINGS),
             ReaderAction(R.string.toggle_shortcuts, R.drawable.ic_awesome, visible = hasFile) {
                 toggleSecondBar()
@@ -2130,6 +2146,7 @@ class MainActivity : AppCompatActivity() {
         outState.putFloat(PDF.zoomKey, viewState?.zoom ?: pdf.zoom)
         outState.putBoolean(PDF.isExtractingTextFinishedKey, pdf.isExtractingTextFinished)
         bookmarkState.putInto(outState)
+        signatureController.saveState(outState)
         super.onSaveInstanceState(outState)
     }
 
@@ -2162,6 +2179,7 @@ class MainActivity : AppCompatActivity() {
             annotationController.markDirty()
             annotationController.markSessionOwned(pdf.uri)
         }
+        signatureController.restoreState(savedState)
         updateAnnotationDirtyUi()
     }
 

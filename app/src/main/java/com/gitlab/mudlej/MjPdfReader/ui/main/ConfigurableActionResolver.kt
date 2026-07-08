@@ -34,6 +34,7 @@ class ConfigurableActionResolver(
         val tableOfContents: () -> Unit,
         val linksInFile: () -> Unit,
         val print: () -> Unit,
+        val addSignature: () -> Unit,
     )
 
     fun action(actionId: String): ConfiguredAction? {
@@ -177,6 +178,12 @@ class ConfigurableActionResolver(
                 R.drawable.ic_print,
                 visible = fileAvailable,
                 run = handlers.print,
+            )
+            ConfigurableAction.ADD_SIGNATURE -> ConfiguredAction(
+                R.string.add_signature,
+                R.drawable.ic_signature,
+                visible = fileAvailable,
+                run = handlers.addSignature,
             )
             ConfigurableAction.BRIGHTNESS,
             ConfigurableAction.AUTO_SCROLL,

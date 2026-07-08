@@ -42,6 +42,14 @@ sealed class AnnotationEdit {
         val checked: Boolean,
     ) : AnnotationEdit()
 
+    data class AddStamp(
+        override val page: Int,
+        val rect: RectF,
+        val strokes: List<FloatArray>,
+        val color: Int,
+        val strokeWidth: Float,
+    ) : AnnotationEdit()
+
     fun toJsonLine(): String {
         val json = JsonObject()
         json.addProperty(KEY_OP, opName())
@@ -68,6 +76,12 @@ sealed class AnnotationEdit {
                 json.addProperty(KEY_FIELD_NAME, fieldName)
                 json.addProperty(KEY_CHECKED, checked)
             }
+            is AddStamp -> {
+                json.addProperty(KEY_COLOR, color)
+                json.addProperty(KEY_STROKE_WIDTH, strokeWidth)
+                json.add(KEY_RECT, rectToJson(rect))
+                json.add(KEY_STROKES, strokesToJson(strokes))
+            }
         }
         return json.toString()
     }
@@ -78,6 +92,7 @@ sealed class AnnotationEdit {
         is Delete -> OP_DELETE
         is SetFieldText -> OP_SET_FIELD_TEXT
         is SetFieldChecked -> OP_SET_FIELD_CHECKED
+        is AddStamp -> OP_ADD_STAMP
     }
 
     companion object {
@@ -94,8 +109,12 @@ sealed class AnnotationEdit {
         private const val OP_ADD = "add"
         private const val OP_RECOLOR = "recolor"
         private const val OP_DELETE = "delete"
+        private const val KEY_RECT = "rect"
+        private const val KEY_STROKES = "strokes"
+        private const val KEY_STROKE_WIDTH = "strokeWidth"
         private const val OP_SET_FIELD_TEXT = "setFieldText"
         private const val OP_SET_FIELD_CHECKED = "setFieldChecked"
+        private const val OP_ADD_STAMP = "addStamp"
 
         fun fromJsonLine(line: String): AnnotationEdit? = runCatching {
             val json = JsonParser.parseString(line).asJsonObject
@@ -126,6 +145,13 @@ sealed class AnnotationEdit {
                     fieldName = json.get(KEY_FIELD_NAME).asString,
                     checked = json.get(KEY_CHECKED).asBoolean,
                 )
+                OP_ADD_STAMP -> AddStamp(
+                    page = page,
+                    rect = rectFromJson(json.getAsJsonArray(KEY_RECT)),
+                    strokes = strokesFromJson(json.getAsJsonArray(KEY_STROKES)),
+                    color = json.get(KEY_COLOR).asInt,
+                    strokeWidth = json.get(KEY_STROKE_WIDTH).asFloat,
+                )
                 else -> null
             }
         }.getOrNull()
@@ -152,6 +178,43 @@ sealed class AnnotationEdit {
                     values.get(2).asFloat,
                     values.get(3).asFloat,
                 )
+            }
+        }
+
+        private fun rectToJson(rect: RectF): JsonArray {
+            val values = JsonArray()
+            values.add(rect.left)
+            values.add(rect.top)
+            values.add(rect.right)
+            values.add(rect.bottom)
+            return values
+        }
+
+        private fun rectFromJson(values: JsonArray): RectF {
+            return RectF(
+                values.get(0).asFloat,
+                values.get(1).asFloat,
+                values.get(2).asFloat,
+                values.get(3).asFloat,
+            )
+        }
+
+        private fun strokesToJson(strokes: List<FloatArray>): JsonArray {
+            val array = JsonArray()
+            for (stroke in strokes) {
+                val values = JsonArray()
+                for (value in stroke) {
+                    values.add(value)
+                }
+                array.add(values)
+            }
+            return array
+        }
+
+        private fun strokesFromJson(array: JsonArray): List<FloatArray> {
+            return array.map { element ->
+                val values = element.asJsonArray
+                FloatArray(values.size()) { index -> values.get(index).asFloat }
             }
         }
     }
