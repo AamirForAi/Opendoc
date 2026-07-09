@@ -3,29 +3,27 @@ package com.gitlab.mudlej.MjPdfReader.ui.home
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
+import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeChipRowBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeEmptyStateBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeHeroSectionBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomePermissionCardBinding
-import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeRecentsSectionBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeScanProgressBinding
 import com.gitlab.mudlej.MjPdfReader.enums.ListFilter
 import com.gitlab.mudlej.MjPdfReader.manager.thumbnail.CoverCache
-import com.google.android.material.carousel.CarouselLayoutManager
-import com.google.android.material.carousel.CarouselSnapHelper
-import com.google.android.material.carousel.HeroCarouselStrategy
 import kotlinx.coroutines.CoroutineScope
 
 class HomeSectionsAdapter(
     private val coverCache: CoverCache,
     private val scope: CoroutineScope,
     private val functions: HomeItemFunctions,
-    private val onGrantAccessClicked: () -> Unit,
-    private val selectedFilter: () -> ListFilter,
-    private val onChipSelected: (ListFilter) -> Unit,
+    private val onGrantAccessClicked: () -> Unit = {},
+    private val selectedFilter: () -> ListFilter = { ListFilter.ALL },
+    private val onChipSelected: (ListFilter) -> Unit = {},
 ) : ListAdapter<HomeSection, RecyclerView.ViewHolder>(SectionComparator()) {
 
     private var coverEpoch = 0
@@ -39,7 +37,6 @@ class HomeSectionsAdapter(
         return when (getItem(position)) {
             is HomeSection.PermissionCard -> TYPE_PERMISSION_CARD
             is HomeSection.Hero -> TYPE_HERO
-            is HomeSection.Recents -> TYPE_RECENTS
             is HomeSection.Chips -> TYPE_CHIPS
             is HomeSection.EmptyState -> TYPE_EMPTY_STATE
             is HomeSection.ScanProgressRow -> TYPE_SCAN_PROGRESS
@@ -54,9 +51,6 @@ class HomeSectionsAdapter(
             )
             TYPE_HERO -> HeroSectionViewHolder(
                 ItemHomeHeroSectionBinding.inflate(inflater, parent, false)
-            )
-            TYPE_RECENTS -> RecentsSectionViewHolder(
-                ItemHomeRecentsSectionBinding.inflate(inflater, parent, false)
             )
             TYPE_CHIPS -> ChipRowViewHolder(
                 ItemHomeChipRowBinding.inflate(inflater, parent, false)
@@ -74,7 +68,6 @@ class HomeSectionsAdapter(
         when (val section = getItem(position)) {
             is HomeSection.PermissionCard -> (holder as PermissionCardViewHolder).bind()
             is HomeSection.Hero -> (holder as HeroSectionViewHolder).bind(section)
-            is HomeSection.Recents -> (holder as RecentsSectionViewHolder).bind(section)
             is HomeSection.Chips -> (holder as ChipRowViewHolder).bind()
             is HomeSection.ScanProgressRow -> (holder as ScanProgressViewHolder).bind(section)
             is HomeSection.EmptyState -> (holder as EmptyStateViewHolder).bind(section)
@@ -98,9 +91,11 @@ class HomeSectionsAdapter(
         private var boundCoverEpoch = -1
 
         init {
-            binding.heroRecyclerView.layoutManager = CarouselLayoutManager(HeroCarouselStrategy())
+            binding.heroRecyclerView.layoutManager = LinearLayoutManager(
+                binding.root.context, LinearLayoutManager.HORIZONTAL, false
+            )
             binding.heroRecyclerView.adapter = heroAdapter
-            CarouselSnapHelper().attachToRecyclerView(binding.heroRecyclerView)
+            PagerSnapHelper().attachToRecyclerView(binding.heroRecyclerView)
         }
 
         fun bind(section: HomeSection.Hero) {
@@ -108,27 +103,6 @@ class HomeSectionsAdapter(
             if (boundCoverEpoch != coverEpoch) {
                 boundCoverEpoch = coverEpoch
                 heroAdapter.notifyDataSetChanged()
-            }
-        }
-    }
-
-    inner class RecentsSectionViewHolder(
-        binding: ItemHomeRecentsSectionBinding,
-    ) : RecyclerView.ViewHolder(binding.root) {
-
-        private val recentsAdapter = RecentsCarouselAdapter(coverCache, scope, functions)
-        private var boundCoverEpoch = -1
-
-        init {
-            binding.recentsRecyclerView.layoutManager = CarouselLayoutManager()
-            binding.recentsRecyclerView.adapter = recentsAdapter
-        }
-
-        fun bind(section: HomeSection.Recents) {
-            recentsAdapter.submitList(section.items)
-            if (boundCoverEpoch != coverEpoch) {
-                boundCoverEpoch = coverEpoch
-                recentsAdapter.notifyDataSetChanged()
             }
         }
     }
@@ -211,9 +185,8 @@ class HomeSectionsAdapter(
     companion object {
         private const val TYPE_PERMISSION_CARD = 0
         private const val TYPE_HERO = 1
-        private const val TYPE_RECENTS = 2
-        private const val TYPE_CHIPS = 3
-        private const val TYPE_EMPTY_STATE = 4
-        private const val TYPE_SCAN_PROGRESS = 5
+        private const val TYPE_CHIPS = 2
+        private const val TYPE_EMPTY_STATE = 3
+        private const val TYPE_SCAN_PROGRESS = 4
     }
 }

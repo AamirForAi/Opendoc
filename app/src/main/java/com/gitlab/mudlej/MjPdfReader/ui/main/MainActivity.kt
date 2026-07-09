@@ -396,7 +396,11 @@ class MainActivity : AppCompatActivity() {
         else {
             val intentUri = intent.data
             if (intentUri == null) {
-                pickFile()
+                if (intent.getBooleanExtra(HomeActivity.EXTRA_OPEN_ONLINE_DIALOG, false)) {
+                    onlinePdfController.showOpenOnlinePdfDialog()
+                } else {
+                    pickFile()
+                }
             } else {
                 prepareNewDocument(intentUri)
             }

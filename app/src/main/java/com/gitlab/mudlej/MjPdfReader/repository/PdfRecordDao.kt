@@ -103,7 +103,7 @@ interface PdfRecordDao {
     fun updatePassword(fileHash: String, password: String)
 
     @Query("UPDATE PdfRecord SET documentTitle = :title WHERE hash = :fileHash")
-    fun updateDocumentTitle(fileHash: String, title: String)
+    fun updateDocumentTitle(fileHash: String, title: String?)
 
     @Query("UPDATE PdfRecord SET cropMargins = :cropMargins, cropMarginsVersion = :version WHERE hash = :fileHash")
     fun updateCropMargins(fileHash: String, cropMargins: String, version: Int): Int

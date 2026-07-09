@@ -33,32 +33,19 @@
 - [x] Add support for multiple fonts in Text Mode.
 - [x] Add live inline text selection.
 - [x] Improve expanding search results after filtering.
+- [x] Add Home page.
+- [x] Add user-controlled "mark as read" state, independent from progress.
+- [x] Add recently opened files.
+- [x] Add library sections such as folders, favorites, want-to-read, and finished.
+- [x] Add file info cards for library items.
 
-## Reading State And Persistence
+## Others
 - [ ] Add import/export for settings, reading progress, and app data.
-
-## Navigation And Reading Flow
-- [ ] Improve Go To Page behavior, to show page thumbnails.
+- [ ] Improve Go To Page behavior, to show page thumbnails in the dialog.
 - [ ] Add navigation history for internal links, references, and TOC jumps.
 - [ ] Add browser-like scrolling mode.
-- [ ] Improve physical-book navigation feel.
-
-## Home Page
 - [ ] Add user bookmarks for saved page locations.
-- [ ] Add Home page.
-- [ ] Add user-controlled "mark as read" state, independent from progress.
-- [ ] Add recently opened files.
-- [ ] Add library sections such as folders, favorites, want-to-read, and finished.
-- [ ] Add file info cards for library items.
-
-## Text Mode, Search, And Reflow
-- [ ] Add skip-empty-pages option in Text Mode.
 - [ ] Add next/previous search-result navigation from the main reader.
-
-## PDF Features
-- [ ] Add custom PDF theming.
-
-## External Input
 - [ ] Add mouse wheel support.
 - [ ] Add mouse button support for next/previous page navigation.
 

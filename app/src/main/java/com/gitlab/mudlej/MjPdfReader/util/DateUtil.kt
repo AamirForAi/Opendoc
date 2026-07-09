@@ -5,8 +5,9 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
-import java.util.Locale
+
+val appDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+val appDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
 fun convertDateString(input: String?): String? {
     if (input.isNullOrBlank()) return null
@@ -35,12 +36,8 @@ fun convertDateString(input: String?): String? {
             dateTime
         }
 
-        val formatter = if (hasTime) {
-            DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
-        } else {
-            DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
-        }
-        localized.format(formatter.withLocale(Locale.getDefault()))
+        val formatter = if (hasTime) appDateTimeFormatter else appDateFormatter
+        localized.format(formatter)
     }
     catch (throwable: Throwable) {
         null

@@ -11,9 +11,6 @@
 package com.gitlab.mudlej.MjPdfReader.ui.settings
 
 import android.content.DialogInterface
-import android.content.res.ColorStateList
-import android.graphics.Color
-import android.graphics.Typeface
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.SeekBar
@@ -30,9 +27,8 @@ import androidx.preference.SwitchPreferenceCompat
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
-import com.google.android.material.button.MaterialButton
+import com.gitlab.mudlej.MjPdfReader.util.SegmentedButtonStyler
 import com.google.android.material.button.MaterialButtonToggleGroup
-import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlin.math.roundToInt
 
@@ -404,17 +400,7 @@ internal class SettingsPreferenceFactory(
         }
 
         private fun styleSegments(group: MaterialButtonToggleGroup) {
-            val checkedId = group.checkedButtonId
-            val selectedBackground = MaterialColors.getColor(group, com.google.android.material.R.attr.colorSecondary)
-            val selectedText = MaterialColors.getColor(group, com.google.android.material.R.attr.colorOnSecondary)
-            val unselectedText = MaterialColors.getColor(group, com.google.android.material.R.attr.colorOnSurface)
-            for (index in 0 until group.childCount) {
-                val button = group.getChildAt(index) as? MaterialButton ?: continue
-                val selected = button.id == checkedId
-                button.backgroundTintList = ColorStateList.valueOf(if (selected) selectedBackground else Color.TRANSPARENT)
-                button.setTextColor(if (selected) selectedText else unselectedText)
-                button.setTypeface(button.typeface, if (selected) Typeface.BOLD else Typeface.NORMAL)
-            }
+            SegmentedButtonStyler.style(group)
         }
 
         private fun String.toButtonId(): Int {

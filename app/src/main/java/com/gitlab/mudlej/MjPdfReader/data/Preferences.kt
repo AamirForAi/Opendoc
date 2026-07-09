@@ -47,6 +47,7 @@ import android.content.SharedPreferences
 import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
 import com.gitlab.mudlej.MjPdfReader.enums.HomeGridSize
 import com.gitlab.mudlej.MjPdfReader.enums.HomeSortOrder
+import com.gitlab.mudlej.MjPdfReader.enums.HomeTab
 import com.gitlab.mudlej.MjPdfReader.enums.HomeViewMode
 import com.gitlab.mudlej.MjPdfReader.enums.ListFilter
 
@@ -117,6 +118,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val listFilterKey = "listFilter"
         const val homeDisabledKey = "homeDisabled"
         const val homeShowPdfTitleKey = "homeShowPdfTitle"
+        const val homeTabKey = "homeTab"
+        const val homeFolderFlatKey = "homeFolderFlat"
         const val homeViewModeKey = "homeViewMode"
         const val homeGridSizeKey = "homeGridSize"
         const val homeSortKey = "homeSort"
@@ -166,6 +169,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val listFilterDefault = "RECENT"  // ListFilter.RECENT.name
         const val homeDisabledDefault = false
         const val homeShowPdfTitleDefault = true
+        const val homeTabDefault = "RECENT"
+        const val homeFolderFlatDefault = false
         const val homeViewModeDefault = "GRID"
         const val homeGridSizeDefault = "MEDIUM"
         const val homeSortDefault = "LAST_OPENED"
@@ -278,6 +283,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getListFilter() = ListFilter.valueOf(prefMan.getString(listFilterKey, listFilterDefault) as String)
     fun getHomeDisabled() = prefMan.getBoolean(homeDisabledKey, homeDisabledDefault)
     fun getHomeShowPdfTitle() = prefMan.getBoolean(homeShowPdfTitleKey, homeShowPdfTitleDefault)
+    fun getHomeTab() = HomeTab.valueOf(prefMan.getString(homeTabKey, homeTabDefault) as String)
+    fun getHomeFolderFlat() = prefMan.getBoolean(homeFolderFlatKey, homeFolderFlatDefault)
     fun getHomeViewMode() = HomeViewMode.valueOf(prefMan.getString(homeViewModeKey, homeViewModeDefault) as String)
     fun getHomeGridSize() = HomeGridSize.valueOf(prefMan.getString(homeGridSizeKey, homeGridSizeDefault) as String)
     fun getHomeSort() = HomeSortOrder.valueOf(prefMan.getString(homeSortKey, homeSortDefault) as String)
@@ -343,6 +350,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setListFilter(value: ListFilter) = prefMan.edit().putString(listFilterKey, value.name).apply()
     fun setHomeDisabled(value: Boolean) = prefMan.edit().putBoolean(homeDisabledKey, value).apply()
     fun setHomeShowPdfTitle(value: Boolean) = prefMan.edit().putBoolean(homeShowPdfTitleKey, value).apply()
+    fun setHomeTab(value: HomeTab) = prefMan.edit().putString(homeTabKey, value.name).apply()
+    fun setHomeFolderFlat(value: Boolean) = prefMan.edit().putBoolean(homeFolderFlatKey, value).apply()
     fun setHomeViewMode(value: HomeViewMode) = prefMan.edit().putString(homeViewModeKey, value.name).apply()
     fun setHomeGridSize(value: HomeGridSize) = prefMan.edit().putString(homeGridSizeKey, value.name).apply()
     fun setHomeSort(value: HomeSortOrder) = prefMan.edit().putString(homeSortKey, value.name).apply()

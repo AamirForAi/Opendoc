@@ -1,17 +1,19 @@
 package com.gitlab.mudlej.MjPdfReader.ui.home
 
+import android.text.format.Formatter
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeGridCellBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeListRowBinding
 import com.gitlab.mudlej.MjPdfReader.enums.HomeViewMode
+import com.gitlab.mudlej.MjPdfReader.enums.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.manager.thumbnail.CoverCache
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
+import com.gitlab.mudlej.MjPdfReader.util.StringUtil.formatEnumToTitle
 import kotlinx.coroutines.CoroutineScope
 
 class LibraryAdapter(
@@ -23,6 +25,7 @@ class LibraryAdapter(
 
     var viewMode: HomeViewMode = HomeViewMode.GRID
     var coverWidthPx: Int = DEFAULT_COVER_WIDTH_PX
+    var showFileSize: Boolean = false
 
     override fun getItemViewType(position: Int): Int {
         return if (viewMode == HomeViewMode.GRID) TYPE_GRID else TYPE_LIST
@@ -106,6 +109,7 @@ class LibraryAdapter(
 
             binding.listCard.setOnClickListener { functions.onItemClicked(item) }
             binding.listCard.setOnLongClickListener { functions.onItemLongClicked(item) }
+            binding.optionsButton.setOnClickListener { functions.onItemOptionsClicked(item) }
         }
 
         fun applySelection(item: HomeItem) {
@@ -113,12 +117,25 @@ class LibraryAdapter(
         }
 
         private fun buildMeta(item: HomeItem): String {
+            val resources = binding.root.resources
             val parts = mutableListOf<String>()
+            if (item.readingStatus != ReadingStatus.UNSET) {
+                parts.add(item.readingStatus.name.formatEnumToTitle())
+            }
+            if (item.length > 0) {
+                if (item.pageNumber > 0) {
+                    parts.add("${item.pageNumber + 1}/${item.length}")
+                } else {
+                    parts.add(
+                        resources.getQuantityString(R.plurals.home_pages, item.length, item.length)
+                    )
+                }
+            }
             if (item.progressPercent > 0) {
                 parts.add("${item.progressPercent}%")
             }
-            if (item.hasBeenOpened) {
-                parts.add(item.lastOpened.format(dateFormatter))
+            if (showFileSize && item.sizeBytes > 0) {
+                parts.add(Formatter.formatShortFileSize(binding.root.context, item.sizeBytes))
             }
             return parts.joinToString(" · ")
         }
@@ -130,8 +147,6 @@ class LibraryAdapter(
         private const val DEFAULT_COVER_WIDTH_PX = 320
         private const val LIST_COVER_WIDTH_PX = 160
         private const val SELECTION_PAYLOAD = "selection"
-
-        private val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
     }
 }
 

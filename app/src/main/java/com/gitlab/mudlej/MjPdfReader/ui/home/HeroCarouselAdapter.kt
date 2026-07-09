@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeHeroBookBinding
 import com.gitlab.mudlej.MjPdfReader.manager.thumbnail.CoverCache
+import com.gitlab.mudlej.MjPdfReader.util.appDateFormatter
 import kotlinx.coroutines.CoroutineScope
 
 class HeroCarouselAdapter(
@@ -44,11 +45,18 @@ class HeroCarouselAdapter(
             }
             binding.progress.progress = item.progressPercent
 
+            if (item.hasBeenOpened) {
+                binding.lastReadLabel.visibility = View.VISIBLE
+                binding.lastReadLabel.text = item.lastOpened.format(appDateFormatter)
+            } else {
+                binding.lastReadLabel.visibility = View.GONE
+            }
+
             val coverWidthPx = (COVER_WIDTH_DP * binding.root.resources.displayMetrics.density).toInt()
             coverCache.bind(binding.cover, item.coverKey, item.uri, coverWidthPx, scope)
 
-            binding.heroCard.setOnClickListener { functions.onItemClicked(item) }
-            binding.heroCard.setOnLongClickListener { functions.onItemLongClicked(item) }
+            binding.heroInnerCard.setOnClickListener { functions.onItemClicked(item) }
+            binding.heroInnerCard.setOnLongClickListener { functions.onItemLongClicked(item) }
         }
     }
 

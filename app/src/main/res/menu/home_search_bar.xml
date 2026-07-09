@@ -3,26 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/viewModeOption"
-        android:icon="@drawable/ic_view_list"
-        android:title="@string/home_view_list"
-        app:showAsAction="ifRoom" />
-
-    <item
-        android:id="@+id/gridSizeOption"
-        android:icon="@drawable/ic_grid_view"
-        android:title="@string/home_grid_size"
-        app:showAsAction="never" />
-
-    <item
-        android:id="@+id/sortOption"
-        android:icon="@drawable/ic_sort"
-        android:title="@string/home_sort"
-        app:showAsAction="never" />
-
-    <item
-        android:id="@+id/settingsOption"
-        android:icon="@drawable/ic_settings"
-        android:title="@string/settings"
-        app:showAsAction="never" />
+        android:id="@+id/homeMenuOption"
+        android:icon="@drawable/ic_more_vert"
+        android:title="@string/home_menu_title"
+        app:showAsAction="always" />
 </menu>

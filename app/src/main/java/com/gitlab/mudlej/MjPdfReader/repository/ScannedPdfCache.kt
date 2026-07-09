@@ -1,5 +1,6 @@
 package com.gitlab.mudlej.MjPdfReader.repository
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -9,4 +10,6 @@ data class ScannedPdfCache(
     val size: Long,
     val lastModified: Long,
     val hash: String?,
+    @ColumnInfo(defaultValue = "0")
+    val pageCount: Int = 0,
 )

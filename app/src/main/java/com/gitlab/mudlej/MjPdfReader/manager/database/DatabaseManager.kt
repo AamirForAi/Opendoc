@@ -75,9 +75,11 @@ interface DatabaseManager {
 
     suspend fun pruneScannedPdfs(paths: List<String>)
 
+    suspend fun updateScannedPdfPath(oldPath: String, newPath: String)
+
     suspend fun setPassword(fileHash: String, password: String)
 
-    suspend fun setDocumentTitle(fileHash: String, title: String)
+    suspend fun setDocumentTitle(fileHash: String, title: String?)
 
     suspend fun setCropMargins(fileHash: String, cropMargins: String, version: Int)
 

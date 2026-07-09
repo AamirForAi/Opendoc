@@ -4,20 +4,21 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
-import androidx.recyclerview.widget.ConcatAdapter
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityHomeBinding
+import com.gitlab.mudlej.MjPdfReader.enums.HomeTab
 import com.gitlab.mudlej.MjPdfReader.enums.HomeViewMode
-import com.gitlab.mudlej.MjPdfReader.enums.ListFilter
 import com.gitlab.mudlej.MjPdfReader.enums.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManagerImpl
@@ -31,6 +32,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.main.MainIntroActivity
 import com.gitlab.mudlej.MjPdfReader.util.PersistedGrantKeeper
 import com.gitlab.mudlej.MjPdfReader.util.StringUtil.formatEnumToTitle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.tabs.TabLayoutMediator
 import java.io.File
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -43,17 +45,23 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     private lateinit var permissionManager: PermissionManager
     private lateinit var coverCache: CoverCache
     private lateinit var libraryController: HomeLibraryController
-    private lateinit var libraryAdapter: LibraryAdapter
-    private lateinit var sectionsAdapter: HomeSectionsAdapter
-    private lateinit var searchResultsAdapter: LibraryAdapter
-    private lateinit var menuController: HomeMenuController
-    private lateinit var gridLayoutManager: GridLayoutManager
     private lateinit var libraryScanner: LibraryScanner
     private lateinit var selectionController: HomeSelectionController
     private lateinit var relocateController: RelocateController
+    private lateinit var menuDialog: HomeMenuDialog
+    private lateinit var recordOptionsDialog: RecordOptionsDialog
+    private lateinit var searchResultsAdapter: LibraryAdapter
+    private lateinit var recentTab: RecentTabController
+    private lateinit var libraryTab: LibraryTabController
+    private lateinit var foldersTab: FoldersTabController
 
-    private var spanCount = 2
     private var allItems: List<HomeItem> = emptyList()
+
+    private val foldersBackCallback = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
+            foldersTab.goBack()
+        }
+    }
 
     private val pdfPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -89,10 +97,50 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         permissionManager = PermissionManager(this) { onStorageAccessChanged() }
         libraryController = HomeLibraryController(databaseManager, pref)
         libraryScanner = LibraryScanner.getInstance(applicationContext)
+
+        recordOptionsDialog = RecordOptionsDialog(
+            this,
+            databaseManager,
+            coverCache,
+            libraryScanner,
+            lifecycleScope,
+            onChanged = ::refresh,
+        )
+        recentTab = RecentTabController(
+            coverCache,
+            lifecycleScope,
+            this,
+            libraryController,
+        )
+        libraryTab = LibraryTabController(
+            this,
+            pref,
+            coverCache,
+            lifecycleScope,
+            this,
+            selection = { selectionController.selectedHashes },
+            libraryController = libraryController,
+            libraryScanner = libraryScanner,
+            hasFullAccess = { permissionManager.hasFullAccess() },
+            onGrantAccessClicked = { permissionManager.requestFullAccess() },
+            onFilterChanged = ::refresh,
+        )
+        foldersTab = FoldersTabController(
+            this,
+            pref,
+            coverCache,
+            lifecycleScope,
+            this,
+            onGrantAccessClicked = { permissionManager.requestFullAccess() },
+            hasFullAccess = { permissionManager.hasFullAccess() },
+            libraryController = libraryController,
+            onNavigationChanged = ::updateFoldersBackState,
+        )
+
         selectionController = HomeSelectionController(
             this,
-            currentItems = { libraryAdapter.currentList },
-            onSelectionChanged = { libraryAdapter.notifySelectionChanged() },
+            currentItems = { libraryTab.currentGridItems() },
+            onSelectionChanged = { libraryTab.notifySelectionChanged() },
             onStatusBatch = ::statusBatch,
             onDeleteBatch = ::deleteBatch,
         )
@@ -105,17 +153,28 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             onHealed = ::refresh,
         )
 
-        setupRecyclerView()
+        setupPager()
         setupSearch()
-        menuController = HomeMenuController(
+        menuDialog = HomeMenuDialog(
             this,
-            binding.searchBar,
             pref,
-            onViewModeChanged = ::applyViewMode,
-            onGridSizeChanged = ::applyGridSize,
+            currentTab = { currentTab() },
+            onViewModeChanged = { libraryTab.applyViewMode() },
+            onGridSizeChanged = { libraryTab.applyGridSize() },
             onSortChanged = ::refresh,
+            onFolderModeChanged = { foldersTab.onModeChanged() },
+            stats = ::buildStats,
         )
-        menuController.setup()
+        onBackPressedDispatcher.addCallback(this, foldersBackCallback)
+        binding.searchBar.inflateMenu(R.menu.home_search_bar)
+        binding.searchBar.setOnMenuItemClickListener { menuItem ->
+            if (menuItem.itemId == R.id.homeMenuOption) {
+                menuDialog.show()
+                true
+            } else {
+                false
+            }
+        }
         binding.openPdfFab.setOnClickListener { pdfPicker.launch(arrayOf(PDF.FILE_TYPE)) }
 
         lifecycleScope.launch {
@@ -125,6 +184,45 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         showAppFeaturesDialogOnFirstRun()
         handleRelocateIntent(intent)
     }
+
+    private fun setupPager() {
+        binding.homePager.adapter = HomeTabsAdapter { tab, recyclerView ->
+            when (tab) {
+                HomeTab.RECENT -> recentTab.attach(recyclerView)
+                HomeTab.LIBRARY -> libraryTab.attach(recyclerView)
+                HomeTab.FOLDERS -> foldersTab.attach(recyclerView)
+            }
+        }
+        binding.homePager.offscreenPageLimit = HomeTab.entries.size - 1
+
+        TabLayoutMediator(binding.homeTabs, binding.homePager) { tab, position ->
+            tab.setText(
+                when (HomeTab.entries[position]) {
+                    HomeTab.RECENT -> R.string.home_tab_recent
+                    HomeTab.LIBRARY -> R.string.home_tab_library
+                    HomeTab.FOLDERS -> R.string.home_tab_folders
+                }
+            )
+        }.attach()
+
+        binding.homePager.setCurrentItem(pref.getHomeTab().ordinal, false)
+        binding.homePager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                pref.setHomeTab(HomeTab.entries[position])
+                if (HomeTab.entries[position] != HomeTab.LIBRARY) {
+                    selectionController.finish()
+                }
+                updateFoldersBackState()
+            }
+        })
+    }
+
+    private fun updateFoldersBackState() {
+        foldersBackCallback.isEnabled =
+            currentTab() == HomeTab.FOLDERS && foldersTab.canGoBack()
+    }
+
+    private fun currentTab(): HomeTab = HomeTab.entries[binding.homePager.currentItem]
 
     private fun showAppFeaturesDialogOnFirstRun() {
         if (pref.getShowFeaturesDialog()) {
@@ -166,40 +264,6 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         refresh()
     }
 
-    private fun setupRecyclerView() {
-        libraryAdapter = LibraryAdapter(coverCache, lifecycleScope, this) {
-            selectionController.selectedHashes
-        }
-        sectionsAdapter = HomeSectionsAdapter(
-            coverCache,
-            lifecycleScope,
-            this,
-            onGrantAccessClicked = { permissionManager.requestFullAccess() },
-            selectedFilter = ::currentFilter,
-            onChipSelected = { filter -> onChipSelected(filter) },
-        )
-
-        spanCount = computeSpanCount()
-        libraryAdapter.viewMode = pref.getHomeViewMode()
-        libraryAdapter.coverWidthPx = resources.displayMetrics.widthPixels / spanCount
-
-        gridLayoutManager = GridLayoutManager(this, spanCount)
-        gridLayoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
-            override fun getSpanSize(position: Int): Int {
-                return if (position < sectionsAdapter.itemCount
-                    || libraryAdapter.viewMode == HomeViewMode.LIST
-                ) {
-                    spanCount
-                } else {
-                    1
-                }
-            }
-        }
-
-        binding.homeRecyclerView.layoutManager = gridLayoutManager
-        binding.homeRecyclerView.adapter = ConcatAdapter(sectionsAdapter, libraryAdapter)
-    }
-
     private fun setupSearch() {
         binding.searchView.setupWithSearchBar(binding.searchBar)
 
@@ -210,45 +274,26 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
 
         binding.searchView.editText.doOnTextChanged { text, _, _, _ ->
             val query = text?.toString().orEmpty()
-            searchResultsAdapter.submitList(libraryController.filterByQuery(allItems, query))
+            searchResultsAdapter.submitList(
+                libraryController.searchAll(allItems, libraryScanner.index.value.entries, query)
+            )
         }
     }
 
-    private fun applyViewMode() {
-        libraryAdapter.viewMode = pref.getHomeViewMode()
-        libraryAdapter.notifyDataSetChanged()
-    }
-
-    private fun applyGridSize() {
-        spanCount = computeSpanCount()
-        libraryAdapter.coverWidthPx = resources.displayMetrics.widthPixels / spanCount
-        gridLayoutManager.spanCount = spanCount
-        libraryAdapter.notifyDataSetChanged()
-    }
-
-    private fun computeSpanCount(): Int {
-        val screenWidthDp = resources.configuration.screenWidthDp
-        return (screenWidthDp / pref.getHomeGridSize().targetCellDp).coerceAtLeast(2)
-    }
-
-    private fun onChipSelected(filter: ListFilter) {
-        pref.setListFilter(filter)
-        refresh()
-    }
-
-    private fun currentFilter(): ListFilter {
-        val stored = pref.getListFilter()
-        return if (stored == ListFilter.RECENT || stored == ListFilter.FAVORITE) {
-            ListFilter.ALL
-        } else {
-            stored
-        }
+    private fun buildStats(): HomeMenuDialog.HomeStats {
+        return HomeMenuDialog.HomeStats(
+            onDevice = libraryScanner.index.value.entries.size,
+            inLibrary = allItems.size,
+            reading = allItems.count { it.readingStatus == ReadingStatus.READING },
+            completed = allItems.count { it.readingStatus == ReadingStatus.COMPLETED },
+        )
     }
 
     private fun onStorageAccessChanged() {
-        libraryAdapter.notifyDataSetChanged()
+        recentTab.onCoversChanged()
+        libraryTab.onCoversChanged()
+        foldersTab.onCoversChanged()
         searchResultsAdapter.notifyDataSetChanged()
-        sectionsAdapter.rebindCovers()
         libraryScanner.refresh(force = true)
         refresh()
     }
@@ -256,58 +301,10 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     private fun refresh() {
         lifecycleScope.launch {
             allItems = libraryController.loadLibrary()
-            val filter = currentFilter()
-            val gridItems = if (filter == ListFilter.ALL) {
-                libraryScanner.refresh()
-                libraryController.sort(
-                    libraryController.mergeWithScan(allItems, libraryScanner.index.value.entries)
-                )
-            } else {
-                libraryController.filterByChip(allItems, filter)
-            }
-            libraryAdapter.submitList(gridItems)
-            updateSections(allItems, gridItems, filter)
-        }
-    }
-
-    private fun updateSections(
-        allItems: List<HomeItem>,
-        gridItems: List<HomeItem>,
-        filter: ListFilter,
-    ) {
-        val heroItems = libraryController.continueReading(allItems)
-        val recentItems = libraryController.recents(allItems, excluding = heroItems)
-
-        val sections = buildList {
-            if (!permissionManager.hasFullAccess()) {
-                add(HomeSection.PermissionCard)
-            }
-            if (heroItems.isNotEmpty()) {
-                add(HomeSection.Hero(heroItems))
-            }
-            if (recentItems.isNotEmpty()) {
-                add(HomeSection.Recents(recentItems))
-            }
             val scanIndex = libraryScanner.index.value
-            add(HomeSection.Chips)
-            if (filter == ListFilter.ALL && scanIndex.scanning) {
-                add(HomeSection.ScanProgressRow(scanIndex.entries.size))
-            }
-            if (gridItems.isEmpty() && !(filter == ListFilter.ALL && scanIndex.scanning)) {
-                add(emptyStateFor(filter))
-            }
-        }
-        sectionsAdapter.submitList(sections)
-    }
-
-    private fun emptyStateFor(filter: ListFilter): HomeSection.EmptyState {
-        return when (filter) {
-            ListFilter.ALL -> HomeSection.EmptyState(
-                R.string.home_empty_all_title, R.string.home_empty_all_message
-            )
-            else -> HomeSection.EmptyState(
-                R.string.home_empty_status_title, R.string.home_empty_status_message
-            )
+            recentTab.render(allItems)
+            libraryTab.render(allItems)
+            foldersTab.render(allItems, scanIndex.entries, scanIndex.scanning)
         }
     }
 
@@ -321,7 +318,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     }
 
     override fun onItemClicked(item: HomeItem) {
-        if (selectionController.active) {
+        if (selectionController.active && currentTab() == HomeTab.LIBRARY) {
             selectionController.toggle(item)
             return
         }
@@ -344,10 +341,14 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     }
 
     override fun onItemLongClicked(item: HomeItem): Boolean {
-        if (binding.searchView.isShowing) {
+        if (binding.searchView.isShowing || currentTab() != HomeTab.LIBRARY) {
             return false
         }
         return selectionController.begin(item)
+    }
+
+    override fun onItemOptionsClicked(item: HomeItem) {
+        recordOptionsDialog.show(item)
     }
 
     private fun statusBatch(items: List<HomeItem>) {
@@ -388,5 +389,6 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         const val EXTRA_FROM_HOME = "fromHome"
         const val EXTRA_RECORD_HASH = "recordHash"
         const val EXTRA_RELOCATE_HASH = "relocateHash"
+        const val EXTRA_OPEN_ONLINE_DIALOG = "openOnlineDialog"
     }
 }

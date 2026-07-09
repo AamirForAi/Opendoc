@@ -1,0 +1,167 @@
+package com.gitlab.mudlej.MjPdfReader.ui.home
+
+import android.content.Intent
+import android.view.View
+import androidx.appcompat.app.AppCompatActivity
+import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.databinding.DialogHomeMenuBinding
+import com.gitlab.mudlej.MjPdfReader.enums.HomeGridSize
+import com.gitlab.mudlej.MjPdfReader.enums.HomeSortOrder
+import com.gitlab.mudlej.MjPdfReader.enums.HomeTab
+import com.gitlab.mudlej.MjPdfReader.enums.HomeViewMode
+import com.gitlab.mudlej.MjPdfReader.ui.about.AboutActivity
+import com.gitlab.mudlej.MjPdfReader.ui.main.MainActivity
+import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
+import com.gitlab.mudlej.MjPdfReader.util.SegmentedButtonStyler
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+
+class HomeMenuDialog(
+    private val activity: AppCompatActivity,
+    private val pref: Preferences,
+    private val currentTab: () -> HomeTab,
+    private val onViewModeChanged: () -> Unit,
+    private val onGridSizeChanged: () -> Unit,
+    private val onSortChanged: () -> Unit,
+    private val onFolderModeChanged: () -> Unit,
+    private val stats: () -> HomeStats,
+) {
+
+    data class HomeStats(
+        val onDevice: Int,
+        val inLibrary: Int,
+        val reading: Int,
+        val completed: Int,
+    )
+
+    fun show() {
+        val binding = DialogHomeMenuBinding.inflate(activity.layoutInflater)
+        val dialog = MaterialAlertDialogBuilder(activity)
+            .setView(binding.root)
+            .create()
+
+        val tab = currentTab()
+        binding.librarySection.visibility =
+            if (tab == HomeTab.LIBRARY) View.VISIBLE else View.GONE
+        binding.foldersSection.visibility =
+            if (tab == HomeTab.FOLDERS) View.VISIBLE else View.GONE
+
+        bindViewMode(binding)
+        bindGridSize(binding)
+        bindSort(binding)
+        bindFoldersMode(binding)
+        bindStats(binding)
+
+        SegmentedButtonStyler.attach(binding.viewModeGroup)
+        SegmentedButtonStyler.attach(binding.gridSizeGroup)
+        SegmentedButtonStyler.attach(binding.sortGroup)
+        SegmentedButtonStyler.attach(binding.foldersModeGroup)
+
+        binding.settingsButton.setOnClickListener {
+            dialog.dismiss()
+            activity.startActivity(Intent(activity, SettingsActivity::class.java))
+        }
+        binding.aboutButton.setOnClickListener {
+            dialog.dismiss()
+            activity.startActivity(Intent(activity, AboutActivity::class.java))
+        }
+        binding.openOnlineButton.setOnClickListener {
+            dialog.dismiss()
+            val intent = Intent(activity, MainActivity::class.java)
+            intent.putExtra(HomeActivity.EXTRA_OPEN_ONLINE_DIALOG, true)
+            activity.startActivity(intent)
+        }
+
+        dialog.show()
+    }
+
+    private fun bindViewMode(binding: DialogHomeMenuBinding) {
+        binding.viewModeGroup.check(
+            when (pref.getHomeViewMode()) {
+                HomeViewMode.GRID -> R.id.viewGridButton
+                HomeViewMode.LIST -> R.id.viewListButton
+            }
+        )
+        binding.viewModeGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) {
+                return@addOnButtonCheckedListener
+            }
+            val newMode = if (checkedId == R.id.viewListButton) HomeViewMode.LIST else HomeViewMode.GRID
+            if (newMode != pref.getHomeViewMode()) {
+                pref.setHomeViewMode(newMode)
+                onViewModeChanged()
+            }
+        }
+    }
+
+    private fun bindGridSize(binding: DialogHomeMenuBinding) {
+        binding.gridSizeGroup.check(
+            when (pref.getHomeGridSize()) {
+                HomeGridSize.SMALL -> R.id.gridSizeSmallButton
+                HomeGridSize.MEDIUM -> R.id.gridSizeMediumButton
+                HomeGridSize.LARGE -> R.id.gridSizeLargeButton
+            }
+        )
+        binding.gridSizeGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) {
+                return@addOnButtonCheckedListener
+            }
+            val newSize = when (checkedId) {
+                R.id.gridSizeSmallButton -> HomeGridSize.SMALL
+                R.id.gridSizeLargeButton -> HomeGridSize.LARGE
+                else -> HomeGridSize.MEDIUM
+            }
+            if (newSize != pref.getHomeGridSize()) {
+                pref.setHomeGridSize(newSize)
+                onGridSizeChanged()
+            }
+        }
+    }
+
+    private fun bindSort(binding: DialogHomeMenuBinding) {
+        binding.sortGroup.check(
+            when (pref.getHomeSort()) {
+                HomeSortOrder.LAST_OPENED -> R.id.sortLastOpenedButton
+                HomeSortOrder.NAME -> R.id.sortNameButton
+            }
+        )
+        binding.sortGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) {
+                return@addOnButtonCheckedListener
+            }
+            val newSort = if (checkedId == R.id.sortNameButton) {
+                HomeSortOrder.NAME
+            } else {
+                HomeSortOrder.LAST_OPENED
+            }
+            if (newSort != pref.getHomeSort()) {
+                pref.setHomeSort(newSort)
+                onSortChanged()
+            }
+        }
+    }
+
+    private fun bindFoldersMode(binding: DialogHomeMenuBinding) {
+        binding.foldersModeGroup.check(
+            if (pref.getHomeFolderFlat()) R.id.foldersFlatButton else R.id.foldersHierarchyButton
+        )
+        binding.foldersModeGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) {
+                return@addOnButtonCheckedListener
+            }
+            val flat = checkedId == R.id.foldersFlatButton
+            if (flat != pref.getHomeFolderFlat()) {
+                pref.setHomeFolderFlat(flat)
+                onFolderModeChanged()
+            }
+        }
+    }
+
+    private fun bindStats(binding: DialogHomeMenuBinding) {
+        val currentStats = stats()
+        binding.statsOnDevice.text = currentStats.onDevice.toString()
+        binding.statsInLibrary.text = currentStats.inLibrary.toString()
+        binding.statsReading.text = currentStats.reading.toString()
+        binding.statsCompleted.text = currentStats.completed.toString()
+    }
+}

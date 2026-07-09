@@ -10,8 +10,10 @@ import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManagerImpl
 import com.gitlab.mudlej.MjPdfReader.manager.permission.PermissionManager
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
+import android.os.ParcelFileDescriptor
 import com.gitlab.mudlej.MjPdfReader.repository.ScannedPdfCache
 import com.gitlab.mudlej.MjPdfReader.util.computeHash
+import com.shockwave.pdfium.PdfiumCore
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +39,7 @@ class LibraryScanner private constructor(
     )
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val pdfiumCore by lazy { PdfiumCore(context) }
     private val indexState = MutableStateFlow(LibraryIndex())
     val index: StateFlow<LibraryIndex> = indexState.asStateFlow()
 
@@ -112,6 +115,42 @@ class LibraryScanner private constructor(
         return databaseManager.findScannedPdfsByHash(hash)
             .firstOrNull { File(it.path).canRead() }
             ?.path
+    }
+
+    fun onFileRemoved(path: String) {
+        scope.launch {
+            databaseManager.pruneScannedPdfs(listOf(path))
+            indexState.update { state ->
+                state.copy(entries = state.entries.filter { it.path != path })
+            }
+        }
+    }
+
+    fun onFileRenamed(oldPath: String, newPath: String) {
+        scope.launch {
+            databaseManager.updateScannedPdfPath(oldPath, newPath)
+            indexState.update { state ->
+                state.copy(entries = state.entries.map { entry ->
+                    if (entry.path == oldPath) entry.copy(path = newPath) else entry
+                })
+            }
+        }
+    }
+
+    fun onHashComputed(path: String, hash: String) {
+        scope.launch {
+            val entry = indexState.value.entries.find { it.path == path } ?: return@launch
+            if (entry.hash == hash) {
+                return@launch
+            }
+            val withHash = entry.copy(hash = hash)
+            databaseManager.upsertScannedPdfs(listOf(withHash))
+            indexState.update { state ->
+                state.copy(entries = state.entries.map {
+                    if (it.path == path) withHash else it
+                })
+            }
+        }
     }
 
     private fun onMediaStoreChanged() {
@@ -241,7 +280,7 @@ class LibraryScanner private constructor(
         for (entry in pending) {
             val hash = computeHash(File(entry.path))
             if (hash != null) {
-                val withHash = entry.copy(hash = hash)
+                val withHash = entry.copy(hash = hash, pageCount = readPageCount(entry.path))
                 current[entry.path] = withHash
                 updated.add(withHash)
             }
@@ -253,6 +292,23 @@ class LibraryScanner private constructor(
         }
         flushUpserts(updated)
         publish(current, scanning = false)
+    }
+
+    private fun readPageCount(path: String): Int {
+        return runCatching {
+            val fd = ParcelFileDescriptor.open(File(path), ParcelFileDescriptor.MODE_READ_ONLY)
+            val document = try {
+                pdfiumCore.newDocument(fd)
+            } catch (throwable: Throwable) {
+                runCatching { fd.close() }
+                return 0
+            }
+            try {
+                pdfiumCore.getPageCount(document)
+            } finally {
+                pdfiumCore.closeDocument(document)
+            }
+        }.getOrDefault(0)
     }
 
     private suspend fun flushUpserts(upserts: MutableList<ScannedPdfCache>) {

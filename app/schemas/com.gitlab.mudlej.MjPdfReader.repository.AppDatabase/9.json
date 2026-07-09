@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 9,
-    "identityHash": "d169ad3036c2432be109d615e73d0d19",
+    "identityHash": "0bf0e9982998b7f1596c4e5b3b405b50",
     "entities": [
       {
         "tableName": "PdfRecord",
@@ -149,7 +149,7 @@
       },
       {
         "tableName": "ScannedPdfCache",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`path` TEXT NOT NULL, `size` INTEGER NOT NULL, `lastModified` INTEGER NOT NULL, `hash` TEXT, PRIMARY KEY(`path`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`path` TEXT NOT NULL, `size` INTEGER NOT NULL, `lastModified` INTEGER NOT NULL, `hash` TEXT, `pageCount` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`path`))",
         "fields": [
           {
             "fieldPath": "path",
@@ -173,6 +173,13 @@
             "fieldPath": "hash",
             "columnName": "hash",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "pageCount",
+            "columnName": "pageCount",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
           }
         ],
         "primaryKey": {
@@ -185,7 +192,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd169ad3036c2432be109d615e73d0d19')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0bf0e9982998b7f1596c4e5b3b405b50')"
     ]
   }
 }

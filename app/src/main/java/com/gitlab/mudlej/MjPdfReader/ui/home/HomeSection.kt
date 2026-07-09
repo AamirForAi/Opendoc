@@ -8,8 +8,6 @@ sealed class HomeSection {
 
     data class Hero(val items: List<HomeItem>) : HomeSection()
 
-    data class Recents(val items: List<HomeItem>) : HomeSection()
-
     data object Chips : HomeSection()
 
     data class EmptyState(

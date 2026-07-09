@@ -19,6 +19,7 @@ data class HomeItem(
     val lastOpened: LocalDateTime,
     val isScanOnly: Boolean,
     val coverKey: String,
+    val sizeBytes: Long,
 ) {
 
     val progressPercent: Int
@@ -51,6 +52,11 @@ data class HomeItem(
                 lastOpened = record.lastOpened,
                 isScanOnly = false,
                 coverKey = record.hash,
+                sizeBytes = if (record.uri.scheme == "file") {
+                    record.uri.path?.let { File(it).length() } ?: 0L
+                } else {
+                    0L
+                },
             )
         }
 
@@ -63,12 +69,13 @@ data class HomeItem(
                 uri = Uri.fromFile(file),
                 title = file.nameWithoutExtension,
                 pageNumber = 0,
-                length = 0,
+                length = entry.pageCount,
                 favorite = false,
                 readingStatus = ReadingStatus.UNSET,
                 lastOpened = LocalDateTime.parse(PdfRecord.UNSET_DATE),
                 isScanOnly = true,
                 coverKey = syntheticKey,
+                sizeBytes = entry.size,
             )
         }
     }

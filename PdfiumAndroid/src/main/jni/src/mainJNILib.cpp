@@ -1223,7 +1223,7 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
     AndroidBitmap_unlockPixels(env, bitmap);
 
     double endMs = monotonicMillis();
-    LOGD("renderPageBitmap: %dx%d in %.1f ms (page %.1f, forms %.1f, convert %.1f)",
+    //LOGD("renderPageBitmap: %dx%d in %.1f ms (page %.1f, forms %.1f, convert %.1f)",
          canvasHorSize, canvasVerSize,
          endMs - startMs,
          formsStartMs - pageStartMs,

@@ -213,13 +213,19 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
         }
     }
 
+    override suspend fun updateScannedPdfPath(oldPath: String, newPath: String) {
+        withContext(Dispatchers.IO) {
+            database.scannedPdfCacheDao().updatePath(oldPath, newPath)
+        }
+    }
+
     override suspend fun setPassword(fileHash: String, password: String) {
         withContext(Dispatchers.IO) {
             database.pdfRecordDao().updatePassword(fileHash, password)
         }
     }
 
-    override suspend fun setDocumentTitle(fileHash: String, title: String) {
+    override suspend fun setDocumentTitle(fileHash: String, title: String?) {
         withContext(Dispatchers.IO) {
             database.pdfRecordDao().updateDocumentTitle(fileHash, title)
         }

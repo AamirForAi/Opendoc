@@ -19,4 +19,7 @@ interface ScannedPdfCacheDao {
 
     @Query("DELETE FROM ScannedPdfCache WHERE path IN (:paths)")
     fun deleteByPaths(paths: List<String>)
+
+    @Query("UPDATE ScannedPdfCache SET path = :newPath WHERE path = :oldPath")
+    fun updatePath(oldPath: String, newPath: String)
 }

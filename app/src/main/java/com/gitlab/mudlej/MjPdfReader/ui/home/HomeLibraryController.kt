@@ -78,6 +78,20 @@ class HomeLibraryController(
         return items.filter { it.title.contains(query, ignoreCase = true) }
     }
 
+    fun searchAll(
+        records: List<HomeItem>,
+        entries: List<ScannedPdfCache>,
+        query: String,
+    ): List<HomeItem> {
+        if (query.isBlank()) {
+            return records
+        }
+        val recordMatches = filterByQuery(records, query)
+        val scanMatches = mergeWithScan(records, entries)
+            .filter { it.isScanOnly && it.title.contains(query, ignoreCase = true) }
+        return recordMatches + scanMatches
+    }
+
     companion object {
         private const val HERO_COUNT = 6
         private const val RECENTS_COUNT = 12
