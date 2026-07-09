@@ -184,21 +184,14 @@
     <string name="page_out_of_bound" tools:ignore="PluralsCandidate">Pagina #%d bestaat niet in deze PDF.</string>
     <string name="press_back_again">Druk nogmaals terug om te verlaten</string>
     <string name="dracula_theme">Dracula-thema</string>
-    <string name="non_clickable_pdf_icon">niet-klikbaar PDF-pictogram</string>
-    <string name="recently_opened">Onlangs geopend</string>
     <string name="delete">Verwijderen</string>
     <string name="delete_dialog_title">Zeker weten?</string>
     <string name="delete_dialog_message">Als je het opslagrecord verwijdert, vergeet de app alles wat hij over de PDF weet.</string>
     <string name="list_mode">Lijst-modus</string>
-    <string name="filter_list_dialog_title">Bestanden filteren</string>
     <string name="status">Status</string>
-    <string name="favorite">Favoriet</string>
     <string name="favorite_icon">favoriet-pictogram</string>
     <string name="last_opened_key">Laatst geopend:</string>
     <string name="pdf_cover_image">PDF-omslagafbeelding</string>
-    <string name="all_files">Alle bestanden</string>
-    <string name="about_record">Over item</string>
-    <string name="record_percentage_template">(%d%%)</string>
     <string name="pages">pagina\'s</string>
     <string name="exit">Afsluiten</string>
     <string name="rotate">Draaien</string>

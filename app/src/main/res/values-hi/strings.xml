@@ -178,22 +178,15 @@
     <string name="page_out_of_bound" tools:ignore="PluralsCandidate">पेज #%d इस पीडीएफ में मौजूद नहीं है।</string>
     <string name="press_back_again">बाहर निकलने के लिए फिर से बैक दबाएं</string>
     <string name="dracula_theme">ड्रैकुला थीम</string>
-    <string name="non_clickable_pdf_icon">गैर-क्लिक योग्य पीडीएफ आइकॉन</string>
-    <string name="recently_opened">हाल ही में खोला गया</string>
     <string name="delete">हटाएं</string>
     <string name="delete_dialog_title">क्या आप सुनिश्चित हैं?</string>
     <string name="delete_dialog_message">सेव रिकॉर्ड को हटाने से ऐप पीडीएफ के बारे में जो कुछ भी जानता है उसे भूल जाएगा।</string>
     <string name="list_mode">सूची मोड</string>
-    <string name="filter_list_dialog_title">फ़ाइलें फ़िल्टर करें</string>
     <string name="status">स्थिति</string>
-    <string name="favorite">पसंदीदा</string>
 
     <string name="favorite_icon">पसंदीदा आइकॉन</string>
     <string name="last_opened_key">अंतिम खोला गया:</string>
     <string name="pdf_cover_image">पीडीएफ कवर छवि</string>
-    <string name="all_files">सभी फ़ाइलें</string>
-    <string name="about_record">रिकॉर्ड के बारे में</string>
-    <string name="record_percentage_template">(%d%%)</string>
     <string name="pages">पृष्ठ</string>
     <string name="exit">बाहर निकलें</string>
     <string name="rotate">घुमाएँ</string>

@@ -177,21 +177,14 @@
     <string name="page_out_of_bound" tools:ignore="PluralsCandidate">La page #%d n\'existe pas dans ce PDF.</string>
     <string name="press_back_again">Appuyez à nouveau sur Retour pour quitter</string>
     <string name="dracula_theme">Thème de Dracula</string>
-    <string name="non_clickable_pdf_icon">Icône de PDF non-cliquable</string>
-    <string name="recently_opened">Ouverts récemment</string>
     <string name="delete">Effacer</string>
     <string name="delete_dialog_title">Êtes-vous certain?</string>
     <string name="delete_dialog_message">Effacer l\'enregistrement sauvegardé va provoquer l\'oubli par l\'application de tout ce qu\'elle sait du PDF.</string>
     <string name="list_mode">Mode liste</string>
-    <string name="filter_list_dialog_title">Filtrer les fichiers</string>
     <string name="status">État</string>
-    <string name="favorite">Favori</string>
     <string name="favorite_icon">Icône favorite</string>
     <string name="last_opened_key">Dernière ouverture:</string>
     <string name="pdf_cover_image">Image de couverture du PDF</string>
-    <string name="all_files">Tous les fichiers</string>
-    <string name="about_record">À propos des enregistrements</string>
-    <string name="record_percentage_template">(%d%%)</string>
     <string name="pages">pages</string>
     <string name="exit">Sortir</string>
     <string name="rotate">Pivoter</string>

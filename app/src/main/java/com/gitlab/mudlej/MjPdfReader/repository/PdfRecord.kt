@@ -96,6 +96,9 @@ data class PdfRecord(
 
     @ColumnInfo(defaultValue = UNSET_READING_DIRECTION)
     val detectedReadingDirection: String? = null,
+
+    @ColumnInfo(defaultValue = UNSET_DOCUMENT_TITLE)
+    val documentTitle: String? = null,
 ) {
 
     companion object {
@@ -142,5 +145,6 @@ data class PdfRecord(
         const val UNSET_CROP_MARGINS_VERSION = "0"
         const val UNSET_AUTO_SCROLL_SPEED = "NULL"
         const val UNSET_READING_DIRECTION = "NULL"
+        const val UNSET_DOCUMENT_TITLE = "NULL"
     }
 }

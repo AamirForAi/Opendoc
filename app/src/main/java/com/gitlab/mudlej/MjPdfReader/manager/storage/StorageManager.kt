@@ -1,38 +1,11 @@
 package com.gitlab.mudlej.MjPdfReader.manager.storage
 
-import android.app.Activity
 import android.os.Environment
-import android.util.Log
-import androidx.core.net.toUri
-import com.gitlab.mudlej.MjPdfReader.data.PDF
-import com.gitlab.mudlej.MjPdfReader.util.computeHash
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.SortedMap
-import kotlin.system.measureTimeMillis
 
 class StorageManager {
 
-    suspend fun scanPdfFilesWithHash(activity: Activity): SortedMap<String, File> {
-        return withContext(Dispatchers.IO) {
-            val filesMap = sortedMapOf<String, File>()
-            val time = measureTimeMillis {
-                readAllFiles()
-                    .filter { file -> file.extension == PDF_EXTENSION }
-                    .forEach { file ->
-                        val hash = computeHash(activity, PDF(uri = file.toUri()))
-                        if (hash != null) {
-                            filesMap[hash] = file
-                        }
-                    }
-            }
-            Log.d(TAG, "scanPdfFilesWithHash: timeElapsed: ${time / 1000F}s")
-            return@withContext filesMap
-        }
-    }
-
-    private fun readAllFiles(): FileTreeWalk {
+    fun readAllFiles(): FileTreeWalk {
         return File(ROOT_DIR).walk()
             .onEnter { file ->                        // before entering this dir check if
                 !file.isHidden                             // it is not hidden
@@ -43,8 +16,6 @@ class StorageManager {
     }
 
     companion object {
-
-        private val TAG = StorageManager::class.java.simpleName
 
         val ROOT_DIR = Environment.getExternalStorageDirectory().absolutePath
         private val ANDROID_DIR = File("$ROOT_DIR/Android")

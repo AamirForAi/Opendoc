@@ -4,6 +4,7 @@ import com.gitlab.mudlej.MjPdfReader.enums.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.repository.PdfAnnotationSaveDestination
 import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
+import com.gitlab.mudlej.MjPdfReader.repository.ScannedPdfCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -13,6 +14,23 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
     override suspend fun findAllRecords(): List<PdfRecord> {
         return withContext(Dispatchers.IO) {
             database.pdfRecordDao().findAll()
+        }
+    }
+
+    override suspend fun findRecord(fileHash: String): PdfRecord? {
+        return withContext(Dispatchers.IO) {
+            database.pdfRecordDao().findByHash(fileHash)
+        }
+    }
+
+    override suspend fun updateRecordIdentity(
+        fileHash: String,
+        uri: android.net.Uri,
+        fileName: String,
+        lastOpened: LocalDateTime,
+    ) {
+        withContext(Dispatchers.IO) {
+            database.pdfRecordDao().updateIdentity(fileHash, uri, fileName, lastOpened)
         }
     }
 
@@ -141,9 +159,21 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
         }
     }
 
+    override suspend fun removeRecords(fileHashes: List<String>) {
+        withContext(Dispatchers.IO) {
+            database.pdfRecordDao().deleteByHashes(fileHashes)
+        }
+    }
+
     override suspend fun setFavorite(fileHash: String, favorite: Boolean) {
         withContext(Dispatchers.IO) {
             database.pdfRecordDao().updateFavorite(fileHash, favorite)
+        }
+    }
+
+    override suspend fun setFavoriteBatch(fileHashes: List<String>, favorite: Boolean) {
+        withContext(Dispatchers.IO) {
+            database.pdfRecordDao().updateFavoriteBatch(fileHashes, favorite)
         }
     }
 
@@ -153,9 +183,45 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
         }
     }
 
+    override suspend fun setReadingBatch(fileHashes: List<String>, readingStatus: ReadingStatus) {
+        withContext(Dispatchers.IO) {
+            database.pdfRecordDao().updateReadingBatch(fileHashes, readingStatus)
+        }
+    }
+
+    override suspend fun findAllScannedPdfs(): List<ScannedPdfCache> {
+        return withContext(Dispatchers.IO) {
+            database.scannedPdfCacheDao().findAll()
+        }
+    }
+
+    override suspend fun findScannedPdfsByHash(hash: String): List<ScannedPdfCache> {
+        return withContext(Dispatchers.IO) {
+            database.scannedPdfCacheDao().findByHash(hash)
+        }
+    }
+
+    override suspend fun upsertScannedPdfs(entries: List<ScannedPdfCache>) {
+        withContext(Dispatchers.IO) {
+            database.scannedPdfCacheDao().upsertAll(entries)
+        }
+    }
+
+    override suspend fun pruneScannedPdfs(paths: List<String>) {
+        withContext(Dispatchers.IO) {
+            database.scannedPdfCacheDao().deleteByPaths(paths)
+        }
+    }
+
     override suspend fun setPassword(fileHash: String, password: String) {
         withContext(Dispatchers.IO) {
             database.pdfRecordDao().updatePassword(fileHash, password)
+        }
+    }
+
+    override suspend fun setDocumentTitle(fileHash: String, title: String) {
+        withContext(Dispatchers.IO) {
+            database.pdfRecordDao().updateDocumentTitle(fileHash, title)
         }
     }
 

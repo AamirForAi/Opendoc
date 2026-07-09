@@ -19,12 +19,26 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
 
     fun entries(): List<SettingEntry> {
         return listOf(
+            homeEntries(),
             appearanceEntries(),
             readingEntries(),
             controlEntries(),
             textEntries(),
             advancedEntries(),
         ).flatten()
+    }
+
+    private fun homeEntries(): List<SettingEntry> {
+        return listOf(
+            switchEntry(
+                page = SettingsPage.HOME,
+                titleRes = R.string.home_show_pdf_title_title,
+                key = Preferences.homeShowPdfTitleKey,
+                defaultValue = Preferences.homeShowPdfTitleDefault,
+                summaryRes = R.string.home_show_pdf_title_summary,
+                keywords = listOf("home", "title", "metadata", "name"),
+            ),
+        )
     }
 
     private fun appearanceEntries(): List<SettingEntry> {
@@ -254,6 +268,14 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
 
     private fun advancedEntries(): List<SettingEntry> {
         return listOf(
+            switchEntry(
+                page = SettingsPage.ADVANCED,
+                titleRes = R.string.disable_home_library_title,
+                key = Preferences.homeDisabledKey,
+                defaultValue = Preferences.homeDisabledDefault,
+                summaryRes = R.string.disable_home_library_summary,
+                keywords = listOf("home", "library", "disable", "launch", "start", "picker"),
+            ),
             floatPreferenceEntry(
                 page = SettingsPage.ADVANCED,
                 titleRes = R.string.part_size,

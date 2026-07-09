@@ -181,22 +181,15 @@
     <string name="page_out_of_bound" tools:ignore="PluralsCandidate">Seite #%d existiert nicht in diesem PDF.</string>
     <string name="press_back_again">Drücken Sie erneut zurück, um zu beenden</string>
     <string name="dracula_theme">Dracula-Theme</string>
-    <string name="non_clickable_pdf_icon">nicht-klickbares PDF-Symbol</string>
-    <string name="recently_opened">Kürzlich geöffnet</string>
     <string name="delete">Löschen</string>
     <string name="delete_dialog_title">Sind Sie sicher?</string>
     <string name="delete_dialog_message">Das Löschen des Speicherdatensatzes wird bewirken, dass die App alles vergisst, was sie über das PDF weiß.</string>
     <string name="list_mode">Listenmodus</string>
-    <string name="filter_list_dialog_title">Dateien filtern</string>
     <string name="status">Status</string>
-    <string name="favorite">Favorit</string>
 
     <string name="favorite_icon">Lieblings-Icon</string>
     <string name="last_opened_key">Zuletzt geöffnet:</string>
     <string name="pdf_cover_image">PDF-Coverbild</string>
-    <string name="all_files">Alle Dateien</string>
-    <string name="about_record">Über den Eintrag</string>
-    <string name="record_percentage_template">(%d%%)</string>
     <string name="pages">Seiten</string>
 
     <string name="exit">Beenden</string>

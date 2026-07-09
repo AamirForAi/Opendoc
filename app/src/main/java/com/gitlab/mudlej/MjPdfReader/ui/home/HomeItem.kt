@@ -1,0 +1,75 @@
+package com.gitlab.mudlej.MjPdfReader.ui.home
+
+import android.net.Uri
+import com.gitlab.mudlej.MjPdfReader.enums.ReadingStatus
+import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
+import com.gitlab.mudlej.MjPdfReader.repository.ScannedPdfCache
+import com.gitlab.mudlej.MjPdfReader.util.computeHash
+import java.io.File
+import java.time.LocalDateTime
+
+data class HomeItem(
+    val hash: String,
+    val uri: Uri,
+    val title: String,
+    val pageNumber: Int,
+    val length: Int,
+    val favorite: Boolean,
+    val readingStatus: ReadingStatus,
+    val lastOpened: LocalDateTime,
+    val isScanOnly: Boolean,
+    val coverKey: String,
+) {
+
+    val progressPercent: Int
+        get() = if (pageNumber <= 0 || length <= 0) {
+            0
+        } else {
+            ((pageNumber + 1) * 100 / length).coerceIn(0, 100)
+        }
+
+    val hasBeenOpened: Boolean
+        get() = lastOpened != LocalDateTime.parse(PdfRecord.UNSET_DATE)
+
+    companion object {
+
+        fun from(record: PdfRecord, showPdfTitle: Boolean): HomeItem {
+            val documentTitle = record.documentTitle
+            val title = if (showPdfTitle && !documentTitle.isNullOrBlank()) {
+                documentTitle
+            } else {
+                record.fileName
+            }
+            return HomeItem(
+                hash = record.hash,
+                uri = record.uri,
+                title = title,
+                pageNumber = record.pageNumber,
+                length = record.length,
+                favorite = record.favorite,
+                readingStatus = record.reading,
+                lastOpened = record.lastOpened,
+                isScanOnly = false,
+                coverKey = record.hash,
+            )
+        }
+
+        fun fromScan(entry: ScannedPdfCache): HomeItem {
+            val file = File(entry.path)
+            val syntheticKey =
+                "p" + (computeHash(entry.path.toByteArray()) ?: entry.path.hashCode().toString())
+            return HomeItem(
+                hash = syntheticKey,
+                uri = Uri.fromFile(file),
+                title = file.nameWithoutExtension,
+                pageNumber = 0,
+                length = 0,
+                favorite = false,
+                readingStatus = ReadingStatus.UNSET,
+                lastOpened = LocalDateTime.parse(PdfRecord.UNSET_DATE),
+                isScanOnly = true,
+                coverKey = syntheticKey,
+            )
+        }
+    }
+}

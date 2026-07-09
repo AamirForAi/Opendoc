@@ -1,6 +1,7 @@
 package com.gitlab.mudlej.MjPdfReader.manager.permission
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -9,84 +10,97 @@ import android.os.Environment
 import android.provider.Settings
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
-import com.gitlab.mudlej.MjPdfReader.ui.main.MainActivity
+import com.gitlab.mudlej.MjPdfReader.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
+class PermissionManager(
+    private val activity: AppCompatActivity,
+    private val onAccessChanged: (Boolean) -> Unit = {},
+) {
 
-class PermissionManager(private val activity: AppCompatActivity) {
+    private var lastKnownAccess = hasFullAccess()
+    private var legacyDeniedPermanently = false
 
-    private lateinit var storageGrantedFunc: () -> Unit
+    fun hasFullAccess(): Boolean = hasFullAccess(activity)
 
-    // -------------- Manage Storage
-    fun checkStoragePermission(func: () -> Unit): Boolean {
-        storageGrantedFunc = func
+    fun recheck() {
+        val access = hasFullAccess()
+        if (access != lastKnownAccess) {
+            lastKnownAccess = access
+            onAccessChanged(access)
+        }
+    }
 
+    fun requestFullAccess() {
+        if (hasFullAccess()) {
+            recheck()
+            return
+        }
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.storage_permission_rationale_title)
+            .setMessage(R.string.storage_permission_rationale_message)
+            .setPositiveButton(R.string.storage_permission_continue) { _, _ -> launchAccessRequest() }
+            .setNegativeButton(R.string.storage_permission_not_now, null)
+            .show()
+    }
+
+    private fun launchAccessRequest() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (!Environment.isExternalStorageManager()) {
-                val uri = Uri.parse("package:${BuildConfig.APPLICATION_ID}")
-                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, uri)
-                requestPermissionLauncher.launch(intent)
-            }
-            else {
-                storageGrantedFunc()
-            }
+            launchFirstWorkingIntent(
+                Intent(
+                    Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    Uri.parse("package:${BuildConfig.APPLICATION_ID}")
+                ),
+                Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION),
+                appDetailsSettingsIntent(),
+            )
+        } else if (legacyDeniedPermanently) {
+            launchFirstWorkingIntent(appDetailsSettingsIntent())
+        } else {
+            legacyPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
-        else {
-            if (hasLegacyStoragePermission()) {
-                storageGrantedFunc()
-            }
-            else {
-                legacyPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            }
-        }
-        return false;
     }
 
-    private fun hasLegacyStoragePermission(): Boolean {
-        return ContextCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
-            PackageManager.PERMISSION_GRANTED
+    private fun appDetailsSettingsIntent() = Intent(
+        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+        Uri.parse("package:${BuildConfig.APPLICATION_ID}")
+    )
+
+    private fun launchFirstWorkingIntent(vararg intents: Intent) {
+        for (intent in intents) {
+            if (runCatching { settingsLauncher.launch(intent) }.isSuccess) {
+                return
+            }
+        }
     }
+
+    private val settingsLauncher =
+        activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            recheck()
+        }
 
     private val legacyPermissionLauncher =
         activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted && ::storageGrantedFunc.isInitialized) {
-                storageGrantedFunc()
+            if (!granted && !ActivityCompat.shouldShowRequestPermissionRationale(
+                    activity, Manifest.permission.READ_EXTERNAL_STORAGE
+                )
+            ) {
+                legacyDeniedPermanently = true
             }
+            recheck()
         }
 
-    val requestPermissionLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ ->
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && ::storageGrantedFunc.isInitialized) {
-            if (!Environment.isExternalStorageManager()) {
-                MaterialAlertDialogBuilder(activity)
-                    .setCancelable(false)
-                    .setTitle("Really?")
-                    .setMessage("For real? How can I work right now?!")
-                    .setPositiveButton("Ask Again") { _, _ -> checkStoragePermission(storageGrantedFunc) }
-                    .show()
-            }
-            else {
-                storageGrantedFunc()
-            }
-        }
-    }
+    companion object {
 
-    // -------------- File Picker
-
-    fun launchPicker() {
-        val intent = Intent(Intent.ACTION_GET_CONTENT)
-        intent.type = "application/pdf"
-        pdfPicker.launch(intent)
-    }
-
-    private val pdfPicker = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == AppCompatActivity.RESULT_OK) {
-            val pdfUri = result?.data?.data ?: return@registerForActivityResult
-
-            Intent(activity, MainActivity::class.java).also { intent ->
-                intent.data = pdfUri
-                activity.startActivity(intent)
+        fun hasFullAccess(context: Context): Boolean {
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                Environment.isExternalStorageManager()
+            } else {
+                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) ==
+                    PackageManager.PERMISSION_GRANTED
             }
         }
     }

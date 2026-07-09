@@ -184,22 +184,15 @@
     <string name="page_out_of_bound" tools:ignore="PluralsCandidate">Страница №%d не существует в этом PDF.</string>
     <string name="press_back_again">Нажмите назад еще раз, чтобы выйти</string>
     <string name="dracula_theme">Тема Дракула</string>
-    <string name="non_clickable_pdf_icon">Некликабельный значок PDF</string>
-    <string name="recently_opened">Недавно открытые</string>
     <string name="delete">Удалить</string>
     <string name="delete_dialog_title">Вы уверены?</string>
     <string name="delete_dialog_message">Удаление записи сохранения заставит приложение забыть все, что оно знает о PDF.</string>
     <string name="list_mode">Режим списка</string>
-    <string name="filter_list_dialog_title">Фильтровать файлы</string>
     <string name="status">Статус</string>
-    <string name="favorite">Избранное</string>
 
     <string name="favorite_icon">иконка избранного</string>
     <string name="last_opened_key">Последний раз открыто:</string>
     <string name="pdf_cover_image">Обложка PDF</string>
-    <string name="all_files">Все файлы</string>
-    <string name="about_record">О записи</string>
-    <string name="record_percentage_template">(%d%%)</string>
     <string name="pages">страницы</string>
     <string name="exit">Выход</string>
     <string name="rotate">Поворот</string>

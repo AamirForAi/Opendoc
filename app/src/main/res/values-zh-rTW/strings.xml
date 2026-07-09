@@ -174,21 +174,14 @@
     <string name="page_out_of_bound">PDF 中不存在第 #%d 頁。</string>
     <string name="press_back_again">再按一次返回以退出</string>
     <string name="dracula_theme">Dracula 主題</string>
-    <string name="non_clickable_pdf_icon">不可點擊的 PDF 圖示</string>
-    <string name="recently_opened">最近開啟</string>
     <string name="delete">刪除</string>
     <string name="delete_dialog_title">您確定嗎？</string>
     <string name="delete_dialog_message">刪除儲存紀錄將會使應用程式忘記所有關於該 PDF 的資訊。</string>
     <string name="list_mode">列表模式</string>
-    <string name="filter_list_dialog_title">篩選檔案</string>
     <string name="status">狀態</string>
-    <string name="favorite">最愛</string>
     <string name="favorite_icon">最愛圖示</string>
     <string name="last_opened_key">最後開啟：</string>
     <string name="pdf_cover_image">PDF 封面圖片</string>
-    <string name="all_files">所有檔案</string>
-    <string name="about_record">關於紀錄</string>
-    <string name="record_percentage_template">（%d%%）</string>
     <string name="pages">頁面</string>
 
     <string name="exit">退出</string>

@@ -85,6 +85,7 @@ import com.gitlab.mudlej.MjPdfReader.manager.permission.PermissionManager
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.ui.*
 import com.gitlab.mudlej.MjPdfReader.ui.about.AboutActivity
+import com.gitlab.mudlej.MjPdfReader.ui.home.HomeActivity
 import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
@@ -276,6 +277,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pref = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setCustomActionBar()
@@ -287,20 +290,12 @@ class MainActivity : AppCompatActivity() {
         buildControllers()
         documentLoadController.applyTileRenderingPreferences()
 
-        if (pref.getFirstInstall()) {
-            onFirstInstall()
-            finish()
-            return
-        }
-
         openInitialDocument(savedInstanceState)
         setButtonsFunctionalities()
-        showAppFeaturesDialogOnFirstRun()
         overrideOnBackButtonPressed()
     }
 
     private fun buildControllers() {
-        pref = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
         databaseManager = DatabaseManagerImpl(AppDatabase.getInstance(applicationContext))
         autoScrollManager = AutoScrollManagerImpl(binding, pdf, pref, autoScrollSpeedStore::onSpeedChanged)
         fullScreenOptionsManager = FullScreenOptionsManagerImpl(
@@ -453,16 +448,6 @@ class MainActivity : AppCompatActivity() {
 
         // Apply the custom view
         actionBar?.customView = customView
-    }
-
-    private fun onFirstInstall() {
-        // To avoid com.github.paolorotolo.appintro.AppIntroBaseFragment.onCreateView
-        // android.content.res.Resources$NotFoundException
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
-            startActivity(Intent(this, MainIntroActivity::class.java))
-        }
-        pref.setFirstInstall(false)
-        pref.setShowFeaturesDialog(true)
     }
 
     private fun pickFile() {
@@ -832,10 +817,41 @@ class MainActivity : AppCompatActivity() {
         else if (couldNotOpenFileDueToMissingPermission(exception)) {
             launchers.readFileErrorPermission.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
+        else if (shouldReturnToHomeForRelocate(exception)) {
+            returnToHomeForRelocate()
+        }
         else {
             Snackbar.make(binding.root, R.string.file_opening_error, Snackbar.LENGTH_LONG).show()
             Log.e(TAG, getString(R.string.file_opening_error), exception)
         }
+    }
+
+    private fun shouldReturnToHomeForRelocate(exception: Throwable): Boolean {
+        if (!intent.getBooleanExtra(HomeActivity.EXTRA_FROM_HOME, false)) {
+            return false
+        }
+        if (intent.getStringExtra(HomeActivity.EXTRA_RECORD_HASH) == null) {
+            return false
+        }
+        var cause: Throwable? = exception
+        while (cause != null) {
+            if (cause is SecurityException || cause is FileNotFoundException) {
+                return true
+            }
+            cause = cause.cause
+        }
+        return false
+    }
+
+    private fun returnToHomeForRelocate() {
+        Intent(this, HomeActivity::class.java).also { homeIntent ->
+            homeIntent.putExtra(
+                HomeActivity.EXTRA_RELOCATE_HASH,
+                intent.getStringExtra(HomeActivity.EXTRA_RECORD_HASH)
+            )
+            startActivity(homeIntent)
+        }
+        finish()
     }
 
     private fun couldNotOpenFileDueToMissingPermission(e: Throwable): Boolean {
@@ -897,16 +913,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
-        autoScrollSpeedStore.flushPendingSave()
+        if (::databaseManager.isInitialized) {
+            autoScrollSpeedStore.flushPendingSave()
+        }
         super.onStop()
     }
 
     override fun onDestroy() {
-        autoScrollSpeedStore.flushPendingSave()
+        if (::databaseManager.isInitialized) {
+            autoScrollSpeedStore.flushPendingSave()
+        }
         if (::cropMarginsController.isInitialized) {
             cropMarginsController.cancel()
         }
-        inlineAnnotationActionController.hideActions()
+        if (::inlineAnnotationActionController.isInitialized) {
+            inlineAnnotationActionController.hideActions()
+        }
         super.onDestroy()
     }
 
@@ -930,18 +952,6 @@ class MainActivity : AppCompatActivity() {
     private fun askForPdfPassword() {
         val dialogBinding = PasswordDialogBinding.inflate(layoutInflater)
         showAskForPasswordDialog(this, pdf, dialogBinding, ::displayFromUri)
-    }
-
-    private fun showAppFeaturesDialogOnFirstRun() {
-        if (pref.getShowFeaturesDialog()) {
-            lifecycleScope.launch {
-                delay(500)
-                if (!isFinishing) {
-                    showAppFeaturesDialog(this@MainActivity)
-                }
-            }
-            pref.setShowFeaturesDialog(false)
-        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -1164,7 +1174,10 @@ class MainActivity : AppCompatActivity() {
                     }
                     return
                 }
-                if (!pref.getDoubleTapToExitEnabled() || doubleBackToExitPressedOnce) {
+                if (!pref.getDoubleTapToExitEnabled()
+                    || intent.getBooleanExtra(HomeActivity.EXTRA_FROM_HOME, false)
+                    || doubleBackToExitPressedOnce
+                ) {
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
                 } else {

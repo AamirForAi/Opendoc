@@ -19,6 +19,11 @@ enum class SettingsPage(
     @StringRes val summaryRes: Int,
     @DrawableRes val iconRes: Int,
 ) {
+    HOME(
+        R.string.settings_home,
+        R.string.settings_home_summary,
+        R.drawable.ic_grid_view,
+    ),
     APPEARANCE(
         R.string.settings_appearance,
         R.string.settings_appearance_summary,

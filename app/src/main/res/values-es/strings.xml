@@ -181,22 +181,15 @@
     <string name="page_out_of_bound" tools:ignore="PluralsCandidate">La página #%d no existe en este PDF.</string>
     <string name="press_back_again">Presione volver para salir</string>
     <string name="dracula_theme">Tema Drácula</string>
-    <string name="non_clickable_pdf_icon">ícono de PDF no clicable</string>
-    <string name="recently_opened">Recientemente Abierto</string>
     <string name="delete">Eliminar</string>
     <string name="delete_dialog_title">¿Estás seguro?</string>
     <string name="delete_dialog_message">Eliminar el registro guardado hará que la aplicación olvide todo lo que sabe sobre el PDF.</string>
     <string name="list_mode">Modo Lista</string>
-    <string name="filter_list_dialog_title">Filtrar Archivos</string>
     <string name="status">Estado</string>
-    <string name="favorite">Favorito</string>
 
     <string name="favorite_icon">ícono de favorito</string>
     <string name="last_opened_key">Última apertura:</string>
     <string name="pdf_cover_image">Imagen de portada del PDF</string>
-    <string name="all_files">Todos los Archivos</string>
-    <string name="about_record">Acerca del Registro</string>
-    <string name="record_percentage_template">(%d%%)</string>
     <string name="pages">páginas</string>
     <string name="exit">Salir</string>
     <string name="rotate">Girar</string>

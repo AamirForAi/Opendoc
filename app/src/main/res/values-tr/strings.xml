@@ -185,22 +185,15 @@
     <string name="page_out_of_bound" tools:ignore="PluralsCandidate">Sayfa #%d bu PDF\'te mevcut değil.</string>
     <string name="press_back_again">Çıkmak için tekrar geriye basın</string>
     <string name="dracula_theme">Dracula Teması</string>
-    <string name="non_clickable_pdf_icon">tıklanamayan PDF simgesi</string>
-    <string name="recently_opened">Son Açılanlar</string>
     <string name="delete">Sil</string>
     <string name="delete_dialog_title">Emin misiniz?</string>
     <string name="delete_dialog_message">Kayıt silindiğinde, uygulama PDF hakkında bildiği her şeyi unutacaktır.</string>
     <string name="list_mode">Liste Modu</string>
-    <string name="filter_list_dialog_title">Dosyaları Filtrele</string>
     <string name="status">Durum</string>
-    <string name="favorite">Favori</string>
 
     <string name="favorite_icon">favori simge</string>
     <string name="last_opened_key">Son Açılan:</string>
     <string name="pdf_cover_image">PDF Kapak Resmi</string>
-    <string name="all_files">Tüm Dosyalar</string>
-    <string name="about_record">Kayıt Hakkında</string>
-    <string name="record_percentage_template">(%d%%)</string>
     <string name="pages">sayfalar</string>
     <string name="exit">Çıkış</string>
     <string name="rotate">Döndür</string>

@@ -177,21 +177,14 @@
     <string name="page_out_of_bound" tools:ignore="PluralsCandidate">صفحه #%d در این PDF وجود ندارد.</string>
     <string name="press_back_again">برای خروج، دوباره دکمه بازگشت را فشار دهید</string>
     <string name="dracula_theme">پوسته دراکولا</string>
-    <string name="non_clickable_pdf_icon">نماد PDF غیرقابل کلیک</string>
-    <string name="recently_opened">اخیراً باز شده</string>
     <string name="delete">حذف</string>
     <string name="delete_dialog_title">آیا مطمئن هستید؟</string>
     <string name="delete_dialog_message">حذف رکورد ذخیره‌شده باعث می‌شود برنامه همه داده‌هایی را که درباره PDF دارد فراموش کند.</string>
     <string name="list_mode">حالت فهرست</string>
-    <string name="filter_list_dialog_title">پالایش پرونده‌ها</string>
     <string name="status">وضعیت</string>
-    <string name="favorite">دلخواه</string>
     <string name="favorite_icon">نماد دلخواه</string>
     <string name="last_opened_key">آخرین باز شده:</string>
     <string name="pdf_cover_image">تصویر جلد PDF</string>
-    <string name="all_files">همه پرونده‌ها</string>
-    <string name="about_record">درباره رکورد</string>
-    <string name="record_percentage_template">(%d%%)</string>
     <string name="pages">صفحات</string>
     <string name="exit">خروج</string>
     <string name="rotate">چرخش</string>

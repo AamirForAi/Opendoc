@@ -216,7 +216,7 @@
     <string name="inline_text_selection_summary">Enable selecting and copying text directly from the PDF page view.</string>
     <string name="detect_existing_highlights_title">Detect Existing Highlights</string>
     <string name="detect_existing_highlights_summary">Selecting text that exactly matches a highlight shows its actions instead of creating a new one.</string>
-    <string name="search_ignore_accents_title">Ignore diacritics and letter Accents in Search (such as é, č, ž) </string>
+    <string name="search_ignore_accents_title">Ignore accent letters (such as é, č, ž) </string>
     <string name="search_ignore_accents_summary">Match letters regardless of accents and diacritics (é = e, č = c, ž = z).</string>
     <string name="default_text_mode">Open in Text Mode by Default</string>
     <string name="default_text_mode_summary">Switch to Text Mode immediately after opening a PDF.</string>
@@ -296,21 +296,14 @@
     <string name="page_out_of_bound" tools:ignore="PluralsCandidate">Page #%d doesn\'t exist in this PDF.</string>
     <string name="press_back_again">Press back again to exit</string>
     <string name="dracula_theme">Dracula Theme</string>
-    <string name="non_clickable_pdf_icon">non-clickable PDF icon</string>
-    <string name="recently_opened">Recently Opened</string>
     <string name="delete">Delete</string>
     <string name="delete_dialog_title">Are you sure?</string>
     <string name="delete_dialog_message">Deleting the save record will make the app forget everything it knows about the PDF.</string>
     <string name="list_mode">List Mode</string>
-    <string name="filter_list_dialog_title">Filter Files</string>
     <string name="status">Status</string>
-    <string name="favorite">Favorite</string>
     <string name="favorite_icon">favorite icon</string>
     <string name="last_opened_key">Last Opened:</string>
     <string name="pdf_cover_image">PDF cover Image</string>
-    <string name="all_files">All Files</string>
-    <string name="about_record">About Record</string>
-    <string name="record_percentage_template">(%d%%)</string>
     <string name="pages">pages</string>
     <string name="exit">Exit</string>
     <string name="rotate">Rotate</string>
@@ -383,5 +376,55 @@
     <string name="reload_pdf">Reload PDF</string>
     <string name="text_extraction">Text Extraction</string>
     <string name="search_in_page">Search in Page</string>
+
+    <string name="storage_permission_rationale_title">Allow Access to All Files</string>
+    <string name="storage_permission_rationale_message">To find and open the PDF files on this device, MJ PDF needs permission to access all files. Android will open a settings screen where you can allow it. Your files never leave your device.</string>
+    <string name="storage_permission_continue">Continue</string>
+    <string name="storage_permission_not_now">Not Now</string>
+    <string name="storage_permission_grant">Allow Access</string>
+    <string name="home_permission_card_message">Allow file access to build your library from the PDFs on this device.</string>
+    <string name="home_search_hint">Search your library</string>
+    <string name="home_open_pdf">Open PDF</string>
+    <string name="home_empty_title">Your library is empty</string>
+    <string name="home_empty_message">PDFs you open on this device will show up here.</string>
+    <string name="home_empty_status_title">Nothing here yet</string>
+    <string name="home_empty_status_message">Long-press PDFs to set their reading status.</string>
+    <string name="home_empty_all_title">No PDFs found</string>
+    <string name="home_empty_all_message">No PDF files were found on this device.</string>
+    <string name="home_continue_reading">Continue Reading</string>
+    <string name="home_recents">Recents</string>
+    <string name="home_chip_to_read">To Read</string>
+    <string name="home_chip_reading">Reading</string>
+    <string name="home_chip_on_hold">On Hold</string>
+    <string name="home_chip_completed">Completed</string>
+    <string name="home_chip_abandoned">Abandoned</string>
+    <string name="home_chip_all_files">All Files</string>
+    <string name="home_hero_progress_template">%1$d%% · %2$d pages</string>
+    <string name="home_scanning_progress">Scanning… %1$d PDFs found</string>
+    <string name="home_view_grid">Grid View</string>
+    <string name="home_view_list">List View</string>
+    <string name="home_grid_size">Grid Size</string>
+    <string name="home_grid_size_small">Small</string>
+    <string name="home_grid_size_medium">Medium</string>
+    <string name="home_grid_size_large">Large</string>
+    <string name="home_sort">Sort By</string>
+    <string name="home_sort_last_opened">Last Opened</string>
+    <string name="home_sort_name">Name</string>
+    <string name="home_selected_count">%1$d selected</string>
+    <string name="home_set_status">Set Status</string>
+    <string name="home_relocate_title">File Not Found</string>
+    <string name="home_relocate_message">"%1$s" is no longer at its saved location. Locate it to keep its reading progress and settings.</string>
+    <string name="home_relocate_action">Re-locate</string>
+    <string name="home_relocate_found">File found at its new location</string>
+    <string name="home_relocate_mismatch_title">Different File</string>
+    <string name="home_relocate_mismatch_message">The selected file does not match the original PDF. Open it as a new document?</string>
+    <string name="home_open_anyway">Open Anyway</string>
+    <string name="home_cover_description">PDF cover</string>
+    <string name="disable_home_library_title">Disable Home Library</string>
+    <string name="disable_home_library_summary">Skip the home library screen entirely. The app will open the system file picker on launch instead, like older versions.</string>
+    <string name="settings_home">Home Page</string>
+    <string name="settings_home_summary">Home library screen and its behavior</string>
+    <string name="home_show_pdf_title_title">Show PDF Titles</string>
+    <string name="home_show_pdf_title_summary">Use the title from the PDF metadata when available instead of the file name.</string>
 
 </resources>

@@ -101,6 +101,24 @@ fun computeHash(bytes: ByteArray): String? {
     }.getOrNull()
 }
 
+fun computeHash(file: File): String? {
+    return runCatching {
+        FileInputStream(file).use { stream ->
+            val buffer = ByteArray(PDF.HASH_SIZE)
+            var totalRead = 0
+            while (totalRead < buffer.size) {
+                val amountRead = stream.read(buffer, totalRead, buffer.size - totalRead)
+                if (amountRead == -1) break
+                totalRead += amountRead
+            }
+            if (totalRead == 0) return@use null
+            val digester = MessageDigest.getInstance("MD5")
+            digester.update(buffer, 0, totalRead)
+            String.format("%032x", BigInteger(1, digester.digest()))
+        }
+    }.getOrNull()
+}
+
 suspend fun computeHash(context: Context, pdf: PDF): String? {
     if (pdf.uri == null) return null
     val cachedBytes = PdfBytesHolder.pdfByte

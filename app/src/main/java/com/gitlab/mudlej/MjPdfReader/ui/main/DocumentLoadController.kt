@@ -24,6 +24,7 @@ import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManager
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
 import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManager
 import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
+import com.gitlab.mudlej.MjPdfReader.util.UriCanonicalizer
 import com.gitlab.mudlej.MjPdfReader.util.computeHash
 import com.gitlab.mudlej.MjPdfReader.util.getFileName
 import com.google.android.material.color.MaterialColors
@@ -305,6 +306,9 @@ class DocumentLoadController(
         documentUri: Uri?,
     ) {
         val password = if (savePassword) pdf.password else null
+        val documentTitle = runCatching { binding.pdfView.documentMeta?.title }
+            .getOrNull()
+            ?.takeIf { it.isNotBlank() }
         scope.launch {
             if (!session.isCurrent(loadToken, documentUri)) {
                 return@launch
@@ -337,6 +341,16 @@ class DocumentLoadController(
                 if (!session.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
+                updateRecordUri(fileHash, pdf)
+                if (!session.isCurrent(loadToken, documentUri)) {
+                    return@launch
+                }
+                if (documentTitle != null) {
+                    databaseManager.setDocumentTitle(fileHash, documentTitle)
+                }
+                if (!session.isCurrent(loadToken, documentUri)) {
+                    return@launch
+                }
                 if (password != null) {
                     databaseManager.setPassword(fileHash, password)
                 }
@@ -362,6 +376,16 @@ class DocumentLoadController(
                 if (!session.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
+                if (documentTitle != null) {
+                    databaseManager.setDocumentTitle(fileHash, documentTitle)
+                }
+                if (!session.isCurrent(loadToken, documentUri)) {
+                    return@launch
+                }
+                updateRecordUri(fileHash, pdf)
+                if (!session.isCurrent(loadToken, documentUri)) {
+                    return@launch
+                }
                 pdf.autoScrollSpeed?.let { databaseManager.setAutoScrollSpeed(fileHash, it) }
                 if (!session.isCurrent(loadToken, documentUri)) {
                     return@launch
@@ -369,6 +393,22 @@ class DocumentLoadController(
                 cropMarginsController.onRecordAvailable(fileHash)
             }
         }
+    }
+
+    private suspend fun updateRecordUri(fileHash: String, pdf: PDF) {
+        val currentUri = pdf.uri ?: return
+        val canonicalFile = UriCanonicalizer.canonicalize(activity, currentUri)
+        val durableUri = canonicalFile?.let(Uri::fromFile) ?: currentUri
+        val storedUri = databaseManager.findRecord(fileHash)?.uri
+        if (storedUri?.toString() == durableUri.toString()) {
+            return
+        }
+        databaseManager.updateRecordIdentity(
+            fileHash,
+            durableUri,
+            pdf.name.removeSuffix(".pdf"),
+            LocalDateTime.now(),
+        )
     }
 
     @SuppressLint("ClickableViewAccessibility")

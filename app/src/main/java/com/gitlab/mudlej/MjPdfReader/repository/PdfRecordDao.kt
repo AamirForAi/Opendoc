@@ -90,11 +90,20 @@ interface PdfRecordDao {
     @Query("UPDATE PdfRecord SET favorite = :favorite WHERE hash = :fileHash")
     fun updateFavorite(fileHash: String?, favorite: Boolean)
 
+    @Query("UPDATE PdfRecord SET favorite = :favorite WHERE hash IN (:fileHashes)")
+    fun updateFavoriteBatch(fileHashes: List<String>, favorite: Boolean)
+
     @Query("UPDATE PdfRecord SET reading = :readingStatus WHERE hash = :fileHash")
     fun updateReading(fileHash: String, readingStatus: ReadingStatus)
 
+    @Query("UPDATE PdfRecord SET reading = :readingStatus WHERE hash IN (:fileHashes)")
+    fun updateReadingBatch(fileHashes: List<String>, readingStatus: ReadingStatus)
+
     @Query("UPDATE PdfRecord SET password = :password WHERE hash = :fileHash")
     fun updatePassword(fileHash: String, password: String)
+
+    @Query("UPDATE PdfRecord SET documentTitle = :title WHERE hash = :fileHash")
+    fun updateDocumentTitle(fileHash: String, title: String)
 
     @Query("UPDATE PdfRecord SET cropMargins = :cropMargins, cropMarginsVersion = :version WHERE hash = :fileHash")
     fun updateCropMargins(fileHash: String, cropMargins: String, version: Int): Int
@@ -119,4 +128,7 @@ interface PdfRecordDao {
 
     @Query("DELETE FROM PdfRecord WHERE hash = :fileHash")
     fun deleteByHash(fileHash: String): Int
+
+    @Query("DELETE FROM PdfRecord WHERE hash IN (:fileHashes)")
+    fun deleteByHashes(fileHashes: List<String>): Int
 }

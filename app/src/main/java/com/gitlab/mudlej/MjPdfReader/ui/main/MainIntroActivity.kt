@@ -44,7 +44,6 @@
 package com.gitlab.mudlej.MjPdfReader.ui.main
 
 import android.Manifest
-import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -97,9 +96,6 @@ class MainIntroActivity : AppIntro() {
 
     override fun onDonePressed(currentFragment: Fragment) {
         super.onDonePressed(currentFragment)
-        Intent(this, MainActivity::class.java).also { mainIntent ->
-            startActivity(mainIntent)
-        }
         finish()
     }
 }
