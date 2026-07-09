@@ -61,6 +61,7 @@ import com.gitlab.mudlej.MjPdfReader.util.getAppVersion
 import com.gitlab.mudlej.MjPdfReader.util.linkIntent
 import com.gitlab.mudlej.MjPdfReader.util.navIntent
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 
 class AboutActivity : AppCompatActivity() {
@@ -125,7 +126,7 @@ class AboutActivity : AppCompatActivity() {
                 APP_VERSION_RELEASE
             ))
         } catch (e: ActivityNotFoundException) {
-            Snackbar.make(binding.root, email, Snackbar.LENGTH_SHORT).show()
+            AppSnackbar.make(binding.root, email, Snackbar.LENGTH_SHORT).show()
         }
     }
 

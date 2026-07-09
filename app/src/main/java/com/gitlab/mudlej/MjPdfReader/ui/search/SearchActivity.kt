@@ -29,6 +29,7 @@ import com.gitlab.mudlej.MjPdfReader.util.containsAccentInsensitive
 import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
 import com.gitlab.mudlej.MjPdfReader.util.indexesOf
 import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -360,7 +361,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
 
         // show too many results message
         if (searchResults.size > PDF.TOO_MANY_RESULTS) {
-            Snackbar.make(binding.root,getString(R.string.too_many_results_may_be_slow), Snackbar.LENGTH_INDEFINITE).also {
+            AppSnackbar.make(binding.root,getString(R.string.too_many_results_may_be_slow), Snackbar.LENGTH_INDEFINITE).also {
                 it.setAction(getText(R.string.ok)) { }
                 it.show()
             }
@@ -399,7 +400,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
                     showProgressBar()
                     val rows = withContext(Dispatchers.Default) { visibleResultRows() }
                     searchResultAdapter.submitList(rows)
-                    Snackbar.make(
+                    AppSnackbar.make(
                         binding.root,
                         getString(R.string.number_of_filtered_results).format(rows.size),
                         Snackbar.LENGTH_SHORT

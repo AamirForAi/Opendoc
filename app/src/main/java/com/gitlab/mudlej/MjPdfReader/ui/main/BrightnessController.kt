@@ -7,6 +7,11 @@ import android.widget.SeekBar
 import androidx.core.view.isVisible
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
+import kotlin.math.exp
+import kotlin.math.ln
+import kotlin.math.pow
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 class BrightnessController(
     private val activity: Activity,
@@ -26,13 +31,59 @@ class BrightnessController(
     fun showControl() {
         binding.brightnessLayout.visibility = View.VISIBLE
         pdf.isBrightnessClicked = true
+        syncSliderWithCurrentBrightness()
+    }
+
+    private fun brightnessSettingMax(): Int {
+        val resourceId = activity.resources.getIdentifier(
+            "config_screenBrightnessSettingMaximum", "integer", "android"
+        )
+        val max = if (resourceId > 0) {
+            runCatching { activity.resources.getInteger(resourceId) }.getOrDefault(255)
+        } else {
+            255
+        }
+        return max.coerceAtLeast(1)
+    }
+
+    private fun linearToPercent(linear: Float): Int {
+        val normalized = linear.coerceIn(0f, 1f) * 12f
+        val gamma = if (normalized <= 1f) {
+            sqrt(normalized) * GAMMA_R
+        } else {
+            GAMMA_A * ln(normalized - GAMMA_B) + GAMMA_C
+        }
+        return (gamma * 100).roundToInt().coerceIn(0, 100)
+    }
+
+    private fun percentToLinear(percent: Int): Float {
+        val gamma = percent.coerceIn(0, 100) / 100f
+        val normalized = if (gamma <= GAMMA_R) {
+            (gamma / GAMMA_R).pow(2)
+        } else {
+            exp((gamma - GAMMA_C) / GAMMA_A) + GAMMA_B
+        }
+        return normalized.coerceIn(0f, 12f) / 12f
+    }
+
+    private fun syncSliderWithCurrentBrightness() {
+        val override = activity.window.attributes.screenBrightness
+        val linear = if (override >= 0f) {
+            override
+        } else {
+            val max = brightnessSettingMax()
+            val system = Settings.System.getInt(
+                activity.contentResolver, Settings.System.SCREEN_BRIGHTNESS, max / 2
+            )
+            system.toFloat() / max
+        }
+        val brightness = linearToPercent(linear)
+        binding.brightnessSeekBar.progress = brightness
+        binding.brightnessPercentage.text = "$brightness%"
     }
 
     fun attachSeekbarListener() {
-        // init the seekbar
-        val brightness = Settings.System.getInt(activity.contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128)
-        binding.brightnessSeekBar.progress = brightness
-        binding.brightnessPercentage.text = "$brightness%"
+        syncSliderWithCurrentBrightness()
         binding.brightnessSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
             override fun onStartTrackingTouch(p0: SeekBar?) {}
@@ -46,7 +97,14 @@ class BrightnessController(
 
     private fun updateBrightness(brightness: Int) {
         binding.brightnessPercentage.text = "$brightness%"
-        activity.window.attributes.screenBrightness = brightness.toFloat() / 100
+        activity.window.attributes.screenBrightness = percentToLinear(brightness)
         activity.window.attributes = activity.window.attributes // apply it
+    }
+
+    private companion object {
+        const val GAMMA_R = 0.5f
+        const val GAMMA_A = 0.17883277f
+        const val GAMMA_B = 0.28466892f
+        const val GAMMA_C = 0.55991073f
     }
 }

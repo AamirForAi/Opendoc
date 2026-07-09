@@ -7,6 +7,7 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 
 class PdfThemeController(
@@ -16,7 +17,7 @@ class PdfThemeController(
 ) {
 
     fun configureTheme() {
-        ColorUtil.colorize(activity, activity.window, activity.supportActionBar)
+        ColorUtil.colorize(activity, activity.window, activity.supportActionBar, transparentNavigationBar = true)
         val color = ColorUtil.getBarColor(activity)
         binding.secondBarScrollView.setBackgroundColor(color)
 
@@ -42,7 +43,7 @@ class PdfThemeController(
 
     fun switchPdfTheme(hasFile: () -> Boolean) {
         if (pref.getPdfPagesTheme() == Preferences.themeSystem) {
-            Snackbar.make(
+            AppSnackbar.make(
                 binding.root,
                 activity.getString(R.string.pdf_theme_follows_system),
                 Snackbar.LENGTH_LONG

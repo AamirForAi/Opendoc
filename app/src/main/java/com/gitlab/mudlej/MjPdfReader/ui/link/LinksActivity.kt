@@ -22,6 +22,7 @@ import com.gitlab.mudlej.MjPdfReader.util.configureSearchIcon
 import com.gitlab.mudlej.MjPdfReader.util.copyToClipboard
 import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
 import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -144,7 +145,7 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
 
         // show too many results message
         if (links.size > PDF.TOO_MANY_RESULTS) {
-            Snackbar.make(binding.root,getString(R.string.too_many_results_may_be_slow), Snackbar.LENGTH_INDEFINITE).also {
+            AppSnackbar.make(binding.root,getString(R.string.too_many_results_may_be_slow), Snackbar.LENGTH_INDEFINITE).also {
                 it.setAction(getText(R.string.ok)) { }
                 it.show()
             }
@@ -190,7 +191,7 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
                 linkAdapter.submitList(filteredList)
                 linkAdapter.notifyDataSetChanged() // because the comparator doesn't see the difference in text style
 
-                Snackbar.make(
+                AppSnackbar.make(
                     binding.root,
                     getString(R.string.number_of_filtered_results).format(filteredList.size),
                     Snackbar.LENGTH_SHORT
@@ -220,7 +221,7 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
             try {
                 startActivity(it)
             } catch (throwable: Throwable) {
-                Snackbar.make(binding.root, getString(R.string.no_app_to_open_link), Snackbar.LENGTH_LONG).show()
+                AppSnackbar.make(binding.root, getString(R.string.no_app_to_open_link), Snackbar.LENGTH_LONG).show()
             }
         }
     }

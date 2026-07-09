@@ -10,10 +10,13 @@ import android.os.Looper
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnNextLayout
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -36,6 +39,7 @@ import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.slider.Slider
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +65,9 @@ class TextModeActivity : AppCompatActivity() {
     private var fileHash: String? = null
     private var pageCount = 0
     private var currentPageIndex = 0
+    private var pendingScrollTarget = RecyclerView.NO_POSITION
+    private var sliderTracking = false
+    private var seekSettling = false
     private var resultPrepared = false
     @Volatile
     private var isClosing = false
@@ -91,6 +98,13 @@ class TextModeActivity : AppCompatActivity() {
             loadVisiblePages()
         }
     }
+    private val seekSettleRunnable = Runnable {
+        seekSettling = false
+        if (::binding.isInitialized && ::layoutManager.isInitialized) {
+            loadTargetWindow(currentPageIndex)
+            loadVisiblePages()
+        }
+    }
     private var controlsHideDelayMillis = Preferences.hideDelayDefault.toLong()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -98,6 +112,17 @@ class TextModeActivity : AppCompatActivity() {
         binding = ActivityTextModeBinding.inflate(layoutInflater)
         setContentView(binding.root)
         ColorUtil.colorize(this, window, supportActionBar)
+        ColorUtil.enterFullscreen(window)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.readerControlsCard) { view, insets ->
+            val bottomInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            val params = view.layoutParams as ViewGroup.MarginLayoutParams
+            val margin = (12 * resources.displayMetrics.density).toInt() + bottomInset
+            if (params.bottomMargin != margin) {
+                params.bottomMargin = margin
+                view.layoutParams = params
+            }
+            insets
+        }
 
         databaseManager = DatabaseManagerImpl(AppDatabase.getInstance(applicationContext))
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
@@ -198,6 +223,12 @@ class TextModeActivity : AppCompatActivity() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 updateCurrentPageFromScroll()
             }
+
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
+                    pendingScrollTarget = RecyclerView.NO_POSITION
+                }
+            }
         })
         binding.textPagesRecyclerView.addOnChildAttachStateChangeListener(
             object : RecyclerView.OnChildAttachStateChangeListener {
@@ -234,11 +265,21 @@ class TextModeActivity : AppCompatActivity() {
         binding.pageSlider.stepSize = 1f
         binding.pageSlider.isEnabled = pageCount > 1
         binding.pageSlider.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
-            override fun onStartTrackingTouch(slider: Slider) = Unit
+            override fun onStartTrackingTouch(slider: Slider) {
+                sliderTracking = true
+            }
+
             override fun onStopTrackingTouch(slider: Slider) {
+                sliderTracking = false
+                finishSeekSettling()
                 scrollToPage(slider.value.toInt() - 1)
             }
         })
+        binding.pageSlider.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                seekToPage(value.toInt() - 1)
+            }
+        }
         updatePageControls()
         setReaderControlsTouchListeners()
         showReaderControlsTemporarily()
@@ -492,6 +533,7 @@ class TextModeActivity : AppCompatActivity() {
 
     private fun scheduleLoadVisiblePages() {
         if (!::binding.isInitialized) return
+        if (seekSettling) return
 
         binding.textPagesRecyclerView.removeCallbacks(loadVisiblePagesRunnable)
         binding.textPagesRecyclerView.post(loadVisiblePagesRunnable)
@@ -525,22 +567,33 @@ class TextModeActivity : AppCompatActivity() {
         loadingPages.add(pageIndex)
         updatePageState(TextModePageState.Loading(pageIndex))
         val job = lifecycleScope.launch(Dispatchers.IO) {
-            val state = try {
-                val rawText = extractionMutex.withLock {
-                    pdfExtractor.getPageTextOrThrow(pageIndex + 1)
-                }
-                val text = TextModeTextFormatter.format(rawText)
-                if (text.isBlank()) {
-                    TextModePageState.Empty(pageIndex)
+            val state = extractionMutex.withLock {
+                val relevant = withContext(Dispatchers.Main) { isPageStillWanted(pageIndex) }
+                if (!relevant) {
+                    null
                 } else {
-                    TextModePageState.Ready(pageIndex, text)
+                    try {
+                        val rawText = pdfExtractor.getPageTextOrThrow(pageIndex + 1)
+                        val text = TextModeTextFormatter.format(rawText)
+                        if (text.isBlank()) {
+                            TextModePageState.Empty(pageIndex)
+                        } else {
+                            TextModePageState.Ready(pageIndex, text)
+                        }
+                    } catch (throwable: Throwable) {
+                        TextModePageState.Error(pageIndex, throwable.message.orEmpty())
+                    }
                 }
-            } catch (throwable: Throwable) {
-                TextModePageState.Error(pageIndex, throwable.message.orEmpty())
             }
 
             withContext(Dispatchers.Main) {
                 loadingPages.remove(pageIndex)
+                if (state == null) {
+                    if (adapter.pageState(pageIndex) is TextModePageState.Loading) {
+                        updatePageState(TextModePageState.NotLoaded(pageIndex))
+                    }
+                    return@withContext
+                }
                 if (state is TextModePageState.Ready) {
                     cacheText(state.pageIndex, state.text)
                 }
@@ -552,22 +605,48 @@ class TextModeActivity : AppCompatActivity() {
         job.invokeOnCompletion { extractionJobs.remove(job) }
     }
 
+    private fun isPageStillWanted(pageIndex: Int): Boolean {
+        if (isClosing || !::layoutManager.isInitialized) return false
+
+        val nearCurrent = pageIndex in (currentPageIndex - PREFETCH_DISTANCE)..(currentPageIndex + JUMP_LOAD_AHEAD)
+        if (nearCurrent) return true
+
+        val firstVisiblePage = layoutManager.findFirstVisibleItemPosition()
+        val lastVisiblePage = layoutManager.findLastVisibleItemPosition()
+        if (firstVisiblePage == RecyclerView.NO_POSITION || lastVisiblePage == RecyclerView.NO_POSITION) return true
+
+        return pageIndex in (firstVisiblePage - PREFETCH_DISTANCE)..(lastVisiblePage + PREFETCH_DISTANCE)
+    }
+
     private fun updatePageState(state: TextModePageState) {
         if (binding.textPagesRecyclerView.isComputingLayout) {
             binding.textPagesRecyclerView.post { updatePageState(state) }
-        } else {
-            adapter.updatePageState(state)
+            return
         }
+        if (state is TextModePageState.Loading && !loadingPages.contains(state.pageIndex)) {
+            return
+        }
+        adapter.updatePageState(state)
     }
 
     private fun cacheText(pageIndex: Int, text: String) {
         textCache[pageIndex] = text
-        while (textCache.size > CACHE_PAGE_LIMIT) {
-            val eldestPageIndex = textCache.entries.iterator().next().key
-            textCache.remove(eldestPageIndex)
-            if (eldestPageIndex != pageIndex) {
-                updatePageState(TextModePageState.NotLoaded(eldestPageIndex))
-            }
+        if (textCache.size <= CACHE_PAGE_LIMIT) return
+
+        val firstVisiblePage = layoutManager.findFirstVisibleItemPosition()
+        val lastVisiblePage = layoutManager.findLastVisibleItemPosition()
+        val protectedRange = if (firstVisiblePage == RecyclerView.NO_POSITION || lastVisiblePage == RecyclerView.NO_POSITION) {
+            (currentPageIndex - PREFETCH_DISTANCE)..(currentPageIndex + JUMP_LOAD_AHEAD)
+        } else {
+            (firstVisiblePage - PREFETCH_DISTANCE)..(lastVisiblePage + PREFETCH_DISTANCE)
+        }
+
+        val iterator = textCache.keys.iterator()
+        while (textCache.size > CACHE_PAGE_LIMIT && iterator.hasNext()) {
+            val eldestPageIndex = iterator.next()
+            if (eldestPageIndex == pageIndex || eldestPageIndex in protectedRange) continue
+            iterator.remove()
+            updatePageState(TextModePageState.NotLoaded(eldestPageIndex))
         }
     }
 
@@ -575,6 +654,7 @@ class TextModeActivity : AppCompatActivity() {
         if (pageCount <= 0) return
 
         currentPageIndex = pageIndex.coerceIn(0, pageCount - 1)
+        pendingScrollTarget = currentPageIndex
         layoutManager.scrollToPositionWithOffset(currentPageIndex, 0)
         loadTargetWindow(currentPageIndex)
         binding.textPagesRecyclerView.doOnNextLayout { loadVisiblePages() }
@@ -582,17 +662,45 @@ class TextModeActivity : AppCompatActivity() {
         saveCurrentPage()
     }
 
+    private fun seekToPage(pageIndex: Int) {
+        if (pageCount <= 0) return
+
+        currentPageIndex = pageIndex.coerceIn(0, pageCount - 1)
+        pendingScrollTarget = currentPageIndex
+        seekSettling = true
+        layoutManager.scrollToPositionWithOffset(currentPageIndex, 0)
+        binding.textPagesRecyclerView.removeCallbacks(seekSettleRunnable)
+        binding.textPagesRecyclerView.postDelayed(seekSettleRunnable, SEEK_SETTLE_DELAY_MS)
+        updatePageControls()
+    }
+
+    private fun finishSeekSettling() {
+        seekSettling = false
+        binding.textPagesRecyclerView.removeCallbacks(seekSettleRunnable)
+    }
+
     private fun updateCurrentPageFromScroll() {
         val firstVisiblePage = layoutManager.findFirstVisibleItemPosition()
         if (firstVisiblePage == RecyclerView.NO_POSITION) return
 
-        if (firstVisiblePage == currentPageIndex) {
+        if (!seekSettling) {
             loadVisiblePages()
+        }
+
+        val pending = pendingScrollTarget
+        if (pending != RecyclerView.NO_POSITION) {
+            if (firstVisiblePage == pending) {
+                pendingScrollTarget = RecyclerView.NO_POSITION
+            } else {
+                layoutManager.scrollToPositionWithOffset(pending, 0)
+            }
             return
         }
 
+        if (binding.textPagesRecyclerView.scrollState == RecyclerView.SCROLL_STATE_IDLE) return
+        if (firstVisiblePage == currentPageIndex) return
+
         currentPageIndex = firstVisiblePage
-        loadVisiblePages()
         updatePageControls()
         saveCurrentPage()
     }
@@ -611,7 +719,9 @@ class TextModeActivity : AppCompatActivity() {
         if (pageCount <= 0) return
 
         binding.pageButton.text = getString(R.string.text_mode_page_counter, currentPageIndex + 1, pageCount)
-        binding.pageSlider.value = (currentPageIndex + 1).toFloat().coerceIn(binding.pageSlider.valueFrom, binding.pageSlider.valueTo)
+        if (!sliderTracking) {
+            binding.pageSlider.value = (currentPageIndex + 1).toFloat().coerceIn(binding.pageSlider.valueFrom, binding.pageSlider.valueTo)
+        }
         binding.previousPageButton.isEnabled = currentPageIndex > 0
         binding.nextPageButton.isEnabled = currentPageIndex < pageCount - 1
     }
@@ -632,6 +742,13 @@ class TextModeActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            ColorUtil.enterFullscreen(window)
+        }
+    }
+
     override fun finish() {
         if (!resultPrepared) {
             setPageResult(Activity.RESULT_OK)
@@ -644,6 +761,7 @@ class TextModeActivity : AppCompatActivity() {
         controlsHideHandler.removeCallbacksAndMessages(null)
         if (::binding.isInitialized) {
             binding.textPagesRecyclerView.removeCallbacks(loadVisiblePagesRunnable)
+            binding.textPagesRecyclerView.removeCallbacks(seekSettleRunnable)
         }
         setupJob?.cancel()
         synchronized(extractionJobs) {
@@ -680,7 +798,7 @@ class TextModeActivity : AppCompatActivity() {
 
     private fun badFileExit() {
         if (::binding.isInitialized) {
-            Snackbar.make(binding.root, getString(R.string.failed_to_extract_text), Snackbar.LENGTH_LONG).show()
+            AppSnackbar.make(binding.root, getString(R.string.failed_to_extract_text), Snackbar.LENGTH_LONG).show()
         } else {
             Toast.makeText(this, getString(R.string.failed_to_extract_text), Toast.LENGTH_SHORT).show()
         }
@@ -692,6 +810,7 @@ class TextModeActivity : AppCompatActivity() {
         private const val CURRENT_PAGE_KEY = "CURRENT_TEXT_MODE_PAGE"
         private const val PREFETCH_DISTANCE = 2
         private const val JUMP_LOAD_AHEAD = 8
+        private const val SEEK_SETTLE_DELAY_MS = 50L
         private const val CACHE_PAGE_LIMIT = 24
         private const val CONTROLS_EXTRA_HIDE_DELAY_MS = 1500L
     }

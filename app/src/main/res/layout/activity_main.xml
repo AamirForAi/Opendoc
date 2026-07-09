@@ -160,116 +160,10 @@
         app:layout_constraintVertical_bias="1">
 
         <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/textSelectionActionContent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="12dp">
-
-            <LinearLayout
-                android:id="@+id/textSelectionHighlightColorGroup"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <FrameLayout
-                    android:id="@+id/textSelectionHighlightYellowButton"
-                    android:layout_width="52dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:contentDescription="@string/highlight_yellow"
-                    android:focusable="true">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_gravity="center"
-                        app:cardBackgroundColor="#FFF176"
-                        app:cardCornerRadius="18dp"
-                        app:cardElevation="0dp"
-                        app:strokeColor="?attr/colorOutline"
-                        app:strokeWidth="1dp" />
-                </FrameLayout>
-
-                <FrameLayout
-                    android:id="@+id/textSelectionHighlightOrangeButton"
-                    android:layout_width="52dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:contentDescription="@string/highlight_orange"
-                    android:focusable="true">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_gravity="center"
-                        app:cardBackgroundColor="#FFB74D"
-                        app:cardCornerRadius="18dp"
-                        app:cardElevation="0dp"
-                        app:strokeColor="?attr/colorOutline"
-                        app:strokeWidth="1dp" />
-                </FrameLayout>
-
-                <FrameLayout
-                    android:id="@+id/textSelectionHighlightRedButton"
-                    android:layout_width="52dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:contentDescription="@string/highlight_pink_red"
-                    android:focusable="true">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_gravity="center"
-                        app:cardBackgroundColor="#F06292"
-                        app:cardCornerRadius="18dp"
-                        app:cardElevation="0dp"
-                        app:strokeColor="?attr/colorOutline"
-                        app:strokeWidth="1dp" />
-                </FrameLayout>
-
-                <FrameLayout
-                    android:id="@+id/textSelectionHighlightBlueButton"
-                    android:layout_width="52dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:contentDescription="@string/highlight_blue"
-                    android:focusable="true">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_gravity="center"
-                        app:cardBackgroundColor="#64B5F6"
-                        app:cardCornerRadius="18dp"
-                        app:cardElevation="0dp"
-                        app:strokeColor="?attr/colorOutline"
-                        app:strokeWidth="1dp" />
-                </FrameLayout>
-
-                <FrameLayout
-                    android:id="@+id/textSelectionHighlightGreenButton"
-                    android:layout_width="52dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:contentDescription="@string/highlight_green"
-                    android:focusable="true">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_gravity="center"
-                        app:cardBackgroundColor="#81C784"
-                        app:cardCornerRadius="18dp"
-                        app:cardElevation="0dp"
-                        app:strokeColor="?attr/colorOutline"
-                        app:strokeWidth="1dp" />
-                </FrameLayout>
-            </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/textSelectionDeleteHighlightButton"
@@ -336,7 +230,7 @@
                 android:id="@+id/textSelectionActionFlow"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                app:constraint_referenced_ids="textSelectionHighlightColorGroup,textSelectionDeleteHighlightButton,textSelectionCopyButton,textSelectionSearchWebButton"
+                app:constraint_referenced_ids="textSelectionDeleteHighlightButton,textSelectionCopyButton,textSelectionSearchWebButton"
                 app:flow_horizontalAlign="center"
                 app:flow_horizontalGap="16dp"
                 app:flow_horizontalStyle="packed"
@@ -349,30 +243,18 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/unsavedHighlightsChip"
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/discardAnnotationsFab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="12dp"
+        android:contentDescription="@string/discard_highlights"
         android:visibility="gone"
-        app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-        app:cardCornerRadius="18dp"
-        app:cardElevation="6dp"
+        app:backgroundTint="?attr/colorErrorContainer"
         app:layout_constraintBottom_toTopOf="@id/saveAnnotationsFab"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="14dp"
-            android:paddingTop="8dp"
-            android:paddingEnd="14dp"
-            android:paddingBottom="8dp"
-            android:text="@string/unsaved_highlights"
-            android:textColor="?attr/colorOnSurface"
-            android:textSize="14sp" />
-    </com.google.android.material.card.MaterialCardView>
+        app:layout_constraintEnd_toEndOf="@id/saveAnnotationsFab"
+        app:srcCompat="@drawable/close_icon"
+        app:tint="?attr/colorOnErrorContainer" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/saveAnnotationsFab"
@@ -397,7 +279,7 @@
         android:contentDescription="@string/signature_cancel_placement"
         android:visibility="gone"
         app:backgroundTint="?attr/colorErrorContainer"
-        app:layout_constraintBottom_toTopOf="@id/unsavedHighlightsChip"
+        app:layout_constraintBottom_toTopOf="@id/discardAnnotationsFab"
         app:layout_constraintEnd_toEndOf="@id/saveAnnotationsFab"
         app:srcCompat="@drawable/close_icon"
         app:tint="?attr/colorOnErrorContainer" />

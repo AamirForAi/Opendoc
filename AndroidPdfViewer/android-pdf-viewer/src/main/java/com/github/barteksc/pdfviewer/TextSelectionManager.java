@@ -37,13 +37,13 @@ final class TextSelectionManager {
     TextSelectionManager(PDFView pdfView) {
         this.pdfView = pdfView;
         float density = pdfView.getResources().getDisplayMetrics().density;
-        handleRadius = 6f * density;
-        handleTouchRadius = 20f * density;
-        handleStemLength = 14f * density;
+        handleRadius = 9f * density;
+        handleTouchRadius = 28f * density;
+        handleStemLength = 20f * density;
         selectionPaint.setStyle(Paint.Style.FILL);
         selectionPaint.setColor(DEFAULT_SELECTION_COLOR);
         handlePaint.setStyle(Paint.Style.FILL);
-        handlePaint.setStrokeWidth(2f * density);
+        handlePaint.setStrokeWidth(3f * density);
         handlePaint.setColor(0xFF3F51B5);
     }
 

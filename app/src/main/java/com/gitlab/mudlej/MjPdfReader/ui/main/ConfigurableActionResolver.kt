@@ -7,6 +7,8 @@ class ConfigurableActionResolver(
     private val hasFile: () -> Boolean,
     private val horizontalScrollEnabled: () -> Boolean,
     private val cropMarginsEnabled: () -> Boolean,
+    private val isPdfDarkTheme: () -> Boolean,
+    private val isPdfThemeSystem: () -> Boolean,
     private val handlers: Handlers,
 ) {
 
@@ -94,9 +96,9 @@ class ConfigurableActionResolver(
                 run = handlers.screenshot,
             )
             ConfigurableAction.SWITCH_THEME -> ConfiguredAction(
-                R.string.switch_theme,
-                R.drawable.ic_toggle_theme,
-                visible = fileAvailable,
+                if (isPdfDarkTheme()) R.string.switch_to_light_mode else R.string.switch_to_dark_mode,
+                if (isPdfDarkTheme()) R.drawable.ic_light_mode else R.drawable.ic_dark_mode,
+                visible = fileAvailable && !isPdfThemeSystem(),
                 run = handlers.switchTheme,
             )
             ConfigurableAction.RELOAD -> ConfiguredAction(

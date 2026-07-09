@@ -1,6 +1,7 @@
 package com.gitlab.mudlej.MjPdfReader.util
 
 import android.content.Context
+import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.view.Gravity
@@ -22,16 +23,34 @@ object ColorUtil {
     private const val STATUS_BAR_BACKGROUND_TAG = "mj_pdf_status_bar_background"
     private const val NAVIGATION_BAR_BACKGROUND_TAG = "mj_pdf_navigation_bar_background"
 
-    fun colorize(context: Context, window: Window, actionBar: ActionBar?) {
+    fun colorize(
+        context: Context,
+        window: Window,
+        actionBar: ActionBar?,
+        transparentNavigationBar: Boolean = false,
+    ) {
         val color = getBarColor(context)
 
-        WindowCompat.setDecorFitsSystemWindows(window, true)
-        window.statusBarColor = color
-        window.navigationBarColor = color
-        showSystemBars(window)
-        drawSystemBarBackgrounds(window, color)
-        setSystemBarIconColors(window, color)
-        fitContentBelowSystemBars(window)
+        if (transparentNavigationBar) {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            window.statusBarColor = color
+            window.navigationBarColor = Color.TRANSPARENT
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                window.isNavigationBarContrastEnforced = false
+            }
+            showSystemBars(window)
+            drawStatusBarBackgroundOnly(window, color)
+            setSystemBarIconColors(window, color)
+            applyTopOnlyContentInsets(window)
+        } else {
+            WindowCompat.setDecorFitsSystemWindows(window, true)
+            window.statusBarColor = color
+            window.navigationBarColor = color
+            showSystemBars(window)
+            drawSystemBarBackgrounds(window, color)
+            setSystemBarIconColors(window, color)
+            fitContentBelowSystemBars(window)
+        }
 
         actionBar?.setBackgroundDrawable(ColorDrawable(color))
         // Flatten the app bar so it blends into the status bar.
@@ -39,16 +58,23 @@ object ColorUtil {
     }
 
     fun enterFullscreen(window: Window) {
-        setSystemBarBackgroundsVisible(window, false)
-        setContentFitsSystemBars(window, false)
-
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         controller.hide(WindowInsetsCompat.Type.systemBars())
+
+        setSystemBarBackgroundsVisible(window, false)
+        setContentFitsSystemBars(window, false)
+        clearContentTopPadding(window)
+        ViewCompat.requestApplyInsets(window.decorView)
     }
 
-    fun exitFullscreen(context: Context, window: Window, actionBar: ActionBar?) {
-        colorize(context, window, actionBar)
+    fun exitFullscreen(
+        context: Context,
+        window: Window,
+        actionBar: ActionBar?,
+        transparentNavigationBar: Boolean = false,
+    ) {
+        colorize(context, window, actionBar, transparentNavigationBar)
     }
 
     fun getBarColor(context: Context): Int {
@@ -73,7 +99,7 @@ object ColorUtil {
             color = color,
             gravity = Gravity.TOP,
             fallbackResourceName = "status_bar_height"
-        ) { insets -> insets.getInsets(WindowInsetsCompat.Type.statusBars()).top }
+        ) { insets -> visibleBarInset(insets, WindowInsetsCompat.Type.statusBars()) { it.top } }
 
         ensureSystemBarBackground(
             window = window,
@@ -81,7 +107,63 @@ object ColorUtil {
             color = color,
             gravity = Gravity.BOTTOM,
             fallbackResourceName = "navigation_bar_height"
-        ) { insets -> insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom }
+        ) { insets -> visibleBarInset(insets, WindowInsetsCompat.Type.navigationBars()) { it.bottom } }
+    }
+
+    private fun visibleBarInset(
+        insets: WindowInsetsCompat,
+        type: Int,
+        side: (androidx.core.graphics.Insets) -> Int,
+    ): Int {
+        if (!insets.isVisible(type)) {
+            return 0
+        }
+        return side(insets.getInsets(type))
+    }
+
+    private fun drawStatusBarBackgroundOnly(window: Window, color: Int) {
+        ensureSystemBarBackground(
+            window = window,
+            tag = STATUS_BAR_BACKGROUND_TAG,
+            color = color,
+            gravity = Gravity.TOP,
+            fallbackResourceName = "status_bar_height"
+        ) { insets -> visibleBarInset(insets, WindowInsetsCompat.Type.statusBars()) { it.top } }
+
+        val decor = window.decorView as? ViewGroup ?: return
+        decor.findViewWithTag<View>(NAVIGATION_BAR_BACKGROUND_TAG)?.let(decor::removeView)
+    }
+
+    private fun contentInsetTarget(window: Window): View? {
+        return window.decorView.findViewById(androidx.appcompat.R.id.decor_content_parent)
+            ?: window.decorView.findViewById<ViewGroup>(android.R.id.content)?.getChildAt(0)
+    }
+
+    private fun clearContentTopPadding(window: Window) {
+        val target = contentInsetTarget(window) ?: return
+        if (target.paddingTop != 0 || target.paddingBottom != 0) {
+            target.setPadding(0, 0, 0, 0)
+        }
+    }
+
+    private fun applyTopOnlyContentInsets(window: Window) {
+        val target = contentInsetTarget(window) ?: return
+        target.fitsSystemWindows = false
+        ViewCompat.setOnApplyWindowInsetsListener(target) { view, insets ->
+            val statusBarsVisible = insets.isVisible(WindowInsetsCompat.Type.statusBars())
+            val top = if (statusBarsVisible) {
+                insets.getInsets(
+                    WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.displayCutout()
+                ).top
+            } else {
+                0
+            }
+            if (view.paddingTop != top || view.paddingBottom != 0) {
+                view.setPadding(0, top, 0, 0)
+            }
+            insets
+        }
+        ViewCompat.requestApplyInsets(target)
     }
 
     private fun ensureSystemBarBackground(

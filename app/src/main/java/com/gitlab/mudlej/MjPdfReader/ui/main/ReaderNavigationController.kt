@@ -15,6 +15,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.bookmark.BookmarkState
 import com.gitlab.mudlej.MjPdfReader.ui.bookmark.BookmarksActivity
 import com.gitlab.mudlej.MjPdfReader.ui.link.LinksActivity
 import com.gitlab.mudlej.MjPdfReader.ui.search.SearchActivity
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -129,7 +130,7 @@ class ReaderNavigationController(
             )
 
             if (textBound.isEmpty()) {
-                Snackbar.make(binding.root, "Failed to highlight search result", Snackbar.LENGTH_SHORT).show()
+                AppSnackbar.make(binding.root, "Failed to highlight search result", Snackbar.LENGTH_SHORT).show()
             }
             else {
                 activeSearchResultPageNumber = searchResult.pageNumber

@@ -48,6 +48,7 @@
         <item name="materialAlertDialogTheme">@style/ChromeMaterialAlertDialog</item>
         <item name="snackbarStyle">@style/ChromeSnackbar</item>
         <item name="snackbarButtonStyle">@style/ChromeSnackbarButton</item>
+        <item name="snackbarTextViewStyle">@style/ChromeSnackbarTextView</item>
 <!--        <item name="actionBarStyle">@style/MyActionBarStyle</item>-->
     </style>
 
@@ -146,15 +147,30 @@
 
     <style name="ChromeSnackbar" parent="Widget.Material3.Snackbar">
         <item name="materialThemeOverlay">@style/ChromeSnackbarThemeOverlay</item>
+        <item name="backgroundTint">?attr/colorSurfaceContainerHigh</item>
+        <item name="shapeAppearance">@style/ChromeSnackbarShape</item>
+        <item name="elevation">6dp</item>
+        <item name="android:layout_margin">16dp</item>
+    </style>
+
+    <style name="ChromeSnackbarShape" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
     </style>
 
     <style name="ChromeSnackbarThemeOverlay" parent="ThemeOverlay.Material3.Snackbar">
         <item name="colorOnSurface">@color/md_theme_onSurface</item>
     </style>
 
+    <style name="ChromeSnackbarTextView" parent="Widget.Material3.Snackbar.TextView">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:alpha">1</item>
+    </style>
+
     <style name="ChromeSnackbarButton" parent="Widget.Material3.Button.TextButton.Snackbar">
         <item name="strokeWidth">0dp</item>
         <item name="strokeColor">@android:color/transparent</item>
         <item name="android:backgroundTint">@android:color/transparent</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
     </style>
 </resources>

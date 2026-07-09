@@ -90,6 +90,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import com.shockwave.pdfium.PdfPasswordException
 import kotlinx.coroutines.CoroutineScope
@@ -282,7 +283,15 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setCustomActionBar()
-        ColorUtil.colorize(this, window, supportActionBar)
+        ColorUtil.colorize(this, window, supportActionBar, transparentNavigationBar = true)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val inset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            if (inset != bottomOverlayInset) {
+                bottomOverlayInset = inset
+                applyBottomOverlayInsets()
+            }
+            insets
+        }
 
         // To avoid FileUriExposedException, (https://stackoverflow.com/questions/38200282/)
         StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
@@ -305,6 +314,8 @@ class MainActivity : AppCompatActivity() {
             ::hasFile,
             pref::getHorizontalScroll,
             ::isCropMarginsEnabled,
+            { pdfThemeController.effectivePdfDarkTheme() },
+            { pref.getPdfPagesTheme() == Preferences.themeSystem },
             createActionHandlers(),
         )
         toolbarActionController = ToolbarActionController(
@@ -363,6 +374,7 @@ class MainActivity : AppCompatActivity() {
             ::onAnnotationEdit,
             ::updateAnnotationSaveUiPosition,
             { pref.getDetectExistingHighlights() },
+            { pref.getHighlightColors() },
         ) { fullScreenOptionsManager.showAllTemporarilyOrHide() }
         formFieldController = FormFieldController(this, binding, ::onAnnotationEdit)
         signatureController = SignatureController(
@@ -440,7 +452,7 @@ class MainActivity : AppCompatActivity() {
         fun titleClickListener() {
             val title = pdf.getTitle()
             if (title.isNotBlank()) {
-                Snackbar.make(binding.root, title, Snackbar.LENGTH_LONG).show()
+                AppSnackbar.make(binding.root, title, Snackbar.LENGTH_LONG).show()
             }
         }
         appTitle.setOnClickListener { titleClickListener() }
@@ -460,7 +472,7 @@ class MainActivity : AppCompatActivity() {
         }
         catch (e: ActivityNotFoundException) {
             // alert user that file manager not working
-            Snackbar.make(binding.root, R.string.toast_pick_file_error, Snackbar.LENGTH_LONG).show()
+            AppSnackbar.make(binding.root, R.string.toast_pick_file_error, Snackbar.LENGTH_LONG).show()
         }
     }
 
@@ -476,13 +488,29 @@ class MainActivity : AppCompatActivity() {
                 annotationSaveController.saveHighlights(postSaveAction = discardAction)
             }
             .setNegativeButton(R.string.discard) { _, _ ->
-                signatureController.cancelPlacement()
-                annotationSaveController.clearPendingRequests()
-                annotationController.clearJournal()
-                updateAnnotationDirtyUi()
+                clearUnsavedAnnotationState()
                 discardAction()
             }
             .setNeutralButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun clearUnsavedAnnotationState() {
+        signatureController.cancelPlacement()
+        annotationSaveController.clearPendingRequests()
+        annotationController.clearJournal()
+        updateAnnotationDirtyUi()
+    }
+
+    private fun confirmDiscardAnnotations() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.discard_unsaved_highlights_title)
+            .setMessage(R.string.discard_unsaved_highlights_message)
+            .setPositiveButton(R.string.discard) { _, _ ->
+                clearUnsavedAnnotationState()
+                reloadPdf()
+            }
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
@@ -655,11 +683,25 @@ class MainActivity : AppCompatActivity() {
         updateAnnotationDirtyUi()
     }
 
+    private var savingProgressVisible = false
+
     private fun updateAnnotationDirtyUi() {
         val visible = annotationController.hasUnsavedAnnotations
+        val saving = annotationController.isSaving
         binding.saveAnnotationsFab.visibility = if (visible) View.VISIBLE else View.GONE
-        binding.unsavedHighlightsChip.visibility = if (visible) View.VISIBLE else View.GONE
-        binding.saveAnnotationsFab.isEnabled = visible && !annotationController.isSaving
+        binding.discardAnnotationsFab.visibility = if (visible) View.VISIBLE else View.GONE
+        binding.saveAnnotationsFab.isEnabled = visible && !saving
+        binding.discardAnnotationsFab.isEnabled = visible && !saving
+        binding.saveAnnotationsFab.alpha = if (saving) 0.5f else 1f
+        binding.discardAnnotationsFab.alpha = if (saving) 0.5f else 1f
+        if (saving && !savingProgressVisible) {
+            savingProgressVisible = true
+            binding.progressBar.isIndeterminate = true
+            binding.progressBar.visibility = View.VISIBLE
+        } else if (!saving && savingProgressVisible) {
+            savingProgressVisible = false
+            hideProgressBar()
+        }
         updateAnnotationSaveUiPosition()
     }
 
@@ -671,11 +713,25 @@ class MainActivity : AppCompatActivity() {
             binding.textSelectionActionCard.height + (32 * resources.displayMetrics.density).toInt()
         } else {
             defaultBottomMargin
-        }
+        } + bottomOverlayInset
         if (params.bottomMargin != bottomMargin) {
             params.bottomMargin = bottomMargin
             binding.saveAnnotationsFab.layoutParams = params
         }
+    }
+
+    private var bottomOverlayInset = 0
+
+    private fun applyBottomOverlayInsets() {
+        val baseMargin = (16 * resources.displayMetrics.density).toInt()
+        listOf(binding.cropDetectionStatusCard, binding.textSelectionActionCard).forEach { card ->
+            val params = card.layoutParams as ConstraintLayout.LayoutParams
+            if (params.bottomMargin != baseMargin + bottomOverlayInset) {
+                params.bottomMargin = baseMargin + bottomOverlayInset
+                card.layoutParams = params
+            }
+        }
+        updateAnnotationSaveUiPosition()
     }
 
     private fun setUpSecondBar() {
@@ -695,6 +751,7 @@ class MainActivity : AppCompatActivity() {
             toggleZoomLockButton.setOnClickListener { zoomSwipeLockController.toggleZoomLock() }
             toggleLabelButton.setOnClickListener { toggleLabelButtonListener() }
             pickFileButton.setOnClickListener { pickFile() }
+            discardAnnotationsFab.setOnClickListener { confirmDiscardAnnotations() }
         }
         fullScreenButtonController.configure()
     }
@@ -749,6 +806,9 @@ class MainActivity : AppCompatActivity() {
                 binding.secondBarScrollView.visibility = View.GONE
             }
         }
+        if (::inlineAnnotationActionController.isInitialized) {
+            inlineAnnotationActionController.rebuildHighlightSwatches()
+        }
 
         // check if there is a pdf at first
 
@@ -790,7 +850,7 @@ class MainActivity : AppCompatActivity() {
             startActivity(sharingIntent)
         }
         catch (e: Throwable) {
-            Snackbar.make(binding.root, "Error sharing the file. (${e.message})", Snackbar.LENGTH_LONG).show()
+            AppSnackbar.make(binding.root, "Error sharing the file. (${e.message})", Snackbar.LENGTH_LONG).show()
         }
     }
 
@@ -798,7 +858,7 @@ class MainActivity : AppCompatActivity() {
         val fileHash = pdf.fileHash
         if (exception is PdfPasswordException && fileHash != null) {
             if (pdf.password != null) {
-                Snackbar.make(binding.root, R.string.wrong_password, Snackbar.LENGTH_SHORT).show()
+                AppSnackbar.make(binding.root, R.string.wrong_password, Snackbar.LENGTH_SHORT).show()
                 pdf.password = null         // prevent the toast if the user rotates the screen
             }
 
@@ -821,7 +881,7 @@ class MainActivity : AppCompatActivity() {
             returnToHomeForRelocate()
         }
         else {
-            Snackbar.make(binding.root, R.string.file_opening_error, Snackbar.LENGTH_LONG).show()
+            AppSnackbar.make(binding.root, R.string.file_opening_error, Snackbar.LENGTH_LONG).show()
             Log.e(TAG, getString(R.string.file_opening_error), exception)
         }
     }
@@ -871,7 +931,7 @@ class MainActivity : AppCompatActivity() {
             exitProcess(0)
         }
         else {
-            Snackbar.make(binding.root, R.string.file_opening_error, Snackbar.LENGTH_LONG).show()
+            AppSnackbar.make(binding.root, R.string.file_opening_error, Snackbar.LENGTH_LONG).show()
         }
     }
 
@@ -1087,7 +1147,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkHasFile(): Boolean {
         if (!pdf.hasFile()) {
-            Snackbar.make(
+            AppSnackbar.make(
                 binding.root, getString(R.string.no_pdf_in_app),
                 Snackbar.LENGTH_LONG
             ).show()
@@ -1098,6 +1158,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun switchPdfTheme() {
         pdfThemeController.switchPdfTheme(::checkHasFile)
+        refreshConfiguredActions()
     }
 
     private fun takeScreenshot() {
@@ -1181,7 +1242,7 @@ class MainActivity : AppCompatActivity() {
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
                 } else {
-                    Snackbar.make(binding.root, getString(R.string.press_back_again), Snackbar.LENGTH_LONG).show()
+                    AppSnackbar.make(binding.root, getString(R.string.press_back_again), Snackbar.LENGTH_LONG).show()
                     doubleBackToExitPressedOnce = true
 
                     lifecycleScope.launch {

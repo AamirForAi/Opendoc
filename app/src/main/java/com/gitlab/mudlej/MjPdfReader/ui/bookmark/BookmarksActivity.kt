@@ -21,6 +21,7 @@ import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.util.configureSearchIcon
 import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
 import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -169,7 +170,7 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
                 bookmarkAdapter.query = activeQuery
                 val visibleBookmarks = submitVisibleBookmarks()
                 if (!activeQuery.isNullOrBlank()) {
-                    Snackbar.make(
+                    AppSnackbar.make(
                         binding.root,
                         getString(R.string.number_of_filtered_results).format(bookmarkAdapter.visibleBookmarkCount(visibleBookmarks)),
                         Snackbar.LENGTH_SHORT

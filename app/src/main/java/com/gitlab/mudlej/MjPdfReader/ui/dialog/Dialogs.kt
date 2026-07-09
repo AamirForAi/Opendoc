@@ -71,6 +71,7 @@ import com.gitlab.mudlej.MjPdfReader.util.sizeInMb
 import androidx.preference.PreferenceManager
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
 import com.shockwave.pdfium.PdfDocument
@@ -323,7 +324,7 @@ fun showGoToPageDialog(
 
             // check if the user provided input
             if (query.isEmpty()) {
-                Snackbar.make(view, activity.getString(R.string.no_input), Snackbar.LENGTH_SHORT).show()
+                AppSnackbar.make(view, activity.getString(R.string.no_input), Snackbar.LENGTH_SHORT).show()
                 return@setPositiveButton
             }
             query.toIntOrNull()?.let { pageNumber ->

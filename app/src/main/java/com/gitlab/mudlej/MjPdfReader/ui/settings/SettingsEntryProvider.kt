@@ -24,6 +24,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             readingEntries(),
             controlEntries(),
             textEntries(),
+            highlightingEntries(),
             advancedEntries(),
         ).flatten()
     }
@@ -249,19 +250,32 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             ),
             switchEntry(
                 page = SettingsPage.TEXT,
-                titleRes = R.string.detect_existing_highlights_title,
-                key = Preferences.detectExistingHighlightsKey,
-                defaultValue = Preferences.detectExistingHighlightsDefault,
-                summaryRes = R.string.detect_existing_highlights_summary,
-                keywords = listOf("highlight", "annotation", "selection", "detect"),
-            ),
-            switchEntry(
-                page = SettingsPage.TEXT,
                 titleRes = R.string.search_ignore_accents_title,
                 key = Preferences.searchIgnoreAccentsKey,
                 defaultValue = Preferences.searchIgnoreAccentsDefault,
                 summaryRes = R.string.search_ignore_accents_summary,
                 keywords = listOf("search", "accents", "diacritics"),
+            ),
+        )
+    }
+
+    private fun highlightingEntries(): List<SettingEntry> {
+        return listOf(
+            SettingEntry(
+                page = SettingsPage.HIGHLIGHTING,
+                titleRes = R.string.highlight_colors,
+                summaryRes = R.string.highlight_colors_summary,
+                keywords = listOf("highlight", "color", "colors", "palette", "strip"),
+            ) { breadcrumb ->
+                highlightColorsPreference(breadcrumb = breadcrumb)
+            },
+            switchEntry(
+                page = SettingsPage.HIGHLIGHTING,
+                titleRes = R.string.detect_existing_highlights_title,
+                key = Preferences.detectExistingHighlightsKey,
+                defaultValue = Preferences.detectExistingHighlightsDefault,
+                summaryRes = R.string.detect_existing_highlights_summary,
+                keywords = listOf("highlight", "annotation", "selection", "detect"),
             ),
         )
     }

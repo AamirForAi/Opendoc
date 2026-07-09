@@ -15,6 +15,7 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.enums.FileType
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
 import java.io.FileOutputStream
@@ -45,14 +46,14 @@ class ScreenshotController(
             outputStream.close()
 
             val uri = saveImage(bitmap, fileName)
-            Snackbar.make(binding.root, activity.getString(R.string.screenshot_saved), Snackbar.LENGTH_SHORT).also {
+            AppSnackbar.make(binding.root, activity.getString(R.string.screenshot_saved), Snackbar.LENGTH_SHORT).also {
                 it.setAction(activity.getString(R.string.share)) { shareImage(uri) }
                 it.show()
             }
         }
         catch (e: Throwable) {
             // Several error may come out with file handling or DOM
-            Snackbar.make(binding.root, activity.getString(R.string.failed_save_screenshot), Snackbar.LENGTH_LONG).show()
+            AppSnackbar.make(binding.root, activity.getString(R.string.failed_save_screenshot), Snackbar.LENGTH_LONG).show()
             e.printStackTrace()
         }
     }

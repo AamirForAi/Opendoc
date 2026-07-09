@@ -17,6 +17,7 @@ import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.util.computeHash
 import com.gitlab.mudlej.MjPdfReader.util.getFileName
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -258,7 +259,7 @@ class AnnotationSaveController(
             annotationController.setCurrentSaveDestination(destinationUri, durable = saveDestinationDurably)
             onDocumentSaved()
             activity.setTaskDescription(ActivityManager.TaskDescription(pdf.name))
-            Snackbar.make(binding.root, R.string.highlights_saved, Snackbar.LENGTH_SHORT).show()
+            AppSnackbar.make(binding.root, R.string.highlights_saved, Snackbar.LENGTH_SHORT).show()
             val postSaveAction = pendingPostSaveAction
             pendingPostSaveAction = null
             postSaveAction?.invoke()
@@ -288,7 +289,7 @@ class AnnotationSaveController(
     }
 
     private fun showSaveFailed() {
-        Snackbar.make(binding.root, R.string.highlight_save_failed, Snackbar.LENGTH_LONG)
+        AppSnackbar.make(binding.root, R.string.highlight_save_failed, Snackbar.LENGTH_LONG)
             .setAction(R.string.choose) { showSaveDestinationSheet() }
             .show()
     }

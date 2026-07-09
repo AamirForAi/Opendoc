@@ -3,7 +3,7 @@ package com.gitlab.mudlej.MjPdfReader.ui.main
 import android.view.View
 import android.widget.TextView
 import com.gitlab.mudlej.MjPdfReader.R
-import com.google.android.material.color.MaterialColors
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 
 class JumpBackSnackbar(private val root: View) {
@@ -20,7 +20,7 @@ class JumpBackSnackbar(private val root: View) {
         onTap: () -> Unit,
     ) {
         active?.dismiss()
-        val snackbar = Snackbar.make(root, message, Snackbar.LENGTH_INDEFINITE)
+        val snackbar = AppSnackbar.make(root, message, Snackbar.LENGTH_INDEFINITE)
         active = snackbar
         snackbar.addCallback(object : Snackbar.Callback() {
             override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
@@ -34,7 +34,6 @@ class JumpBackSnackbar(private val root: View) {
             snackbar.dismiss()
         }
         val textView = snackbar.view.findViewById<View>(com.google.android.material.R.id.snackbar_text) as TextView
-        textView.setTextColor(MaterialColors.getColor(snackbar.view, com.google.android.material.R.attr.colorPrimaryInverse))
         textView.setOnClickListener {
             if (dismissOnTap) {
                 snackbar.dismiss()

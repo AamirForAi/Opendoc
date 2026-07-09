@@ -3,7 +3,6 @@ package com.gitlab.mudlej.MjPdfReader.ui.settings
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.DialogInterface
-import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -171,19 +170,22 @@ private class ActionSelectionTouchCallback(
 
 private fun ViewGroup.createRowView(): View {
     val context = context
-    return LinearLayout(context).apply {
-        orientation = LinearLayout.HORIZONTAL
-        gravity = Gravity.CENTER_VERTICAL
-        setPadding(context.dp(16), 0, context.dp(16), 0)
-        addView(createDragHandle(context).apply { tag = DRAG_HANDLE_TAG })
-        addView(MaterialCheckBox(context).apply { tag = CHECKBOX_TAG })
-        addView(TextView(context).apply {
-            tag = TITLE_TAG
-            setTextColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface))
-            textSize = 16f
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        })
-    }
+    return selectionDialogRow(
+        listOf(
+            createDragHandle(context).apply { tag = DRAG_HANDLE_TAG },
+            MaterialCheckBox(context).apply {
+                tag = CHECKBOX_TAG
+                isClickable = false
+                isFocusable = false
+            },
+            TextView(context).apply {
+                tag = TITLE_TAG
+                setTextColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface))
+                textSize = 16f
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            },
+        )
+    )
 }
 
 private fun createDragHandle(context: Context): AppCompatImageView {

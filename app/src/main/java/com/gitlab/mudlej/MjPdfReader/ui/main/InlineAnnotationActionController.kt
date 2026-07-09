@@ -6,15 +6,22 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.RectF
 import android.net.Uri
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.github.barteksc.pdfviewer.PDFView
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.HighlightPalette
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.util.copyToClipboard
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.color.MaterialColors
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import java.util.UUID
 
@@ -25,6 +32,7 @@ class InlineAnnotationActionController(
     private val onAnnotationEdit: (AnnotationEdit) -> Unit,
     private val updateSaveUiPosition: () -> Unit,
     private val isDetectExistingHighlightsEnabled: () -> Boolean,
+    private val getHighlightColors: () -> List<Int>,
     private val toggleReaderChrome: () -> Unit,
 ) {
     private var activeHighlightAnnotation: PDFView.HighlightAnnotation? = null
@@ -40,13 +48,49 @@ class InlineAnnotationActionController(
                 dismissCard()
             }
         }
-        binding.textSelectionHighlightYellowButton.setOnClickListener { applyHighlightColor(HIGHLIGHT_YELLOW) }
-        binding.textSelectionHighlightOrangeButton.setOnClickListener { applyHighlightColor(HIGHLIGHT_ORANGE) }
-        binding.textSelectionHighlightRedButton.setOnClickListener { applyHighlightColor(HIGHLIGHT_PINK_RED) }
-        binding.textSelectionHighlightBlueButton.setOnClickListener { applyHighlightColor(HIGHLIGHT_BLUE) }
-        binding.textSelectionHighlightGreenButton.setOnClickListener { applyHighlightColor(HIGHLIGHT_GREEN) }
+        rebuildHighlightSwatches()
         binding.textSelectionDeleteHighlightButton.setOnClickListener { deleteActiveHighlightAnnotation() }
         binding.saveAnnotationsFab.setOnClickListener { onSaveClicked() }
+    }
+
+    private val swatchIds = mutableListOf<Int>()
+
+    fun rebuildHighlightSwatches() {
+        val container = binding.textSelectionActionContent
+        val density = container.resources.displayMetrics.density
+        swatchIds.forEach { id -> container.findViewById<View>(id)?.let(container::removeView) }
+        swatchIds.clear()
+        getHighlightColors().forEach { color ->
+            val swatchButton = FrameLayout(container.context).apply {
+                id = View.generateViewId()
+                layoutParams = ConstraintLayout.LayoutParams((40 * density).toInt(), (40 * density).toInt())
+                val backgroundValue = TypedValue()
+                context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, backgroundValue, true)
+                setBackgroundResource(backgroundValue.resourceId)
+                isClickable = true
+                isFocusable = true
+                HighlightPalette.fromColor(color)?.let { contentDescription = context.getString(it.labelRes) }
+                setOnClickListener { applyHighlightColor(color) }
+            }
+            val swatchCard = MaterialCardView(container.context).apply {
+                layoutParams = FrameLayout.LayoutParams((36 * density).toInt(), (36 * density).toInt(), Gravity.CENTER)
+                radius = 18 * density
+                cardElevation = 0f
+                setCardBackgroundColor(color)
+                strokeColor = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOutline)
+                strokeWidth = density.toInt().coerceAtLeast(1)
+            }
+            swatchButton.addView(swatchCard)
+            container.addView(swatchButton)
+            swatchIds.add(swatchButton.id)
+        }
+        binding.textSelectionActionFlow.referencedIds = (
+            swatchIds + listOf(
+                R.id.textSelectionDeleteHighlightButton,
+                R.id.textSelectionCopyButton,
+                R.id.textSelectionSearchWebButton,
+            )
+        ).toIntArray()
     }
 
     fun handleImmediatePdfTap(event: MotionEvent): Boolean {
@@ -148,7 +192,7 @@ class InlineAnnotationActionController(
         val request = binding.pdfView.getHighlightRequest()
         val groupKey = UUID.randomUUID().toString()
         if (request == null || !binding.pdfView.addHighlight(request, color, groupKey)) {
-            Snackbar.make(binding.root, R.string.highlight_failed, Snackbar.LENGTH_SHORT).show()
+            AppSnackbar.make(binding.root, R.string.highlight_failed, Snackbar.LENGTH_SHORT).show()
             return
         }
 
@@ -162,7 +206,7 @@ class InlineAnnotationActionController(
     private fun updateActiveHighlightAnnotationColor(annotation: PDFView.HighlightAnnotation, color: Int) {
         val updated = binding.pdfView.setHighlightAnnotationColor(annotation, color)
         if (!updated) {
-            Snackbar.make(binding.root, R.string.highlight_update_failed, Snackbar.LENGTH_SHORT).show()
+            AppSnackbar.make(binding.root, R.string.highlight_update_failed, Snackbar.LENGTH_SHORT).show()
             return
         }
 
@@ -174,7 +218,7 @@ class InlineAnnotationActionController(
         val annotation = activeHighlightAnnotation ?: return
         val removed = binding.pdfView.removeHighlightAnnotation(annotation)
         if (!removed) {
-            Snackbar.make(binding.root, R.string.highlight_update_failed, Snackbar.LENGTH_SHORT).show()
+            AppSnackbar.make(binding.root, R.string.highlight_update_failed, Snackbar.LENGTH_SHORT).show()
             return
         }
 
@@ -203,7 +247,7 @@ class InlineAnnotationActionController(
             try {
                 activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=${Uri.encode(text)}")))
             } catch (browserError: ActivityNotFoundException) {
-                Snackbar.make(binding.root, activity.getString(R.string.no_app_to_open_link), Snackbar.LENGTH_LONG).show()
+                AppSnackbar.make(binding.root, activity.getString(R.string.no_app_to_open_link), Snackbar.LENGTH_LONG).show()
                 return false
             }
         }
@@ -225,13 +269,5 @@ class InlineAnnotationActionController(
             binding.root.invalidate()
             updateSaveUiPosition()
         }
-    }
-
-    private companion object {
-        val HIGHLIGHT_YELLOW = 0xFFFFF176.toInt()
-        val HIGHLIGHT_ORANGE = 0xFFFFB74D.toInt()
-        val HIGHLIGHT_PINK_RED = 0xFFF06292.toInt()
-        val HIGHLIGHT_BLUE = 0xFF64B5F6.toInt()
-        val HIGHLIGHT_GREEN = 0xFF81C784.toInt()
     }
 }

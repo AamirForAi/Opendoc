@@ -28,6 +28,7 @@ import com.gitlab.mudlej.MjPdfReader.util.UriCanonicalizer
 import com.gitlab.mudlej.MjPdfReader.util.computeHash
 import com.gitlab.mudlej.MjPdfReader.util.getFileName
 import com.google.android.material.color.MaterialColors
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -467,13 +468,13 @@ class DocumentLoadController(
 
     fun showFailedToComputeHashError() {
         val message = "Can't hash the file! Last visited page won't be remembered in this session."
-        Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
+        AppSnackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
         Log.e(TAG, "showFailedToComputeHashError: $message", RuntimeException())
     }
 
     private fun reportLoadPageError(page: Int, error: Throwable) {
         val message = activity.resources.getString(R.string.cannot_load_page) + page + " " + error
-        Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
+        AppSnackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
         Log.e(TAG, message)
     }
 

@@ -177,6 +177,19 @@ internal class SettingsPreferenceFactory(
         }
     }
 
+    fun highlightColorsPreference(breadcrumb: String?): Preference {
+        return Preference(context).apply {
+            title = getString(R.string.highlight_colors)
+            key = Preferences.highlightColorsKey
+            summary = formatSummary(breadcrumb, getString(R.string.highlight_colors_summary))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showHighlightColorsPreferenceDialog(context, appPreferences) {}
+                true
+            }
+        }
+    }
+
     fun floatPreference(
         @StringRes titleRes: Int,
         @StringRes summaryRes: Int,

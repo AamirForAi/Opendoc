@@ -97,6 +97,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val maxZoomKey = "maxZoom"
         const val inlineTextSelectionKey = "inlineTextSelection"
         const val detectExistingHighlightsKey = "detectExistingHighlights"
+        const val highlightColorsKey = "highlightColors"
         const val searchIgnoreAccentsKey = "searchIgnoreAccents"
         const val defaultTextModeKey = "defaultTextMode"
         const val turnPageByVolumeButtonsKey = "turnPageByVolumeButtons"
@@ -179,6 +180,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val pdfLightBackgroundColor = -0xcdcdce         // 0xff323232 = -0xcdcdce
 
         // Constants
+        const val minHighlightColors = 2
+        const val maxHighlightColors = 4
         const val minMaxZoom = 1f
         const val maxMaxZoom = 100f
         const val minPartSize = 5f
@@ -213,6 +216,18 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getMaxZoom() = prefMan.getFloat(maxZoomKey, maxZoomDefault)
     fun getInlineTextSelection() = prefMan.getBoolean(inlineTextSelectionKey, inlineTextSelectionDefault)
     fun getDetectExistingHighlights() = prefMan.getBoolean(detectExistingHighlightsKey, detectExistingHighlightsDefault)
+    fun getHighlightColors(): List<Int> {
+        val stored = prefMan.getString(highlightColorsKey, null)
+            ?.split(",")
+            ?.mapNotNull(HighlightPalette::fromName)
+            ?: HighlightPalette.defaultSelection
+        val selection = if (stored.size in minHighlightColors..maxHighlightColors) {
+            stored
+        } else {
+            HighlightPalette.defaultSelection
+        }
+        return selection.map { it.colorValue }
+    }
     fun getSearchIgnoreAccents() = prefMan.getBoolean(searchIgnoreAccentsKey, searchIgnoreAccentsDefault)
     fun getDefaultTextMode() = prefMan.getBoolean(defaultTextModeKey, defaultTextModeDefault)
     fun getTurnPageByVolumeButtons() = prefMan.getBoolean(turnPageByVolumeButtonsKey, turnPageByVolumeButtonsDefault)
@@ -295,6 +310,9 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setMaxZoom(value: Float) = prefMan.edit().putFloat(maxZoomKey, value).apply()
     fun setInlineTextSelection(value: Boolean) = prefMan.edit().putBoolean(inlineTextSelectionKey, value).apply()
     fun setDetectExistingHighlights(value: Boolean) = prefMan.edit().putBoolean(detectExistingHighlightsKey, value).apply()
+    fun setHighlightColors(value: List<HighlightPalette>) = prefMan.edit()
+        .putString(highlightColorsKey, value.joinToString(",") { it.name })
+        .apply()
     fun setSearchIgnoreAccents(value: Boolean) = prefMan.edit().putBoolean(searchIgnoreAccentsKey, value).apply()
     fun setDefaultTextMode(value: Boolean) = prefMan.edit().putBoolean(defaultTextModeKey, value).apply()
     fun setTurnPageByVolumeButtons(value: Boolean) = prefMan.edit().putBoolean(turnPageByVolumeButtonsKey, value).apply()

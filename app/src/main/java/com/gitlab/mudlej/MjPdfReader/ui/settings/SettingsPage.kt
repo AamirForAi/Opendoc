@@ -44,6 +44,11 @@ enum class SettingsPage(
         R.string.settings_text_summary,
         R.drawable.ic_text,
     ),
+    HIGHLIGHTING(
+        R.string.settings_highlighting,
+        R.string.settings_highlighting_summary,
+        R.drawable.ic_highlight,
+    ),
     ADVANCED(
         R.string.advanced,
         R.string.advanced_summary,

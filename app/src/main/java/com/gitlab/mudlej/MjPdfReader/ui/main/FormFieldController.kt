@@ -11,6 +11,7 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import com.shockwave.pdfium.PdfDocument
 
@@ -95,7 +96,7 @@ class FormFieldController(
     }
 
     private fun showUpdateFailed() {
-        Snackbar.make(binding.root, R.string.form_field_update_failed, Snackbar.LENGTH_SHORT).show()
+        AppSnackbar.make(binding.root, R.string.form_field_update_failed, Snackbar.LENGTH_SHORT).show()
     }
 
     private companion object {

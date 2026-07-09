@@ -4,6 +4,7 @@ import android.util.Log
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.showCopyPageTextDialog
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,14 +58,14 @@ class PageTextCopier(
     }
 
     private fun showFailedExtractTextSnackbar(pageNumber: Int) {
-        Snackbar.make(binding.root, "Failed to extract text of this file.", Snackbar.LENGTH_SHORT)
+        AppSnackbar.make(binding.root, "Failed to extract text of this file.", Snackbar.LENGTH_SHORT)
             .setAction("Stop this message") { shouldStopExtracting[pageNumber] = true }
             .show()
     }
 
     private fun showNoTextInPageMessage() {
         if (showNoTextInPage) {
-            Snackbar.make(binding.root, "Couldn't find text in this page.", Snackbar.LENGTH_LONG).show()
+            AppSnackbar.make(binding.root, "Couldn't find text in this page.", Snackbar.LENGTH_LONG).show()
             showNoTextInPage = false
         }
     }

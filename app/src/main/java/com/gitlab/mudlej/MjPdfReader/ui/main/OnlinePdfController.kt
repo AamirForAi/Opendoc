@@ -15,6 +15,7 @@ import com.gitlab.mudlej.MjPdfReader.util.canWriteToDownloadFolder
 import com.gitlab.mudlej.MjPdfReader.util.readBytesToEnd
 import com.gitlab.mudlej.MjPdfReader.util.writeBytesToFile
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.CoroutineScope
@@ -166,7 +167,7 @@ class OnlinePdfController(
 
     private fun showDownloadError(messageRes: Int) {
         activity.hideProgressBar()
-        Snackbar.make(binding.root, messageRes, Snackbar.LENGTH_LONG).show()
+        AppSnackbar.make(binding.root, messageRes, Snackbar.LENGTH_LONG).show()
     }
 
     fun saveToFileAndDisplay(pdfFileContent: ByteArray?) {
@@ -181,11 +182,11 @@ class OnlinePdfController(
             if (bytes != null) {
                 trySaveToDownloads(bytes, true)
             } else {
-                Snackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
+                AppSnackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
             }
         }
         else {
-            Snackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
+            AppSnackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
         }
     }
 
@@ -204,12 +205,12 @@ class OnlinePdfController(
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             writeBytesToFile(downloadDirectory, pdf.name, fileContent)
             if (showSuccessMessage) {
-                Snackbar.make(binding.root, R.string.saved_to_download, Snackbar.LENGTH_SHORT).show()
+                AppSnackbar.make(binding.root, R.string.saved_to_download, Snackbar.LENGTH_SHORT).show()
             }
         }
         catch (e: IOException) {
             Log.e(TAG, activity.getString(R.string.save_to_download_failed), e)
-            Snackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
+            AppSnackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
         }
     }
 

@@ -12,6 +12,7 @@ import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.DialogSignatureBinding
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 
 class SignatureController(
@@ -33,7 +34,7 @@ class SignatureController(
 
     fun showSignatureDialog() {
         if (binding.pdfView.hasPendingStampPlacement()) {
-            Snackbar.make(binding.root, R.string.signature_pending_hint, Snackbar.LENGTH_SHORT).show()
+            AppSnackbar.make(binding.root, R.string.signature_pending_hint, Snackbar.LENGTH_SHORT).show()
             return
         }
         val sheetBinding = DialogSignatureBinding.inflate(LayoutInflater.from(activity))
@@ -109,7 +110,7 @@ class SignatureController(
     fun commitPendingSignature(): Boolean {
         val pending = binding.pdfView.getPendingStampPlacement() ?: return true
         if (!binding.pdfView.commitPendingStampPlacement()) {
-            Snackbar.make(binding.root, R.string.signature_commit_failed, Snackbar.LENGTH_SHORT).show()
+            AppSnackbar.make(binding.root, R.string.signature_commit_failed, Snackbar.LENGTH_SHORT).show()
             return false
         }
         onAnnotationEdit(
@@ -178,13 +179,13 @@ class SignatureController(
         val started = binding.pdfView.startStampPlacementAtViewCenter(
             data.toNativeStrokes(), data.color, data.strokeWidth, data.aspect, PAGE_WIDTH_FRACTION)
         if (!started) {
-            Snackbar.make(binding.root, R.string.signature_commit_failed, Snackbar.LENGTH_SHORT).show()
+            AppSnackbar.make(binding.root, R.string.signature_commit_failed, Snackbar.LENGTH_SHORT).show()
             return
         }
         annotationController.markDirty()
         showCancelAffordance()
         updateDirtyUi()
-        Snackbar.make(binding.root, R.string.signature_pending_hint, Snackbar.LENGTH_SHORT).show()
+        AppSnackbar.make(binding.root, R.string.signature_pending_hint, Snackbar.LENGTH_SHORT).show()
     }
 
     private fun showCancelAffordance() {
