@@ -12,6 +12,7 @@ import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.bookmark.UserBookmarksActivity
+import com.gitlab.mudlej.MjPdfReader.ui.history.NavigationHistoryActivity
 import com.gitlab.mudlej.MjPdfReader.ui.link.LinksActivity
 import com.gitlab.mudlej.MjPdfReader.ui.toc.TableOfContentsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.toc.TableOfContentsState
@@ -27,6 +28,7 @@ class ReaderNavigationController(
     private val updateAppTitle: () -> Unit,
     private val launchTableOfContents: (Intent) -> Unit,
     private val launchUserBookmarks: (Intent) -> Unit,
+    private val launchNavigationHistory: (Intent) -> Unit,
     private val launchLinks: (Intent) -> Unit,
     private val launchSearch: (Intent) -> Unit,
 ) {
@@ -61,6 +63,14 @@ class ReaderNavigationController(
             pdf.fileHash?.let { bookmarksIntent.putExtra(PDF.fileHashKey, it) }
             launchUserBookmarks(bookmarksIntent)
         }
+    }
+
+    fun showNavigationHistory() {
+        val entries = historyManager.backEntries()
+        if (entries.isEmpty()) {
+            return
+        }
+        launchNavigationHistory(NavigationHistoryActivity.createIntent(activity, entries))
     }
 
     fun onPageChanged(pageIndex: Int) {
@@ -112,6 +122,13 @@ class ReaderNavigationController(
             val pageIndex = intent?.getIntExtra(PDF.chosenBookmarkKey, pdf.pageNumber) ?: return
             historyManager.recordJump(ReaderHistoryManager.Origin.BOOKMARK, pageIndex)
             binding.pdfView.jumpTo(pageIndex)
+        }
+    }
+
+    fun handleNavigationHistoryResult(resultCode: Int, intent: Intent?) {
+        if (resultCode == Activity.RESULT_OK) {
+            val backStackIndex = intent?.getIntExtra(NavigationHistoryActivity.EXTRA_SELECTED_BACK_STACK_INDEX, -1) ?: return
+            historyManager.goBackToBackStackIndex(backStackIndex)
         }
     }
 

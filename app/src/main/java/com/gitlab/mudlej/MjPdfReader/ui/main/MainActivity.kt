@@ -52,7 +52,6 @@ import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.*
-import android.text.format.DateUtils
 import android.util.Log
 import android.view.*
 import android.widget.*
@@ -188,6 +187,7 @@ class MainActivity : AppCompatActivity() {
             ::updateAppTitle,
             { intent -> tableOfContentsLauncher.launch(intent) },
             { intent -> userBookmarksLauncher.launch(intent) },
+            { intent -> navigationHistoryLauncher.launch(intent) },
             { intent -> linksLauncher.launch(intent) },
             { intent -> searchLauncher.launch(intent) },
         )
@@ -276,6 +276,11 @@ class MainActivity : AppCompatActivity() {
         bookmarksLoadedForHash = null
         ensureUserBookmarksLoaded()
         readerNavigationController.handleUserBookmarksResult(result.resultCode, result.data)
+    }
+
+    private val navigationHistoryLauncher = registerForActivityResult(StartActivityForResult()) { result ->
+        hideProgressBar()
+        readerNavigationController.handleNavigationHistoryResult(result.resultCode, result.data)
     }
 
     private val linksLauncher = registerForActivityResult(StartActivityForResult()) { result ->
@@ -622,7 +627,7 @@ class MainActivity : AppCompatActivity() {
             switchTheme = ::switchPdfTheme,
             navigateBack = { readerHistory.goBack() },
             navigateForward = { readerHistory.goForward() },
-            showNavigationHistory = ::showNavigationHistoryDialog,
+            showNavigationHistory = ::showNavigationHistory,
             reload = ::reloadPdf,
             openLocal = ::pickFile,
             openOnline = ::showOpenOnlinePdfDialog,
@@ -1089,6 +1094,13 @@ class MainActivity : AppCompatActivity() {
         readerNavigationController.showUserBookmarks()
     }
 
+    private fun showNavigationHistory() {
+        if (!checkHasFile()) {
+            return
+        }
+        readerNavigationController.showNavigationHistory()
+    }
+
     private fun clearActiveSearchResultHighlight() {
         readerNavigationController.clearActiveSearchResultHighlight()
     }
@@ -1161,30 +1173,6 @@ class MainActivity : AppCompatActivity() {
                 databaseManager.removeUserBookmark(hash, pageIndex)
             }
         }
-    }
-
-    private fun showNavigationHistoryDialog() {
-        val entries = readerHistory.backEntries().asReversed()
-        if (entries.isEmpty()) {
-            return
-        }
-        val labels = entries.map { entry ->
-            getString(
-                R.string.history_entry_format,
-                entry.pageIndex + 1,
-                getString(entry.origin.labelRes),
-                DateUtils.getRelativeTimeSpanString(
-                    entry.timestamp,
-                    System.currentTimeMillis(),
-                    DateUtils.MINUTE_IN_MILLIS,
-                ),
-            )
-        }.toTypedArray()
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.navigation_history)
-            .setItems(labels) { _, index -> readerHistory.goBackTo(entries[index]) }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
     }
 
     private fun showReadingDirectionDialog() {

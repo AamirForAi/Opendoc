@@ -51,6 +51,9 @@
             android:name=".ui.bookmark.UserBookmarksActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.history.NavigationHistoryActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.text_mode.TextModeActivity"
             android:exported="false"
             android:theme="@style/TextModeTheme" />

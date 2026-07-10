@@ -80,6 +80,12 @@ class ReaderHistoryManager(
         }
     }
 
+    fun goBackToBackStackIndex(index: Int): Boolean {
+        val entry = backStack.toList().getOrNull(index) ?: return false
+        goBackTo(entry)
+        return true
+    }
+
     fun onPageChanged(pageIndex: Int) {
         val now = SystemClock.elapsedRealtime()
         val leftPage = currentPageIndex
