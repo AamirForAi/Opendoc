@@ -50,46 +50,53 @@
                     android:text="@string/home_view_list" />
             </com.google.android.material.button.MaterialButtonToggleGroup>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/home_grid_size"
-                android:textAppearance="?attr/textAppearanceLabelLarge"
-                android:textColor="?attr/colorOnSurfaceVariant" />
-
-            <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/gridSizeGroup"
+            <LinearLayout
+                android:id="@+id/gridSizeSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                app:selectionRequired="true"
-                app:singleSelection="true">
+                android:orientation="vertical">
 
-                <Button
-                    android:id="@+id/gridSizeSmallButton"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="0dp"
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/home_grid_size_small" />
+                    android:layout_marginTop="16dp"
+                    android:text="@string/home_grid_size"
+                    android:textAppearance="?attr/textAppearanceLabelLarge"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
 
-                <Button
-                    android:id="@+id/gridSizeMediumButton"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="0dp"
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/gridSizeGroup"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/home_grid_size_medium" />
+                    android:layout_marginTop="8dp"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
 
-                <Button
-                    android:id="@+id/gridSizeLargeButton"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/home_grid_size_large" />
-            </com.google.android.material.button.MaterialButtonToggleGroup>
+                    <Button
+                        android:id="@+id/gridSizeSmallButton"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/home_grid_size_small" />
+
+                    <Button
+                        android:id="@+id/gridSizeMediumButton"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/home_grid_size_medium" />
+
+                    <Button
+                        android:id="@+id/gridSizeLargeButton"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/home_grid_size_large" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+            </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
@@ -271,28 +278,38 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp" />
 
-        <Button
-            android:id="@+id/settingsButton"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/settings"
-            app:icon="@drawable/ic_settings" />
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/aboutButton"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/action_about"
-            app:icon="@drawable/info_icon" />
+            <Button
+                android:id="@+id/settingsButton"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/settings"
+                app:icon="@drawable/ic_settings" />
+
+            <Button
+                android:id="@+id/aboutButton"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="@string/action_about"
+                app:icon="@drawable/info_icon" />
+        </LinearLayout>
 
         <Button
             android:id="@+id/openOnlineButton"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:text="@string/home_open_online"
             android:visibility="gone"
             app:icon="@drawable/ic_open_pdf" />

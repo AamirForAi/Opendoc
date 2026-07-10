@@ -52,6 +52,7 @@ import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.*
+import android.text.format.DateUtils
 import android.util.Log
 import android.view.*
 import android.widget.*
@@ -83,6 +84,7 @@ import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManager
 import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManagerImpl
 import com.gitlab.mudlej.MjPdfReader.manager.permission.PermissionManager
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
+import com.gitlab.mudlej.MjPdfReader.repository.UserBookmark
 import com.gitlab.mudlej.MjPdfReader.ui.*
 import com.gitlab.mudlej.MjPdfReader.ui.about.AboutActivity
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeActivity
@@ -128,6 +130,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var signatureController: SignatureController
     private val printController by lazy { PrintController(this, binding, pdf, lifecycleScope) }
     private val volumeKeyPager by lazy { VolumeKeyPager(binding, pdf, pref) }
+    private val mousePager by lazy { MousePager(binding, pdf, pref) }
     private val zoomSwipeLockController by lazy { ZoomSwipeLockController(binding, ::drawableOf) }
     private val brightnessController by lazy { BrightnessController(this, binding, pdf) }
     private val pdfThemeController by lazy { PdfThemeController(this, binding, pref) }
@@ -170,13 +173,21 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pref: Preferences
     private val pdf = PDF()
     private val session = DocumentSession(pdf) { annotationController.acceptsDocumentUri(it) }
+    private val readerHistory by lazy { ReaderHistoryManager({ binding.pdfView }, ::onHistoryChanged) }
+    private var historyNavState = false to false
+    private var bookmarkedPages = mutableSetOf<Int>()
+    private var bookmarksLoadedForHash: String? = null
+    private var bookmarkActionState = false
     private val readerNavigationController: ReaderNavigationController by lazy {
         ReaderNavigationController(
             this,
             binding,
             pdf,
+            readerHistory,
+            ::onPageDisplayed,
             ::updateAppTitle,
-            { intent -> bookmarksLauncher.launch(intent) },
+            { intent -> tableOfContentsLauncher.launch(intent) },
+            { intent -> userBookmarksLauncher.launch(intent) },
             { intent -> linksLauncher.launch(intent) },
             { intent -> searchLauncher.launch(intent) },
         )
@@ -256,9 +267,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val bookmarksLauncher = registerForActivityResult(StartActivityForResult()) { result ->
+    private val tableOfContentsLauncher = registerForActivityResult(StartActivityForResult()) { result ->
         hideProgressBar()
-        readerNavigationController.handleBookmarksResult(result.resultCode, result.data)
+        readerNavigationController.handleTableOfContentsResult(result.resultCode, result.data)
+    }
+
+    private val userBookmarksLauncher = registerForActivityResult(StartActivityForResult()) { result ->
+        bookmarksLoadedForHash = null
+        ensureUserBookmarksLoaded()
+        readerNavigationController.handleUserBookmarksResult(result.resultCode, result.data)
     }
 
     private val linksLauncher = registerForActivityResult(StartActivityForResult()) { result ->
@@ -283,15 +300,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setCustomActionBar()
-        ColorUtil.colorize(this, window, supportActionBar, transparentNavigationBar = true)
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
-            val inset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
-            if (inset != bottomOverlayInset) {
-                bottomOverlayInset = inset
-                applyBottomOverlayInsets()
-            }
-            insets
-        }
+        ColorUtil.colorize(this, window, supportActionBar)
 
         // To avoid FileUriExposedException, (https://stackoverflow.com/questions/38200282/)
         StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
@@ -316,6 +325,9 @@ class MainActivity : AppCompatActivity() {
             ::isCropMarginsEnabled,
             { pdfThemeController.effectivePdfDarkTheme() },
             { pref.getPdfPagesTheme() == Preferences.themeSystem },
+            { readerHistory.canGoBack() },
+            { readerHistory.canGoForward() },
+            { bookmarkedPages.contains(pdf.pageNumber) },
             createActionHandlers(),
         )
         toolbarActionController = ToolbarActionController(
@@ -422,8 +434,12 @@ class MainActivity : AppCompatActivity() {
         session.beginNewDocument(uri, pref.getAlwaysHideMargins())
         pageTextCopier.resetForNewDocument()
         readerNavigationController.resetSearchResultState()
-        readerNavigationController.resetBookmarkState()
+        readerNavigationController.resetTableOfContentsState()
         readerNavigationController.resetLinkJumpState()
+        readerHistory.clear()
+        bookmarkedPages = mutableSetOf()
+        bookmarksLoadedForHash = null
+        bookmarkActionState = false
         inlineAnnotationActionController.hideActions()
         signatureController.cancelPlacement()
         PdfBytesHolder.clear()
@@ -598,6 +614,9 @@ class MainActivity : AppCompatActivity() {
             toggleCropMargins = ::toggleCropMargins,
             screenshot = ::takeScreenshot,
             switchTheme = ::switchPdfTheme,
+            navigateBack = { readerHistory.goBack() },
+            navigateForward = { readerHistory.goForward() },
+            showNavigationHistory = ::showNavigationHistoryDialog,
             reload = ::reloadPdf,
             openLocal = ::pickFile,
             openOnline = ::showOpenOnlinePdfDialog,
@@ -609,7 +628,9 @@ class MainActivity : AppCompatActivity() {
             settings = ::navToAppSettings,
             fileMetadata = ::showFileMetadata,
             about = { startActivity(navIntent(this, AboutActivity::class.java)) },
-            tableOfContents = ::showBookmarks,
+            tableOfContents = ::showTableOfContents,
+            toggleBookmark = ::toggleCurrentPageBookmark,
+            userBookmarks = ::showUserBookmarks,
             linksInFile = ::showLinks,
             print = ::printFile,
             addSignature = { signatureController.showSignatureDialog() },
@@ -717,25 +738,11 @@ class MainActivity : AppCompatActivity() {
             binding.textSelectionActionCard.height + (32 * resources.displayMetrics.density).toInt()
         } else {
             defaultBottomMargin
-        } + bottomOverlayInset
+        }
         if (params.bottomMargin != bottomMargin) {
             params.bottomMargin = bottomMargin
             binding.saveAnnotationsFab.layoutParams = params
         }
-    }
-
-    private var bottomOverlayInset = 0
-
-    private fun applyBottomOverlayInsets() {
-        val baseMargin = (16 * resources.displayMetrics.density).toInt()
-        listOf(binding.cropDetectionStatusCard, binding.textSelectionActionCard).forEach { card ->
-            val params = card.layoutParams as ConstraintLayout.LayoutParams
-            if (params.bottomMargin != baseMargin + bottomOverlayInset) {
-                params.bottomMargin = baseMargin + bottomOverlayInset
-                card.layoutParams = params
-            }
-        }
-        updateAnnotationSaveUiPosition()
     }
 
     private fun setUpSecondBar() {
@@ -1053,8 +1060,19 @@ class MainActivity : AppCompatActivity() {
         readerNavigationController.showLinks()
     }
 
-    private fun showBookmarks() {
-        readerNavigationController.showBookmarks()
+    private fun showTableOfContents() {
+        readerNavigationController.showTableOfContents()
+    }
+
+    private fun showUserBookmarks() {
+        if (!checkHasFile()) {
+            return
+        }
+        if (pdf.fileHash == null) {
+            AppSnackbar.make(binding.root, R.string.bookmark_hash_unavailable, Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        readerNavigationController.showUserBookmarks()
     }
 
     private fun clearActiveSearchResultHighlight() {
@@ -1063,9 +1081,96 @@ class MainActivity : AppCompatActivity() {
 
     private fun goToPage() {
         fun goToPage(pageIndex: Int) {
+            readerHistory.recordJump(ReaderHistoryManager.Origin.GO_TO, pageIndex)
             binding.pdfView.jumpTo(pageIndex)
         }
         showGoToPageDialog(this, binding.root, pdf.pageNumber, pdf.length, ::goToPage)
+    }
+
+    private fun onHistoryChanged() {
+        val navState = readerHistory.canGoBack() to readerHistory.canGoForward()
+        if (navState != historyNavState) {
+            historyNavState = navState
+            refreshConfiguredActions()
+        }
+    }
+
+    private fun onPageDisplayed(pageIndex: Int) {
+        ensureUserBookmarksLoaded()
+        refreshBookmarkActionState(pageIndex)
+    }
+
+    private fun ensureUserBookmarksLoaded() {
+        val hash = pdf.fileHash ?: return
+        if (bookmarksLoadedForHash == hash) {
+            return
+        }
+        bookmarksLoadedForHash = hash
+        lifecycleScope.launch {
+            val pages = databaseManager.findUserBookmarks(hash).map { it.pageIndex }
+            if (pdf.fileHash == hash) {
+                bookmarkedPages = pages.toMutableSet()
+                refreshBookmarkActionState(pdf.pageNumber)
+            }
+        }
+    }
+
+    private fun refreshBookmarkActionState(pageIndex: Int) {
+        val bookmarked = bookmarkedPages.contains(pageIndex)
+        if (bookmarked != bookmarkActionState) {
+            bookmarkActionState = bookmarked
+            refreshConfiguredActions()
+        }
+    }
+
+    private fun toggleCurrentPageBookmark() {
+        if (!checkHasFile()) {
+            return
+        }
+        val hash = pdf.fileHash
+        if (hash == null) {
+            AppSnackbar.make(binding.root, R.string.bookmark_hash_unavailable, Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        val pageIndex = pdf.pageNumber
+        val adding = !bookmarkedPages.contains(pageIndex)
+        if (adding) {
+            bookmarkedPages.add(pageIndex)
+        } else {
+            bookmarkedPages.remove(pageIndex)
+        }
+        refreshBookmarkActionState(pageIndex)
+        lifecycleScope.launch {
+            if (adding) {
+                databaseManager.addUserBookmark(UserBookmark(hash, pageIndex))
+            } else {
+                databaseManager.removeUserBookmark(hash, pageIndex)
+            }
+        }
+    }
+
+    private fun showNavigationHistoryDialog() {
+        val entries = readerHistory.backEntries().asReversed()
+        if (entries.isEmpty()) {
+            return
+        }
+        val labels = entries.map { entry ->
+            getString(
+                R.string.history_entry_format,
+                entry.pageIndex + 1,
+                getString(entry.origin.labelRes),
+                DateUtils.getRelativeTimeSpanString(
+                    entry.timestamp,
+                    System.currentTimeMillis(),
+                    DateUtils.MINUTE_IN_MILLIS,
+                ),
+            )
+        }.toTypedArray()
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.navigation_history)
+            .setItems(labels) { _, index -> readerHistory.goBackTo(entries[index]) }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun showReadingDirectionDialog() {
@@ -1079,7 +1184,17 @@ class MainActivity : AppCompatActivity() {
         if (volumeKeyPager.handleKeyDown(keyCode)) {
             return true
         }
+        if (mousePager.handleKeyDown(keyCode, event)) {
+            return true
+        }
         return super.onKeyDown(keyCode, event)
+    }
+
+    override fun dispatchGenericMotionEvent(ev: MotionEvent): Boolean {
+        if (mousePager.handleGenericMotionEvent(ev)) {
+            return true
+        }
+        return super.dispatchGenericMotionEvent(ev)
     }
 
     private fun navToTextMode() {
@@ -1191,6 +1306,7 @@ class MainActivity : AppCompatActivity() {
         outState.putFloat(PDF.zoomKey, viewState?.zoom ?: pdf.zoom)
         outState.putBoolean(PDF.isExtractingTextFinishedKey, pdf.isExtractingTextFinished)
         readerNavigationController.saveState(outState)
+        readerHistory.saveState(outState)
         signatureController.saveState(outState)
         super.onSaveInstanceState(outState)
     }
@@ -1216,6 +1332,7 @@ class MainActivity : AppCompatActivity() {
         pdf.zoom = session.pendingViewState?.zoom ?: savedState.getFloat(PDF.zoomKey, 1f)
         pdf.isExtractingTextFinished = savedState.getBoolean(PDF.isExtractingTextFinishedKey)
         readerNavigationController.restoreState(savedState)
+        readerHistory.restoreState(savedState)
         annotationController.resetForDocument(pdf.uri)
         annotationController.restoreSessionOwnedKeys(
             savedState.getStringArrayList(PDF.sessionOwnedAnnotationKeysKey),

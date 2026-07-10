@@ -1,4 +1,4 @@
-package com.gitlab.mudlej.MjPdfReader.ui.bookmark
+package com.gitlab.mudlej.MjPdfReader.ui.toc
 
 import android.app.Activity
 import android.content.Intent
@@ -15,7 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Bookmark
 import com.gitlab.mudlej.MjPdfReader.data.PDF
-import com.gitlab.mudlej.MjPdfReader.databinding.ActivityBookmarksBinding
+import com.gitlab.mudlej.MjPdfReader.databinding.ActivityTableOfContentsBinding
 import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
 import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.util.configureSearchIcon
@@ -28,24 +28,24 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.concurrent.thread
 
-class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
-    private lateinit var binding: ActivityBookmarksBinding
+class TableOfContentsActivity : AppCompatActivity(), TableOfContentsFunctions {
+    private lateinit var binding: ActivityTableOfContentsBinding
     private lateinit var pdfExtractor: PdfExtractor
-    private val bookmarkAdapter = BookmarkAdapter(this, this)
+    private val bookmarkAdapter = TableOfContentsAdapter(this, this)
     private var bookmarks: List<Bookmark> = listOf()
     private lateinit var layoutManager: LinearLayoutManager
     private lateinit var actionBarMenu: Menu
-    private var restoredBookmarkState = BookmarkState()
+    private var restoredTableOfContentsState = TableOfContentsState()
     private var activeQuery: String? = null
     private var resultPrepared = false
     private var applyingSearchState = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityBookmarksBinding.inflate(layoutInflater)
+        binding = ActivityTableOfContentsBinding.inflate(layoutInflater)
         setContentView(binding.root)
         ColorUtil.colorize(this, window, supportActionBar)
-        restoreBookmarkState(savedInstanceState)
+        restoreTableOfContentsState(savedInstanceState)
 
         showProgressBar()
         lifecycleScope.launch {
@@ -60,10 +60,10 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
         }
     }
 
-    private fun restoreBookmarkState(savedInstanceState: Bundle?) {
-        restoredBookmarkState = savedInstanceState?.let { BookmarkState.from(it) } ?: BookmarkState.from(intent)
-        bookmarkAdapter.setExpandedBookmarkPaths(restoredBookmarkState.expandedPaths)
-        activeQuery = restoredBookmarkState.query
+    private fun restoreTableOfContentsState(savedInstanceState: Bundle?) {
+        restoredTableOfContentsState = savedInstanceState?.let { TableOfContentsState.from(it) } ?: TableOfContentsState.from(intent)
+        bookmarkAdapter.setExpandedBookmarkPaths(restoredTableOfContentsState.expandedPaths)
+        activeQuery = restoredTableOfContentsState.query
         bookmarkAdapter.query = activeQuery
     }
 
@@ -76,7 +76,7 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
         val pdfPassword = intent.getStringExtra(PDF.passwordKey)
         try {
             pdfExtractor = withContext(Dispatchers.IO) {
-                createPdfExtractor(this@BookmarksActivity, Uri.parse(pdfPath), pdfPassword)
+                createPdfExtractor(this@TableOfContentsActivity, Uri.parse(pdfPath), pdfPassword)
             }
         }
         catch (throwable: Throwable) {
@@ -139,10 +139,10 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
 
     private fun initUi() {
         title = getString(R.string.table_of_contents)
-        layoutManager = LinearLayoutManager(this@BookmarksActivity)
+        layoutManager = LinearLayoutManager(this@TableOfContentsActivity)
         binding.bookmarksRecyclerView.apply {
             adapter = bookmarkAdapter
-            layoutManager = this@BookmarksActivity.layoutManager
+            layoutManager = this@TableOfContentsActivity.layoutManager
         }
     }
 
@@ -220,9 +220,9 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
 
     private fun restorePositionInList() {
         if (!::layoutManager.isInitialized) return
-        if (restoredBookmarkState.scrollPosition !in 0 until bookmarkAdapter.itemCount) return
+        if (restoredTableOfContentsState.scrollPosition !in 0 until bookmarkAdapter.itemCount) return
 
-        layoutManager.scrollToPositionWithOffset(restoredBookmarkState.scrollPosition, restoredBookmarkState.scrollOffset)
+        layoutManager.scrollToPositionWithOffset(restoredTableOfContentsState.scrollPosition, restoredTableOfContentsState.scrollOffset)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -236,33 +236,33 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
     }
 
     override fun onBookmarkClicked(bookmark: Bookmark) {
-        setResultWithBookmarkState(PDF.BOOKMARK_RESULT_OK, bookmark.pageIdx.toInt())
+        setResultWithTableOfContentsState(PDF.BOOKMARK_RESULT_OK, bookmark.pageIdx.toInt())
         finish()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        currentBookmarkState().putInto(outState)
+        currentTableOfContentsState().putInto(outState)
         super.onSaveInstanceState(outState)
     }
 
     override fun finish() {
         if (!resultPrepared && ::binding.isInitialized) {
-            setResultWithBookmarkState(Activity.RESULT_CANCELED)
+            setResultWithTableOfContentsState(Activity.RESULT_CANCELED)
         }
         super.finish()
     }
 
-    private fun setResultWithBookmarkState(resultCode: Int, selectedPageIndex: Int? = null) {
+    private fun setResultWithTableOfContentsState(resultCode: Int, selectedPageIndex: Int? = null) {
         val resultIntent = Intent()
-        currentBookmarkState().putInto(resultIntent)
+        currentTableOfContentsState().putInto(resultIntent)
         selectedPageIndex?.let { resultIntent.putExtra(PDF.chosenBookmarkKey, it) }
         resultPrepared = true
         setResult(resultCode, resultIntent)
     }
 
-    private fun currentBookmarkState(): BookmarkState {
+    private fun currentTableOfContentsState(): TableOfContentsState {
         val (scrollPosition, scrollOffset) = currentScrollState()
-        return BookmarkState(
+        return TableOfContentsState(
             expandedPaths = bookmarkAdapter.getExpandedBookmarkPaths(),
             scrollPosition = scrollPosition,
             scrollOffset = scrollOffset,
@@ -272,21 +272,21 @@ class BookmarksActivity : AppCompatActivity(), BookmarkFunctions {
 
     private fun currentScrollState(): Pair<Int, Int> {
         if (!::layoutManager.isInitialized) {
-            return Pair(restoredBookmarkState.scrollPosition, restoredBookmarkState.scrollOffset)
+            return Pair(restoredTableOfContentsState.scrollPosition, restoredTableOfContentsState.scrollOffset)
         }
 
         val position = layoutManager.findFirstVisibleItemPosition()
         if (position == -1) {
-            return Pair(restoredBookmarkState.scrollPosition, restoredBookmarkState.scrollOffset)
+            return Pair(restoredTableOfContentsState.scrollPosition, restoredTableOfContentsState.scrollOffset)
         }
 
         val view = layoutManager.findViewByPosition(position)
-        val offset = view?.top?.minus(binding.bookmarksRecyclerView.paddingTop) ?: restoredBookmarkState.scrollOffset
+        val offset = view?.top?.minus(binding.bookmarksRecyclerView.paddingTop) ?: restoredTableOfContentsState.scrollOffset
         return Pair(position, offset)
     }
 
     companion object {
-        const val TAG = "BookmarksActivity"
+        const val TAG = "TableOfContentsActivity"
     }
 
 }

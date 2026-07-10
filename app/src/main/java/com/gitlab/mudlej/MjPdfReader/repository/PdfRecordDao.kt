@@ -93,6 +93,9 @@ interface PdfRecordDao {
     @Query("UPDATE PdfRecord SET favorite = :favorite WHERE hash IN (:fileHashes)")
     fun updateFavoriteBatch(fileHashes: List<String>, favorite: Boolean)
 
+    @Query("UPDATE PdfRecord SET hidden = :hidden WHERE hash = :fileHash")
+    fun updateHidden(fileHash: String, hidden: Boolean)
+
     @Query("UPDATE PdfRecord SET reading = :readingStatus WHERE hash = :fileHash")
     fun updateReading(fileHash: String, readingStatus: ReadingStatus)
 
@@ -119,6 +122,9 @@ interface PdfRecordDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(saveLocations: PdfRecord)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertAll(records: List<PdfRecord>)
 
     @Query("SELECT EXISTS(SELECT * FROM PdfRecord WHERE hash = :fileHash)")
     fun hasRecord(fileHash: String): Boolean

@@ -9,6 +9,9 @@ class ConfigurableActionResolver(
     private val cropMarginsEnabled: () -> Boolean,
     private val isPdfDarkTheme: () -> Boolean,
     private val isPdfThemeSystem: () -> Boolean,
+    private val canNavigateBack: () -> Boolean,
+    private val canNavigateForward: () -> Boolean,
+    private val isCurrentPageBookmarked: () -> Boolean,
     private val handlers: Handlers,
 ) {
 
@@ -22,6 +25,9 @@ class ConfigurableActionResolver(
         val toggleCropMargins: () -> Unit,
         val screenshot: () -> Unit,
         val switchTheme: () -> Unit,
+        val navigateBack: () -> Unit,
+        val navigateForward: () -> Unit,
+        val showNavigationHistory: () -> Unit,
         val reload: () -> Unit,
         val openLocal: () -> Unit,
         val openOnline: () -> Unit,
@@ -34,6 +40,8 @@ class ConfigurableActionResolver(
         val fileMetadata: () -> Unit,
         val about: () -> Unit,
         val tableOfContents: () -> Unit,
+        val toggleBookmark: () -> Unit,
+        val userBookmarks: () -> Unit,
         val linksInFile: () -> Unit,
         val print: () -> Unit,
         val addSignature: () -> Unit,
@@ -100,6 +108,24 @@ class ConfigurableActionResolver(
                 if (isPdfDarkTheme()) R.drawable.ic_light_mode else R.drawable.ic_dark_mode,
                 visible = fileAvailable && !isPdfThemeSystem(),
                 run = handlers.switchTheme,
+            )
+            ConfigurableAction.NAV_BACK -> ConfiguredAction(
+                R.string.nav_back,
+                R.drawable.ic_nav_back,
+                visible = fileAvailable && canNavigateBack(),
+                run = handlers.navigateBack,
+            )
+            ConfigurableAction.NAV_FORWARD -> ConfiguredAction(
+                R.string.nav_forward,
+                R.drawable.ic_nav_forward,
+                visible = fileAvailable && canNavigateForward(),
+                run = handlers.navigateForward,
+            )
+            ConfigurableAction.NAV_HISTORY -> ConfiguredAction(
+                R.string.navigation_history,
+                R.drawable.ic_history,
+                visible = fileAvailable && canNavigateBack(),
+                run = handlers.showNavigationHistory,
             )
             ConfigurableAction.RELOAD -> ConfiguredAction(
                 R.string.reload_pdf,
@@ -168,6 +194,18 @@ class ConfigurableActionResolver(
                 R.drawable.ic_book_bookmark,
                 visible = fileAvailable,
                 run = handlers.tableOfContents,
+            )
+            ConfigurableAction.BOOKMARK_PAGE -> ConfiguredAction(
+                if (isCurrentPageBookmarked()) R.string.remove_bookmark else R.string.add_bookmark,
+                if (isCurrentPageBookmarked()) R.drawable.ic_bookmark_filled else R.drawable.ic_bookmark_outline,
+                visible = fileAvailable,
+                run = handlers.toggleBookmark,
+            )
+            ConfigurableAction.USER_BOOKMARKS -> ConfiguredAction(
+                R.string.bookmarks,
+                R.drawable.ic_bookmarks,
+                visible = fileAvailable,
+                run = handlers.userBookmarks,
             )
             ConfigurableAction.LINKS_IN_FILE -> ConfiguredAction(
                 R.string.links_in_file,

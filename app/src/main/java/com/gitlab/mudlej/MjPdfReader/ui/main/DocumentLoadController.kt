@@ -242,6 +242,7 @@ class DocumentLoadController(
         pdfView.midZoom = Preferences.midZoomDefault
         pdfView.maxZoom = pref.getMaxZoom()
         val spacing = if (pref.getSpaceBetweenPages()) Preferences.spacingDefault else 0
+        val browserScrollMode = pref.getBrowserScrollMode() && !pref.getHorizontalScroll()
 
         viewConfigurator   // creates a PDFView.Configurator
             .defaultPage(pageNumber)
@@ -268,8 +269,9 @@ class DocumentLoadController(
             .disableHorizontalSwipe(horizontalSwipeDisabled)
             .zoomDisabled(zoomDisabled)
             .autoSpacing(pref.getHorizontalScroll())
-            .pageSnap(pref.getPageSnap())
-            .pageFling(pref.getPageFling())
+            .pageSnap(pref.getPageSnap() && !browserScrollMode)
+            .pageFling(pref.getPageFling() && !browserScrollMode)
+            .freeScrollMode(browserScrollMode)
             .nightMode(pdfThemeController.effectivePdfDarkTheme())
             .enableTextSelection(pref.getInlineTextSelection())
             .textSelectionColor(MaterialColors.getColor(binding.root, R.attr.colorPrimary))
@@ -438,6 +440,7 @@ class DocumentLoadController(
         pdf.pageNumber = pageNumber
         setPdfLength(pageCount)
         updateAppTitle()
+        readerNavigationController.onPageChanged(pageNumber)
         binding.pdfView.announceForAccessibility(activity.getString(R.string.page_x_of_y, pageNumber + 1, pageCount))
 
         scope.launch {
@@ -451,6 +454,7 @@ class DocumentLoadController(
             }
             if (hash != null) {  // Ensure hash is not null
                 pdf.fileHash = hash
+                readerNavigationController.onFileHashComputed()
                 databaseManager.setPageNumber(hash, pageNumber)  // Set the page number in the database
             }
             else {

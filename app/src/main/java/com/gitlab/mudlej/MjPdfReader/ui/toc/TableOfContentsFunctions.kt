@@ -1,7 +1,7 @@
-package com.gitlab.mudlej.MjPdfReader.ui.bookmark
+package com.gitlab.mudlej.MjPdfReader.ui.toc
 
 import com.gitlab.mudlej.MjPdfReader.data.Bookmark
 
-interface BookmarkFunctions {
+interface TableOfContentsFunctions {
     fun onBookmarkClicked(bookmark: Bookmark)
 }

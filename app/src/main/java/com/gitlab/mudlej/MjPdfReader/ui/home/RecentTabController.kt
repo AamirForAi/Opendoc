@@ -26,8 +26,9 @@ class RecentTabController(
     }
 
     fun render(allItems: List<HomeItem>) {
-        val heroItems = libraryController.continueReading(allItems)
-        val rows = allItems
+        val visibleItems = allItems.filter { !it.hidden }
+        val heroItems = libraryController.continueReading(visibleItems)
+        val rows = visibleItems
             .filter { it.hasBeenOpened }
             .sortedByDescending { it.lastOpened }
 

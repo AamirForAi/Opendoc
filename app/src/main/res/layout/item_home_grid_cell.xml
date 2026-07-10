@@ -40,9 +40,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:visibility="gone"
+                app:indicatorTrackGapSize="0dp"
                 app:layout_constraintBottom_toBottomOf="@id/cover"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
+                app:trackStopIndicatorSize="0dp"
                 app:trackThickness="4dp"
                 tools:progress="40"
                 tools:visibility="visible" />

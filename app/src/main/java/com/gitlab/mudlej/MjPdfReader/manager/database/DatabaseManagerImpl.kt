@@ -5,6 +5,7 @@ import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.repository.PdfAnnotationSaveDestination
 import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.repository.ScannedPdfCache
+import com.gitlab.mudlej.MjPdfReader.repository.UserBookmark
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -14,6 +15,48 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
     override suspend fun findAllRecords(): List<PdfRecord> {
         return withContext(Dispatchers.IO) {
             database.pdfRecordDao().findAll()
+        }
+    }
+
+    override suspend fun upsertRecords(records: List<PdfRecord>) {
+        withContext(Dispatchers.IO) {
+            database.pdfRecordDao().insertAll(records)
+        }
+    }
+
+    override suspend fun findUserBookmarks(fileHash: String): List<UserBookmark> {
+        return withContext(Dispatchers.IO) {
+            database.userBookmarkDao().findByHash(fileHash)
+        }
+    }
+
+    override suspend fun findAllUserBookmarks(): List<UserBookmark> {
+        return withContext(Dispatchers.IO) {
+            database.userBookmarkDao().findAll()
+        }
+    }
+
+    override suspend fun addUserBookmark(bookmark: UserBookmark) {
+        withContext(Dispatchers.IO) {
+            database.userBookmarkDao().upsert(bookmark)
+        }
+    }
+
+    override suspend fun upsertUserBookmarks(bookmarks: List<UserBookmark>) {
+        withContext(Dispatchers.IO) {
+            database.userBookmarkDao().upsertAll(bookmarks)
+        }
+    }
+
+    override suspend fun removeUserBookmark(fileHash: String, pageIndex: Int) {
+        withContext(Dispatchers.IO) {
+            database.userBookmarkDao().delete(fileHash, pageIndex)
+        }
+    }
+
+    override suspend fun setUserBookmarkLabel(fileHash: String, pageIndex: Int, label: String?) {
+        withContext(Dispatchers.IO) {
+            database.userBookmarkDao().updateLabel(fileHash, pageIndex, label)
         }
     }
 
@@ -174,6 +217,12 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
     override suspend fun setFavoriteBatch(fileHashes: List<String>, favorite: Boolean) {
         withContext(Dispatchers.IO) {
             database.pdfRecordDao().updateFavoriteBatch(fileHashes, favorite)
+        }
+    }
+
+    override suspend fun setHidden(fileHash: String, hidden: Boolean) {
+        withContext(Dispatchers.IO) {
+            database.pdfRecordDao().updateHidden(fileHash, hidden)
         }
     }
 

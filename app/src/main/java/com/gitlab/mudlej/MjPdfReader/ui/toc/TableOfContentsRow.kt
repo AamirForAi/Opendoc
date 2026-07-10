@@ -1,8 +1,8 @@
-package com.gitlab.mudlej.MjPdfReader.ui.bookmark
+package com.gitlab.mudlej.MjPdfReader.ui.toc
 
 import com.gitlab.mudlej.MjPdfReader.data.Bookmark
 
-data class BookmarkRow(
+data class TableOfContentsRow(
     val bookmark: Bookmark,
     val expandable: Boolean,
     val expanded: Boolean,

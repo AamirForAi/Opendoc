@@ -122,6 +122,8 @@ class PDF(
         const val searchResultKey = "searchInput"
         const val linkResultKey = "linkResult"
         const val searchQueryKey = "searchQuery"
+        const val searchQueryResultKey = "searchQueryResult"
+        const val searchIgnoreAccentsKey = "searchIgnoreAccents"
         const val resultPositionInListKey = "searchResultPositionKey"
         const val filePathKey = "filePathKey"
     }

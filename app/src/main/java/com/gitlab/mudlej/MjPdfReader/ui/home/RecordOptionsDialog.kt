@@ -97,6 +97,25 @@ class RecordOptionsDialog(
             }
         }
 
+        binding.hideButton.setText(
+            if (record?.hidden == true) {
+                R.string.home_show_in_library
+            } else {
+                R.string.home_hide_from_library
+            }
+        )
+        binding.hideButton.setOnClickListener {
+            dialog.dismiss()
+            scope.launch {
+                val hash = record?.hash ?: resolveContentHash(item) ?: return@launch
+                if (record == null && !databaseManager.hasRecord(hash)) {
+                    databaseManager.saveRecordInBackground(newRecord(item, hash))
+                }
+                databaseManager.setHidden(hash, !(record?.hidden ?: false))
+                onChanged()
+            }
+        }
+
         binding.optionsInfoButton.setOnClickListener { showFullProperties(item, record) }
 
         if (item.uri.scheme == "file") {

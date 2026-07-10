@@ -59,7 +59,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                app:indicatorTrackGapSize="0dp"
                 app:trackCornerRadius="2dp"
+                app:trackStopIndicatorSize="0dp"
                 app:trackThickness="4dp"
                 tools:progress="42" />
 

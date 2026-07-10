@@ -15,6 +15,9 @@
  */
 package com.github.barteksc.pdfviewer;
 
+import static com.github.barteksc.pdfviewer.util.Constants.Pinch.MAXIMUM_ZOOM;
+import static com.github.barteksc.pdfviewer.util.Constants.Pinch.MINIMUM_ZOOM;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -37,7 +40,10 @@ import android.os.HandlerThread;
 import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.InputDevice;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.ViewConfiguration;
 import android.widget.RelativeLayout;
 
 import com.github.barteksc.pdfviewer.exception.PageRenderingException;
@@ -121,6 +127,8 @@ public class PDFView extends RelativeLayout {
     private static final int FORM_FIELD_STROKE_COLOR = 0x662196F3; // 40% Material blue hairline
 
     private static final float FORM_FIELD_TOUCH_TOLERANCE_DP = 12f;
+
+    private static final long WHEEL_SETTLE_DELAY_MS = 250;
 
     public static class ViewState {
 
@@ -368,6 +376,8 @@ public class PDFView extends RelativeLayout {
     private boolean nightMode = false;
 
     private boolean pageSnap = true;
+
+    private boolean freeScrollMode = false;
 
     /**
      * Pdfium core for loading and rendering PDFs
@@ -752,7 +762,85 @@ public class PDFView extends RelativeLayout {
     }
 
     @Override
+    public boolean onGenericMotionEvent(MotionEvent event) {
+        if (pdfFile == null
+                || !event.isFromSource(InputDevice.SOURCE_CLASS_POINTER)
+                || event.getActionMasked() != MotionEvent.ACTION_SCROLL) {
+            return super.onGenericMotionEvent(event);
+        }
+        float vScroll = event.getAxisValue(MotionEvent.AXIS_VSCROLL);
+        float hScroll = event.getAxisValue(MotionEvent.AXIS_HSCROLL);
+        if (vScroll == 0f && hScroll == 0f) {
+            return super.onGenericMotionEvent(event);
+        }
+        callbacks.callOnDocumentInteraction(event);
+        if ((event.getMetaState() & KeyEvent.META_CTRL_ON) != 0) {
+            if (zoomDisabled) {
+                return true;
+            }
+            float dr = (float) Math.pow(1.15f, vScroll);
+            float wantedZoom = zoom * dr;
+            float minWheelZoom = Math.min(MINIMUM_ZOOM, getMinZoom());
+            float maxWheelZoom = Math.min(MAXIMUM_ZOOM, getMaxZoom());
+            if (wantedZoom < minWheelZoom) {
+                dr = minWheelZoom / zoom;
+            } else if (wantedZoom > maxWheelZoom) {
+                dr = maxWheelZoom / zoom;
+            }
+            zoomCenteredRelativeTo(dr, new PointF(event.getX(), event.getY()));
+            scheduleWheelSettle(false);
+            return true;
+        }
+        if (!isSwipeEnabled()) {
+            return true;
+        }
+        float factor = wheelScrollFactor();
+        float dx;
+        float dy;
+        if (swipeVertical) {
+            dx = horizontalSwipeDisabled ? 0 : -hScroll * factor;
+            dy = vScroll * factor;
+        } else {
+            dx = isHorizontalReadingDirectionRtl() ? -vScroll * factor : vScroll * factor;
+            dy = hScroll * factor;
+        }
+        moveRelativeTo(dx, dy);
+        loadPageByOffset();
+        scheduleWheelSettle(true);
+        return true;
+    }
+
+    private float wheelScrollFactor() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            return ViewConfiguration.get(getContext()).getScaledVerticalScrollFactor();
+        }
+        return 64 * getContext().getResources().getDisplayMetrics().density;
+    }
+
+    private boolean wheelSettleSnap = true;
+
+    private void scheduleWheelSettle(boolean snap) {
+        wheelSettleSnap = snap;
+        removeCallbacks(wheelSettleRunnable);
+        postDelayed(wheelSettleRunnable, WHEEL_SETTLE_DELAY_MS);
+    }
+
+    private final Runnable wheelSettleRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (pdfFile == null || recycled) {
+                return;
+            }
+            loadPages();
+            if (wheelSettleSnap) {
+                performPageSnap();
+            }
+        }
+    };
+
+    @Override
     protected void onDetachedFromWindow() {
+        removeCallbacks(wheelSettleRunnable);
         if (autoReleasingWhenDetachedFromWindow) {
             release();
         }
@@ -2443,6 +2531,14 @@ public class PDFView extends RelativeLayout {
         this.pageSnap = pageSnap;
     }
 
+    public boolean isFreeScrollMode() {
+        return freeScrollMode;
+    }
+
+    private void setFreeScrollMode(boolean freeScrollMode) {
+        this.freeScrollMode = freeScrollMode;
+    }
+
     public boolean doRenderDuringScale() {
         return renderDuringScale;
     }
@@ -2653,6 +2749,8 @@ public class PDFView extends RelativeLayout {
 
         private boolean pageSnap = false;
 
+        private boolean freeScrollMode = false;
+
         private boolean renderDuringScale = false;
 
         private boolean nightMode = false;
@@ -2860,6 +2958,11 @@ public class PDFView extends RelativeLayout {
             return this;
         }
 
+        public Configurator freeScrollMode(boolean freeScrollMode) {
+            this.freeScrollMode = freeScrollMode;
+            return this;
+        }
+
         public Configurator nightMode(boolean nightMode) {
             this.nightMode = nightMode;
             return this;
@@ -2912,6 +3015,7 @@ public class PDFView extends RelativeLayout {
             PDFView.this.setCachedCropMargins(cachedCropMargins);
             PDFView.this.setPageSnap(pageSnap);
             PDFView.this.setPageFling(pageFling);
+            PDFView.this.setFreeScrollMode(freeScrollMode);
             PDFView.this.setTextSelectionColor(textSelectionColor);
             PDFView.this.setTextSelectionEnabled(textSelectionEnabled);
 

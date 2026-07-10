@@ -78,7 +78,7 @@ class FullscreenController(
     }
 
     private fun showSystemUi() {
-        ColorUtil.exitFullscreen(activity, activity.window, activity.supportActionBar, transparentNavigationBar = true)
+        ColorUtil.exitFullscreen(activity, activity.window, activity.supportActionBar)
         activity.supportActionBar?.show()
         binding.appBarBottomShadow.visibility = View.VISIBLE
         if (pref.getSecondBarEnabled()) {

@@ -78,6 +78,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val horizontalScrollKey = "horizontalScroll"
         const val pageSnapKey = "pageSnap"
         const val pageFlingKey = "pageFling"
+        const val browserScrollModeKey = "browserScrollMode"
+        const val turnPageByMouseButtonsKey = "turnPageByMouseButtons"
         const val pdfDarkThemeKey = "pdfDarkTheme"
         const val appFollowSystemThemeKey = "appFollowSystemTheme"
         const val pdfFollowSystemThemeKey = "pdfFollowSystemTheme"
@@ -132,6 +134,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val horizontalScrollDefault = false
         const val pageSnapDefault = false
         const val pageFlingDefault = false
+        const val browserScrollModeDefault = false
+        const val turnPageByMouseButtonsDefault = true
         const val pdfDarkThemeDefault = false
         const val appFollowSystemThemeDefault = true    // NEW: for version v2.1 M3 Theme
         const val pdfFollowSystemThemeDefault = false
@@ -202,6 +206,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getHorizontalScroll() = prefMan.getBoolean(horizontalScrollKey, horizontalScrollDefault)
     fun getPageSnap() = prefMan.getBoolean(pageSnapKey, pageSnapDefault)
     fun getPageFling() = prefMan.getBoolean(pageFlingKey, pageFlingDefault)
+    fun getBrowserScrollMode() = prefMan.getBoolean(browserScrollModeKey, browserScrollModeDefault)
+    fun getTurnPageByMouseButtons() = prefMan.getBoolean(turnPageByMouseButtonsKey, turnPageByMouseButtonsDefault)
     fun getPdfDarkTheme() = prefMan.getBoolean(pdfDarkThemeKey, pdfDarkThemeDefault)
     fun getAppFollowSystemTheme() = prefMan.getBoolean(appFollowSystemThemeKey, appFollowSystemThemeDefault)
     fun getPdfFollowSystemTheme() = prefMan.getBoolean(pdfFollowSystemThemeKey, pdfFollowSystemThemeDefault)
@@ -297,6 +303,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setHorizontalScroll(value: Boolean) = prefMan.edit().putBoolean(horizontalScrollKey, value).apply()
     fun setPageSnap(value: Boolean) = prefMan.edit().putBoolean(pageSnapKey, value).apply()
     fun setPageFling(value: Boolean) = prefMan.edit().putBoolean(pageFlingKey, value).apply()
+    fun setBrowserScrollMode(value: Boolean) = prefMan.edit().putBoolean(browserScrollModeKey, value).apply()
+    fun setTurnPageByMouseButtons(value: Boolean) = prefMan.edit().putBoolean(turnPageByMouseButtonsKey, value).apply()
     fun setPdfDarkTheme(value: Boolean) = prefMan.edit().putBoolean(pdfDarkThemeKey, value).apply()
     fun setAppFollowSystemTheme(value: Boolean) = prefMan.edit().putBoolean(appFollowSystemThemeKey, value).apply()
     fun setPdfFollowSystemTheme(value: Boolean) = prefMan.edit().putBoolean(pdfFollowSystemThemeKey, value).apply()

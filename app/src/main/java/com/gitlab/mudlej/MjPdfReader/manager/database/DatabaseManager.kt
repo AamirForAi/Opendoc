@@ -4,11 +4,26 @@ import com.gitlab.mudlej.MjPdfReader.enums.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.repository.PdfAnnotationSaveDestination
 import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.repository.ScannedPdfCache
+import com.gitlab.mudlej.MjPdfReader.repository.UserBookmark
 import java.time.LocalDateTime
 
 interface DatabaseManager {
 
     suspend fun findAllRecords(): List<PdfRecord>
+
+    suspend fun upsertRecords(records: List<PdfRecord>)
+
+    suspend fun findUserBookmarks(fileHash: String): List<UserBookmark>
+
+    suspend fun findAllUserBookmarks(): List<UserBookmark>
+
+    suspend fun addUserBookmark(bookmark: UserBookmark)
+
+    suspend fun upsertUserBookmarks(bookmarks: List<UserBookmark>)
+
+    suspend fun removeUserBookmark(fileHash: String, pageIndex: Int)
+
+    suspend fun setUserBookmarkLabel(fileHash: String, pageIndex: Int, label: String?)
 
     suspend fun findRecord(fileHash: String): PdfRecord?
 
@@ -62,6 +77,8 @@ interface DatabaseManager {
     suspend fun setFavorite(fileHash: String, favorite: Boolean)
 
     suspend fun setFavoriteBatch(fileHashes: List<String>, favorite: Boolean)
+
+    suspend fun setHidden(fileHash: String, hidden: Boolean)
 
     suspend fun setReading(fileHash: String, readingStatus: ReadingStatus)
 

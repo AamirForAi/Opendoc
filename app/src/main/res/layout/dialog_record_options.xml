@@ -82,7 +82,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:visibility="gone"
+            app:indicatorTrackGapSize="0dp"
             app:trackCornerRadius="2dp"
+            app:trackStopIndicatorSize="0dp"
             app:trackThickness="4dp"
             tools:progress="42"
             tools:visibility="visible" />
@@ -161,37 +163,52 @@
                 android:text="@string/home_chip_abandoned" />
         </RadioGroup>
 
-        <com.google.android.material.divider.MaterialDivider
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp" />
-
         <Button
             android:id="@+id/removeRecentButton"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="16dp"
             android:text="@string/home_remove_from_recent"
             android:visibility="gone"
             app:icon="@drawable/close_icon" />
 
         <Button
-            android:id="@+id/renameButton"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
+            android:id="@+id/hideButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/home_rename"
-            app:icon="@drawable/ic_edit" />
+            android:layout_marginTop="8dp"
+            android:text="@string/home_hide_from_library"
+            app:icon="@drawable/ic_hide" />
 
-        <Button
-            android:id="@+id/deleteButton"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/home_delete_from_device"
-            android:textColor="?attr/colorError"
-            app:icon="@drawable/ic_delete"
-            app:iconTint="?attr/colorError" />
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/renameButton"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/home_rename"
+                app:icon="@drawable/ic_edit" />
+
+            <Button
+                android:id="@+id/deleteButton"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="@string/home_delete_from_device"
+                android:textColor="?attr/colorOnErrorContainer"
+                app:backgroundTint="?attr/colorErrorContainer"
+                app:icon="@drawable/ic_delete"
+                app:iconTint="?attr/colorOnErrorContainer" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

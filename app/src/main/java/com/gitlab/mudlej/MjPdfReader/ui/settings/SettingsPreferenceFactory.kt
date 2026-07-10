@@ -173,6 +173,32 @@ internal class SettingsPreferenceFactory(
         }
     }
 
+    fun backupExportPreference(breadcrumb: String?): Preference {
+        return Preference(context).apply {
+            title = getString(R.string.backup_export_title)
+            key = "backupExport"
+            summary = formatSummary(breadcrumb, getString(R.string.backup_export_summary))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                (fragment as? SettingsFragment)?.startBackupExport()
+                true
+            }
+        }
+    }
+
+    fun backupImportPreference(breadcrumb: String?): Preference {
+        return Preference(context).apply {
+            title = getString(R.string.backup_import_title)
+            key = "backupImport"
+            summary = formatSummary(breadcrumb, getString(R.string.backup_import_summary))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                (fragment as? SettingsFragment)?.startBackupImport()
+                true
+            }
+        }
+    }
+
     fun highlightColorsPreference(breadcrumb: String?): Preference {
         return Preference(context).apply {
             title = getString(R.string.highlight_colors)

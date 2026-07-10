@@ -47,6 +47,7 @@ class LibraryScanner private constructor(
     private var quickSyncJob: Job? = null
     private var lastCompletedAt = 0L
     private var observer: ContentObserver? = null
+    private var progressVisible = false
 
     init {
         scope.launch {
@@ -69,15 +70,15 @@ class LibraryScanner private constructor(
         }
         pipelineJob = scope.launch {
             quickSyncJob?.cancel()
-            indexState.update { it.copy(scanning = true) }
             runCatching {
                 val current = LinkedHashMap<String, ScannedPdfCache>()
                 databaseManager.findAllScannedPdfs().forEach { current[it.path] = it }
-                publish(current, scanning = true)
+                progressVisible = current.isEmpty()
+                publish(current, scanning = progressVisible)
 
                 val seenPaths = HashSet<String>()
                 mediaStorePass(current, seenPaths)
-                publish(current, scanning = true)
+                publish(current, scanning = progressVisible)
                 walkPass(current, seenPaths)
                 pruneMissing(current, seenPaths)
                 publish(current, scanning = false)
@@ -233,7 +234,7 @@ class LibraryScanner private constructor(
                 val now = System.currentTimeMillis()
                 if (upserts.size >= EMIT_BATCH_SIZE || now - lastEmitAt >= EMIT_INTERVAL_MILLIS) {
                     flushUpserts(upserts)
-                    publish(current, scanning = true)
+                    publish(current, scanning = progressVisible)
                     lastEmitAt = now
                 }
             }

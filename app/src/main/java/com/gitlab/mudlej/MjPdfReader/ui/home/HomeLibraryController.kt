@@ -36,9 +36,11 @@ class HomeLibraryController(
         val recordsByHash = records.associateBy { it.hash }
         return entries
             .map { entry ->
-                recordsByPath[entry.path]
-                    ?: entry.hash?.let { recordsByHash[it] }
-                    ?: HomeItem.fromScan(entry)
+                val match = recordsByPath[entry.path] ?: entry.hash?.let { recordsByHash[it] }
+                match?.copy(
+                    sizeBytes = if (match.sizeBytes > 0) match.sizeBytes else entry.size,
+                    length = if (match.length > 0) match.length else entry.pageCount,
+                ) ?: HomeItem.fromScan(entry)
             }
             .distinctBy { it.hash }
     }

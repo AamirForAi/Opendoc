@@ -430,6 +430,8 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         saveSearchSessionState()
         val resultIntent = Intent()
         resultIntent.putExtra(PDF.searchResultKey, Gson().toJson(searchResult))
+        resultIntent.putExtra(PDF.searchQueryResultKey, searchQuery)
+        resultIntent.putExtra(PDF.searchIgnoreAccentsKey, ignoreAccents)
         setResult(PDF.SEARCH_RESULT_OK, resultIntent)
         finish()
     }

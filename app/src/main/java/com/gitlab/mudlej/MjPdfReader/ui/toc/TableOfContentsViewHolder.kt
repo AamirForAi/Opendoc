@@ -1,18 +1,18 @@
-package com.gitlab.mudlej.MjPdfReader.ui.bookmark
+package com.gitlab.mudlej.MjPdfReader.ui.toc
 
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
-import com.gitlab.mudlej.MjPdfReader.databinding.BookmarkRowItemBinding
+import com.gitlab.mudlej.MjPdfReader.databinding.TocRowItemBinding
 
-class BookmarkViewHolder(
-    private val binding: BookmarkRowItemBinding,
-    private val bookmarkAdapter: BookmarkAdapter,
+class TableOfContentsViewHolder(
+    private val binding: TocRowItemBinding,
+    private val bookmarkAdapter: TableOfContentsAdapter,
 ) : RecyclerView.ViewHolder(binding.root) {
 
-    fun bind(row: BookmarkRow) {
+    fun bind(row: TableOfContentsRow) {
         val bookmark = row.bookmark
         val textSize = PDF.BOOKMARK_TEXT_SIZE - bookmark.level * PDF.BOOKMARK_TEXT_SIZE_DEC
 
@@ -31,7 +31,7 @@ class BookmarkViewHolder(
         bindToggle(row)
     }
 
-    private fun bindToggle(row: BookmarkRow) {
+    private fun bindToggle(row: TableOfContentsRow) {
         val toggle = binding.toggleButton
         if (!row.expandable) {
             toggle.setImageResource(R.drawable.ic_bullet_point)

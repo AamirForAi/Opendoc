@@ -20,6 +20,7 @@ data class HomeItem(
     val isScanOnly: Boolean,
     val coverKey: String,
     val sizeBytes: Long,
+    val hidden: Boolean,
 ) {
 
     val progressPercent: Int
@@ -57,6 +58,7 @@ data class HomeItem(
                 } else {
                     0L
                 },
+                hidden = record.hidden,
             )
         }
 
@@ -76,6 +78,7 @@ data class HomeItem(
                 isScanOnly = true,
                 coverKey = syntheticKey,
                 sizeBytes = entry.size,
+                hidden = false,
             )
         }
     }

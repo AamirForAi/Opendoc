@@ -1,16 +1,16 @@
-package com.gitlab.mudlej.MjPdfReader.ui.bookmark
+package com.gitlab.mudlej.MjPdfReader.ui.toc
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.ListAdapter
 import com.gitlab.mudlej.MjPdfReader.data.Bookmark
-import com.gitlab.mudlej.MjPdfReader.databinding.BookmarkRowItemBinding
+import com.gitlab.mudlej.MjPdfReader.databinding.TocRowItemBinding
 
 
-class BookmarkAdapter(
-    val bookmarkFunctions: BookmarkFunctions,
-    val activity: BookmarksActivity
-) : ListAdapter<BookmarkRow, BookmarkViewHolder>(BookmarkComparator()) {
+class TableOfContentsAdapter(
+    val bookmarkFunctions: TableOfContentsFunctions,
+    val activity: TableOfContentsActivity
+) : ListAdapter<TableOfContentsRow, TableOfContentsViewHolder>(TableOfContentsComparator()) {
 
     private val expandedBookmarkPaths = mutableSetOf<String>()
     private var roots: List<Bookmark> = emptyList()
@@ -26,17 +26,17 @@ class BookmarkAdapter(
         submitList(buildRows(), commitCallback)
     }
 
-    private fun buildRows(): List<BookmarkRow> {
-        val rows = mutableListOf<BookmarkRow>()
+    private fun buildRows(): List<TableOfContentsRow> {
+        val rows = mutableListOf<TableOfContentsRow>()
         roots.filter(::matchesSelfOrDescendant).forEach { addRow(it, rows) }
         return rows
     }
 
-    private fun addRow(bookmark: Bookmark, rows: MutableList<BookmarkRow>) {
+    private fun addRow(bookmark: Bookmark, rows: MutableList<TableOfContentsRow>) {
         val children = visibleChildren(bookmark)
         val expandable = children.isNotEmpty()
         val expanded = expandable && isExpanded(bookmark)
-        rows.add(BookmarkRow(bookmark, expandable, expanded))
+        rows.add(TableOfContentsRow(bookmark, expandable, expanded))
         if (expanded) children.forEach { addRow(it, rows) }
     }
 
@@ -120,14 +120,14 @@ class BookmarkAdapter(
                 || (bookmark.pageIdx + 1).toString().contains(activeQuery)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BookmarkViewHolder {
-        return BookmarkViewHolder(
-            BookmarkRowItemBinding.inflate(LayoutInflater.from(parent.context), parent, false),
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TableOfContentsViewHolder {
+        return TableOfContentsViewHolder(
+            TocRowItemBinding.inflate(LayoutInflater.from(parent.context), parent, false),
             this,
         )
     }
 
-    override fun onBindViewHolder(holder: BookmarkViewHolder, i: Int) {
+    override fun onBindViewHolder(holder: TableOfContentsViewHolder, i: Int) {
         getItem(i)?.let { holder.bind(it) }
     }
 

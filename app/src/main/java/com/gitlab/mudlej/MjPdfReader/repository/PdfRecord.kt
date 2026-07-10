@@ -99,6 +99,9 @@ data class PdfRecord(
 
     @ColumnInfo(defaultValue = UNSET_DOCUMENT_TITLE)
     val documentTitle: String? = null,
+
+    @ColumnInfo(defaultValue = UNSET_HIDDEN)
+    var hidden: Boolean = false,
 ) {
 
     companion object {
@@ -146,5 +149,6 @@ data class PdfRecord(
         const val UNSET_AUTO_SCROLL_SPEED = "NULL"
         const val UNSET_READING_DIRECTION = "NULL"
         const val UNSET_DOCUMENT_TITLE = "NULL"
+        const val UNSET_HIDDEN = "false"
     }
 }

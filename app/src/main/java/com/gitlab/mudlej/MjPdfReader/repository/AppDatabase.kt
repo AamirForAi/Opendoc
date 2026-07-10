@@ -55,8 +55,8 @@ import com.gitlab.mudlej.MjPdfReader.util.DataConverter
 import java.io.File
 
 @Database(
-    entities = [PdfRecord::class, PdfAnnotationSaveDestination::class, ScannedPdfCache::class],
-    version = 9,
+    entities = [PdfRecord::class, PdfAnnotationSaveDestination::class, ScannedPdfCache::class, UserBookmark::class],
+    version = 10,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = AppDatabase.MyAutoMigration::class),
@@ -66,7 +66,8 @@ import java.io.File
         AutoMigration(from = 4, to = 5),
         AutoMigration(from = 5, to = 6),
         AutoMigration(from = 6, to = 7),
-        AutoMigration(from = 8, to = 9)
+        AutoMigration(from = 8, to = 9),
+        AutoMigration(from = 9, to = 10)
     ]
 )
 @TypeConverters(DataConverter::class)
@@ -74,6 +75,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun pdfRecordDao(): PdfRecordDao
     abstract fun pdfAnnotationSaveDestinationDao(): PdfAnnotationSaveDestinationDao
     abstract fun scannedPdfCacheDao(): ScannedPdfCacheDao
+    abstract fun userBookmarkDao(): UserBookmarkDao
 
     companion object {
         @Volatile

@@ -84,7 +84,7 @@ class LibraryTabController(
             )
         } else {
             libraryController.filterByChip(allItems, filter)
-        }
+        }.filter { !it.hidden }
         libraryAdapter.submitList(gridItems)
 
         val scanIndex = libraryScanner.index.value

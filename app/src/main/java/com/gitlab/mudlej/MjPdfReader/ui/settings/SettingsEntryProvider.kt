@@ -138,11 +138,27 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             ),
             switchEntry(
                 page = SettingsPage.READING,
+                titleRes = R.string.browser_scroll_mode_title,
+                key = Preferences.browserScrollModeKey,
+                defaultValue = Preferences.browserScrollModeDefault,
+                summaryRes = R.string.browser_scroll_mode_summary,
+                keywords = listOf("browser", "scroll", "pan", "lock", "diagonal"),
+            ),
+            switchEntry(
+                page = SettingsPage.READING,
                 titleRes = R.string.turn_page_by_volume_buttons_title,
                 key = Preferences.turnPageByVolumeButtonsKey,
                 defaultValue = Preferences.turnPageByVolumeButtonsDefault,
                 summaryRes = R.string.turn_page_by_volume_buttons_summary,
                 keywords = listOf("volume", "buttons", "page turn"),
+            ),
+            switchEntry(
+                page = SettingsPage.READING,
+                titleRes = R.string.turn_page_by_mouse_buttons_title,
+                key = Preferences.turnPageByMouseButtonsKey,
+                defaultValue = Preferences.turnPageByMouseButtonsDefault,
+                summaryRes = R.string.turn_page_by_mouse_buttons_summary,
+                keywords = listOf("mouse", "buttons", "page turn", "back", "forward"),
             ),
             switchEntry(
                 page = SettingsPage.READING,
@@ -314,6 +330,22 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 keywords = listOf("advanced", "zoom", "scale"),
                 onValueSelected = preferences::setMaxZoom,
             ),
+            SettingEntry(
+                page = SettingsPage.ADVANCED,
+                titleRes = R.string.backup_export_title,
+                summaryRes = R.string.backup_export_summary,
+                keywords = listOf("backup", "export", "save", "data", "transfer", "progress"),
+            ) { breadcrumb ->
+                backupExportPreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.ADVANCED,
+                titleRes = R.string.backup_import_title,
+                summaryRes = R.string.backup_import_summary,
+                keywords = listOf("backup", "import", "restore", "data", "transfer", "progress"),
+            ) { breadcrumb ->
+                backupImportPreference(breadcrumb)
+            },
         )
     }
 

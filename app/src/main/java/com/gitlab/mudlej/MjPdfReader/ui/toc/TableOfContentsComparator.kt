@@ -1,12 +1,12 @@
-package com.gitlab.mudlej.MjPdfReader.ui.bookmark
+package com.gitlab.mudlej.MjPdfReader.ui.toc
 
 import androidx.recyclerview.widget.DiffUtil
 
-class BookmarkComparator : DiffUtil.ItemCallback<BookmarkRow>() {
-    override fun areItemsTheSame(oldItem: BookmarkRow, newItem: BookmarkRow): Boolean
+class TableOfContentsComparator : DiffUtil.ItemCallback<TableOfContentsRow>() {
+    override fun areItemsTheSame(oldItem: TableOfContentsRow, newItem: TableOfContentsRow): Boolean
             = oldItem.bookmark.path == newItem.bookmark.path
 
-    override fun areContentsTheSame(oldItem: BookmarkRow, newItem: BookmarkRow): Boolean
+    override fun areContentsTheSame(oldItem: TableOfContentsRow, newItem: TableOfContentsRow): Boolean
             = oldItem.bookmark.path == newItem.bookmark.path
             && oldItem.bookmark.level == newItem.bookmark.level
             && oldItem.bookmark.title == newItem.bookmark.title

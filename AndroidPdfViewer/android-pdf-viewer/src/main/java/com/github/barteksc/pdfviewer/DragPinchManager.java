@@ -25,6 +25,7 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.view.ViewConfiguration;
 
 import com.github.barteksc.pdfviewer.model.LinkTapEvent;
 import com.github.barteksc.pdfviewer.scroll.ScrollHandle;
@@ -38,6 +39,10 @@ import com.shockwave.pdfium.util.SizeF;
  */
 class DragPinchManager implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener, ScaleGestureDetector.OnScaleGestureListener, View.OnTouchListener {
 
+    private static final float HORIZONTAL_INTENT_RATIO = 1.75f;
+
+    private enum AxisLock { UNDECIDED, VERTICAL, FREE }
+
     private PDFView pdfView;
     private AnimationManager animationManager;
 
@@ -48,12 +53,15 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
     private boolean scaling = false;
     private float scaleRenderZoom;
     private boolean enabled = false;
+    private AxisLock axisLock = AxisLock.UNDECIDED;
+    private final int touchSlop;
 
     DragPinchManager(PDFView pdfView, AnimationManager animationManager) {
         this.pdfView = pdfView;
         this.animationManager = animationManager;
         gestureDetector = new GestureDetector(pdfView.getContext(), this);
         scaleGestureDetector = new ScaleGestureDetector(pdfView.getContext(), this);
+        touchSlop = ViewConfiguration.get(pdfView.getContext()).getScaledTouchSlop();
         pdfView.setOnTouchListener(this);
     }
 
@@ -185,6 +193,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
     @Override
     public boolean onDown(MotionEvent e) {
         animationManager.stopFling();
+        axisLock = AxisLock.UNDECIDED;
         return true;
     }
 
@@ -213,6 +222,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         scrolling = true;
         if (pdfView.isZooming() || pdfView.isSwipeEnabled()) {
             if (pdfView.isHorizontalSwipeDisabled()) distanceX = 0;
+            if (pdfView.isFreeScrollMode()) distanceX = applyAxisLock(e1, e2, distanceX);
 
             pdfView.moveRelativeTo(-distanceX, -distanceY);
         }
@@ -220,6 +230,19 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             pdfView.loadPageByOffset();
         }
         return true;
+    }
+
+    private float applyAxisLock(MotionEvent e1, MotionEvent e2, float distanceX) {
+        if (axisLock == AxisLock.UNDECIDED && e1 != null) {
+            float totalDx = e2.getX() - e1.getX();
+            float totalDy = e2.getY() - e1.getY();
+            if (Math.hypot(totalDx, totalDy) >= touchSlop) {
+                axisLock = Math.abs(totalDx) > HORIZONTAL_INTENT_RATIO * Math.abs(totalDy)
+                        ? AxisLock.FREE
+                        : AxisLock.VERTICAL;
+            }
+        }
+        return axisLock == AxisLock.FREE ? distanceX : 0;
     }
 
     private void onScrollEnd(MotionEvent event) {
@@ -244,6 +267,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             return false;
         }
         if (pdfView.isHorizontalSwipeDisabled()) velocityX = 0;
+        if (pdfView.isFreeScrollMode() && axisLock != AxisLock.FREE) velocityX = 0;
         //if (pdfView.isVerticalSwipeDisabled()) velocityX = 0;
 
         if (pdfView.isPageFlingEnabled()) {
@@ -359,6 +383,9 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         TextSelectionManager textSelectionManager = pdfView.getTextSelectionManager();
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
             animationManager.stopFling();
+        }
+        if (event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+            axisLock = AxisLock.UNDECIDED;
         }
         if (textSelectionManager != null && textSelectionManager.handleTouch(event)) {
             return true;

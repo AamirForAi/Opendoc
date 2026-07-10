@@ -22,6 +22,9 @@ enum class ConfigurableAction(
     SCREENSHOT("screenshot", R.string.screenshot, R.drawable.ic_screenshot),
     TOGGLE_LABELS("toggle_labels", R.string.hide_labels, R.drawable.ic_double_arrow_left),
     SWITCH_THEME("switch_theme", R.string.switch_theme, R.drawable.ic_toggle_theme),
+    NAV_BACK("nav_back", R.string.nav_back, R.drawable.ic_nav_back),
+    NAV_FORWARD("nav_forward", R.string.nav_forward, R.drawable.ic_nav_forward),
+    NAV_HISTORY("nav_history", R.string.navigation_history, R.drawable.ic_history),
     RELOAD("reload", R.string.reload_pdf, R.drawable.ic_refresh),
     OPEN_LOCAL("open_local", R.string.open_another_pdf, R.drawable.ic_folder),
     OPEN_ONLINE("open_online", R.string.open_online_pdf, R.drawable.ic_link),
@@ -34,6 +37,8 @@ enum class ConfigurableAction(
     FILE_METADATA("file_metadata", R.string.file_metadata, R.drawable.meta_info),
     ABOUT("about", R.string.action_about, R.drawable.info_icon),
     TABLE_OF_CONTENTS("table_of_contents", R.string.table_of_contents, R.drawable.ic_book_bookmark),
+    BOOKMARK_PAGE("bookmark_page", R.string.add_bookmark, R.drawable.ic_bookmark_outline),
+    USER_BOOKMARKS("user_bookmarks", R.string.bookmarks, R.drawable.ic_bookmarks),
     LINKS_IN_FILE("links_in_file", R.string.links_in_file, R.drawable.ic_links_in_file),
     PRINT("print", R.string.print_file, R.drawable.ic_print),
     ADD_SIGNATURE("add_signature", R.string.add_signature, R.drawable.ic_signature);
@@ -49,6 +54,9 @@ enum class ConfigurableAction(
             CROP_MARGINS,
             SCREENSHOT,
             SWITCH_THEME,
+            NAV_BACK,
+            NAV_FORWARD,
+            NAV_HISTORY,
             RELOAD,
             OPEN_LOCAL,
             OPEN_ONLINE,
@@ -60,6 +68,8 @@ enum class ConfigurableAction(
             FILE_METADATA,
             ABOUT,
             TABLE_OF_CONTENTS,
+            BOOKMARK_PAGE,
+            USER_BOOKMARKS,
             LINKS_IN_FILE,
             PRINT,
             ADD_SIGNATURE,
@@ -76,11 +86,16 @@ enum class ConfigurableAction(
             SCREENSHOT,
             TOGGLE_LABELS,
             SWITCH_THEME,
+            NAV_BACK,
+            NAV_FORWARD,
+            NAV_HISTORY,
             RELOAD,
             SEARCH,
             GO_TO_PAGE,
             TEXT_MODE,
             TABLE_OF_CONTENTS,
+            BOOKMARK_PAGE,
+            USER_BOOKMARKS,
         )
 
         val shortcutBarActions = listOf(
@@ -92,6 +107,9 @@ enum class ConfigurableAction(
             ZOOM_LOCK,
             CROP_MARGINS,
             SCREENSHOT,
+            NAV_BACK,
+            NAV_FORWARD,
+            NAV_HISTORY,
             RELOAD,
             OPEN_LOCAL,
             OPEN_ONLINE,
@@ -104,6 +122,8 @@ enum class ConfigurableAction(
             FILE_METADATA,
             ABOUT,
             TABLE_OF_CONTENTS,
+            BOOKMARK_PAGE,
+            USER_BOOKMARKS,
             LINKS_IN_FILE,
             PRINT,
             ADD_SIGNATURE,
@@ -142,6 +162,9 @@ enum class ConfigurableAction(
 
         val dynamicFullScreenOverlayActions = listOf(
             SWITCH_THEME,
+            NAV_BACK,
+            NAV_FORWARD,
+            NAV_HISTORY,
             RELOAD,
             CROP_MARGINS,
             READING_DIRECTION,
@@ -149,6 +172,8 @@ enum class ConfigurableAction(
             GO_TO_PAGE,
             TEXT_MODE,
             TABLE_OF_CONTENTS,
+            BOOKMARK_PAGE,
+            USER_BOOKMARKS,
         )
 
         fun fromId(id: String?): ConfigurableAction {

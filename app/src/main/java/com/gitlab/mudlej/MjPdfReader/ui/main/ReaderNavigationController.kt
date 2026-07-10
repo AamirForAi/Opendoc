@@ -11,12 +11,10 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
-import com.gitlab.mudlej.MjPdfReader.ui.bookmark.BookmarkState
-import com.gitlab.mudlej.MjPdfReader.ui.bookmark.BookmarksActivity
+import com.gitlab.mudlej.MjPdfReader.ui.bookmark.UserBookmarksActivity
 import com.gitlab.mudlej.MjPdfReader.ui.link.LinksActivity
-import com.gitlab.mudlej.MjPdfReader.ui.search.SearchActivity
-import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
-import com.google.android.material.snackbar.Snackbar
+import com.gitlab.mudlej.MjPdfReader.ui.toc.TableOfContentsActivity
+import com.gitlab.mudlej.MjPdfReader.ui.toc.TableOfContentsState
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
@@ -24,17 +22,20 @@ class ReaderNavigationController(
     private val activity: Activity,
     private val binding: ActivityMainBinding,
     private val pdf: PDF,
+    private val historyManager: ReaderHistoryManager,
+    private val onPageDisplayed: (Int) -> Unit,
     private val updateAppTitle: () -> Unit,
-    private val launchBookmarks: (Intent) -> Unit,
+    private val launchTableOfContents: (Intent) -> Unit,
+    private val launchUserBookmarks: (Intent) -> Unit,
     private val launchLinks: (Intent) -> Unit,
     private val launchSearch: (Intent) -> Unit,
 ) {
 
-    private val searchResultsSnackbar = JumpBackSnackbar(binding.root)
-    private val bookmarksSnackbar = JumpBackSnackbar(binding.root)
+    private val searchNavigationController =
+        SearchNavigationController(activity, binding, pdf, historyManager, launchSearch)
+    private val tableOfContentsSnackbar = JumpBackSnackbar(binding.root)
     private val linkJumpSnackbar = JumpBackSnackbar(binding.root)
-    private var activeSearchResultPageNumber: Int? = null
-    private var bookmarkState = BookmarkState()
+    private var tableOfContentsState = TableOfContentsState()
 
     fun createLinkHandler(): LinkHandler = BackTrackingLinkHandler()
 
@@ -46,30 +47,42 @@ class ReaderNavigationController(
         }
     }
 
-    fun showBookmarks() {
-        Intent(activity, BookmarksActivity::class.java).also { bookmarkIntent ->
-            bookmarkIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
-            bookmarkIntent.putExtra(PDF.passwordKey, pdf.password)
-            bookmarkState.putInto(bookmarkIntent)
-            launchBookmarks(bookmarkIntent)
+    fun showTableOfContents() {
+        Intent(activity, TableOfContentsActivity::class.java).also { tocIntent ->
+            tocIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
+            tocIntent.putExtra(PDF.passwordKey, pdf.password)
+            tableOfContentsState.putInto(tocIntent)
+            launchTableOfContents(tocIntent)
         }
+    }
+
+    fun showUserBookmarks() {
+        Intent(activity, UserBookmarksActivity::class.java).also { bookmarksIntent ->
+            pdf.fileHash?.let { bookmarksIntent.putExtra(PDF.fileHashKey, it) }
+            launchUserBookmarks(bookmarksIntent)
+        }
+    }
+
+    fun onPageChanged(pageIndex: Int) {
+        historyManager.onPageChanged(pageIndex)
+        onPageDisplayed(pageIndex)
+    }
+
+    fun onFileHashComputed() {
+        onPageDisplayed(pdf.pageNumber)
     }
 
     fun clearActiveSearchResultHighlight() {
-        activeSearchResultPageNumber?.let { pageNumber ->
-            binding.pdfView.clearSearchResultsHighlight(pageNumber)
-            activeSearchResultPageNumber = null
-        }
+        searchNavigationController.clearHighlight()
     }
 
     fun resetSearchResultState() {
-        clearActiveSearchResultHighlight()
-        searchResultsSnackbar.dismiss()
+        searchNavigationController.reset()
     }
 
-    fun resetBookmarkState() {
-        bookmarksSnackbar.dismiss()
-        bookmarkState = BookmarkState()
+    fun resetTableOfContentsState() {
+        tableOfContentsSnackbar.dismiss()
+        tableOfContentsState = TableOfContentsState()
     }
 
     fun resetLinkJumpState() {
@@ -77,19 +90,28 @@ class ReaderNavigationController(
     }
 
     fun saveState(outState: Bundle) {
-        bookmarkState.putInto(outState)
+        tableOfContentsState.putInto(outState)
     }
 
     fun restoreState(savedState: Bundle) {
-        bookmarkState = BookmarkState.from(savedState)
+        tableOfContentsState = TableOfContentsState.from(savedState)
     }
 
-    fun handleBookmarksResult(resultCode: Int, intent: Intent?) {
-        saveBookmarkState(intent)
+    fun handleTableOfContentsResult(resultCode: Int, intent: Intent?) {
+        saveTableOfContentsState(intent)
         if (resultCode == PDF.BOOKMARK_RESULT_OK) {
             val pageIndex = intent?.getIntExtra(PDF.chosenBookmarkKey, pdf.pageNumber) ?: return
+            historyManager.recordJump(ReaderHistoryManager.Origin.TOC, pageIndex)
             binding.pdfView.jumpTo(pageIndex)
-            showBookmarkNavigationSnackbar()
+            showTableOfContentsJumpBackSnackbar()
+        }
+    }
+
+    fun handleUserBookmarksResult(resultCode: Int, intent: Intent?) {
+        if (resultCode == PDF.BOOKMARK_RESULT_OK) {
+            val pageIndex = intent?.getIntExtra(PDF.chosenBookmarkKey, pdf.pageNumber) ?: return
+            historyManager.recordJump(ReaderHistoryManager.Origin.BOOKMARK, pageIndex)
+            binding.pdfView.jumpTo(pageIndex)
         }
     }
 
@@ -98,6 +120,7 @@ class ReaderNavigationController(
             val pageIndex = intent?.getIntExtra(PDF.pageNumberKey, pdf.pageNumber) ?: return
             val pageCount = binding.pdfView.pageCount
             val boundedPageIndex = if (pageCount > 0) pageIndex.coerceIn(0, pageCount - 1) else pageIndex.coerceAtLeast(0)
+            historyManager.recordJump(ReaderHistoryManager.Origin.TEXT_MODE, boundedPageIndex)
             pdf.pageNumber = boundedPageIndex
             updateAppTitle()
             binding.pdfView.jumpTo(boundedPageIndex)
@@ -108,6 +131,7 @@ class ReaderNavigationController(
         if (resultCode == PDF.LINK_RESULT_OK) {
             val pageNumber = intent?.getIntExtra(PDF.linkResultKey, pdf.pageNumber) ?: return
             val pageIndex = pageNumber - 1
+            historyManager.recordJump(ReaderHistoryManager.Origin.LINK, pageIndex)
             binding.pdfView.jumpTo(pageIndex)
         }
     }
@@ -118,68 +142,34 @@ class ReaderNavigationController(
             val searchResultType = object : TypeToken<SearchResult>() {}.type
             val searchResult = Gson().fromJson<SearchResult>(searchResultJson, searchResultType)
 
-            clearActiveSearchResultHighlight()
-            searchResultsSnackbar.dismiss()
-
-            // highlight the result text
-            val textBound = binding.pdfView.createHighlightText(
-                searchResult.pageNumber,
-                searchResult.originalIndex,
-                searchResult.inputEnd - searchResult.inputStart,
-                true
+            searchNavigationController.start(
+                searchResult,
+                intent.getStringExtra(PDF.searchQueryResultKey),
+                intent.getBooleanExtra(PDF.searchIgnoreAccentsKey, false),
             )
-
-            if (textBound.isEmpty()) {
-                AppSnackbar.make(binding.root, "Failed to highlight search result", Snackbar.LENGTH_SHORT).show()
-            }
-            else {
-                activeSearchResultPageNumber = searchResult.pageNumber
-                // because the user may not see the highlight if it was zoomed in before searching
-                binding.pdfView.resetZoomWithAnimation()
-                binding.pdfView.reloadPages()   // to show the highlighting
-            }
-
-            // show a snackbar with a button that will remove the highlight (it wills still be cached for a bit)
-            searchResultsSnackbar.show(
-                activity.getString(R.string.results),
-                onDone = { clearActiveSearchResultHighlight() },
-                dismissOnTap = false,
-            ) {
-                Intent(activity, SearchActivity::class.java).also { searchIntent ->
-                    searchIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
-                    searchIntent.putExtra(PDF.passwordKey, pdf.password)
-                    pdf.fileHash?.let { searchIntent.putExtra(PDF.fileHashKey, it) }
-                    pdf.lastQuery?.let { searchIntent.putExtra(PDF.searchQueryKey, it.trim()) }
-                    searchIntent.putExtra(PDF.resultPositionInListKey, searchResult.searchResultIndexInList)
-                    launchSearch(searchIntent)
-                }
-            }
-
-            binding.pdfView.jumpUsingPageNumber(searchResult.pageNumber)
         }
-        else if (activeSearchResultPageNumber != null || searchResultsSnackbar.isShowing) {
-            clearActiveSearchResultHighlight()
-            searchResultsSnackbar.dismiss()
-            binding.pdfView.reloadPages()
+        else {
+            searchNavigationController.resetAndReload()
         }
     }
 
-    private fun saveBookmarkState(intent: Intent?) {
+    private fun saveTableOfContentsState(intent: Intent?) {
         if (intent == null) return
 
-        bookmarkState = BookmarkState.from(intent)
+        tableOfContentsState = TableOfContentsState.from(intent)
     }
 
-    private fun showBookmarkNavigationSnackbar() {
+    private fun showTableOfContentsJumpBackSnackbar() {
         resetSearchResultState()
-        bookmarksSnackbar.show(activity.getString(R.string.back_to_table_of_contents)) {
-            showBookmarks()
+        linkJumpSnackbar.dismiss()
+        tableOfContentsSnackbar.show(activity.getString(R.string.back_to_table_of_contents)) {
+            showTableOfContents()
         }
     }
 
     private fun showLinkJumpBackSnackbar(originPageIndex: Int, originViewState: PDFView.ViewState?) {
         resetSearchResultState()
-        bookmarksSnackbar.dismiss()
+        tableOfContentsSnackbar.dismiss()
         linkJumpSnackbar.show(activity.getString(R.string.back_to_page, originPageIndex + 1)) {
             if (!binding.pdfView.applyViewState(originViewState)) {
                 binding.pdfView.jumpTo(originPageIndex)
@@ -195,6 +185,7 @@ class ReaderNavigationController(
             if (event.link.uri.isNullOrEmpty() && destPageIndex != null) {
                 val originPageIndex = binding.pdfView.currentPage
                 val originViewState = binding.pdfView.captureViewState()
+                historyManager.recordJump(ReaderHistoryManager.Origin.LINK, destPageIndex)
                 binding.pdfView.jumpTo(destPageIndex)
                 showLinkJumpBackSnackbar(originPageIndex, originViewState)
             } else {

@@ -51,6 +51,7 @@ class HomeMenuDialog(
         bindSort(binding)
         bindFoldersMode(binding)
         bindStats(binding)
+        updateGridSizeVisibility(binding)
 
         SegmentedButtonStyler.attach(binding.viewModeGroup)
         SegmentedButtonStyler.attach(binding.gridSizeGroup)
@@ -89,9 +90,15 @@ class HomeMenuDialog(
             val newMode = if (checkedId == R.id.viewListButton) HomeViewMode.LIST else HomeViewMode.GRID
             if (newMode != pref.getHomeViewMode()) {
                 pref.setHomeViewMode(newMode)
+                updateGridSizeVisibility(binding)
                 onViewModeChanged()
             }
         }
+    }
+
+    private fun updateGridSizeVisibility(binding: DialogHomeMenuBinding) {
+        binding.gridSizeSection.visibility =
+            if (pref.getHomeViewMode() == HomeViewMode.GRID) View.VISIBLE else View.GONE
     }
 
     private fun bindGridSize(binding: DialogHomeMenuBinding) {

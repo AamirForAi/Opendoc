@@ -30,8 +30,8 @@ import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManagerImpl
 import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
-import com.gitlab.mudlej.MjPdfReader.ui.bookmark.BookmarkState
-import com.gitlab.mudlej.MjPdfReader.ui.bookmark.BookmarksActivity
+import com.gitlab.mudlej.MjPdfReader.ui.toc.TableOfContentsState
+import com.gitlab.mudlej.MjPdfReader.ui.toc.TableOfContentsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.showGoToPageDialog
 import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.util.computeHash
@@ -72,13 +72,13 @@ class TextModeActivity : AppCompatActivity() {
     @Volatile
     private var isClosing = false
     private var settings = TextModeSettings()
-    private var bookmarkState = BookmarkState()
+    private var bookmarkState = TableOfContentsState()
     private var savedPageIndex = -1
 
     private val bookmarksLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        result.data?.let { bookmarkState = BookmarkState.from(it) }
+        result.data?.let { bookmarkState = TableOfContentsState.from(it) }
         if (result.resultCode == PDF.BOOKMARK_RESULT_OK) {
             val pageIndex = result.data?.getIntExtra(PDF.chosenBookmarkKey, currentPageIndex)
                 ?: return@registerForActivityResult
@@ -156,7 +156,7 @@ class TextModeActivity : AppCompatActivity() {
     }
 
     private fun restoreState(savedInstanceState: Bundle?) {
-        bookmarkState = savedInstanceState?.let { BookmarkState.from(it) } ?: BookmarkState.from(intent)
+        bookmarkState = savedInstanceState?.let { TableOfContentsState.from(it) } ?: TableOfContentsState.from(intent)
         currentPageIndex = savedInstanceState?.getInt(CURRENT_PAGE_KEY)
             ?: intent.getIntExtra(PDF.pageNumberKey, 0)
         fileHash = savedInstanceState?.getString(PDF.fileHashKey)
@@ -727,7 +727,7 @@ class TextModeActivity : AppCompatActivity() {
     }
 
     private fun showBookmarks() {
-        Intent(this, BookmarksActivity::class.java).also { bookmarkIntent ->
+        Intent(this, TableOfContentsActivity::class.java).also { bookmarkIntent ->
             bookmarkIntent.putExtra(PDF.filePathKey, pdfUri.toString())
             bookmarkIntent.putExtra(PDF.passwordKey, pdfPassword)
             bookmarkState.putInto(bookmarkIntent)

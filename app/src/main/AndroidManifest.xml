@@ -41,12 +41,15 @@
             android:name=".ui.link.LinksActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.bookmark.BookmarksActivity"
+            android:name=".ui.toc.TableOfContentsActivity"
             android:exported="false">
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+        <activity
+            android:name=".ui.bookmark.UserBookmarksActivity"
+            android:exported="false" />
         <activity
             android:name=".ui.text_mode.TextModeActivity"
             android:exported="false"

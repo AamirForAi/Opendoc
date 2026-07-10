@@ -1,10 +1,10 @@
-package com.gitlab.mudlej.MjPdfReader.ui.bookmark
+package com.gitlab.mudlej.MjPdfReader.ui.toc
 
 import android.content.Intent
 import android.os.Bundle
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 
-data class BookmarkState(
+data class TableOfContentsState(
     val expandedPaths: ArrayList<String> = arrayListOf(),
     val scrollPosition: Int = 0,
     val scrollOffset: Int = 0,
@@ -25,10 +25,10 @@ data class BookmarkState(
     }
 
     companion object {
-        fun from(intent: Intent?): BookmarkState {
-            if (intent == null) return BookmarkState()
+        fun from(intent: Intent?): TableOfContentsState {
+            if (intent == null) return TableOfContentsState()
 
-            return BookmarkState(
+            return TableOfContentsState(
                 expandedPaths = intent.getStringArrayListExtra(PDF.bookmarkExpandedPathsKey) ?: arrayListOf(),
                 scrollPosition = intent.getIntExtra(PDF.bookmarkScrollPositionKey, 0),
                 scrollOffset = intent.getIntExtra(PDF.bookmarkScrollOffsetKey, 0),
@@ -36,10 +36,10 @@ data class BookmarkState(
             )
         }
 
-        fun from(bundle: Bundle?): BookmarkState {
-            if (bundle == null) return BookmarkState()
+        fun from(bundle: Bundle?): TableOfContentsState {
+            if (bundle == null) return TableOfContentsState()
 
-            return BookmarkState(
+            return TableOfContentsState(
                 expandedPaths = bundle.getStringArrayList(PDF.bookmarkExpandedPathsKey) ?: arrayListOf(),
                 scrollPosition = bundle.getInt(PDF.bookmarkScrollPositionKey, 0),
                 scrollOffset = bundle.getInt(PDF.bookmarkScrollOffsetKey, 0),
