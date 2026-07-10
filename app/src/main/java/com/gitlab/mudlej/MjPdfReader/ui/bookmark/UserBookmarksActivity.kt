@@ -17,6 +17,7 @@ import com.gitlab.mudlej.MjPdfReader.databinding.ActivityUserBookmarksBinding
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManagerImpl
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.repository.UserBookmark
+import com.gitlab.mudlej.MjPdfReader.ui.toc.TocPathResolver
 import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
@@ -50,6 +51,20 @@ class UserBookmarksActivity : AppCompatActivity() {
         bookmarkAdapter.onDragRequested = touchHelper::startDrag
         touchHelper.attachToRecyclerView(binding.userBookmarksRecyclerView)
         loadBookmarks()
+        loadTocPaths()
+    }
+
+    private fun loadTocPaths() {
+        lifecycleScope.launch {
+            val resolver = TocPathResolver.load(
+                this@UserBookmarksActivity,
+                intent.getStringExtra(PDF.filePathKey),
+                intent.getStringExtra(PDF.passwordKey),
+            )
+            if (resolver !== TocPathResolver.EMPTY) {
+                bookmarkAdapter.tocPathResolver = resolver
+            }
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

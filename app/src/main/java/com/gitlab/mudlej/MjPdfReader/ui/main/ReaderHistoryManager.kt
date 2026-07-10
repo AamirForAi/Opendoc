@@ -47,7 +47,8 @@ class ReaderHistoryManager(
         if (targetPageIndex != null && targetPageIndex == view.currentPage) {
             return
         }
-        pushBack(Entry(view.currentPage, view.captureViewState(), System.currentTimeMillis(), origin))
+        targetPageIndex?.let { removePage(backStack, it) }
+        pushBack(currentEntry(origin))
         forwardStack.clear()
         suppressDwellOnce = true
         onChanged()
@@ -55,13 +56,13 @@ class ReaderHistoryManager(
 
     fun goBack() {
         val entry = backStack.removeLastOrNull() ?: return
-        forwardStack.addLast(currentEntry())
+        pushForward(currentEntry(Origin.HISTORY))
         navigate(entry)
     }
 
     fun goForward() {
         val entry = forwardStack.removeLastOrNull() ?: return
-        pushBack(currentEntry())
+        pushBack(currentEntry(Origin.HISTORY))
         navigate(entry)
     }
 
@@ -69,14 +70,14 @@ class ReaderHistoryManager(
         if (backStack.none { it === entry }) {
             return
         }
-        forwardStack.addLast(currentEntry())
+        pushForward(currentEntry(Origin.HISTORY))
         while (backStack.isNotEmpty()) {
             val top = backStack.removeLast()
             if (top === entry) {
                 navigate(top)
                 return
             }
-            forwardStack.addLast(top)
+            pushForward(top)
         }
     }
 
@@ -130,12 +131,14 @@ class ReaderHistoryManager(
         onChanged()
     }
 
-    private fun currentEntry(): Entry {
+    private fun currentEntry(origin: Origin): Entry {
         val view = pdfView()
-        return Entry(view.currentPage, view.captureViewState(), System.currentTimeMillis(), Origin.HISTORY)
+        return Entry(view.currentPage, view.captureViewState(), System.currentTimeMillis(), origin)
     }
 
     private fun navigate(entry: Entry) {
+        removePage(backStack, entry.pageIndex)
+        removePage(forwardStack, entry.pageIndex)
         val view = pdfView()
         navigatingInternally = entry.pageIndex != view.currentPage
         if (!view.applyViewState(entry.viewState)) {
@@ -145,10 +148,28 @@ class ReaderHistoryManager(
     }
 
     private fun pushBack(entry: Entry) {
-        backStack.addLast(entry)
-        while (backStack.size > MAX_ENTRIES) {
-            backStack.removeFirst()
+        pushUnique(backStack, entry)
+    }
+
+    private fun pushForward(entry: Entry) {
+        pushUnique(forwardStack, entry)
+    }
+
+    private fun pushUnique(stack: ArrayDeque<Entry>, entry: Entry) {
+        removePage(stack, entry.pageIndex)
+        stack.addLast(entry)
+        while (stack.size > MAX_ENTRIES) {
+            stack.removeFirst()
         }
+    }
+
+    private fun removePage(stack: ArrayDeque<Entry>, pageIndex: Int) {
+        val retained = stack.filterNot { it.pageIndex == pageIndex }
+        if (retained.size == stack.size) {
+            return
+        }
+        stack.clear()
+        stack.addAll(retained)
     }
 
     private fun saveStack(
@@ -179,7 +200,7 @@ class ReaderHistoryManager(
         stack.clear()
         pages.indices.forEach { index ->
             val origin = Origin.entries.firstOrNull { it.name == origins[index] } ?: Origin.HISTORY
-            stack.addLast(Entry(pages[index], null, times[index], origin))
+            pushUnique(stack, Entry(pages[index], null, times[index], origin))
         }
     }
 

@@ -12,7 +12,6 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.preference.PreferenceManager
@@ -23,11 +22,9 @@ import com.gitlab.mudlej.MjPdfReader.data.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivitySearchBinding
 import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
 import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
-import com.gitlab.mudlej.MjPdfReader.util.accentInsensitiveRanges
 import com.gitlab.mudlej.MjPdfReader.util.configureSearchIcon
 import com.gitlab.mudlej.MjPdfReader.util.containsAccentInsensitive
 import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
-import com.gitlab.mudlej.MjPdfReader.util.indexesOf
 import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
 import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
@@ -37,15 +34,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.yield
 import kotlin.concurrent.thread
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.system.measureTimeMillis
 
 class SearchActivity : AppCompatActivity(), SearchResultFunctions {
 
-    private val tag = javaClass.name
     private lateinit var binding: ActivitySearchBinding
     private val searchResultAdapter = SearchResultAdapter(this)
     private var searchResults: MutableList<SearchResult> = mutableListOf()
@@ -60,8 +52,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     private var nestedQueryJob: Job? = null
     private var pendingResultClick: SearchResult? = null
     private var ignoreAccents = false
-
-    private val lastPageLiveData = MutableLiveData<Int>()
+    private var coordinatorListener: SearchCoordinator.Listener? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -101,9 +92,6 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         binding.searchProgressBar.progress = 0
         binding.searchProgressBar.visibility = View.GONE
         hideProgressBar()
-        lastPageLiveData.observe(this@SearchActivity) { pageNumber ->
-            binding.searchProgressBar.progress = pageNumber
-        }
     }
 
     private fun showProgressBar() {
@@ -139,6 +127,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     }
 
     override fun onDestroy() {
+        coordinatorListener?.let { SearchCoordinator.detach(it) }
         if (::pdfExtractor.isInitialized) {
             val extractor = pdfExtractor
             thread { runCatching { extractor.close() } }
@@ -189,73 +178,53 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             restoredNestedQuery = cachedSession.nestedQuery
             showProgressBar()
             binding.searchProgressBar.visibility = View.GONE
-        } else {
-            hideProgressBar()
-            binding.searchProgressBar.progress = 0
-            binding.searchProgressBar.visibility = View.VISIBLE
+            lifecycleScope.launch(Dispatchers.Default) {
+                val results = cachedSearchResults(searchQuery, cachedSession.hits)
+                withContext(Dispatchers.Main) {
+                    searchResults = results
+                    searchResultAdapter.nestedQuery = restoredNestedQuery
+                    searchResultAdapter.submitList(visibleResultRows())
+                    hideProgressBar()
+                    binding.searchProgressBar.visibility = View.GONE
+                    postSearch()
+                    if (!restoredNestedQuery.isNullOrBlank()) {
+                        invalidateOptionsMenu()
+                    }
+                }
+            }
+            return
         }
 
-        lifecycleScope.launch(Dispatchers.Default) {
-            val results = cachedSession?.let { cachedSearchResults(searchQuery, it.hits) }
-                ?: search(searchQuery).also { results ->
-                    SearchSessionCache.put(fileHash, searchQuery, ignoreAccents, cacheHits(results))
-                }
-            withContext(Dispatchers.Main) {
-                searchResults = results
-                searchResultAdapter.nestedQuery = restoredNestedQuery
+        hideProgressBar()
+        binding.searchProgressBar.progress = 0
+        binding.searchProgressBar.visibility = View.VISIBLE
+        val listener = object : SearchCoordinator.Listener {
+            override fun onProgress(pagesScanned: Int, pageCount: Int) {
+                binding.searchProgressBar.max = pageCount
+                binding.searchProgressBar.progress = pagesScanned
+            }
+
+            override fun onResults(results: List<SearchResult>, finished: Boolean) {
+                searchResults = results.toMutableList()
                 searchResultAdapter.submitList(visibleResultRows())
-                hideProgressBar()
-                binding.searchProgressBar.visibility = View.GONE
-                postSearch()
-                if (!restoredNestedQuery.isNullOrBlank()) {
-                    invalidateOptionsMenu()
+                title = "${"%,d".format(results.size)} ${getString(R.string.search_results)}"
+                if (finished) {
+                    hideProgressBar()
+                    binding.searchProgressBar.visibility = View.GONE
+                    postSearch()
                 }
             }
         }
-        return
-    }
-
-    private suspend fun search(query: String): MutableList<SearchResult> {
-        val results = mutableListOf<SearchResult>()
-        var lastSubmittedCount = 0
-        val pageCount = pdfExtractor.getPageCount()
-        val time = measureTimeMillis {
-            for (pageNumber in 1 .. pageCount) {
-                yield()
-                val pageText = pdfExtractor.getPageText(pageNumber)
-                if (pageText.isNotBlank()) {
-                    matchRanges(pageText, query).forEach { range ->
-                        results.add(
-                            getPageResult(query, range.first, pageText, pageNumber, matchLength = range.last + 1 - range.first).apply {
-                                searchResultIndexInList = results.size
-                            }
-                        )
-                    }
-                }
-                lastPageLiveData.postValue(pageNumber)
-
-                val isBatchBoundary = pageNumber % SEARCH_BATCH_PAGES == 0 || pageNumber == pageCount
-                if (isBatchBoundary && results.size > lastSubmittedCount) {
-                    lastSubmittedCount = results.size
-                    val snapshot = results.toMutableList()
-                    withContext(Dispatchers.Main) {
-                        searchResults = snapshot
-                        searchResultAdapter.submitList(visibleResultRows())
-                        title = "${"%,d".format(snapshot.size)} ${getString(R.string.search_results)}"
-                    }
-                }
-            }
-        }
-        Log.d(tag, "getSearchResults: elapsed time: ${time / 1000F}s")
-        return results
-    }
-
-    private fun matchRanges(text: String, query: String): List<IntRange> {
-        return if (ignoreAccents) {
-            text.accentInsensitiveRanges(query)
-        } else {
-            text.indexesOf(query, ignoreCase = true).map { it until it + query.length }
-        }
+        coordinatorListener = listener
+        SearchCoordinator.startOrAttach(
+            this,
+            intent.getStringExtra(PDF.filePathKey),
+            intent.getStringExtra(PDF.passwordKey),
+            fileHash,
+            searchQuery,
+            ignoreAccents,
+            listener,
+        )
     }
 
     private fun cachedSearchResults(query: String, hits: List<SearchSessionCache.Hit>): MutableList<SearchResult> {
@@ -266,7 +235,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             if (hit.originalIndex !in pageText.indices || hit.originalIndex + matchLength > pageText.length) {
                 return@mapNotNull null
             }
-            getPageResult(
+            SearchCoordinator.buildSearchResult(
                 query,
                 hit.originalIndex,
                 pageText,
@@ -281,21 +250,9 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
 
         if (results.size != hits.size) {
             results.forEachIndexed { index, result -> result.searchResultIndexInList = index }
-            SearchSessionCache.put(fileHash, query, ignoreAccents, cacheHits(results))
+            SearchSessionCache.put(fileHash, query, ignoreAccents, SearchCoordinator.cacheHits(results))
         }
         return results
-    }
-
-    private fun cacheHits(results: List<SearchResult>): List<SearchSessionCache.Hit> {
-        return results.map { result ->
-            SearchSessionCache.Hit(
-                pageNumber = result.pageNumber,
-                originalIndex = result.originalIndex,
-                resultIndex = result.searchResultIndexInList,
-                expanded = result.expanded,
-                matchLength = result.inputEnd - result.inputStart,
-            )
-        }
     }
 
     private fun visibleSearchResults(): List<SearchResult> {
@@ -312,44 +269,6 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     private fun visibleResultRows(): List<SearchResultRow> {
         val query = searchResultAdapter.nestedQuery
         return visibleSearchResults().map { SearchResultRow(it, query) }
-    }
-
-    private fun getPageResult(
-        query: String,
-        indexInPage: Int,
-        pageText: String,
-        pageNumber: Int,
-        textOffset: Int? = null,
-        expanded: Boolean = false,
-        matchLength: Int = query.length,
-    ): SearchResult {
-
-        val offset = textOffset ?: PDF.SEARCH_RESULT_OFFSET
-        val count = matchLength
-
-        val starting = max(0, indexInPage - offset)
-        val ending = min(pageText.length, indexInPage + count + offset)
-        val resultText = pageText.substring(startIndex = starting, endIndex = ending)
-
-        // remove half words (e.g. "er can I found hi" -> "can I found")
-        val queryIndex = indexInPage - starting
-        val firstSpace = resultText.indexOf(" ") + 1
-        val start = if (firstSpace != -1) min(firstSpace, queryIndex) else 0
-
-        val lastSpace = resultText.lastIndexOf(" ")
-        val end = if (lastSpace != -1) max(lastSpace, queryIndex + count) else resultText.length
-
-        val trimmedText = resultText.substring(start, end)
-        val newStart = queryIndex - start
-
-        return SearchResult(
-            originalIndex = indexInPage,
-            inputStart = newStart,
-            inputEnd = newStart + count,
-            text = trimmedText,
-            pageNumber = pageNumber,
-            expanded = expanded
-        )
     }
 
     private fun postSearch() {
@@ -447,7 +366,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             val pageText = withContext(Dispatchers.Default) {
                 pdfExtractor.getPageText(searchResult.pageNumber)
             }
-            val newSearchResult = getPageResult(
+            val newSearchResult = SearchCoordinator.buildSearchResult(
                 query,
                 searchResult.originalIndex,
                 pageText,
@@ -503,6 +422,5 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
 
     companion object {
         private const val NESTED_QUERY_DEBOUNCE_MS = 200L
-        private const val SEARCH_BATCH_PAGES = 20
     }
 }

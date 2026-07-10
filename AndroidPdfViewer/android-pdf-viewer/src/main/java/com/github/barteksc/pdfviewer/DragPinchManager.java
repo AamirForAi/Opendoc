@@ -40,6 +40,8 @@ import com.shockwave.pdfium.util.SizeF;
 class DragPinchManager implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener, ScaleGestureDetector.OnScaleGestureListener, View.OnTouchListener {
 
     private static final float HORIZONTAL_INTENT_RATIO = 1.75f;
+    private static final float HORIZONTAL_BREAKOUT_DRAIN = 0.75f;
+    private static final float HORIZONTAL_BREAKOUT_SLOP_MULTIPLIER = 3f;
 
     private enum AxisLock { UNDECIDED, VERTICAL, FREE }
 
@@ -54,6 +56,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
     private float scaleRenderZoom;
     private boolean enabled = false;
     private AxisLock axisLock = AxisLock.UNDECIDED;
+    private float lockedHorizontalResistance = 0f;
     private final int touchSlop;
 
     DragPinchManager(PDFView pdfView, AnimationManager animationManager) {
@@ -194,6 +197,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
     public boolean onDown(MotionEvent e) {
         animationManager.stopFling();
         axisLock = AxisLock.UNDECIDED;
+        lockedHorizontalResistance = 0f;
         return true;
     }
 
@@ -222,7 +226,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         scrolling = true;
         if (pdfView.isZooming() || pdfView.isSwipeEnabled()) {
             if (pdfView.isHorizontalSwipeDisabled()) distanceX = 0;
-            if (pdfView.isFreeScrollMode()) distanceX = applyAxisLock(e1, e2, distanceX);
+            if (pdfView.isFreeScrollMode()) distanceX = applyAxisLock(e1, e2, distanceX, distanceY);
 
             pdfView.moveRelativeTo(-distanceX, -distanceY);
         }
@@ -232,7 +236,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         return true;
     }
 
-    private float applyAxisLock(MotionEvent e1, MotionEvent e2, float distanceX) {
+    private float applyAxisLock(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
         if (axisLock == AxisLock.UNDECIDED && e1 != null) {
             float totalDx = e2.getX() - e1.getX();
             float totalDy = e2.getY() - e1.getY();
@@ -240,6 +244,14 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
                 axisLock = Math.abs(totalDx) > HORIZONTAL_INTENT_RATIO * Math.abs(totalDy)
                         ? AxisLock.FREE
                         : AxisLock.VERTICAL;
+            }
+        }
+        if (axisLock == AxisLock.VERTICAL) {
+            lockedHorizontalResistance = Math.max(0f,
+                    lockedHorizontalResistance + Math.abs(distanceX) - HORIZONTAL_BREAKOUT_DRAIN * Math.abs(distanceY));
+            if (lockedHorizontalResistance >= touchSlop * HORIZONTAL_BREAKOUT_SLOP_MULTIPLIER) {
+                axisLock = AxisLock.FREE;
+                lockedHorizontalResistance = 0f;
             }
         }
         return axisLock == AxisLock.FREE ? distanceX : 0;
@@ -386,6 +398,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         }
         if (event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
             axisLock = AxisLock.UNDECIDED;
+            lockedHorizontalResistance = 0f;
         }
         if (textSelectionManager != null && textSelectionManager.handleTouch(event)) {
             return true;

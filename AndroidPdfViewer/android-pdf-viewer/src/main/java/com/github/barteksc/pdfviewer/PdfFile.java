@@ -732,6 +732,19 @@ class PdfFile {
         return pdfiumCore.getPageText(pdfDocument, docPage);
     }
 
+    public String getPageRawText(int pageIndex) {
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return "";
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return "";
+        }
+        return pdfiumCore.getPageRawText(pdfDocument, docPage);
+    }
+
     public Map<Integer, String> getPagesText(int start, int end) {
         Map<Integer, String> pagesText = new HashMap<>();
         for (int pageIndex = start; pageIndex <= end; pageIndex++) {

@@ -1,10 +1,8 @@
 package com.gitlab.mudlej.MjPdfReader.util
 
 import android.content.res.ColorStateList
-import android.graphics.Paint
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.core.view.ViewCompat
 import com.google.android.material.color.MaterialColors
@@ -53,8 +51,5 @@ object AppSnackbar {
         )
         snackbar.setTextColor(textColor)
         snackbar.setActionTextColor(actionColor)
-        view.findViewById<TextView>(com.google.android.material.R.id.snackbar_action)?.let { action ->
-            action.paintFlags = action.paintFlags or Paint.UNDERLINE_TEXT_FLAG
-        }
     }
 }

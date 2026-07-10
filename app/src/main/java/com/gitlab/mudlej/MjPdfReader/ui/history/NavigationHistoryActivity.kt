@@ -7,11 +7,15 @@ import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityNavigationHistoryBinding
 import com.gitlab.mudlej.MjPdfReader.ui.main.ReaderHistoryManager
+import com.gitlab.mudlej.MjPdfReader.ui.toc.TocPathResolver
 import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
+import kotlinx.coroutines.launch
 
 class NavigationHistoryActivity : AppCompatActivity() {
 
@@ -30,7 +34,25 @@ class NavigationHistoryActivity : AppCompatActivity() {
             adapter = historyAdapter
             layoutManager = LinearLayoutManager(this@NavigationHistoryActivity)
         }
-        showEntries(historyEntriesFromIntent())
+        val entries = historyEntriesFromIntent()
+        showEntries(entries)
+        loadTocPaths(entries)
+    }
+
+    private fun loadTocPaths(entries: List<NavigationHistoryRow>) {
+        if (entries.isEmpty()) {
+            return
+        }
+        lifecycleScope.launch {
+            val resolver = TocPathResolver.load(
+                this@NavigationHistoryActivity,
+                intent.getStringExtra(PDF.filePathKey),
+                intent.getStringExtra(PDF.passwordKey),
+            )
+            if (resolver !== TocPathResolver.EMPTY) {
+                showEntries(entries.map { it.copy(tocPath = resolver.resolve(it.pageIndex)) })
+            }
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -63,6 +85,7 @@ class NavigationHistoryActivity : AppCompatActivity() {
                 origin = origin,
                 timestamp = timestamps[index],
                 backStackIndex = backStackIndices[index],
+                tocPath = null,
             )
         }
     }
@@ -98,4 +121,5 @@ data class NavigationHistoryRow(
     val origin: ReaderHistoryManager.Origin,
     val timestamp: Long,
     val backStackIndex: Int,
+    val tocPath: String?,
 )

@@ -2599,6 +2599,13 @@ public class PDFView extends RelativeLayout {
         return pdfFile.getPageText(pagNumber);
     }
 
+    public String getPageRawText(int pageNumber) {
+        if (pdfFile == null) {
+            return "";
+        }
+        return pdfFile.getPageRawText(pageNumber - 1);
+    }
+
     public Rect[] createHighlightText(int pageNumber, int start, int end, Boolean padding) {
         Rect[] emptyArray = new Rect[0];
         if (pdfFile == null) {

@@ -2,6 +2,7 @@ package com.gitlab.mudlej.MjPdfReader.ui.history
 
 import android.text.format.DateUtils
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -34,6 +35,8 @@ class NavigationHistoryAdapter(
                 DateUtils.MINUTE_IN_MILLIS,
             )
             binding.navigationHistoryTitle.text = context.getString(R.string.bookmark_page_label, entry.pageIndex + 1)
+            binding.navigationHistoryTocPath.text = entry.tocPath.orEmpty()
+            binding.navigationHistoryTocPath.visibility = if (entry.tocPath.isNullOrBlank()) View.GONE else View.VISIBLE
             binding.navigationHistorySubtitle.text = context.getString(
                 R.string.history_entry_subtitle_format,
                 context.getString(entry.origin.labelRes),

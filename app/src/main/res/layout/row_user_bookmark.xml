@@ -26,25 +26,66 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
+        <LinearLayout
+            android:id="@+id/userBookmarkTopRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/userBookmarkTopPage"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="13sp"
+                tools:text="Page 42" />
+
+            <TextView
+                android:id="@+id/userBookmarkTopTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="13sp"
+                tools:text="3 days ago" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/userBookmarkTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:maxLines="1"
+            android:maxLines="3"
             android:textColor="?attr/colorOnSurface"
             android:textSize="16sp"
-            tools:text="Page 42" />
+            tools:text="Part 2 ▶ Chapter 5 ▶ Memory model" />
 
         <TextView
             android:id="@+id/userBookmarkSubtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:maxLines="1"
+            android:maxLines="3"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="13sp"
             tools:text="Page 42 · 2 days ago" />
+
+        <TextView
+            android:id="@+id/userBookmarkPageInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="13sp"
+            android:visibility="gone"
+            tools:text="Page 42 · 2 days ago"
+            tools:visibility="visible" />
     </LinearLayout>
 
     <ImageButton

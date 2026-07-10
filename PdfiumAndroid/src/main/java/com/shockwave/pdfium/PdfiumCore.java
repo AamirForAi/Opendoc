@@ -646,6 +646,17 @@ public class PdfiumCore {
         }
     }
 
+    public String getPageRawText(PdfDocument doc, int pageIndex) {
+        synchronized (lock) {
+            Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (nativePagePtr == null) {
+                return "";
+            }
+            String text = nativeGetPageText(nativePagePtr);
+            return text == null ? "" : text;
+        }
+    }
+
     public String normalizeExtractedText(String text) {
         if (text == null || text.isEmpty()) {
             return "";

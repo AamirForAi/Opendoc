@@ -3,7 +3,8 @@ package com.gitlab.mudlej.MjPdfReader.ui.main
 import android.app.Activity
 import android.content.Intent
 import android.content.res.ColorStateList
-import android.util.TypedValue
+import android.graphics.Paint
+import android.graphics.drawable.RippleDrawable
 import android.view.Gravity
 import android.view.View
 import android.widget.ImageButton
@@ -14,9 +15,13 @@ import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.search.SearchActivity
+import com.gitlab.mudlej.MjPdfReader.ui.search.SearchCoordinator
 import com.gitlab.mudlej.MjPdfReader.ui.search.SearchSessionCache
 import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
+import com.gitlab.mudlej.MjPdfReader.util.NormalizedTextMapper
 import com.google.android.material.color.MaterialColors
+import com.google.android.material.shape.MaterialShapeDrawable
+import com.google.android.material.shape.ShapeAppearanceModel
 import com.google.android.material.snackbar.Snackbar
 
 class SearchNavigationController(
@@ -30,6 +35,7 @@ class SearchNavigationController(
     private var hits: List<SearchSessionCache.Hit> = emptyList()
     private var currentPosition = -1
     private var hasFullSession = false
+    private var attachedToActiveSearch = false
     private var query = ""
     private var ignoreAccents = false
     private var activeHighlightPageNumber: Int? = null
@@ -38,6 +44,27 @@ class SearchNavigationController(
     private var previousButton: ImageButton? = null
     private var nextButton: ImageButton? = null
 
+    private val activeSearchListener = object : SearchCoordinator.Listener {
+        override fun onProgress(pagesScanned: Int, pageCount: Int) = Unit
+
+        override fun onResults(results: List<SearchResult>, finished: Boolean) {
+            if (!attachedToActiveSearch) {
+                return
+            }
+            val currentResultIndex = hits.getOrNull(currentPosition)?.resultIndex
+            hits = SearchCoordinator.cacheHits(results)
+            currentPosition = hits
+                .indexOfFirst { it.resultIndex == currentResultIndex }
+                .takeIf { it >= 0 }
+                ?: currentPosition.coerceIn(0, hits.lastIndex.coerceAtLeast(0))
+            if (finished) {
+                attachedToActiveSearch = false
+                hasFullSession = hits.isNotEmpty()
+            }
+            updateControls()
+        }
+    }
+
     val isActive: Boolean
         get() = snackbar != null || activeHighlightPageNumber != null
 
@@ -45,6 +72,7 @@ class SearchNavigationController(
         query = resultQuery?.trim().takeUnless { it.isNullOrBlank() }
             ?: pdf.lastQuery?.trim().orEmpty()
         ignoreAccents = resultIgnoreAccents
+        detachFromActiveSearch()
         val session = SearchSessionCache.get(pdf.fileHash, query, ignoreAccents)
         hasFullSession = session != null
         hits = session?.hits?.sortedBy { it.resultIndex }
@@ -56,6 +84,10 @@ class SearchNavigationController(
                     matchLength = searchResult.inputEnd - searchResult.inputStart,
                 )
             )
+        if (session == null) {
+            attachedToActiveSearch =
+                SearchCoordinator.attachIfRunning(pdf.fileHash, query, ignoreAccents, activeSearchListener)
+        }
         currentPosition = hits
             .indexOfFirst { it.resultIndex == searchResult.searchResultIndexInList }
             .takeIf { it >= 0 }
@@ -63,6 +95,11 @@ class SearchNavigationController(
         historyManager.recordJump(ReaderHistoryManager.Origin.SEARCH, searchResult.pageNumber - 1)
         showSnackbar()
         showCurrentHit()
+    }
+
+    private fun detachFromActiveSearch() {
+        attachedToActiveSearch = false
+        SearchCoordinator.detach(activeSearchListener)
     }
 
     fun clearHighlight() {
@@ -73,6 +110,7 @@ class SearchNavigationController(
     }
 
     fun reset() {
+        detachFromActiveSearch()
         clearHighlight()
         dismissSnackbar()
         hits = emptyList()
@@ -102,11 +140,14 @@ class SearchNavigationController(
         }
         val bar = AppSnackbar.make(binding.root, activity.getString(R.string.results), Snackbar.LENGTH_INDEFINITE)
         bar.setAction(activity.getString(R.string.done)) {
+            SearchCoordinator.cancel(pdf.fileHash, query, ignoreAccents)
+            detachFromActiveSearch()
             clearHighlight()
         }
         bar.addCallback(object : Snackbar.Callback() {
             override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
                 if (snackbar === transientBottomBar) {
+                    detachFromActiveSearch()
                     snackbar = null
                     counterView = null
                     previousButton = null
@@ -115,29 +156,51 @@ class SearchNavigationController(
             }
         })
         val textView = bar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+        textView.paintFlags = textView.paintFlags or Paint.UNDERLINE_TEXT_FLAG
         textView.setOnClickListener { openResultsList() }
-        (textView.parent as? LinearLayout)?.let { content ->
-            val onSurface = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOnSurface)
-            val density = activity.resources.displayMetrics.density
-            val buttonSize = (40 * density).toInt()
-            val ripple = TypedValue().also {
-                activity.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, it, true)
-            }
+        val density = activity.resources.displayMetrics.density
+        val surface = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorSurfaceContainerHigh)
+        val outline = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOutline)
+        val onSurface = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOnSurface)
+        val highlight = ColorStateList.valueOf(
+            MaterialColors.getColor(binding.root, android.R.attr.colorControlHighlight)
+        )
 
-            fun navigationButton(iconRes: Int, descriptionRes: Int, onClick: () -> Unit): ImageButton {
+        fun outlinedBackground(cornerSize: Float): RippleDrawable {
+            val shape = ShapeAppearanceModel.builder().setAllCornerSizes(cornerSize).build()
+            val content = MaterialShapeDrawable(shape).apply {
+                fillColor = ColorStateList.valueOf(surface)
+                strokeColor = ColorStateList.valueOf(outline)
+                strokeWidth = density
+            }
+            return RippleDrawable(highlight, content, MaterialShapeDrawable(shape))
+        }
+
+        (textView.parent as? LinearLayout)?.let { content ->
+            val buttonSize = (40 * density).toInt()
+
+            fun navigationButton(
+                iconRes: Int,
+                descriptionRes: Int,
+                marginStartDp: Int,
+                marginEndDp: Int,
+                onClick: () -> Unit,
+            ): ImageButton {
                 return ImageButton(activity).apply {
                     layoutParams = LinearLayout.LayoutParams(buttonSize, buttonSize).apply {
                         gravity = Gravity.CENTER_VERTICAL
+                        marginStart = (marginStartDp * density).toInt()
+                        marginEnd = (marginEndDp * density).toInt()
                     }
                     setImageResource(iconRes)
                     imageTintList = ColorStateList.valueOf(onSurface)
-                    setBackgroundResource(ripple.resourceId)
+                    background = outlinedBackground(buttonSize / 2f)
                     contentDescription = activity.getString(descriptionRes)
                     setOnClickListener { onClick() }
                 }
             }
 
-            val previous = navigationButton(R.drawable.ic_chevron_left, R.string.previous_search_result, ::showPrevious)
+            val previous = navigationButton(R.drawable.ic_chevron_left, R.string.previous_search_result, 10, 2, ::showPrevious)
             val counter = TextView(activity).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -150,7 +213,7 @@ class SearchNavigationController(
                 setTextColor(onSurface)
                 textSize = 14f
             }
-            val next = navigationButton(R.drawable.ic_chevron_right, R.string.next_search_result, ::showNext)
+            val next = navigationButton(R.drawable.ic_chevron_right, R.string.next_search_result, 2, 12, ::showNext)
 
             val insertIndex = content.indexOfChild(textView) + 1
             content.addView(previous, insertIndex)
@@ -182,7 +245,11 @@ class SearchNavigationController(
         val hit = hits.getOrNull(currentPosition) ?: return
         clearHighlight()
         val matchLength = if (hit.matchLength > 0) hit.matchLength else query.length
-        val textBounds = binding.pdfView.createHighlightText(hit.pageNumber, hit.originalIndex, matchLength, true)
+        val rawText = binding.pdfView.getPageRawText(hit.pageNumber)
+        val rawRange = NormalizedTextMapper.toRawRange(rawText, hit.originalIndex, matchLength)
+        val highlightStart = rawRange?.first ?: hit.originalIndex
+        val highlightCount = rawRange?.let { it.last + 1 - it.first } ?: matchLength
+        val textBounds = binding.pdfView.createHighlightText(hit.pageNumber, highlightStart, highlightCount, true)
         if (textBounds.isEmpty()) {
             AppSnackbar.make(binding.root, R.string.failed_to_highlight_search_result, Snackbar.LENGTH_SHORT).show()
         }
@@ -196,11 +263,12 @@ class SearchNavigationController(
     }
 
     private fun updateControls() {
-        val visibility = if (hasFullSession) View.VISIBLE else View.GONE
+        val controlsVisible = hasFullSession || attachedToActiveSearch
+        val visibility = if (controlsVisible) View.VISIBLE else View.GONE
         previousButton?.visibility = visibility
         counterView?.visibility = visibility
         nextButton?.visibility = visibility
-        if (!hasFullSession) {
+        if (!controlsVisible) {
             return
         }
         counterView?.text = activity.getString(R.string.search_result_counter, currentPosition + 1, hits.size)

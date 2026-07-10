@@ -4,11 +4,13 @@ import android.annotation.SuppressLint
 import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.view.MotionEvent
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.RowUserBookmarkBinding
 import com.gitlab.mudlej.MjPdfReader.repository.UserBookmark
+import com.gitlab.mudlej.MjPdfReader.ui.toc.TocPathResolver
 import java.time.ZoneId
 
 class UserBookmarkAdapter(
@@ -19,6 +21,13 @@ class UserBookmarkAdapter(
 
     private val bookmarks = mutableListOf<UserBookmark>()
     var onDragRequested: ((RecyclerView.ViewHolder) -> Unit)? = null
+
+    @SuppressLint("NotifyDataSetChanged")
+    var tocPathResolver: TocPathResolver = TocPathResolver.EMPTY
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UserBookmarkViewHolder {
         val binding = RowUserBookmarkBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -56,16 +65,41 @@ class UserBookmarkAdapter(
         fun bind(bookmark: UserBookmark) {
             val context = binding.root.context
             val pageLabel = context.getString(R.string.bookmark_page_label, bookmark.pageIndex + 1)
+            val customLabel = bookmark.label?.takeIf { it.isNotBlank() }
+            val tocPath = tocPathResolver.resolve(bookmark.pageIndex)
             val relativeTime = DateUtils.getRelativeTimeSpanString(
                 bookmark.createdAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
                 System.currentTimeMillis(),
                 DateUtils.MINUTE_IN_MILLIS,
             )
-            binding.userBookmarkTitle.text = bookmark.label?.takeIf { it.isNotBlank() } ?: pageLabel
-            binding.userBookmarkSubtitle.text = if (bookmark.label.isNullOrBlank()) {
-                relativeTime
-            } else {
-                "$pageLabel · $relativeTime"
+            val pageInfo = "$pageLabel · $relativeTime"
+            binding.userBookmarkTopRow.visibility = View.GONE
+            binding.userBookmarkSubtitle.visibility = View.VISIBLE
+            binding.userBookmarkPageInfo.visibility = View.GONE
+            binding.userBookmarkPageInfo.text = pageInfo
+            binding.userBookmarkTitle.maxLines = if (customLabel == null && tocPath != null) 3 else 1
+            binding.userBookmarkSubtitle.maxLines = if (customLabel != null && tocPath != null) 3 else 1
+            when {
+                customLabel != null && tocPath != null -> {
+                    binding.userBookmarkTitle.text = customLabel
+                    binding.userBookmarkSubtitle.text = tocPath
+                    binding.userBookmarkPageInfo.visibility = View.VISIBLE
+                }
+                customLabel != null -> {
+                    binding.userBookmarkTitle.text = customLabel
+                    binding.userBookmarkSubtitle.text = pageInfo
+                }
+                tocPath != null -> {
+                    binding.userBookmarkTopRow.visibility = View.VISIBLE
+                    binding.userBookmarkTopPage.text = pageLabel
+                    binding.userBookmarkTopTime.text = relativeTime
+                    binding.userBookmarkTitle.text = tocPath
+                    binding.userBookmarkSubtitle.visibility = View.GONE
+                }
+                else -> {
+                    binding.userBookmarkTitle.text = pageLabel
+                    binding.userBookmarkSubtitle.text = relativeTime
+                }
             }
             binding.root.setOnClickListener { onClick(bookmark) }
             binding.root.setOnLongClickListener {

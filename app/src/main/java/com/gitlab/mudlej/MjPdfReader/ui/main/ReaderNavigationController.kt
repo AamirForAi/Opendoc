@@ -61,6 +61,8 @@ class ReaderNavigationController(
     fun showUserBookmarks() {
         Intent(activity, UserBookmarksActivity::class.java).also { bookmarksIntent ->
             pdf.fileHash?.let { bookmarksIntent.putExtra(PDF.fileHashKey, it) }
+            bookmarksIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
+            bookmarksIntent.putExtra(PDF.passwordKey, pdf.password)
             launchUserBookmarks(bookmarksIntent)
         }
     }
@@ -70,7 +72,10 @@ class ReaderNavigationController(
         if (entries.isEmpty()) {
             return
         }
-        launchNavigationHistory(NavigationHistoryActivity.createIntent(activity, entries))
+        val historyIntent = NavigationHistoryActivity.createIntent(activity, entries)
+        historyIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
+        historyIntent.putExtra(PDF.passwordKey, pdf.password)
+        launchNavigationHistory(historyIntent)
     }
 
     fun onPageChanged(pageIndex: Int) {
