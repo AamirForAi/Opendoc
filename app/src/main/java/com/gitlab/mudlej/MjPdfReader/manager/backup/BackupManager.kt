@@ -177,6 +177,7 @@ class BackupManager(
                     pageIndex = backup.pageIndex,
                     label = backup.label,
                     createdAt = parseDate(backup.createdAt) ?: LocalDateTime.now(),
+                    sortOrder = backup.sortOrder.takeIf { it >= 0 } ?: backup.pageIndex,
                 )
                 existing.label == null && backup.label != null -> existing.copy(label = backup.label)
                 else -> null
@@ -214,6 +215,7 @@ class BackupManager(
             pageIndex = pageIndex,
             label = label,
             createdAt = createdAt.toString(),
+            sortOrder = sortOrder,
         )
     }
 

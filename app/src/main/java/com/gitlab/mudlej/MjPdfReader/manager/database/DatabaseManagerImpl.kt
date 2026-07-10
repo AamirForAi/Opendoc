@@ -38,7 +38,13 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
 
     override suspend fun addUserBookmark(bookmark: UserBookmark) {
         withContext(Dispatchers.IO) {
-            database.userBookmarkDao().upsert(bookmark)
+            val dao = database.userBookmarkDao()
+            val orderedBookmark = if (bookmark.sortOrder < 0) {
+                bookmark.copy(sortOrder = dao.nextSortOrder(bookmark.fileHash))
+            } else {
+                bookmark
+            }
+            dao.upsert(orderedBookmark)
         }
     }
 
@@ -57,6 +63,15 @@ class DatabaseManagerImpl(private val database: AppDatabase): DatabaseManager {
     override suspend fun setUserBookmarkLabel(fileHash: String, pageIndex: Int, label: String?) {
         withContext(Dispatchers.IO) {
             database.userBookmarkDao().updateLabel(fileHash, pageIndex, label)
+        }
+    }
+
+    override suspend fun setUserBookmarkOrder(bookmarks: List<UserBookmark>) {
+        withContext(Dispatchers.IO) {
+            val dao = database.userBookmarkDao()
+            bookmarks.forEach { bookmark ->
+                dao.updateSortOrder(bookmark.fileHash, bookmark.pageIndex, bookmark.sortOrder)
+            }
         }
     }
 

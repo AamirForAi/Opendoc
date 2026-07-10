@@ -10,14 +10,15 @@
     android:paddingHorizontal="16dp"
     android:paddingVertical="8dp">
 
-    <ImageView
-        android:id="@+id/userBookmarkIcon"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
+    <ImageButton
+        android:id="@+id/userBookmarkDragHandle"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_marginEnd="16dp"
-        android:importantForAccessibility="no"
-        android:src="@drawable/ic_bookmark_filled"
-        android:tint="?attr/colorPrimary" />
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/drag_to_reorder"
+        android:src="@drawable/ic_burger_menu"
+        android:tint="?attr/colorOnSurfaceVariant" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -45,6 +46,15 @@
             android:textSize="13sp"
             tools:text="Page 42 · 2 days ago" />
     </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/userBookmarkRename"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/rename_bookmark"
+        android:src="@drawable/ic_edit"
+        android:tint="?attr/colorOnSurfaceVariant" />
 
     <ImageButton
         android:id="@+id/userBookmarkDelete"

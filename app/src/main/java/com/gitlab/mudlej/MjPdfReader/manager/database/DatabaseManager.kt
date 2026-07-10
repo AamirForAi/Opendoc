@@ -25,6 +25,8 @@ interface DatabaseManager {
 
     suspend fun setUserBookmarkLabel(fileHash: String, pageIndex: Int, label: String?)
 
+    suspend fun setUserBookmarkOrder(bookmarks: List<UserBookmark>)
+
     suspend fun findRecord(fileHash: String): PdfRecord?
 
     suspend fun updateRecordIdentity(

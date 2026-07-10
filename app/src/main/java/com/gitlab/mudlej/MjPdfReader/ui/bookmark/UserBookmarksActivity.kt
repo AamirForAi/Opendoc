@@ -8,7 +8,9 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityUserBookmarksBinding
@@ -25,7 +27,7 @@ class UserBookmarksActivity : AppCompatActivity() {
     private val databaseManager by lazy { DatabaseManagerImpl(AppDatabase.getInstance(applicationContext)) }
     private val bookmarkAdapter = UserBookmarkAdapter(
         ::onBookmarkClicked,
-        ::deleteBookmark,
+        ::confirmDeleteBookmark,
         ::showRenameDialog,
     )
     private var bookmarks: List<UserBookmark> = listOf()
@@ -44,6 +46,9 @@ class UserBookmarksActivity : AppCompatActivity() {
             adapter = bookmarkAdapter
             layoutManager = LinearLayoutManager(this@UserBookmarksActivity)
         }
+        val touchHelper = ItemTouchHelper(UserBookmarkTouchCallback(bookmarkAdapter, ::saveBookmarkOrder))
+        bookmarkAdapter.onDragRequested = touchHelper::startDrag
+        touchHelper.attachToRecyclerView(binding.userBookmarksRecyclerView)
         loadBookmarks()
     }
 
@@ -79,10 +84,28 @@ class UserBookmarksActivity : AppCompatActivity() {
         finish()
     }
 
+    private fun confirmDeleteBookmark(bookmark: UserBookmark) {
+        val label = bookmark.label?.takeIf { it.isNotBlank() }
+            ?: getString(R.string.bookmark_page_label, bookmark.pageIndex + 1)
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.remove_bookmark)
+            .setMessage(getString(R.string.delete_bookmark_confirm_message, label))
+            .setPositiveButton(R.string.delete) { _, _ -> deleteBookmark(bookmark) }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
     private fun deleteBookmark(bookmark: UserBookmark) {
         lifecycleScope.launch {
             databaseManager.removeUserBookmark(bookmark.fileHash, bookmark.pageIndex)
             showBookmarks(bookmarks.filterNot { it.pageIndex == bookmark.pageIndex })
+        }
+    }
+
+    private fun saveBookmarkOrder(reorderedBookmarks: List<UserBookmark>) {
+        bookmarks = reorderedBookmarks.mapIndexed { index, bookmark -> bookmark.copy(sortOrder = index) }
+        lifecycleScope.launch {
+            databaseManager.setUserBookmarkOrder(bookmarks)
         }
     }
 
@@ -113,5 +136,37 @@ class UserBookmarksActivity : AppCompatActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    private class UserBookmarkTouchCallback(
+        private val adapter: UserBookmarkAdapter,
+        private val onOrderChanged: (List<UserBookmark>) -> Unit,
+    ) : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
+
+        private var moved = false
+
+        override fun isLongPressDragEnabled() = false
+
+        override fun isItemViewSwipeEnabled() = false
+
+        override fun onMove(
+            recyclerView: RecyclerView,
+            viewHolder: RecyclerView.ViewHolder,
+            target: RecyclerView.ViewHolder,
+        ): Boolean {
+            val changed = adapter.move(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+            moved = moved || changed
+            return changed
+        }
+
+        override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+            super.clearView(recyclerView, viewHolder)
+            if (moved) {
+                moved = false
+                onOrderChanged(adapter.currentBookmarks())
+            }
+        }
+
+        override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) = Unit
     }
 }

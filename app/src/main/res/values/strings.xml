@@ -135,6 +135,7 @@
     <string name="no_navigation_history">No navigation history yet.\nJump through links, search, bookmarks, or pages to build history.</string>
     <string name="bookmark_page_label">Page %1$d</string>
     <string name="rename_bookmark">Rename Bookmark</string>
+    <string name="delete_bookmark_confirm_message">Remove "%1$s" from bookmarks?</string>
     <string name="bookmark_hash_unavailable">The file is still being identified, try again in a moment.</string>
     <string name="backup_export_title">Export App Data</string>
     <string name="backup_export_summary">Save settings, reading progress, and bookmarks to a file.</string>

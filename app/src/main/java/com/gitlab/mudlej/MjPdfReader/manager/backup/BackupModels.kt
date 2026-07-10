@@ -39,6 +39,7 @@ data class BackupUserBookmark(
     val pageIndex: Int = -1,
     val label: String? = null,
     val createdAt: String? = null,
+    val sortOrder: Int = -1,
 )
 
 data class ExportSummary(

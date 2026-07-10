@@ -56,7 +56,7 @@ import java.io.File
 
 @Database(
     entities = [PdfRecord::class, PdfAnnotationSaveDestination::class, ScannedPdfCache::class, UserBookmark::class],
-    version = 10,
+    version = 11,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = AppDatabase.MyAutoMigration::class),
@@ -89,6 +89,7 @@ abstract class AppDatabase : RoomDatabase() {
                 moveDatabaseOutOfCacheDir(context)
                 val created = Room.databaseBuilder(context, AppDatabase::class.java, DATABASE_NAME)
                     .addMigrations(AppDatabaseMigrations.MIGRATION_7_TO_8)
+                    .addMigrations(AppDatabaseMigrations.MIGRATION_10_TO_11)
                     .build()
                 INSTANCE = created
                 return created

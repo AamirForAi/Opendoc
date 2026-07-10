@@ -34,4 +34,11 @@ object AppDatabaseMigrations {
             }
         }
     }
+
+    val MIGRATION_10_TO_11 = object : Migration(10, 11) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `UserBookmark` ADD COLUMN `sortOrder` INTEGER NOT NULL DEFAULT -1")
+            db.execSQL("UPDATE `UserBookmark` SET `sortOrder` = `pageIndex` WHERE `sortOrder` < 0")
+        }
+    }
 }

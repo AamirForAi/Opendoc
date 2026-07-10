@@ -8,11 +8,14 @@ import androidx.room.Query
 @Dao
 interface UserBookmarkDao {
 
-    @Query("SELECT * FROM UserBookmark WHERE fileHash = :fileHash ORDER BY pageIndex")
+    @Query("SELECT * FROM UserBookmark WHERE fileHash = :fileHash ORDER BY sortOrder, pageIndex")
     fun findByHash(fileHash: String): List<UserBookmark>
 
-    @Query("SELECT * FROM UserBookmark")
+    @Query("SELECT * FROM UserBookmark ORDER BY fileHash, sortOrder, pageIndex")
     fun findAll(): List<UserBookmark>
+
+    @Query("SELECT COALESCE(MAX(sortOrder), -1) + 1 FROM UserBookmark WHERE fileHash = :fileHash")
+    fun nextSortOrder(fileHash: String): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun upsert(bookmark: UserBookmark)
@@ -25,4 +28,7 @@ interface UserBookmarkDao {
 
     @Query("UPDATE UserBookmark SET label = :label WHERE fileHash = :fileHash AND pageIndex = :pageIndex")
     fun updateLabel(fileHash: String, pageIndex: Int, label: String?)
+
+    @Query("UPDATE UserBookmark SET sortOrder = :sortOrder WHERE fileHash = :fileHash AND pageIndex = :pageIndex")
+    fun updateSortOrder(fileHash: String, pageIndex: Int, sortOrder: Int)
 }
