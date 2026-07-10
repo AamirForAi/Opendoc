@@ -1,0 +1,525 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+    ~ MJ PDF
+    ~ Copyright (C) 2023 Mudlej
+    ~
+    ~ This program is free software: you can redistribute it and/or modify
+    ~ it under the terms of the GNU General Public License as published by
+    ~ the Free Software Foundation, either version 3 of the License, or
+    ~ (at your option) any later version.
+    ~ This program is distributed in the hope that it will be useful,
+    ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+    ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    ~ GNU General Public License for more details.
+    ~ You should have received a copy of the GNU General Public License
+    ~ along with this program.  If not, see <https://www.gnu.org/licenses/>.
+    ~
+    ~ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ~ This code was previously licensed under
+    ~ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ~
+    ~ MIT License
+    ~ Copyright (c) 2018 Gokul Swaminathan
+    ~ Copyright (c) 2023 Mudlej
+    ~
+    ~ Permission is hereby granted, free of charge, to any person obtaining a copy
+    ~ of this software and associated documentation files (the "Software"), to deal
+    ~ in the Software without restriction, including without limitation the rights
+    ~ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    ~ copies of the Software, and to permit persons to whom the Software is
+    ~ furnished to do so, subject to the following conditions:
+    ~ The above copyright notice and this permission notice shall be included in all
+    ~ copies or substantial portions of the Software.
+    ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    ~ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    ~ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    ~ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    ~ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    ~ SOFTWARE.
+-->
+    <string name="mj_app_name" translatable="false">MJ PDF</string>
+    <string name="what_is_new">
+        * Додано підтримку арабської, китайської, турецької, німецької, іспанської, португальської, хінді та російської мов.\n\n
+        * Покращення пошуку: кнопка повернення до результатів; краще підсвічування.\n\n
+        * Виправлення інтерфейсу: узгоджені кольори значків, покращено макет та видимість.\n\n
+        * Додано режим «Завжди горизонтально».\n\n
+        * У налаштуваннях додано експериментальну кнопку перезавантаження PDF.\n\n
+        * Краща підтримка PDF-файлів, захищених паролем, а також тих, що зберігаються не локально.\n\n
+        * Стабільність: виправлено збої під час фонових операцій.\n\n
+        * Розробка: оновлено SDK, Gradle та залежності.
+    </string>
+    <string name="pick_file">Вибрати файл</string>
+    <string name="toast_pick_file_error">Не вдалося вибрати файл! Перевірте файловий менеджер на своєму телефоні.</string>
+    <string name="toast_http_code_error">Отримано помилку від віддаленого сервера.</string>
+    <string name="toast_generic_download_error">Виникла помилка під час завантаження цього файлу.</string>
+    <string name="toast_ssl_error">Помилка безпечного з’єднання.</string>
+    <string name="saved_to_download">Файл збережено в теці «Завантаження».</string>
+    <string name="save_to_download_failed">Не вдалося зберегти файл у теку «Завантаження».</string>
+    <string name="action_about">Про застосунок</string>
+    <string name="intro">Повторити вступ</string>
+    <string name="email">Пошта (Творець)</string>
+    <string name="description_open">Безплатно та без обмежень.\nВи можете вільно читати, редагувати, ділитися та розповсюджувати застосунок і його вихідний код.</string>
+    <string name="title_open">ВІН ВАШ</string>
+    <string name="description_intro">Швидкий, простий і потужний PDF-переглядач</string>
+    <string name="myLicense">Ліцензія</string>
+    <string name="privacy">Політика приватності</string>
+
+    <string name="appChangelog">Можливості / Список змін</string>
+    <string name="done">ГОТОВО</string>
+    <string name="results">РЕЗУЛЬТАТИ ПОШУКУ</string>
+    <string name="ok">ГАРАЗД</string>
+    <string name="title_permission">Дозволи на доступ до сховища</string>
+    <string name="description_permission">Застосунок потребує дозволу на доступ до файлів для читання та запису документів.</string>
+
+    <string name="libs">Бібліотеки з відкритим вихідним кодом</string>
+    <string name="code">Вихідний код</string>
+
+    <string name="share">Поділитися</string>
+    <string name="share_file">Поділитися</string>
+    <string name="print_file">Надрукувати</string>
+    <string name="full_screen">На весь екран</string>
+    <string name="none">Немає</string>
+    <string name="app_info">Інформація про застосунок</string>
+    <string name="author_info">Інформація про автора</string>
+
+    <string name="file_metadata">Метадані файлу</string>
+    <string name="app_settings">Налаштування застосунку</string>
+    <string name="quality">Високоякісна візуалізація</string>
+    <string name="quality_summary">Відтворюйте сторінки з вищою точністю передачі кольору, використовуючи ARGB_8888 замість RGB_565. Це може сповільнити роботу та споживати більше пам’яті.</string>
+    <string name="settings">Налаштування</string>
+    <string name="settings_search_hint">Налаштування пошуку</string>
+    <string name="settings_search_no_results">Немає відповідних налаштувань</string>
+    <string name="settings_appearance">Вигляд</string>
+    <string name="settings_appearance_summary">Тема, візуалізація, відступи та поля.</string>
+    <string name="settings_reading">Читання</string>
+    <string name="settings_reading_summary">Гортання, жести, переміщення сторінок та поведінка екрана.</string>
+    <string name="customize_controls">Налаштування керування</string>
+    <string name="customize_controls_summary">Панель інструментів, комбінації клавіш, кнопки повноекранного режиму та інформація про повноекранний режим.</string>
+    <string name="settings_text">Текст</string>
+    <string name="settings_text_summary">Текстовий режим, виділення тексту та поведінка копіювання.</string>
+    <string name="settings_highlighting">Виділення</string>
+    <string name="settings_highlighting_summary">Кольори виділення та поведінка виявлення.</string>
+    <string name="highlight_colors">Кольори виділення</string>
+    <string name="highlight_colors_summary">Виберіть від 2 до 4 кольорів для акцентної смуги.</string>
+    <string name="advanced_summary">Ліміти візуалізації та технічні параметри для читання.</string>
+    <string name="anti_aliasing">Згладжування країв / Згладжування</string>
+    <string name="anti_aliasing_summary">Згладжування тексту та країв сторінок під час візуалізації. Зазвичай покращує вигляд з невеликою втратою продуктивності.</string>
+    <string name="horizontal_scrolling_mode">Горизонтальне гортання</string>
+    <string name="horizontal_scrolling_summary">Гортайте сторінки по горизонталі, а не по вертикалі. MJ PDF спробує автоматично визначить напрямок читання, але ви можете змінити його вручну в Меню &gt; Напрямок читання після активації горизонтального гортання.</string>
+    <string name="double_tap_to_exit">Торкнутися двічі, щоби вийти</string>
+    <string name="double_tap_to_exit_summary">Натисніть «Назад» двічі, щоб вийти з переглядача.</string>
+    <string name="snap">Знімок сторінки</string>
+    <string name="snap_summary">Центрувати сторінку після кожного гортання.</string>
+    <string name="fling">Швидке гортання сторінки</string>
+    <string name="fling_summary">Швидко змахніть, щоб одразу перейти до наступної сторінки.</string>
+    <string name="turn_page_by_mouse_buttons_title">Гортати сторінки кнопками миші</string>
+    <string name="turn_page_by_mouse_buttons_summary">Кнопки миші «назад» і «вперед» гортають сторінки. Якщо цю функцію вимкнено, кнопка «назад» закриває переглядач.</string>
+    <string name="browser_scroll_mode_title">Гортання як у у браузері</string>
+    <string name="browser_scroll_mode_summary">Гортає вертикально без зсуву вбік; перегляд зміщується вбік лише за умови чіткого горизонтального проведення.</string>
+    <string name="nav_back">Повернутися</string>
+    <string name="nav_forward">Перейти далі</string>
+    <string name="navigation_history">Історія навігації</string>
+    <string name="reader_menu_actions">Дії</string>
+    <string name="reader_menu_pages">Сторінки</string>
+    <string name="history_entry_format">Сторінки %1$d  ·  %2$s  ·  %3$s</string>
+    <string name="history_origin_link">Посилання</string>
+    <string name="history_origin_bookmark">Закладка</string>
+    <string name="history_origin_dwell">Зупинити читання</string>
+    <string name="history_origin_visited">Відвідано</string>
+    <string name="search_result_counter">%1$d/%2$d</string>
+    <string name="add_bookmark">Сторінка закладки</string>
+    <string name="remove_bookmark">Видалити закладку</string>
+    <string name="no_user_bookmarks">Закладок ще немає.\nВикористовуйте дію «Закладка» у переглядачі, щоб зберегти розташування сторінок.</string>
+    <string name="bookmark_page_label">Сторінка %1$d</string>
+    <string name="rename_bookmark">Перейменувати закладку</string>
+    <string name="bookmark_hash_unavailable">Файл ще розпізнається, спробуйте ще раз трохи згодом.</string>
+    <string name="backup_export_title">Експортувати дані застосунку</string>
+    <string name="backup_export_summary">Зберегає налаштування, прогрес читання та закладки у файл.</string>
+    <string name="backup_import_title">Імпортувати дані застосунку</string>
+    <string name="backup_import_summary">Відновлює налаштувань, прогресу читання та закладок із файлу резервної копії.</string>
+    <string name="backup_export_action">Експортувати</string>
+    <string name="backup_import_action">Імпортувати</string>
+    <string name="include_saved_passwords">Включити збережені паролі PDF (зберігаються як звичайний текст)</string>
+    <string name="backup_import_confirm">Під час імпортування буде застосовано налаштування з резервної копії, а прогрес читання та закладки буде об’єднано з даними на цьому пристрої. Продовжити?</string>
+    <string name="backup_export_done">Експортовано налаштувань: %1$d, файлів: %2$d та закладок: %3$d.</string>
+    <string name="backup_import_done">Імпортовано %1$d параметрів, %2$d нових файлів, %3$d оновлених файлів та %4$d закладок.\n\nДеякі налаштування почнуть діяти після повторного відкриття документа.</string>
+    <string name="backup_export_failed">Не вдалося експортувати: %1$s</string>
+    <string name="backup_import_failed">Не вдалося імпортувати: %1$s</string>
+    <string name="previous_search_result">Попередній результат</string>
+    <string name="next_search_result">Наступний результат</string>
+    <string name="failed_to_highlight_search_result">Не вдалося виділити результат пошуку</string>
+    <string name="visual_settings">Візуалізація</string>
+    <string name="pdf_title">Назва</string>
+    <string name="pdf_author">Автор</string>
+
+    <string name="file_opening_error">Не вдалося відкрити PDF. (перевірте доступ до пам'яті та вільне місце)</string>
+    <string name="protected_pdf">Захищений PDF</string>
+    <string name="enter_password">Уведіть правильний пароль, аби відкрити документ:</string>
+    <string name="wrong_password">Неправильний пароль.</string>
+
+    <string name="keep_screen_on">Не вимикати екран</string>
+    <string name="keep_screen_on_summary">Забороняє вимикання екрана під час читання.</string>
+    <string name="space_between_pages">Відступ між сторінками</string>
+    <string name="privacy_info">Цей застосунок не збирає жодних даних.\nДля роботи певних функцій застосунку потрібні такі дозволи:\n- <b>Інтернет</b>: відкриття PDF-файлів за посиланнями\n- <b>Пам’ять</b>: відкриття файлів зі сховища, збереження PDF-файлів, відкритих за посиланнями</string>
+    <string name="switch_theme">Змінити тему PDF</string>
+    <string name="switch_to_light_mode">Світлий режим</string>
+    <string name="switch_to_dark_mode">Темний режим</string>
+    <string name="open_another_pdf">Відкрити локальний PDF</string>
+    <string name="open_online_pdf">Відкрити онлайн PDF</string>
+    <string name="online_pdf_link">Посилання на онлайн PDF</string>
+    <string name="invalid_online_pdf_link">Уведіть дійсне посилання HTTP або HTTPS.</string>
+    <string name="http_online_pdf_warning">HTTP-посилання не зашифровані. Інші користувачі в мережі можуть бачити або змінювати цей файл. Натисніть «Усе одно продовжити», щоб відкрити його.</string>
+    <string name="close">Закрити</string>
+    <string name="exit_fullscreen_button">Вийти з повного екрана</string>
+    <string name="ask_restore_zoom">Відновити масштаб?</string>
+    <string name="rotate_screen">Повернути екран</string>
+    <string name="exit_fullscreen_message">Торкніться екрана, щоб у лівому верхньому куті з’явилася кнопка «X». Натисніть її, щоби вийти з повноекранного режиму.</string>
+    <string name="gitlab" translatable="false">Gitlab</string>
+    <string name="exit_fullscreen_title">Щоб вийти з повноекранного режиму</string>
+    <string name="exit_fullscreen_positive">Не показувати знову</string>
+    <string name="about_app">MJ PDF — це швидкий, мінімалістичний, потужний і повністю безплатний PDF-переглядач, створений Mudlej.</string>
+    <string name="permission_denied">У дозволі відмовлено</string>
+    <string name="error_load_file_name">Не вдалося отримати назву файлу</string>
+    <string name="cannot_load_page">\"Не вдалося завантажити сторінку\"</string>
+
+    <string name="experimental">Експериментальні</string>
+    <string name="actions">Дії</string>
+    <string name="caution">Обережно</string>
+    <string name="app_dark_dialog_message">На деяких пристроях цей параметр може спричиняти появу чорних прямокутників під час читання PDF-файлів. Якщо це трапиться, просто вимкніть його.</string>
+    <string name="restore">Відновити</string>
+    <string name="discard">Відхилити</string>
+    <string name="restore_unsaved_highlights_title">Відновити незбережені виділення?</string>
+    <string name="restore_unsaved_highlights_message">MJ PDF знайшов незбережену копію виділеного тексту для цього документа. Відновити її чи видалити та відкрити оригінальний файл?</string>
+    <string name="no_pdf_in_app">У застосунку немає відкритого PDF-файлу</string>
+    <string name="advanced">Розширені</string>
+    <string name="advanced_config">Конфігурація</string>
+    <string name="part_size">Розмір візуалізації плитки</string>
+    <string name="part_size_summary">Налаштування розміру плиток візуалізації сторінки. Менші значення можуть зменшити використання пам’яті. Більші значення можуть пришвидшити візуалізацію.</string>
+    <string name="part_size_value">Значення РОЗМІРУ ДЕТАЛІ</string>
+    <string name="max_zoom">Максимальний масштаб</string>
+    <string name="max_zoom_summary">Встановити максимально допустимий рівень масштабування у PDF-переглядачі.</string>
+    <string name="max_zoom_value">Значення МАКС. МАСШТАБУ</string>
+    <string name="settings_current_value">Поточне: %1$d</string>
+    <string name="apply">Застосувати</string>
+    <string name="reset">Скинути</string>
+    <string name="cancel">Скасувати</string>
+    <string name="page">Сторінка</string>
+    <string name="bookmarks">Закладки</string>
+    <string name="no_bookmarks">Цей файл не містить закладок</string>
+    <string name="additional_options">Більше</string>
+    <string name="search">Знайти</string>
+    <string name="search_web">Знайти в мережі</string>
+    <string name="highlight_yellow">Виділити жовтим</string>
+    <string name="highlight_green">Виділити зеленим</string>
+    <string name="highlight_blue">Виділити синім</string>
+    <string name="highlight_pink_red">Виділити рожево-червоним</string>
+    <string name="highlight_orange">Виділити помаранчевим</string>
+    <string name="highlight_purple">Виділити пурпуровим</string>
+    <string name="highlight_teal">Виділити бірюзовим</string>
+    <string name="highlight_gray">Виділити сірим</string>
+    <string name="highlight_cyan">Виділити блакитним</string>
+    <string name="highlight_red">Виділити червоним</string>
+    <string name="color_yellow">Жовтий</string>
+    <string name="color_orange">Помаранчевий</string>
+    <string name="color_pink_red">Рожево-червоний</string>
+    <string name="color_blue">Синій</string>
+    <string name="color_green">Зелений</string>
+    <string name="color_purple">Пурпуровий</string>
+    <string name="color_teal">Бірюзовий</string>
+    <string name="color_gray">Сірий</string>
+    <string name="color_cyan">Блакитний</string>
+    <string name="color_red">Червоний</string>
+    <string name="unsaved_highlights">Не збережено</string>
+    <string name="discard_highlights">Скасувати виділення</string>
+    <string name="discard_unsaved_highlights_title">Скасувати зміни?</string>
+    <string name="discard_unsaved_highlights_message">Незбережені виділення та підписи будуть видалені з документа.</string>
+    <string name="unsaved_highlights_prompt">Зберегти ваші виділення перед тим, як закрити цей документ?</string>
+    <string name="save_highlights">Зберегти виділення</string>
+    <string name="update_existing_file">Оновити наявний файл</string>
+    <string name="save_as_new_copy">Зберегти як нову копію</string>
+    <string name="saved_copy_found">Знайдено збережену копію</string>
+    <string name="saved_copy_found_message">Цей документ збігається з PDF-файлом, який ви зберегли раніше. Оновити збережену копію наступного разу чи зберегти як нову?</string>
+    <string name="highlights_saved">Виділення збережено</string>
+    <string name="highlight_failed">Не вдалося додати виділення</string>
+    <string name="highlight_save_failed">Не вдалося зберегти виділене. Виберіть місце для збереження та спробуйте ще раз.</string>
+    <string name="choose">Обрати</string>
+    <string name="search_results">Результати пошуків</string>
+    <string name="copy">Скопіювати</string>
+    <string name="copy_all">Скопіювати все</string>
+    <string name="highlight_update_failed">Не вдалося оновити виділення</string>
+    <string name="form_field">Поле форми</string>
+    <string name="form_field_update_failed">Не вдалося оновити поле форми</string>
+    <string name="add_signature">Додати підпис</string>
+    <string name="signature_dialog_title">Чернетка вашого підпису</string>
+    <string name="signature_clear">Очистити</string>
+    <string name="signature_place">Місце</string>
+    <string name="signature_pending_hint">Перетягніть у потрібне місце та натисніть «Зберегти»</string>
+    <string name="signature_cancel_placement">Скасувати розміщення підпису</string>
+    <string name="signature_color_black">Чорне чорнило</string>
+    <string name="signature_color_blue">Синє чорнило</string>
+    <string name="signature_color_red">Червоне чорнило</string>
+    <string name="signature_color_green">Зелене чорнило</string>
+    <string name="signature_commit_failed">Не вдалося додати підпис</string>
+    <string name="increase_text_size">Збільшити розмір</string>
+    <string name="decrease_text_size">Зменшити розмір</string>
+    <string name="search_dialog_message">Застосунок намагається витягти текст із PDF, через що дані можуть бути некоректними.</string>
+    <string name="enter_text_to_search">Уведіть текст для пошуку</string>
+    <string name="this_is_experimental">Це експериментально</string>
+    <string name="this_is_experimental_message">Ця функція застосунку все ще знаходиться на стадії розробки, тому вона може працювати нестабільно або некоректно.</string>
+    <string name="go_back">Назад</string>
+    <string name="back_to_table_of_contents">Назад до змісту</string>
+    <string name="back_to_page">Повернутися до сторінки %1$d</string>
+    <string name="page_x_of_y">Сторінка %1$d з %2$d</string>
+    <string name="selectable_text">Текст на сторінці, що виділяється</string>
+    <string name="inline_text_selection_title">Увімкнути виділення тексту на сторінках PDF</string>
+    <string name="inline_text_selection_summary">Умикає можливість виділення та копіювання тексту безпосередньо з режиму перегляду сторінок PDF.</string>
+    <string name="detect_existing_highlights_title">Виявити наявні виділення</string>
+    <string name="detect_existing_highlights_summary">Виділення тексту, що точно збігається з виділеним фрагментом, показує доступні дії замість створення нового виділення.</string>
+    <string name="search_ignore_accents_title">Ігнорувати літери з діакритичними знаками (такі як é, č, ž)</string>
+    <string name="search_ignore_accents_summary">Не враховувати діакритичні знаки та наголоси при порівнянні літер (é = e, č = c, ž = z).</string>
+    <string name="default_text_mode">Типово відкривати в текстовому режимі</string>
+    <string name="default_text_mode_summary">Перемикатися в текстовий режим одразу після відкриття PDF-файлу.</string>
+    <string name="selected_text">Виділений текст</string>
+    <string name="copy_page_text">Витягнути текст</string>
+    <string name="turn_page_by_volume_buttons_title">Гортати сторінки кнопками гучності</string>
+    <string name="turn_page_by_volume_buttons_summary">Гортайте сторінки фізичними кнопками гучності.</string>
+    <string name="show_scroll_handle_page_count_title">Показувати кількість сторінок у повзунку гортання</string>
+    <string name="show_scroll_handle_page_count_summary">Змінити вигляд маркера гортання: показувати номер сторінки разом із загальною кількістю.</string>
+    <string name="show_app_bar_page_count_title">Показувати номер сторінки в панелі застосунку</string>
+    <string name="show_app_bar_page_count_summary">Показувати поточну сторінку та загальну кількість сторінок перед назвою PDF-файлу.</string>
+    <string name="text_mode">Текстовий режим</string>
+    <string name="back_to_pdf">Назад до PDF</string>
+    <string name="text_mode_appearance">Налаштування переглядача</string>
+    <string name="text_mode_line_spacing">Міжрядковий інтервал</string>
+    <string name="text_mode_margins">Поля</string>
+    <string name="text_mode_readable_line_length">Читабельна довжина рядка</string>
+    <string name="text_mode_theme">Тема</string>
+    <string name="text_mode_font">Шрифт</string>
+    <string name="text_mode_font_sans">Без засічок</string>
+    <string name="text_mode_font_serif">Із засічками</string>
+    <string name="text_mode_font_mono">Моноширинний</string>
+    <string name="text_mode_no_text">На цій сторінці немає тексту, достуного для витягування.</string>
+    <string name="text_mode_failed_page">Не вдалося витягти текст із цієї сторінки.</string>
+    <string name="text_mode_retry">Повторити</string>
+    <string name="text_mode_page_label">Сторінка %1$d</string>
+    <string name="text_mode_loading_page">Завантаження сторінки…</string>
+    <string name="text_mode_previous_short">Попередня</string>
+    <string name="text_mode_next_short">Наступна</string>
+    <string name="text_mode_page_counter">%1$d/%2$d</string>
+    <string name="text_mode_table_short">Таблиця</string>
+    <string name="text_mode_settings_short">Налаштування</string>
+    <string name="text_mode_pdf_short">PDF</string>
+    <string name="system">Як у системі</string>
+    <string name="light">Світла</string>
+    <string name="sepia">Сепія</string>
+    <string name="dark">Темна</string>
+    <string name="black">Чорна</string>
+    <string name="dracula">Дракула</string>
+    <string name="text_size">Розмір тексту</string>
+    <string name="go_to_page">Перейти до сторінки</string>
+    <string name="no_input">Немає вхідних даних!</string>
+    <string name="go_to">Перейти</string>
+    <string name="search_field">Знайти…</string>
+    <string name="expand_or_collapse_bookmark">розгорнути або згорнути закладку</string>
+    <string name="expand_all">Розгорнути все</string>
+    <string name="collapse_all">Згорнути все</string>
+    <string name="table_of_contents">Зміст</string>
+    <string name="screenshot_saved">Знімок екрана успішно збережено</string>
+    <string name="failed_save_screenshot">Не вдалося зберегти знімок екрана!</string>
+    <string name="links_in_file">Посилання у файлі</string>
+    <string name="page_number">[0/0]</string>
+    <string name="searching">Пошук…</string>
+    <string name="expand_search_result_text">Розгорнути текст результату пошуку, щоб показати більше</string>
+    <string name="no_table_of_contents">Немає змісту</string>
+    <string name="too_short_query">Закороткий запит</string>
+    <string name="too_short_query_message">УВАГА: Пошуковий запит «%s» закороткий! Вашому телефону може бути важко впоратися з такою кількістю результатів. Якщо після цього він почне працювати некоректно, закрийте застосунок і відкрийте знову.</string>
+    <string name="loading">Завантаження…</string>
+    <string name="no_links_put_in_pdf">У документі немає навмисно вбудованих посилань.</string>
+    <string name="links_activity_title">Посилання, вбудовані в PDF</string>
+    <string name="too_many_results_may_be_slow">Велика кількість результатів! Пошук може зайняти певний час.</string>
+    <string name="links_in_document">Посилання в документі</string>
+    <string name="number_of_filtered_results" tools:ignore="PluralsCandidate">\"Відфільтровано результатів: %,d.\"</string>
+    <string name="no_app_to_open_link">Немає застосунку, який міг би відкрити це посилання</string>
+    <string name="copy_link_url">Копіювати URL-адресу посилання</string>
+    <string name="failed_to_extract_text">Не вдалося витягти текст</string>
+    <string name="page_counter_label">Сторінка: %1$d/%2$d</string>
+    <string name="fullscreen_page_info">Сторінка %1$d / %2$d · %3$d%%</string>
+    <string name="fullscreen_page_number_info">Сторінка %1$d / %2$d</string>
+    <string name="fullscreen_percentage_info">%1$d%%</string>
+    <string name="next_page">Наступна сторінка</string>
+    <string name="prev_page">Попередня сторінка</string>
+    <string name="text_color">Колір тексту</string>
+    <string name="background_color">Колір тла</string>
+    <string name="reset_to_default">Скинути до типових</string>
+    <string name="proceed_anyway">Усе одно продовжити</string>
+    <string name="page_out_of_bound" tools:ignore="PluralsCandidate">Сторінка #%d не існує в цьому PDF.</string>
+    <string name="press_back_again">Натисніть «Назад» ще раз, щоб вийти</string>
+    <string name="dracula_theme">Тема «Дракула»</string>
+    <string name="delete">Видалити</string>
+    <string name="delete_dialog_title">Упевнені?</string>
+    <string name="delete_dialog_message">Видалення запису про збереження призведе до того, що застосунок забуде все, що йому відомо про цей PDF-файл.</string>
+    <string name="list_mode">Режим списку</string>
+    <string name="status">Стан</string>
+    <string name="favorite_icon">значок улюбленого</string>
+    <string name="last_opened_key">Востаннє відкрито:</string>
+    <string name="pdf_cover_image">Обкладинка PDF</string>
+    <string name="pages">сторінок</string>
+    <string name="exit">Вийти</string>
+    <string name="rotate">Повернути</string>
+    <string name="auto_scroll">Автогортання</string>
+    <string name="horizontal_lock">Горизонтальне блокування</string>
+    <string name="horizontal_lock_action">Горизонтальне блокування</string>
+    <string name="reading_direction">Напрямок читання</string>
+    <string name="reading_direction_message">Для використання напрямку читання необхідно ввімкнути горизонтальне гортання.</string>
+    <string name="reading_direction_auto_ltr">Авто (зліва направо)</string>
+    <string name="reading_direction_auto_rtl">Авто (справа наліво)</string>
+    <string name="reading_direction_ltr">Зліва направо</string>
+    <string name="reading_direction_rtl">Справа наліво</string>
+    <string name="zoom_lock">Блокування масштабу</string>
+    <string name="screenshot">Змімок екрана</string>
+    <string name="hide_labels">Приховати мітки</string>
+    <string name="brightness">Яскравість</string>
+    <string name="fullscreen_info_show_time">Показує час у повноекранному режимі</string>
+    <string name="fullscreen_info_show_time_summary">Показує поточний час у повноекранній інфокартці.</string>
+    <string name="fullscreen_info_show_pdf_name">Показує назву PDF у повноекранному режимі</string>
+    <string name="fullscreen_info_show_pdf_name_summary">Показує назву PDF у повноекранній інфокартці.</string>
+    <string name="fullscreen_info_show_page_number">Показує номер сторінки в повноекранному режимі</string>
+    <string name="fullscreen_info_show_page_number_summary">Показує номер поточної сторінки в повноекранній інфокартці.</string>
+    <string name="fullscreen_info_show_reading_percentage">Показує відсоток прочитаного в повноекранному режимі</string>
+    <string name="fullscreen_info_show_reading_percentage_summary">Показує відсоток прочитаного на повноекранній інфокартці.</string>
+    <string name="behavior_settings">Поведінка</string>
+    <string name="auto_full_screen">Відкрити в повноекранному режимі</string>
+    <string name="auto_full_screen_summary">При відкритті документа автоматично вмикає повноекранний режим.</string>
+    <string name="always_horizontal">Завжди в горизонтальному режимі</string>
+    <string name="always_horizontal_summary">При відкритті PDF-файлів типово повертає екран у горизонтальну орієнтацію.</string>
+    <string name="dark_theme_for_app">Тема інтерфейсу</string>
+    <string name="app_dark_theme_summary">Дозволяє інтерфейсу застосунку (не вмісту PDF) автоматично адаптуватися до світлої або темної теми вашої системи. \n\nПримітка: цей параметр може вплинути на колір фону PDF на деяких пристроях.</string>
+    <string name="dark_theme_for_pdf">Тема сторінок PDF</string>
+    <string name="pdf_theme_follows_system">Тема сторінок PDF наслідує системну. Виберіть світлу або темну тему в налаштуваннях, щоби використовувати ручне перемикання.</string>
+    <string name="pdf_dark_theme_summary">Дозволяє сторінкам і вмісту PDF автоматично адаптуватися до світлої або темної теми вашої системи. \n\nПримітка: ввімкнення цього параметра вимикає функцію «Змінити тему PDF» у головному меню.</string>
+    <string name="enable_reload_button">Показувати кнопку перезавантаження на панелі застосунків</string>
+    <string name="enable_reload_summary">Швидко оновлює ваш уміст, гарантуючи, що будь-які зміни в документах стають видимими миттєво.</string>
+    <string name="primary_button_action">Основна кнопка панелі інструментів</string>
+    <string name="secondary_button_action">Допоміжна кнопка панелі інструментів</string>
+    <string name="fullscreen_buttons">Дії у повноекранному режимі</string>
+    <string name="fullscreen_buttons_summary">Обрати дій, що з’являтимуться у повноекранному режимі.</string>
+    <string name="shortcut_bar_buttons">Дії панелі швидкого доступу</string>
+    <string name="shortcut_bar_buttons_summary">Обрати дії, що з’являтимуться на панелі швидкого доступу.</string>
+    <string name="crop_margins">Приховати поля</string>
+    <string name="show_margins">Показати поля</string>
+    <string name="always_hide_margins">Завжди приховувати поля сторінки</string>
+    <string name="always_hide_margins_summary">Автоматично приховувати порожні поля сторінок під час відкриття PDF. Аналіз полів виконується один раз для кожного PDF-файлу під час першого використання.</string>
+    <string name="analyzing_margins_progress">Аналіз полів… %1$d/%2$d</string>
+    <string name="drag_to_reorder">Перетягніть, щоб змінити порядок</string>
+    <string name="save_password">Зберегти пароль</string>
+    <string name="send_crash_report_title">Надіслати анонімний звіт про помилку?</string>
+    <string name="send_crash_report_message">Звіт містить наступне: (STACK_TRACE, APP_VERSION_CODE, APP_VERSION_NAME, USER_CRASH_DATE, PACKAGE_NAME, ANDROID_VERSION, PHONE_MODEL, LOGCAT, AVAILABLE_MEM_SIZE)</string>
+    <string name="send">Надіслати</string>
+    <string name="no">Ні</string>
+    <string name="toggle_shortcuts">Показати / Приховати ярлики</string>
+    <string name="file_properties">Властивості файлу</string>
+    <string name="pdf_pages">Сторінок</string>
+    <string name="pdf_subject">Тема</string>
+    <string name="pdf_keywords">Ключові слова</string>
+    <string name="pdf_created">Створено</string>
+    <string name="pdf_modified">Змінено</string>
+    <string name="pdf_created_by">Створено:</string>
+    <string name="pdf_produced_by">Розроблено:</string>
+    <string name="pdf_file_size">Розмір файлу</string>
+    <string name="pdf_file_name">Назва файлу</string>
+    <string name="pdf_page_size">Розмір сторінки</string>
+    <string name="pdf_page_size_mixed">Змішаний</string>
+    <string name="pdf_fonts">Шрифти</string>
+    <string name="font_embedded">вбудований</string>
+    <string name="font_not_embedded">не вбудований</string>
+    <string name="reload_pdf">Перезавантажити PDF</string>
+    <string name="text_extraction">Витягування тексту</string>
+    <string name="search_in_page">Пошук на сторінці</string>
+
+    <string name="storage_permission_rationale_title">Надати доступ до всіх файлів</string>
+    <string name="storage_permission_rationale_message">Щоби знаходити та відкривати PDF-файли на цьому пристрої, MJ PDF потребує дозволу на доступ до всіх файлів. Android відкриє екран налаштувань, де ви зможете надати цей дозвіл. Ваші файли ніколи не залишають ваш пристрій.</string>
+    <string name="storage_permission_continue">Продовжити</string>
+    <string name="storage_permission_not_now">Не зараз</string>
+    <string name="storage_permission_grant">Надати дозвіл</string>
+    <string name="home_permission_card_message">Надає доступ до файлів, аби створити свою бібліотеку з PDF-документів на цьому пристрої.</string>
+    <string name="home_search_hint">Пошук у вашій бібліотеці</string>
+    <string name="home_tab_recent">Нещодавні</string>
+    <string name="home_tab_library">Бібліотека</string>
+    <string name="home_tab_folders">Теки</string>
+    <string name="home_empty_recent_title">Ще нічого не прочитано</string>
+    <string name="home_empty_recent_message">Книги, які ви відкриєте, з’являться тут.</string>
+    <string name="home_open_pdf">Відкрити PDF</string>
+    <string name="home_empty_title">Ваша бібліотека пуста</string>
+    <string name="home_empty_message">PDF-файли, які ви відкриваєте на цьому пристрої, з’являтимуться тут.</string>
+    <string name="home_empty_status_title">Тут ще нічого немає</string>
+    <string name="home_empty_status_message">Затисніть PDF-файли, щоб вказати їхній стан прочитання.</string>
+    <string name="home_empty_all_title">PDF-файлів не знайдено</string>
+    <string name="home_empty_all_message">На цьому пристрої не знайдено жодного PDF-файлу.</string>
+    <string name="home_continue_reading">Продовжити читання</string>
+    <string name="home_recents">Нещодавні</string>
+    <string name="home_chip_to_read">Читати</string>
+    <string name="home_chip_reading">Читається</string>
+    <string name="home_chip_on_hold">Відкладено</string>
+    <string name="home_chip_completed">Завершено</string>
+    <string name="home_chip_abandoned">Кинуто</string>
+    <string name="home_chip_all_files">Усі файли</string>
+    <string name="home_hero_progress_template">%1$d%% · %2$d сторінок</string>
+    <string name="home_scanning_progress">Сканування… %1$d PDF-файлів знайдено</string>
+    <string name="home_menu_title">Меню бібліотеки</string>
+    <string name="home_menu_view">Переглянути</string>
+    <string name="home_menu_stats">Статистика бібліотеки</string>
+    <string name="home_stats_on_device">PDF-файли на пристрої</string>
+    <string name="home_stats_in_library">У бібліотеці</string>
+    <string name="home_stats_reading">Читається</string>
+    <string name="home_stats_completed">Завершено</string>
+    <string name="home_open_online">Відкрити онлайн PDF</string>
+    <string name="home_folder_storage">Сховище</string>
+    <string name="home_folders_mode">Вигляд тек</string>
+    <string name="home_folders_hierarchy">Ієрархія</string>
+    <string name="home_folders_flat">Плаский</string>
+    <string name="home_rename">Перейменувати</string>
+    <string name="home_delete_from_device">Видалити з пристрою</string>
+    <string name="home_rename_exists">Файл із такою назвою вже існує.</string>
+    <string name="home_rename_failed">Не вдалося перейменувати файл.</string>
+    <string name="home_delete_failed">Не вдалося видалити файл.</string>
+    <string name="home_delete_confirm_message">«%1$s» буде назавжди видалено з цього пристрою.</string>
+    <string name="home_pages_size_template">%1$d сторінок · %2$s</string>
+    <plurals name="home_pages">
+        <item quantity="one">%d сторінка</item>
+        <item quantity="few">%d сторінки</item>
+        <item quantity="many">%d сторінок</item>
+        <item quantity="other">%d сторінки</item>
+    </plurals>
+    <string name="home_percent_position_template">%1$d%% · %2$d/%3$d</string>
+    <string name="home_last_read">Востаннє прочитано: %1$s</string>
+    <string name="home_remove_from_recent">Видалити з нещодавніх</string>
+    <string name="home_hide_from_library">Приховати з бібліотеки</string>
+    <string name="home_show_in_library">Показати в бібліотеці</string>
+    <string name="home_view_grid">Режим сітки</string>
+    <string name="home_view_list">Режим списку</string>
+    <string name="home_grid_size">Розмір сітки</string>
+    <string name="home_grid_size_small">Малий</string>
+    <string name="home_grid_size_medium">Середній</string>
+    <string name="home_grid_size_large">Великий</string>
+    <string name="home_sort">Сортувати за</string>
+    <string name="home_sort_last_opened">Востаннє відкрито</string>
+    <string name="home_sort_name">Назва</string>
+    <string name="home_selected_count">%1$d вибрано</string>
+    <string name="home_set_status">Вказати стан</string>
+    <string name="home_relocate_title">Файл не знайдено</string>
+    <string name="home_relocate_message">Файл «%1$s» більше не знаходиться у збереженому місці. Знайдіть його, щоб зберегти прогрес читання та налаштування.</string>
+    <string name="home_relocate_action">Перемістити</string>
+    <string name="home_relocate_found">Файл знайдено в новому місці</string>
+    <string name="home_relocate_mismatch_title">Інший файл</string>
+    <string name="home_relocate_mismatch_message">Вибраний файл не збігається з оригінальним PDF. Відкрити його як новий документ?</string>
+    <string name="home_open_anyway">Усе одно відкрити</string>
+    <string name="home_cover_description">Обкладинка PDF</string>
+    <string name="disable_home_library_title">Вимкнути домашню бібліотеку</string>
+    <string name="disable_home_library_summary">Оминати екран домашньої бібліотеки. Замість цього при запуску застосунок відкриватиме системний вибір файлів, як у старіших версіях.</string>
+    <string name="settings_home">Головна сторінка</string>
+    <string name="settings_home_summary">Головний екран бібліотеки та його поведінка.</string>
+    <string name="home_show_pdf_title_title">Показувати назви PDF-файлів</string>
+    <string name="home_show_pdf_title_summary">Використовує заголовок із метаданих PDF, якщо він доступний, замість назви файлу.</string>
+
+</resources>
