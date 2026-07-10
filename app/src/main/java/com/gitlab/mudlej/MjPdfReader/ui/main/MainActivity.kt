@@ -465,6 +465,12 @@ class MainActivity : AppCompatActivity() {
         actionBar?.setDisplayShowCustomEnabled(true)
         actionBar?.elevation = 0F
 
+        val homeEnabled = !pref.getHomeDisabled()
+        actionBar?.setDisplayHomeAsUpEnabled(homeEnabled)
+        if (homeEnabled) {
+            actionBar?.setHomeAsUpIndicator(R.drawable.ic_home)
+        }
+
         val customView: View = layoutInflater.inflate(R.layout.actionbar_title, null)
         appTitlePageNumber = customView.findViewById(R.id.actionbarPageNumber)
         appTitle = customView.findViewById(R.id.actionbarTitle)
@@ -1035,12 +1041,20 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            android.R.id.home -> navigateHome()
             R.id.toolbarPrimaryActionOption,
             R.id.toolbarSecondaryActionOption -> if (!toolbarActionController.handle(item)) return super.onOptionsItemSelected(item)
             R.id.readerActionsOption -> showReaderActions()
             else -> return super.onOptionsItemSelected(item)
         }
         return true
+    }
+
+    private fun navigateHome() {
+        runAfterDirtyAnnotationPrompt {
+            startActivity(Intent(this, HomeActivity::class.java))
+            finish()
+        }
     }
 
     private fun toggleSecondBar() {
