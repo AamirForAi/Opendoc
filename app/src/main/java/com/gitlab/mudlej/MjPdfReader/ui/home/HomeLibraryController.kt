@@ -1,20 +1,18 @@
 package com.gitlab.mudlej.MjPdfReader.ui.home
 
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
-import com.gitlab.mudlej.MjPdfReader.enums.HomeSortOrder
-import com.gitlab.mudlej.MjPdfReader.enums.ListFilter
-import com.gitlab.mudlej.MjPdfReader.enums.ReadingStatus
-import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
-import com.gitlab.mudlej.MjPdfReader.repository.ScannedPdfCache
+import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
+import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
+import com.gitlab.mudlej.MjPdfReader.data.entity.ScannedPdfEntry
 
 class HomeLibraryController(
-    private val databaseManager: DatabaseManager,
+    private val pdfRepository: PdfRepository,
     private val pref: Preferences,
 ) {
 
     suspend fun loadLibrary(): List<HomeItem> {
         val showPdfTitle = pref.getHomeShowPdfTitle()
-        val items = databaseManager.findAllRecords()
+        val items = pdfRepository.findAllRecords()
             .filter { it.fileName.isNotEmpty() }
             .map { HomeItem.from(it, showPdfTitle) }
         return sort(items)
@@ -29,7 +27,7 @@ class HomeLibraryController(
         }
     }
 
-    fun mergeWithScan(records: List<HomeItem>, entries: List<ScannedPdfCache>): List<HomeItem> {
+    fun mergeWithScan(records: List<HomeItem>, entries: List<ScannedPdfEntry>): List<HomeItem> {
         val recordsByPath = records
             .filter { it.uri.scheme == "file" }
             .associateBy { it.uri.path }
@@ -82,7 +80,7 @@ class HomeLibraryController(
 
     fun searchAll(
         records: List<HomeItem>,
-        entries: List<ScannedPdfCache>,
+        entries: List<ScannedPdfEntry>,
         query: String,
     ): List<HomeItem> {
         if (query.isBlank()) {

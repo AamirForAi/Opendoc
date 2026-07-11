@@ -44,12 +44,13 @@
 package com.gitlab.mudlej.MjPdfReader.data
 
 import android.content.SharedPreferences
-import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
-import com.gitlab.mudlej.MjPdfReader.enums.HomeGridSize
-import com.gitlab.mudlej.MjPdfReader.enums.HomeSortOrder
-import com.gitlab.mudlej.MjPdfReader.enums.HomeTab
-import com.gitlab.mudlej.MjPdfReader.enums.HomeViewMode
-import com.gitlab.mudlej.MjPdfReader.enums.ListFilter
+import com.gitlab.mudlej.MjPdfReader.ui.reader.annotation.HighlightPalette
+import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableAction
+import com.gitlab.mudlej.MjPdfReader.ui.home.HomeGridSize
+import com.gitlab.mudlej.MjPdfReader.ui.home.HomeSortOrder
+import com.gitlab.mudlej.MjPdfReader.ui.home.HomeTab
+import com.gitlab.mudlej.MjPdfReader.ui.home.HomeViewMode
+import com.gitlab.mudlej.MjPdfReader.ui.home.ListFilter
 
 class Preferences(private val prefMan: SharedPreferences) {
 

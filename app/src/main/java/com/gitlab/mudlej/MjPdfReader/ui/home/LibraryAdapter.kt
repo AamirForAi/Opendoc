@@ -10,10 +10,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeGridCellBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeListRowBinding
-import com.gitlab.mudlej.MjPdfReader.enums.HomeViewMode
-import com.gitlab.mudlej.MjPdfReader.enums.ReadingStatus
-import com.gitlab.mudlej.MjPdfReader.manager.thumbnail.CoverCache
-import com.gitlab.mudlej.MjPdfReader.util.StringUtil.formatEnumToTitle
+import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
+import com.gitlab.mudlej.MjPdfReader.core.text.StringUtil.formatEnumToTitle
 import kotlinx.coroutines.CoroutineScope
 
 class LibraryAdapter(

@@ -6,9 +6,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
-import com.gitlab.mudlej.MjPdfReader.enums.HomeViewMode
-import com.gitlab.mudlej.MjPdfReader.manager.thumbnail.CoverCache
-import com.gitlab.mudlej.MjPdfReader.repository.ScannedPdfCache
+import com.gitlab.mudlej.MjPdfReader.data.entity.ScannedPdfEntry
 import kotlinx.coroutines.CoroutineScope
 
 class FoldersTabController(
@@ -50,7 +48,7 @@ class FoldersTabController(
         )
     }
 
-    fun render(allItems: List<HomeItem>, entries: List<ScannedPdfCache>, scanning: Boolean) {
+    fun render(allItems: List<HomeItem>, entries: List<ScannedPdfEntry>, scanning: Boolean) {
         index = FolderIndex(entries, context.getString(R.string.home_folder_storage))
         lastItems = allItems
         lastScanning = scanning
@@ -92,7 +90,7 @@ class FoldersTabController(
         val dir = currentDir
 
         val folders: List<FolderNode>
-        val files: List<ScannedPdfCache>
+        val files: List<ScannedPdfEntry>
         val crumbs: List<Crumb>
 
         if (flat) {

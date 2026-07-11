@@ -4,12 +4,12 @@ import android.app.Activity
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import com.gitlab.mudlej.MjPdfReader.data.PDF
-import com.gitlab.mudlej.MjPdfReader.data.SearchResult
-import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
-import com.gitlab.mudlej.MjPdfReader.util.accentInsensitiveRanges
-import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
-import com.gitlab.mudlej.MjPdfReader.util.indexesOf
+import com.gitlab.mudlej.MjPdfReader.pdf.PDF
+import com.gitlab.mudlej.MjPdfReader.pdf.SearchResult
+import com.gitlab.mudlej.MjPdfReader.pdf.PdfExtractor
+import com.gitlab.mudlej.MjPdfReader.core.text.accentInsensitiveRanges
+import com.gitlab.mudlej.MjPdfReader.pdf.createPdfExtractor
+import com.gitlab.mudlej.MjPdfReader.core.text.indexesOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +45,7 @@ object SearchCoordinator {
     private var active: ActiveSearch? = null
 
     @Synchronized
-    fun startOrAttach(
+    fun startOrSubscribe(
         activity: Activity,
         pdfPath: String?,
         password: String?,
@@ -69,7 +69,7 @@ object SearchCoordinator {
     }
 
     @Synchronized
-    fun attachIfRunning(fileHash: String?, query: String, ignoreAccents: Boolean, listener: Listener): Boolean {
+    fun subscribeIfRunning(fileHash: String?, query: String, ignoreAccents: Boolean, listener: Listener): Boolean {
         val current = active ?: return false
         if (current.key != Key(fileHash, query.trim(), ignoreAccents) || current.finished) {
             return false
@@ -79,7 +79,7 @@ object SearchCoordinator {
     }
 
     @Synchronized
-    fun detach(listener: Listener) {
+    fun unsubscribe(listener: Listener) {
         active?.listeners?.remove(listener)
     }
 

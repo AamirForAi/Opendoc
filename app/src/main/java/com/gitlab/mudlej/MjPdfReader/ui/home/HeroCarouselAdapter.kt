@@ -7,8 +7,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeHeroBookBinding
-import com.gitlab.mudlej.MjPdfReader.manager.thumbnail.CoverCache
-import com.gitlab.mudlej.MjPdfReader.util.appDateFormatter
+import com.gitlab.mudlej.MjPdfReader.core.io.appDateFormatter
 import kotlinx.coroutines.CoroutineScope
 
 class HeroCarouselAdapter(

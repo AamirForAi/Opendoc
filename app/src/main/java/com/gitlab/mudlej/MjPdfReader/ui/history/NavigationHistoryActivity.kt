@@ -11,10 +11,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityNavigationHistoryBinding
-import com.gitlab.mudlej.MjPdfReader.ui.main.navigation.ReaderHistoryManager
-import com.gitlab.mudlej.MjPdfReader.ui.toc.TocPathResolver
+import com.gitlab.mudlej.MjPdfReader.ui.reader.navigation.ReaderHistoryManager
+import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsPathResolver
 import kotlinx.coroutines.launch
 
 class NavigationHistoryActivity : AppCompatActivity() {
@@ -35,21 +35,21 @@ class NavigationHistoryActivity : AppCompatActivity() {
         }
         val entries = historyEntriesFromIntent()
         showEntries(entries)
-        loadTocPaths(entries)
+        loadTableOfContentsPaths(entries)
     }
 
-    private fun loadTocPaths(entries: List<NavigationHistoryRow>) {
+    private fun loadTableOfContentsPaths(entries: List<NavigationHistoryRow>) {
         if (entries.isEmpty()) {
             return
         }
         lifecycleScope.launch {
-            val resolver = TocPathResolver.load(
+            val resolver = TableOfContentsPathResolver.load(
                 this@NavigationHistoryActivity,
                 intent.getStringExtra(PDF.filePathKey),
                 intent.getStringExtra(PDF.passwordKey),
             )
-            if (resolver !== TocPathResolver.EMPTY) {
-                showEntries(entries.map { it.copy(tocPath = resolver.resolve(it.pageIndex)) })
+            if (resolver !== TableOfContentsPathResolver.EMPTY) {
+                showEntries(entries.map { it.copy(tableOfContentsPath = resolver.resolve(it.pageIndex)) })
             }
         }
     }
@@ -84,7 +84,7 @@ class NavigationHistoryActivity : AppCompatActivity() {
                 origin = origin,
                 timestamp = timestamps[index],
                 backStackIndex = backStackIndices[index],
-                tocPath = null,
+                tableOfContentsPath = null,
             )
         }
     }
@@ -120,5 +120,5 @@ data class NavigationHistoryRow(
     val origin: ReaderHistoryManager.Origin,
     val timestamp: Long,
     val backStackIndex: Int,
-    val tocPath: String?,
+    val tableOfContentsPath: String?,
 )

@@ -5,14 +5,13 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.data.DocumentState
-import com.gitlab.mudlej.MjPdfReader.data.PDF
-import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
-import com.gitlab.mudlej.MjPdfReader.manager.storage.LibraryScanner
-import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
-import com.gitlab.mudlej.MjPdfReader.util.PersistedGrantKeeper
-import com.gitlab.mudlej.MjPdfReader.util.UriCanonicalizer
-import com.gitlab.mudlej.MjPdfReader.util.computeHash
+import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
+import com.gitlab.mudlej.MjPdfReader.pdf.PDF
+import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
+import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
+import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
+import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
+import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -20,7 +19,7 @@ import kotlinx.coroutines.launch
 
 class RelocateController(
     private val activity: AppCompatActivity,
-    private val databaseManager: DatabaseManager,
+    private val pdfRepository: PdfRepository,
     private val libraryScanner: LibraryScanner,
     private val scope: CoroutineScope,
     private val onOpen: (Uri, String?) -> Unit,
@@ -40,12 +39,12 @@ class RelocateController(
 
     fun handleMissingFile(hash: String) {
         scope.launch {
-            val record = databaseManager.findRecord(hash) ?: return@launch
+            val record = pdfRepository.findRecord(hash) ?: return@launch
 
             val healedPath = libraryScanner.findPathByHash(hash)
             if (healedPath != null) {
                 val file = File(healedPath)
-                databaseManager.updateRecordIdentity(
+                pdfRepository.updateRecordIdentity(
                     hash, Uri.fromFile(file), file.nameWithoutExtension, record.lastOpened
                 )
                 Toast.makeText(activity, R.string.home_relocate_found, Toast.LENGTH_SHORT).show()
@@ -71,12 +70,12 @@ class RelocateController(
 
     private fun onFilePicked(record: PdfRecord, uri: Uri) {
         scope.launch {
-            val pickedHash = computeHash(activity, DocumentState(uri = uri))
+            val pickedHash = computeHash(activity, uri)
             if (pickedHash == record.hash) {
                 PersistedGrantKeeper.takeReadGrant(activity, uri)
                 val canonicalFile = UriCanonicalizer.canonicalize(activity, uri)
                 val durableUri = canonicalFile?.let(Uri::fromFile) ?: uri
-                databaseManager.updateRecordIdentity(
+                pdfRepository.updateRecordIdentity(
                     record.hash, durableUri, record.fileName, record.lastOpened
                 )
                 onHealed()

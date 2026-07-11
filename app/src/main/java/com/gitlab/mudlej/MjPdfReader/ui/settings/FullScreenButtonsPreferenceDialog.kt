@@ -3,10 +3,10 @@ package com.gitlab.mudlej.MjPdfReader.ui.settings
 import android.content.Context
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
-import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
-import com.gitlab.mudlej.MjPdfReader.enums.orderedFullScreenOverlayActionIds
-import com.gitlab.mudlej.MjPdfReader.enums.orderedFullScreenOverlayActions
-import com.gitlab.mudlej.MjPdfReader.enums.selectedFullScreenOverlayActionIds
+import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableAction
+import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.orderedFullScreenOverlayActionIds
+import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.orderedFullScreenOverlayActions
+import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.selectedFullScreenOverlayActionIds
 
 fun showFullScreenButtonsPreferenceDialog(
     context: Context,

@@ -26,8 +26,8 @@ import androidx.preference.PreferenceViewHolder
 import androidx.preference.SwitchPreferenceCompat
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
-import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
-import com.gitlab.mudlej.MjPdfReader.util.SegmentedButtonStyler
+import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableAction
+import com.gitlab.mudlej.MjPdfReader.core.ui.SegmentedButtonStyler
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlin.math.roundToInt

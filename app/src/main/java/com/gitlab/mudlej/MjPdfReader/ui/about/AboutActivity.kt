@@ -46,6 +46,8 @@ package com.gitlab.mudlej.MjPdfReader.ui.about
 import android.R
 import android.app.Dialog
 import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
@@ -54,14 +56,11 @@ import androidx.fragment.app.DialogFragment
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityAboutBinding
-import com.gitlab.mudlej.MjPdfReader.ui.main.MainIntroActivity
-import com.gitlab.mudlej.MjPdfReader.ui.showAppFeaturesDialog
-import com.gitlab.mudlej.MjPdfReader.util.emailIntent
-import com.gitlab.mudlej.MjPdfReader.util.getAppVersion
-import com.gitlab.mudlej.MjPdfReader.util.linkIntent
-import com.gitlab.mudlej.MjPdfReader.util.navIntent
+import com.gitlab.mudlej.MjPdfReader.ui.intro.MainIntroActivity
+import com.gitlab.mudlej.MjPdfReader.ui.reader.showAppFeaturesDialog
+import com.gitlab.mudlej.MjPdfReader.core.io.navIntent
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
+import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 
 class AboutActivity : AppCompatActivity() {
@@ -156,3 +155,15 @@ class AboutActivity : AppCompatActivity() {
         }
     }
 }
+
+fun emailIntent(emailAddress: String, subject: String, text: String): Intent {
+    val email = Intent(Intent.ACTION_SENDTO)
+    email.data = Uri.parse("mailto:$emailAddress")
+    email.putExtra(Intent.EXTRA_SUBJECT, subject)
+    email.putExtra(Intent.EXTRA_TEXT, text)
+    return email
+}
+
+fun linkIntent(url: String?) = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+
+private fun getAppVersion() = BuildConfig.VERSION_NAME

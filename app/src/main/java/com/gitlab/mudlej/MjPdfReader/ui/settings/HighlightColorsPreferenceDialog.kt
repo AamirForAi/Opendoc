@@ -10,7 +10,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.data.HighlightPalette
+import com.gitlab.mudlej.MjPdfReader.ui.reader.annotation.HighlightPalette
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.color.MaterialColors

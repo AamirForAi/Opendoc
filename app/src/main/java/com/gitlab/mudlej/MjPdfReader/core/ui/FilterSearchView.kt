@@ -4,7 +4,6 @@ import android.view.Menu
 import android.view.View
 import androidx.appcompat.widget.SearchView
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 
 fun Menu.attachFilterSearchView(

@@ -6,7 +6,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.databinding.PageHomeFoldersBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PageHomeLibraryBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PageHomeRecentBinding
-import com.gitlab.mudlej.MjPdfReader.enums.HomeTab
 
 class HomeTabsAdapter(
     private val onPageAttached: (HomeTab, RecyclerView) -> Unit,

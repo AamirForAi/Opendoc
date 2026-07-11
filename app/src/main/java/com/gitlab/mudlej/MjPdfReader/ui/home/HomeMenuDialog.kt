@@ -6,14 +6,10 @@ import androidx.appcompat.app.AppCompatActivity
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.DialogHomeMenuBinding
-import com.gitlab.mudlej.MjPdfReader.enums.HomeGridSize
-import com.gitlab.mudlej.MjPdfReader.enums.HomeSortOrder
-import com.gitlab.mudlej.MjPdfReader.enums.HomeTab
-import com.gitlab.mudlej.MjPdfReader.enums.HomeViewMode
 import com.gitlab.mudlej.MjPdfReader.ui.about.AboutActivity
-import com.gitlab.mudlej.MjPdfReader.ui.main.MainActivity
+import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
-import com.gitlab.mudlej.MjPdfReader.util.SegmentedButtonStyler
+import com.gitlab.mudlej.MjPdfReader.core.ui.SegmentedButtonStyler
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class HomeMenuDialog(

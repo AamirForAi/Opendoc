@@ -12,10 +12,10 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.data.SearchResult
+import com.gitlab.mudlej.MjPdfReader.pdf.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.SearchResultItemBinding
-import com.gitlab.mudlej.MjPdfReader.util.accentInsensitiveRanges
-import com.gitlab.mudlej.MjPdfReader.util.indexesOf
+import com.gitlab.mudlej.MjPdfReader.core.text.accentInsensitiveRanges
+import com.gitlab.mudlej.MjPdfReader.core.text.indexesOf
 
 class SearchResultViewHolder(
     private val context: Context,

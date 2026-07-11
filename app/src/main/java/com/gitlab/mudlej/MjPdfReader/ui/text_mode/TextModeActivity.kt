@@ -17,18 +17,18 @@ import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.data.DocumentState
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
+import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityTextModeBinding
-import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
-import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
-import com.gitlab.mudlej.MjPdfReader.ui.showGoToPageDialog
-import com.gitlab.mudlej.MjPdfReader.ui.toc.TableOfContentsActivity
-import com.gitlab.mudlej.MjPdfReader.ui.toc.TableOfContentsState
-import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
-import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
-import com.gitlab.mudlej.MjPdfReader.util.computeHash
+import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
+import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
+import com.gitlab.mudlej.MjPdfReader.core.ui.showGoToPageDialog
+import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsActivity
+import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsState
+import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
+import com.gitlab.mudlej.MjPdfReader.core.ui.ColorUtil
+import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Job
@@ -39,7 +39,7 @@ class TextModeActivity : AppCompatActivity() {
     private lateinit var binding: ActivityTextModeBinding
     private lateinit var adapter: TextModePageAdapter
     private lateinit var layoutManager: LinearLayoutManager
-    private lateinit var databaseManager: DatabaseManager
+    private lateinit var pdfRepository: PdfRepository
     private lateinit var contentLoader: TextModeContentLoader
     private lateinit var controlsController: TextModeControlsController
     private lateinit var pdfUri: Uri
@@ -55,16 +55,16 @@ class TextModeActivity : AppCompatActivity() {
     private var seekSettling = false
     private var resultPrepared = false
     private var settings = TextModeSettings()
-    private var bookmarkState = TableOfContentsState()
+    private var tableOfContentsState = TableOfContentsState()
     private var savedPageIndex = -1
     private var setupJob: Job? = null
 
-    private val bookmarksLauncher = registerForActivityResult(
+    private val tableOfContentsLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        result.data?.let { bookmarkState = TableOfContentsState.from(it) }
-        if (result.resultCode == PDF.BOOKMARK_RESULT_OK) {
-            val pageIndex = result.data?.getIntExtra(PDF.chosenBookmarkKey, currentPageIndex)
+        result.data?.let { tableOfContentsState = TableOfContentsState.from(it) }
+        if (result.resultCode == PDF.TABLE_OF_CONTENTS_RESULT_OK) {
+            val pageIndex = result.data?.getIntExtra(PDF.chosenTableOfContentsEntryKey, currentPageIndex)
                 ?: return@registerForActivityResult
             scrollToPage(pageIndex)
         }
@@ -95,7 +95,7 @@ class TextModeActivity : AppCompatActivity() {
             insets
         }
 
-        databaseManager = DatabaseManager(AppDatabase.getInstance(applicationContext))
+        pdfRepository = PdfRepository(AppDatabase.getInstance(applicationContext))
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         settings = TextModeSettings.load(sharedPreferences)
         val hideDelayMillis = Preferences(sharedPreferences).getHideDelay().toLong() + CONTROLS_EXTRA_HIDE_DELAY_MS
@@ -119,7 +119,7 @@ class TextModeActivity : AppCompatActivity() {
                 return@launch
             }
             if (fileHash == null) {
-                fileHash = computeHash(this@TextModeActivity, DocumentState(uri = pdfUri))
+                fileHash = computeHash(this@TextModeActivity, pdfUri)
             }
             currentPageIndex = currentPageIndex.coerceIn(0, pageCount - 1)
             initReader()
@@ -128,7 +128,7 @@ class TextModeActivity : AppCompatActivity() {
     }
 
     private fun restoreState(savedInstanceState: Bundle?) {
-        bookmarkState = savedInstanceState?.let { TableOfContentsState.from(it) } ?: TableOfContentsState.from(intent)
+        tableOfContentsState = savedInstanceState?.let { TableOfContentsState.from(it) } ?: TableOfContentsState.from(intent)
         currentPageIndex = savedInstanceState?.getInt(CURRENT_PAGE_KEY)
             ?: intent.getIntExtra(PDF.pageNumberKey, 0)
         fileHash = savedInstanceState?.getString(PDF.fileHashKey)
@@ -192,7 +192,7 @@ class TextModeActivity : AppCompatActivity() {
         binding.pageButton.setOnClickListener {
             showGoToPageDialog(this, binding.root, currentPageIndex, pageCount, ::scrollToPage)
         }
-        binding.tocButton.setOnClickListener { showBookmarks() }
+        binding.tableOfContentsButton.setOnClickListener { showTableOfContents() }
         binding.typographyButton.setOnClickListener { typographyController.showSheet() }
         binding.backToPdfButton.setOnClickListener { finish() }
 
@@ -306,7 +306,7 @@ class TextModeActivity : AppCompatActivity() {
 
         savedPageIndex = currentPageIndex
         lifecycleScope.launch {
-            databaseManager.setPageNumber(hash, currentPageIndex)
+            pdfRepository.setPageNumber(hash, currentPageIndex)
         }
     }
 
@@ -321,19 +321,19 @@ class TextModeActivity : AppCompatActivity() {
         binding.nextPageButton.isEnabled = currentPageIndex < pageCount - 1
     }
 
-    private fun showBookmarks() {
+    private fun showTableOfContents() {
         Intent(this, TableOfContentsActivity::class.java).also { bookmarkIntent ->
             bookmarkIntent.putExtra(PDF.filePathKey, pdfUri.toString())
             bookmarkIntent.putExtra(PDF.passwordKey, pdfPassword)
-            bookmarkState.putInto(bookmarkIntent)
-            bookmarksLauncher.launch(bookmarkIntent)
+            tableOfContentsState.putInto(bookmarkIntent)
+            tableOfContentsLauncher.launch(bookmarkIntent)
         }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putInt(CURRENT_PAGE_KEY, currentPageIndex)
         fileHash?.let { outState.putString(PDF.fileHashKey, it) }
-        bookmarkState.putInto(outState)
+        tableOfContentsState.putInto(outState)
         super.onSaveInstanceState(outState)
     }
 

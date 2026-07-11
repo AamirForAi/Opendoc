@@ -5,8 +5,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
-import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
+import com.gitlab.mudlej.MjPdfReader.pdf.PdfExtractor
+import com.gitlab.mudlej.MjPdfReader.pdf.createPdfExtractor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

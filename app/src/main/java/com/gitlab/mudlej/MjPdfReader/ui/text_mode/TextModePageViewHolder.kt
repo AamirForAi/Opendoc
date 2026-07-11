@@ -13,7 +13,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.TextModePageItemBinding
-import com.gitlab.mudlej.MjPdfReader.util.plainTextShareIntent
+import com.gitlab.mudlej.MjPdfReader.core.io.plainTextShareIntent
 
 class TextModePageViewHolder(
     private val binding: TextModePageItemBinding,

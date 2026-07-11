@@ -1,7 +1,7 @@
 package com.gitlab.mudlej.MjPdfReader.ui.home
 
 import android.os.Environment
-import com.gitlab.mudlej.MjPdfReader.repository.ScannedPdfCache
+import com.gitlab.mudlej.MjPdfReader.data.entity.ScannedPdfEntry
 import java.io.File
 
 data class FolderNode(
@@ -17,11 +17,11 @@ data class Crumb(
 )
 
 class FolderIndex(
-    entries: List<ScannedPdfCache>,
+    entries: List<ScannedPdfEntry>,
     private val primaryLabel: String,
 ) {
 
-    private val filesByDir: Map<String, List<ScannedPdfCache>> =
+    private val filesByDir: Map<String, List<ScannedPdfEntry>> =
         entries.groupBy { File(it.path).parent.orEmpty() }.filterKeys { it.isNotEmpty() }
 
     private val childDirs = HashMap<String, MutableSet<String>>()
@@ -55,7 +55,7 @@ class FolderIndex(
             }
     }
 
-    fun filesIn(dir: String): List<ScannedPdfCache> {
+    fun filesIn(dir: String): List<ScannedPdfEntry> {
         return filesByDir[dir].orEmpty().sortedBy { File(it.path).name.lowercase() }
     }
 

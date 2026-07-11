@@ -14,22 +14,18 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityHomeBinding
-import com.gitlab.mudlej.MjPdfReader.enums.HomeTab
-import com.gitlab.mudlej.MjPdfReader.enums.HomeViewMode
-import com.gitlab.mudlej.MjPdfReader.enums.ReadingStatus
-import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
-import com.gitlab.mudlej.MjPdfReader.manager.permission.PermissionManager
-import com.gitlab.mudlej.MjPdfReader.manager.storage.LibraryScanner
-import com.gitlab.mudlej.MjPdfReader.manager.thumbnail.CoverCache
-import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
-import com.gitlab.mudlej.MjPdfReader.ui.showAppFeaturesDialog
-import com.gitlab.mudlej.MjPdfReader.ui.main.MainActivity
-import com.gitlab.mudlej.MjPdfReader.ui.main.MainIntroActivity
-import com.gitlab.mudlej.MjPdfReader.util.PersistedGrantKeeper
-import com.gitlab.mudlej.MjPdfReader.util.StringUtil.formatEnumToTitle
+import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
+import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
+import com.gitlab.mudlej.MjPdfReader.core.PermissionManager
+import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
+import com.gitlab.mudlej.MjPdfReader.ui.reader.showAppFeaturesDialog
+import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
+import com.gitlab.mudlej.MjPdfReader.ui.intro.MainIntroActivity
+import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
+import com.gitlab.mudlej.MjPdfReader.core.text.StringUtil.formatEnumToTitle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayoutMediator
 import java.io.File
@@ -40,7 +36,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
 
     private lateinit var binding: ActivityHomeBinding
     private lateinit var pref: Preferences
-    private lateinit var databaseManager: DatabaseManager
+    private lateinit var pdfRepository: PdfRepository
     private lateinit var permissionManager: PermissionManager
     private lateinit var coverCache: CoverCache
     private lateinit var libraryController: HomeLibraryController
@@ -91,15 +87,15 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        databaseManager = DatabaseManager(AppDatabase.getInstance(applicationContext))
+        pdfRepository = PdfRepository(AppDatabase.getInstance(applicationContext))
         coverCache = CoverCache.getInstance(applicationContext)
         permissionManager = PermissionManager(this) { onStorageAccessChanged() }
-        libraryController = HomeLibraryController(databaseManager, pref)
+        libraryController = HomeLibraryController(pdfRepository, pref)
         libraryScanner = LibraryScanner.getInstance(applicationContext)
 
         recordOptionsDialog = RecordOptionsDialog(
             this,
-            databaseManager,
+            pdfRepository,
             coverCache,
             libraryScanner,
             lifecycleScope,
@@ -145,7 +141,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         )
         relocateController = RelocateController(
             this,
-            databaseManager,
+            pdfRepository,
             libraryScanner,
             lifecycleScope,
             onOpen = ::openInReader,
@@ -358,7 +354,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             .setTitle(R.string.home_set_status)
             .setItems(labels) { _, index ->
                 lifecycleScope.launch {
-                    databaseManager.setReadingBatch(
+                    pdfRepository.setReadingBatch(
                         items.map { it.hash }, ReadingStatus.entries[index]
                     )
                     selectionController.finish()
@@ -374,7 +370,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             .setMessage(R.string.delete_dialog_message)
             .setPositiveButton(R.string.delete) { _, _ ->
                 lifecycleScope.launch {
-                    databaseManager.removeRecords(items.map { it.hash })
+                    pdfRepository.removeRecords(items.map { it.hash })
                     items.forEach { coverCache.invalidate(it.hash) }
                     selectionController.finish()
                     refresh()

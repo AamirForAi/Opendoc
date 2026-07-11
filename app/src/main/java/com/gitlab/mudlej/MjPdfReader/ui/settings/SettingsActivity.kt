@@ -52,7 +52,7 @@ import androidx.appcompat.widget.SearchView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivitySettingsBinding
-import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
+import com.gitlab.mudlej.MjPdfReader.core.ui.tintIconsForChrome
 
 
 class SettingsActivity : AppCompatActivity(), SettingsFragment.Navigation {

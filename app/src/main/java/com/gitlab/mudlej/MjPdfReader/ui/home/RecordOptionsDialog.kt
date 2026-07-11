@@ -8,14 +8,12 @@ import androidx.appcompat.app.AppCompatActivity
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.DialogRecordOptionsBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.DialogRenameRecordBinding
-import com.gitlab.mudlej.MjPdfReader.enums.ReadingStatus
-import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
-import com.gitlab.mudlej.MjPdfReader.manager.storage.LibraryScanner
-import com.gitlab.mudlej.MjPdfReader.manager.thumbnail.CoverCache
-import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
-import com.gitlab.mudlej.MjPdfReader.ui.showMetaDialog
-import com.gitlab.mudlej.MjPdfReader.util.appDateFormatter
-import com.gitlab.mudlej.MjPdfReader.util.computeHash
+import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
+import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
+import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
+import com.gitlab.mudlej.MjPdfReader.ui.reader.showMetaDialog
+import com.gitlab.mudlej.MjPdfReader.core.io.appDateFormatter
+import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.shockwave.pdfium.PdfDocument
 import com.shockwave.pdfium.PdfiumCore
@@ -29,7 +27,7 @@ import kotlinx.coroutines.withContext
 
 class RecordOptionsDialog(
     private val activity: AppCompatActivity,
-    private val databaseManager: DatabaseManager,
+    private val pdfRepository: PdfRepository,
     private val coverCache: CoverCache,
     private val libraryScanner: LibraryScanner,
     private val scope: CoroutineScope,
@@ -38,7 +36,7 @@ class RecordOptionsDialog(
 
     fun show(item: HomeItem) {
         scope.launch {
-            val record = databaseManager.findRecord(item.hash)
+            val record = pdfRepository.findRecord(item.hash)
             buildAndShow(item, record)
         }
     }
@@ -89,7 +87,7 @@ class RecordOptionsDialog(
             binding.removeRecentButton.setOnClickListener {
                 dialog.dismiss()
                 scope.launch {
-                    databaseManager.setLastOpened(
+                    pdfRepository.setLastOpened(
                         record.hash, LocalDateTime.parse(PdfRecord.UNSET_DATE)
                     )
                     onChanged()
@@ -108,10 +106,10 @@ class RecordOptionsDialog(
             dialog.dismiss()
             scope.launch {
                 val hash = record?.hash ?: resolveContentHash(item) ?: return@launch
-                if (record == null && !databaseManager.hasRecord(hash)) {
-                    databaseManager.saveRecordInBackground(newRecord(item, hash))
+                if (record == null && !pdfRepository.hasRecord(hash)) {
+                    pdfRepository.saveRecordInBackground(newRecord(item, hash))
                 }
-                databaseManager.setHidden(hash, !(record?.hidden ?: false))
+                pdfRepository.setHidden(hash, !(record?.hidden ?: false))
                 onChanged()
             }
         }
@@ -171,10 +169,10 @@ class RecordOptionsDialog(
             scope.launch {
                 val hash = resolvedHash ?: resolveContentHash(item) ?: return@launch
                 resolvedHash = hash
-                if (!databaseManager.hasRecord(hash)) {
-                    databaseManager.saveRecordInBackground(newRecord(item, hash))
+                if (!pdfRepository.hasRecord(hash)) {
+                    pdfRepository.saveRecordInBackground(newRecord(item, hash))
                 }
-                databaseManager.setReading(hash, status)
+                pdfRepository.setReading(hash, status)
                 onChanged()
             }
         }
@@ -279,10 +277,10 @@ class RecordOptionsDialog(
             }
 
             if (record != null) {
-                databaseManager.updateRecordIdentity(
+                pdfRepository.updateRecordIdentity(
                     record.hash, Uri.fromFile(target), newName, record.lastOpened
                 )
-                databaseManager.setDocumentTitle(record.hash, null)
+                pdfRepository.setDocumentTitle(record.hash, null)
             }
             libraryScanner.onFileRenamed(oldFile.absolutePath, target.absolutePath)
             onChanged()
@@ -317,7 +315,7 @@ class RecordOptionsDialog(
             }
 
             if (record != null) {
-                databaseManager.removeRecords(listOf(record.hash))
+                pdfRepository.removeRecords(listOf(record.hash))
             }
             coverCache.invalidate(item.coverKey)
             item.uri.path?.let { libraryScanner.onFileRemoved(it) }

@@ -53,7 +53,7 @@ class TextModeControlsController(
             binding.previousPageButton,
             binding.pageButton,
             binding.nextPageButton,
-            binding.tocButton,
+            binding.tableOfContentsButton,
             binding.typographyButton,
             binding.backToPdfButton,
         ).forEach { it.setOnTouchListener(listener) }

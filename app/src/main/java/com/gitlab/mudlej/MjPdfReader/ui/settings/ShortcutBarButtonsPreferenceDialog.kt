@@ -3,10 +3,10 @@ package com.gitlab.mudlej.MjPdfReader.ui.settings
 import android.content.Context
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
-import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
-import com.gitlab.mudlej.MjPdfReader.enums.filteredShortcutBarActionIds
-import com.gitlab.mudlej.MjPdfReader.enums.orderedShortcutBarActions
-import com.gitlab.mudlej.MjPdfReader.enums.selectedShortcutBarActionIds
+import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableAction
+import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.filteredShortcutBarActionIds
+import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.orderedShortcutBarActions
+import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.selectedShortcutBarActionIds
 
 fun showShortcutBarButtonsPreferenceDialog(
     context: Context,

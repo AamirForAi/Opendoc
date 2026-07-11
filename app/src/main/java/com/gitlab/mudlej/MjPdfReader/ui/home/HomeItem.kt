@@ -1,10 +1,10 @@
 package com.gitlab.mudlej.MjPdfReader.ui.home
 
 import android.net.Uri
-import com.gitlab.mudlej.MjPdfReader.enums.ReadingStatus
-import com.gitlab.mudlej.MjPdfReader.repository.PdfRecord
-import com.gitlab.mudlej.MjPdfReader.repository.ScannedPdfCache
-import com.gitlab.mudlej.MjPdfReader.util.computeHash
+import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
+import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
+import com.gitlab.mudlej.MjPdfReader.data.entity.ScannedPdfEntry
+import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import java.io.File
 import java.time.LocalDateTime
 
@@ -62,7 +62,7 @@ data class HomeItem(
             )
         }
 
-        fun fromScan(entry: ScannedPdfCache): HomeItem {
+        fun fromScan(entry: ScannedPdfEntry): HomeItem {
             val file = File(entry.path)
             val syntheticKey =
                 "p" + (computeHash(entry.path.toByteArray()) ?: entry.path.hashCode().toString())

@@ -6,10 +6,6 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
-import com.gitlab.mudlej.MjPdfReader.enums.HomeViewMode
-import com.gitlab.mudlej.MjPdfReader.enums.ListFilter
-import com.gitlab.mudlej.MjPdfReader.manager.storage.LibraryScanner
-import com.gitlab.mudlej.MjPdfReader.manager.thumbnail.CoverCache
 import kotlinx.coroutines.CoroutineScope
 
 class LibraryTabController(

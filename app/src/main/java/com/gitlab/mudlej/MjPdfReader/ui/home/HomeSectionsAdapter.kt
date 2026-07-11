@@ -13,8 +13,6 @@ import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeEmptyStateBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeHeroSectionBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomePermissionCardBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeScanProgressBinding
-import com.gitlab.mudlej.MjPdfReader.enums.ListFilter
-import com.gitlab.mudlej.MjPdfReader.manager.thumbnail.CoverCache
 import kotlinx.coroutines.CoroutineScope
 
 class HomeSectionsAdapter(

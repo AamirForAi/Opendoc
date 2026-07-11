@@ -38,17 +38,17 @@
             android:name=".ui.search.SearchActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.link.LinksActivity"
+            android:name=".ui.links.LinksActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.toc.TableOfContentsActivity"
+            android:name=".ui.tableofcontents.TableOfContentsActivity"
             android:exported="false">
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
         <activity
-            android:name=".ui.bookmark.UserBookmarksActivity"
+            android:name=".ui.userbookmarks.UserBookmarksActivity"
             android:exported="false" />
         <activity
             android:name=".ui.history.NavigationHistoryActivity"
@@ -58,7 +58,7 @@
             android:exported="false"
             android:theme="@style/TextModeTheme" />
         <activity
-            android:name=".ui.main.MainActivity"
+            android:name=".ui.reader.MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:documentLaunchMode="intoExisting"
             android:exported="true">
@@ -123,9 +123,9 @@
             android:name=".ui.about.AboutActivity"
             android:exported="true"
             android:label="@string/action_about"
-            android:parentActivityName=".ui.main.MainActivity" />
+            android:parentActivityName=".ui.reader.MainActivity" />
         <activity
-            android:name=".ui.main.MainIntroActivity"
+            android:name=".ui.intro.MainIntroActivity"
             android:exported="true"
             android:label="@string/intro" />
         <activity

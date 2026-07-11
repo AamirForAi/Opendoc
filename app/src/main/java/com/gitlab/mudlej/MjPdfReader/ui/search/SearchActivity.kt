@@ -14,18 +14,18 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.preference.PreferenceManager
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
-import com.gitlab.mudlej.MjPdfReader.data.SearchResult
+import com.gitlab.mudlej.MjPdfReader.pdf.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivitySearchBinding
 import com.gitlab.mudlej.MjPdfReader.core.ui.attachFilterSearchView
 import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
-import com.gitlab.mudlej.MjPdfReader.manager.extractor.ExtractorScreen
-import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
-import com.gitlab.mudlej.MjPdfReader.util.configureSearchIcon
-import com.gitlab.mudlej.MjPdfReader.util.containsAccentInsensitive
-import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
-import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
+import com.gitlab.mudlej.MjPdfReader.pdf.ExtractorScreen
+import com.gitlab.mudlej.MjPdfReader.pdf.PdfExtractor
+import com.gitlab.mudlej.MjPdfReader.core.ui.configureSearchIcon
+import com.gitlab.mudlej.MjPdfReader.core.text.containsAccentInsensitive
+import com.gitlab.mudlej.MjPdfReader.core.ui.tintIconsForChrome
+import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -97,7 +97,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     }
 
     override fun onDestroy() {
-        coordinatorListener?.let { SearchCoordinator.detach(it) }
+        coordinatorListener?.let { SearchCoordinator.unsubscribe(it) }
         extractorScreen.close()
         super.onDestroy()
     }
@@ -183,7 +183,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             }
         }
         coordinatorListener = listener
-        SearchCoordinator.startOrAttach(
+        SearchCoordinator.startOrSubscribe(
             this,
             intent.getStringExtra(PDF.filePathKey),
             intent.getStringExtra(PDF.passwordKey),

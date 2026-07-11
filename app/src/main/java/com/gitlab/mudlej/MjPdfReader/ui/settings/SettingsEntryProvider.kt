@@ -13,7 +13,7 @@ package com.gitlab.mudlej.MjPdfReader.ui.settings
 import androidx.annotation.StringRes
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
-import com.gitlab.mudlej.MjPdfReader.enums.ConfigurableAction
+import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableAction
 
 internal class SettingsEntryProvider(private val preferences: Preferences) {
 

@@ -147,7 +147,7 @@
                     android:orientation="horizontal">
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/tocButton"
+                        android:id="@+id/tableOfContentsButton"
                         style="@style/Widget.Material3.Button.TextButton"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"

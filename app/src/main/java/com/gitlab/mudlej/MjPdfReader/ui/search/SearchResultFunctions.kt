@@ -1,6 +1,6 @@
 package com.gitlab.mudlej.MjPdfReader.ui.search
 
-import com.gitlab.mudlej.MjPdfReader.data.SearchResult
+import com.gitlab.mudlej.MjPdfReader.pdf.SearchResult
 
 interface SearchResultFunctions {
 
