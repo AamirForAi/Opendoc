@@ -128,7 +128,7 @@
         <activity
             android:name=".ui.intro.MainIntroActivity"
             android:exported="true"
-            android:label="@string/intro" />
+            android:label="@string/mj_app_name" />
         <activity
             android:name=".ui.settings.SettingsActivity"
             android:exported="true"
