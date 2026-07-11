@@ -1,7 +1,7 @@
 package com.gitlab.mudlej.MjPdfReader.ui.main
 
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.enums.ReadingDirection
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
@@ -12,8 +12,8 @@ import kotlinx.coroutines.launch
 
 class ReadingDirectionController(
     private val activity: MainActivity,
-    private val pdf: PDF,
-    private val session: DocumentSession,
+    private val pdf: DocumentState,
+    private val vm: ReaderViewModel,
     private val pref: Preferences,
     private val databaseManager: DatabaseManager,
     private val scope: CoroutineScope,
@@ -72,12 +72,12 @@ class ReadingDirectionController(
     }
 
     private fun applyOverride(direction: ReadingDirection?) {
-        val loadToken = session.currentLoadToken
+        val loadToken = vm.currentLoadToken
         val documentUri = pdf.uri
         val oldEffectiveDirection = pdf.effectiveReadingDirection
         scope.launch {
             val hash = pdf.fileHash ?: computeHash(activity, pdf)
-            if (!session.isCurrent(loadToken, documentUri)) {
+            if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
             if (hash == null) {
@@ -87,7 +87,7 @@ class ReadingDirectionController(
 
             pdf.fileHash = hash
             databaseManager.setReadingDirectionOverride(hash, direction?.id)
-            if (!session.isCurrent(loadToken, documentUri)) {
+            if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
 
@@ -96,7 +96,7 @@ class ReadingDirectionController(
             } else {
                 pdf.detectedReadingDirection
             }
-            if (!session.isCurrent(loadToken, documentUri)) {
+            if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
             detectedDirection?.let { databaseManager.setDetectedReadingDirection(hash, it.id) }

@@ -11,6 +11,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
@@ -27,7 +28,7 @@ import com.google.android.material.snackbar.Snackbar
 class SearchNavigationController(
     private val activity: Activity,
     private val binding: ActivityMainBinding,
-    private val pdf: PDF,
+    private val pdf: DocumentState,
     private val historyManager: ReaderHistoryManager,
     private val launchSearch: (Intent) -> Unit,
 ) {

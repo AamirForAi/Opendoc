@@ -15,7 +15,7 @@ import com.github.barteksc.pdfviewer.scroll.ScrollHandle
 import com.github.barteksc.pdfviewer.util.Constants
 import com.github.barteksc.pdfviewer.util.FitPolicy
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
@@ -39,8 +39,8 @@ import java.time.LocalDateTime
 class DocumentLoadController(
     private val activity: MainActivity,
     private val binding: ActivityMainBinding,
-    private val pdf: PDF,
-    private val session: DocumentSession,
+    private val pdf: DocumentState,
+    private val vm: ReaderViewModel,
     private val pref: Preferences,
     private val databaseManager: DatabaseManager,
     private val readingDirectionResolver: ReadingDirectionResolver,
@@ -70,12 +70,12 @@ class DocumentLoadController(
     ) -> Unit,
 ) {
 
-    fun initPdf(pdf: PDF, uri: Uri) {
+    fun initPdf(pdf: DocumentState, uri: Uri) {
         prepareNewDocument(uri)
-        val loadToken = session.currentLoadToken
+        val loadToken = vm.currentLoadToken
         scope.launch {
             val hash = computeHash(activity, pdf)
-            if (session.isCurrent(loadToken, uri)) {
+            if (vm.isCurrent(loadToken, uri)) {
                 pdf.fileHash = hash
             }
         }
@@ -119,12 +119,12 @@ class DocumentLoadController(
     }
 
     fun initPdfViewAndLoad(viewConfigurator: Configurator, savePassword: Boolean = false) {
-        val loadToken = session.currentLoadToken
+        val loadToken = vm.currentLoadToken
         val documentUri = pdf.uri
-        val viewState = session.pendingViewState
+        val viewState = vm.pendingViewState
         scope.launch {
             val hash = pdf.fileHash ?: computeHash(activity, pdf)
-            if (!session.isCurrent(loadToken, documentUri)) {
+            if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
             if (hash == null && pdf.pageNumber == 0) {
@@ -137,7 +137,7 @@ class DocumentLoadController(
             }
 
             annotationSaveController.resolveCurrentDestination(documentUri)
-            if (!session.isCurrent(loadToken, documentUri)) {
+            if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
 
@@ -146,31 +146,31 @@ class DocumentLoadController(
             } else {
                 pdf.pageNumber
             }
-            if (!session.isCurrent(loadToken, documentUri)) {
+            if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
 
             val autoScrollSpeed = hash?.let { databaseManager.findAutoScrollSpeed(it) }
-            if (!session.isCurrent(loadToken, documentUri)) {
+            if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
 
             val readingDirectionState = readingDirectionResolver.resolve(hash, documentUri)
-            if (!session.isCurrent(loadToken, documentUri)) {
+            if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
 
             val cachedCropMargins = cropMarginsController.findCached(hash)
-            if (!session.isCurrent(loadToken, documentUri)) {
+            if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
-            pdf.pageNumber = pageNumber
+            vm.setPage(pageNumber)
             pdf.autoScrollSpeed = pdf.autoScrollSpeed ?: autoScrollSpeed
             pdf.readingDirectionOverride = readingDirectionState.overrideDirection
             pdf.detectedReadingDirection = readingDirectionState.detectedDirection
             pdf.effectiveReadingDirection = readingDirectionState.effectiveDirection
             withContext(Dispatchers.Main) {
-                if (session.isCurrent(loadToken, documentUri)) {
+                if (vm.isCurrent(loadToken, documentUri)) {
                     autoScrollManager.setSpeed(pdf.autoScrollSpeed ?: pref.getScrollSpeed())
                     initPdfViewAndLoad(
                         viewConfigurator,
@@ -202,7 +202,7 @@ class DocumentLoadController(
             savePassword = false,
             cachedCropMargins = cropMargins,
             fileHash = pdf.fileHash,
-            loadToken = session.currentLoadToken,
+            loadToken = vm.currentLoadToken,
             documentUri = pdf.uri,
             readingDirection = pdf.effectiveReadingDirection,
             viewState = viewState,
@@ -284,11 +284,11 @@ class DocumentLoadController(
                     inlineAnnotationActionController.hideActions()
                 }
             })
-            .cropMargins(session.cropMarginsEnabled)
+            .cropMargins(vm.cropMarginsEnabled)
             .cachedCropMargins(cachedCropMargins)
             .onLoad { pageCount ->
-                if (session.pendingViewState === viewState) {
-                    session.pendingViewState = null
+                if (vm.pendingViewState === viewState) {
+                    vm.pendingViewState = null
                 }
                 hideProgressBar(loadToken, documentUri)
                 pdfThemeController.configureTheme()
@@ -303,7 +303,7 @@ class DocumentLoadController(
 
     private fun createPdfRecord(
         savePassword: Boolean,
-        pdf: PDF,
+        pdf: DocumentState,
         expectedFileHash: String?,
         loadToken: Long,
         documentUri: Uri?,
@@ -313,19 +313,19 @@ class DocumentLoadController(
             .getOrNull()
             ?.takeIf { it.isNotBlank() }
         scope.launch {
-            if (!session.isCurrent(loadToken, documentUri)) {
+            if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
 
             // cannot use elvis operator ?: with a suspend function, it won't wait
             if (pdf.fileHash == null && expectedFileHash == null) {
                 val computedHash = computeHash(activity, pdf)
-                if (!session.isCurrent(loadToken, documentUri)) {
+                if (!vm.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 pdf.fileHash = computedHash
             }
-            if (!session.isCurrent(loadToken, documentUri)) {
+            if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
 
@@ -337,60 +337,60 @@ class DocumentLoadController(
             pdf.fileHash = fileHash
 
             if (databaseManager.hasRecord(fileHash)) {
-                if (!session.isCurrent(loadToken, documentUri)) {
+                if (!vm.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 databaseManager.setLastOpened(fileHash, LocalDateTime.now())
-                if (!session.isCurrent(loadToken, documentUri)) {
+                if (!vm.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 updateRecordUri(fileHash, pdf)
-                if (!session.isCurrent(loadToken, documentUri)) {
+                if (!vm.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 if (documentTitle != null) {
                     databaseManager.setDocumentTitle(fileHash, documentTitle)
                 }
-                if (!session.isCurrent(loadToken, documentUri)) {
+                if (!vm.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 if (password != null) {
                     databaseManager.setPassword(fileHash, password)
                 }
-                if (!session.isCurrent(loadToken, documentUri)) {
+                if (!vm.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 pdf.autoScrollSpeed?.let { databaseManager.setAutoScrollSpeed(fileHash, it) }
-                if (!session.isCurrent(loadToken, documentUri)) {
+                if (!vm.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 readingDirectionResolver.saveState(fileHash)
-                if (!session.isCurrent(loadToken, documentUri)) {
+                if (!vm.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 cropMarginsController.onRecordAvailable(fileHash)
             }
             else {
-                if (!session.isCurrent(loadToken, documentUri)) {
+                if (!vm.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 val record = PdfRecord.from(fileHash, this@DocumentLoadController.pdf, password)
                 databaseManager.saveRecordInBackground(record)
-                if (!session.isCurrent(loadToken, documentUri)) {
+                if (!vm.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 if (documentTitle != null) {
                     databaseManager.setDocumentTitle(fileHash, documentTitle)
                 }
-                if (!session.isCurrent(loadToken, documentUri)) {
+                if (!vm.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 updateRecordUri(fileHash, pdf)
-                if (!session.isCurrent(loadToken, documentUri)) {
+                if (!vm.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 pdf.autoScrollSpeed?.let { databaseManager.setAutoScrollSpeed(fileHash, it) }
-                if (!session.isCurrent(loadToken, documentUri)) {
+                if (!vm.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
                 cropMarginsController.onRecordAvailable(fileHash)
@@ -398,7 +398,7 @@ class DocumentLoadController(
         }
     }
 
-    private suspend fun updateRecordUri(fileHash: String, pdf: PDF) {
+    private suspend fun updateRecordUri(fileHash: String, pdf: DocumentState) {
         val currentUri = pdf.uri ?: return
         val canonicalFile = UriCanonicalizer.canonicalize(activity, currentUri)
         val durableUri = canonicalFile?.let(Uri::fromFile) ?: currentUri
@@ -434,22 +434,22 @@ class DocumentLoadController(
         loadToken: Long,
         documentUri: Uri?,
     ) {
-        if (!session.isCurrent(loadToken, documentUri)) {
+        if (!vm.isCurrent(loadToken, documentUri)) {
             return
         }
-        pdf.pageNumber = pageNumber
+        vm.setPage(pageNumber)
         setPdfLength(pageCount)
         updateAppTitle()
         readerNavigationController.onPageChanged(pageNumber)
         binding.pdfView.announceForAccessibility(activity.getString(R.string.page_x_of_y, pageNumber + 1, pageCount))
 
         scope.launch {
-            if (!session.isCurrent(loadToken, documentUri)) {
+            if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
             // cannot use elvis operator ?: with a suspend function, it won't wait
             val hash = pdf.fileHash ?: expectedFileHash ?: computeHash(activity, pdf)
-            if (!session.isCurrent(loadToken, documentUri)) {
+            if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
             if (hash != null) {  // Ensure hash is not null
@@ -483,7 +483,7 @@ class DocumentLoadController(
     }
 
     private fun hideProgressBar(loadToken: Long, documentUri: Uri?) {
-        if (session.isCurrent(loadToken, documentUri)) {
+        if (vm.isCurrent(loadToken, documentUri)) {
             hideProgressBarNow()
         }
     }

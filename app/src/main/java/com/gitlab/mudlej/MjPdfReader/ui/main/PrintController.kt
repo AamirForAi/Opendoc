@@ -4,7 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.net.Uri
 import android.print.PrintManager
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.manager.print.PdfDocumentAdapter
@@ -19,7 +19,7 @@ import java.io.File
 class PrintController(
     private val activity: Activity,
     private val binding: ActivityMainBinding,
-    private val pdf: PDF,
+    private val pdf: DocumentState,
     private val scope: CoroutineScope,
 ) {
 

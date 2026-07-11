@@ -1,6 +1,6 @@
 package com.gitlab.mudlej.MjPdfReader.ui.main
 
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -8,7 +8,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class AutoScrollSpeedStore(
-    private val pdf: PDF,
+    private val pdf: DocumentState,
     private val databaseManager: DatabaseManager,
     private val scope: CoroutineScope,
     private val backgroundScope: CoroutineScope,

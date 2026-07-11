@@ -8,7 +8,7 @@ import android.util.Log
 import android.view.View
 import androidx.core.net.toUri
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.util.canWriteToDownloadFolder
@@ -30,7 +30,7 @@ import javax.net.ssl.SSLException
 class OnlinePdfController(
     private val activity: MainActivity,
     private val binding: ActivityMainBinding,
-    private val pdf: PDF,
+    private val pdf: DocumentState,
     private val scope: CoroutineScope,
     private val requestSaveToDownloadPermission: () -> Unit,
     private val loadFromBytes: (ByteArray?) -> Unit,

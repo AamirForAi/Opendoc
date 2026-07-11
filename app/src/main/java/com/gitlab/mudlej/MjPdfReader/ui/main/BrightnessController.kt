@@ -5,7 +5,6 @@ import android.provider.Settings
 import android.view.View
 import android.widget.SeekBar
 import androidx.core.view.isVisible
-import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import kotlin.math.exp
 import kotlin.math.ln
@@ -16,7 +15,7 @@ import kotlin.math.sqrt
 class BrightnessController(
     private val activity: Activity,
     private val binding: ActivityMainBinding,
-    private val pdf: PDF,
+    private val vm: ReaderViewModel,
 ) {
 
     fun toggleControlVisibility() {
@@ -25,12 +24,12 @@ class BrightnessController(
 
     fun hideControl() {
         binding.brightnessLayout.visibility = View.GONE
-        pdf.isBrightnessClicked = false
+        vm.isBrightnessClicked = false
     }
 
     fun showControl() {
         binding.brightnessLayout.visibility = View.VISIBLE
-        pdf.isBrightnessClicked = true
+        vm.isBrightnessClicked = true
         syncSliderWithCurrentBrightness()
     }
 

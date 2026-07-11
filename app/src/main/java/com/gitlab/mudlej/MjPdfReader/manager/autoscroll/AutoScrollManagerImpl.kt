@@ -5,16 +5,16 @@ import android.os.Looper
 import android.view.MotionEvent
 import android.view.View
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
+import com.gitlab.mudlej.MjPdfReader.ui.main.ReaderViewModel
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import kotlin.math.sign
 
 class AutoScrollManagerImpl(
     private val binding: ActivityMainBinding,
-    private val pdf: PDF,
+    private val vm: ReaderViewModel,
     private val preferences: Preferences,
     private val onSpeedChanged: (Int) -> Unit,
 ) : AutoScrollManager {
@@ -43,7 +43,7 @@ class AutoScrollManagerImpl(
     }
 
     override fun setup() {
-        setSpeed(pdf.autoScrollSpeed ?: preferences.getScrollSpeed())
+        setSpeed(vm.doc.autoScrollSpeed ?: preferences.getScrollSpeed())
 
         binding.autoScrollButton.setOnClickListener { toggleControls() }
         binding.incScrollSpeedButton.setOnClickListener { increaseSpeed() }
@@ -63,8 +63,8 @@ class AutoScrollManagerImpl(
         cancelFrame()
         interactionPointerCount = 0
         pausedByInteraction = false
-        val wasScrolling = pdf.isAutoScrolling
-        pdf.isAutoScrolling = false
+        val wasScrolling = vm.isAutoScrolling
+        vm.isAutoScrolling = false
         if (wasScrolling) {
             binding.pdfView.loadPages()
         }
@@ -73,7 +73,7 @@ class AutoScrollManagerImpl(
     override fun hideControls() {
         binding.autoScrollLayout.visibility = View.GONE
         binding.autoScrollSpeedText.visibility = View.GONE
-        pdf.isAutoScrollClicked = false
+        vm.isAutoScrollClicked = false
     }
 
     override fun handleUserInteraction(motionEvent: MotionEvent) {
@@ -99,7 +99,7 @@ class AutoScrollManagerImpl(
     private fun showControls() {
         binding.autoScrollLayout.visibility = View.VISIBLE
         binding.autoScrollSpeedText.visibility = View.VISIBLE
-        pdf.isAutoScrollClicked = true
+        vm.isAutoScrollClicked = true
     }
 
     private fun increaseSpeed() {
@@ -126,9 +126,9 @@ class AutoScrollManagerImpl(
     }
 
     private fun toggleAutoScroll() {
-        pdf.isAutoScrolling = !pdf.isAutoScrolling
+        vm.isAutoScrolling = !vm.isAutoScrolling
 
-        if (!pdf.isAutoScrolling) {
+        if (!vm.isAutoScrolling) {
             stop()
             return
         }
@@ -159,7 +159,7 @@ class AutoScrollManagerImpl(
     }
 
     private fun onFrame() {
-        if (!pdf.isAutoScrolling || pausedByInteraction) {
+        if (!vm.isAutoScrolling || pausedByInteraction) {
             return
         }
         if (!shouldContinueAutoScrolling(scrollBy)) {
@@ -183,10 +183,10 @@ class AutoScrollManagerImpl(
         }
         lastFrameTimeNanos = frameTimeNanos
 
-        if (pdf.isAutoScrolling && shouldContinueAutoScrolling(scrollBy)) {
+        if (vm.isAutoScrolling && shouldContinueAutoScrolling(scrollBy)) {
             scheduleFrame()
         }
-        else if (pdf.isAutoScrolling) {
+        else if (vm.isAutoScrolling) {
             stop()
         }
     }
@@ -202,7 +202,7 @@ class AutoScrollManagerImpl(
 
     private fun pauseForInteraction(motionEvent: MotionEvent) {
         interactionPointerCount = motionEvent.pointerCount
-        if (!pdf.isAutoScrolling) {
+        if (!vm.isAutoScrolling) {
             return
         }
 
@@ -215,7 +215,7 @@ class AutoScrollManagerImpl(
             MotionEvent.ACTION_POINTER_UP -> (motionEvent.pointerCount - 1).coerceAtLeast(0)
             else -> 0
         }
-        if (interactionPointerCount > 0 || !pausedByInteraction || !pdf.isAutoScrolling) {
+        if (interactionPointerCount > 0 || !pausedByInteraction || !vm.isAutoScrolling) {
             return
         }
 
@@ -238,7 +238,7 @@ class AutoScrollManagerImpl(
         val speed = simplifySpeed(scrollBy)
         binding.autoScrollSpeedText.text = speed.toString()
         if (notify) {
-            pdf.autoScrollSpeed = speed
+            vm.doc.autoScrollSpeed = speed
             onSpeedChanged(speed)
         }
     }

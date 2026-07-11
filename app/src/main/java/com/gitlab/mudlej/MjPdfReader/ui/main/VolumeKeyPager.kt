@@ -1,13 +1,13 @@
 package com.gitlab.mudlej.MjPdfReader.ui.main
 
 import android.view.KeyEvent
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 
 class VolumeKeyPager(
     private val binding: ActivityMainBinding,
-    private val pdf: PDF,
+    private val pdf: DocumentState,
     private val pref: Preferences,
 ) {
 

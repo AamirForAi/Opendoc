@@ -22,6 +22,7 @@ import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityTextModeBinding
@@ -147,7 +148,7 @@ class TextModeActivity : AppCompatActivity() {
                 return@launch
             }
             if (fileHash == null) {
-                fileHash = computeHash(this@TextModeActivity, PDF(uri = pdfUri))
+                fileHash = computeHash(this@TextModeActivity, DocumentState(uri = pdfUri))
             }
             currentPageIndex = currentPageIndex.coerceIn(0, pageCount - 1)
             initReader()

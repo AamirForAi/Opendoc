@@ -13,6 +13,7 @@ import android.util.Log
 import android.view.View
 import androidx.core.net.toUri
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.enums.FileType
@@ -27,7 +28,7 @@ import java.util.Date
 class ScreenshotController(
     private val activity: Activity,
     private val binding: ActivityMainBinding,
-    private val pdf: PDF,
+    private val pdf: DocumentState,
     private val beforeCapture: () -> Unit,
     private val shareImage: (Uri?) -> Unit,
 ) {

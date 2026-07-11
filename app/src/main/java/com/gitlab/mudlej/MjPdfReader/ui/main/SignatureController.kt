@@ -2,7 +2,6 @@ package com.gitlab.mudlej.MjPdfReader.ui.main
 
 import android.app.Activity
 import android.graphics.RectF
-import android.os.Bundle
 import android.view.LayoutInflater
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
@@ -18,15 +17,12 @@ import com.google.android.material.snackbar.Snackbar
 class SignatureController(
     private val activity: Activity,
     private val binding: ActivityMainBinding,
+    private val vm: ReaderViewModel,
     private val store: SignatureStore,
     private val annotationController: AnnotationController,
     private val onAnnotationEdit: (AnnotationEdit) -> Unit,
     private val updateDirtyUi: () -> Unit,
 ) {
-
-    private var dirtyBeforePlacement = false
-    private var restoredPage = -1
-    private var restoredRect: RectF? = null
 
     init {
         binding.cancelSignatureFab.setOnClickListener { cancelPlacement() }
@@ -133,40 +129,31 @@ class SignatureController(
         }
         binding.pdfView.cancelStampPlacement()
         hideCancelAffordance()
-        if (!dirtyBeforePlacement) {
+        if (!vm.signatureDirtyBeforePlacement) {
             annotationController.clearDirty()
         }
         updateDirtyUi()
     }
 
-    fun saveState(outState: Bundle) {
-        val pending = binding.pdfView.getPendingStampPlacement() ?: return
-        outState.putBoolean(KEY_PENDING, true)
-        outState.putInt(KEY_PAGE, pending.pageIndex)
-        outState.putFloatArray(
-            KEY_RECT,
-            floatArrayOf(pending.pdfRect.left, pending.pdfRect.top, pending.pdfRect.right, pending.pdfRect.bottom),
-        )
-        outState.putBoolean(KEY_DIRTY_BEFORE, dirtyBeforePlacement)
-    }
-
-    fun restoreState(savedState: Bundle) {
-        if (!savedState.getBoolean(KEY_PENDING, false)) {
+    fun capturePlacementForState() {
+        val pending = binding.pdfView.getPendingStampPlacement()
+        if (pending == null) {
+            vm.pendingSignaturePage = -1
+            vm.pendingSignatureRect = null
             return
         }
-        restoredPage = savedState.getInt(KEY_PAGE, -1)
-        val values = savedState.getFloatArray(KEY_RECT)
-        if (restoredPage >= 0 && values != null && values.size == 4) {
-            restoredRect = RectF(values[0], values[1], values[2], values[3])
-        }
-        dirtyBeforePlacement = savedState.getBoolean(KEY_DIRTY_BEFORE, false)
+        vm.pendingSignaturePage = pending.pageIndex
+        vm.pendingSignatureRect = RectF(pending.pdfRect)
     }
 
     fun resumeRestoredPlacementIfNeeded() {
-        val rect = restoredRect ?: return
-        val page = restoredPage
-        restoredPage = -1
-        restoredRect = null
+        val rect = vm.pendingSignatureRect ?: return
+        val page = vm.pendingSignaturePage
+        vm.pendingSignaturePage = -1
+        vm.pendingSignatureRect = null
+        if (page < 0) {
+            return
+        }
         val data = store.load() ?: return
         binding.pdfView.startStampPlacement(page, rect, data.toNativeStrokes(), data.color, data.strokeWidth)
         annotationController.markDirty()
@@ -175,7 +162,7 @@ class SignatureController(
     }
 
     private fun startPlacement(data: SignatureData) {
-        dirtyBeforePlacement = annotationController.hasUnsavedAnnotations
+        vm.signatureDirtyBeforePlacement = annotationController.hasUnsavedAnnotations
         val started = binding.pdfView.startStampPlacementAtViewCenter(
             data.toNativeStrokes(), data.color, data.strokeWidth, data.aspect, PAGE_WIDTH_FRACTION)
         if (!started) {
@@ -201,9 +188,5 @@ class SignatureController(
         const val INK_BLUE = 0xFF1E4FC2.toInt()
         const val INK_RED = 0xFFC62828.toInt()
         const val INK_GREEN = 0xFF2E7D32.toInt()
-        const val KEY_PENDING = "signaturePlacementPending"
-        const val KEY_PAGE = "signaturePlacementPage"
-        const val KEY_RECT = "signaturePlacementRect"
-        const val KEY_DIRTY_BEFORE = "signaturePlacementDirtyBefore"
     }
 }

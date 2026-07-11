@@ -59,6 +59,7 @@ import android.widget.Toast
 import androidx.core.text.isDigitsOnly
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
@@ -194,7 +195,7 @@ fun showHowToExitFullscreenDialog(context: Context, pref: Preferences) {
 
 fun showAskForPasswordDialog(
     context: Context,
-    pdf: PDF,
+    pdf: DocumentState,
     dialogBinding: PasswordDialogBinding,
     displayFunc: (Uri?, Boolean) -> Unit
 ) {
@@ -240,7 +241,7 @@ fun showCopyPageTextDialog(
         .show()
 }
 
-fun showSearchDialog(activity: Activity, pdf: PDF, launchSearch: (Intent) -> Unit) {
+fun showSearchDialog(activity: Activity, pdf: DocumentState, launchSearch: (Intent) -> Unit) {
     val pref = Preferences(PreferenceManager.getDefaultSharedPreferences(activity))
     val searchLayout = LayoutInflater.from(activity).inflate(R.layout.input_layout, null) as TextInputLayout
     val ignoreAccentsCheckBox = MaterialCheckBox(activity).apply {

@@ -8,6 +8,7 @@ import com.github.barteksc.pdfviewer.link.DefaultLinkHandler
 import com.github.barteksc.pdfviewer.link.LinkHandler
 import com.github.barteksc.pdfviewer.model.LinkTapEvent
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
@@ -22,7 +23,7 @@ import com.google.gson.reflect.TypeToken
 class ReaderNavigationController(
     private val activity: Activity,
     private val binding: ActivityMainBinding,
-    private val pdf: PDF,
+    private val pdf: DocumentState,
     private val historyManager: ReaderHistoryManager,
     private val onPageDisplayed: (Int) -> Unit,
     private val updateAppTitle: () -> Unit,
@@ -143,8 +144,6 @@ class ReaderNavigationController(
             val pageCount = binding.pdfView.pageCount
             val boundedPageIndex = if (pageCount > 0) pageIndex.coerceIn(0, pageCount - 1) else pageIndex.coerceAtLeast(0)
             historyManager.recordJump(ReaderHistoryManager.Origin.TEXT_MODE, boundedPageIndex)
-            pdf.pageNumber = boundedPageIndex
-            updateAppTitle()
             binding.pdfView.jumpTo(boundedPageIndex)
         }
     }

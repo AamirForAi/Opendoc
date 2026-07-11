@@ -9,7 +9,7 @@ import com.github.barteksc.pdfviewer.PDFView
 import com.github.barteksc.pdfviewer.PDFView.Configurator
 import com.github.barteksc.pdfviewer.model.CropMargins
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
@@ -26,7 +26,7 @@ class CropMarginsController(
     private val activity: Activity,
     private val binding: ActivityMainBinding,
     private val databaseManager: DatabaseManager,
-    private val pdf: PDF,
+    private val pdf: DocumentState,
     private val scope: CoroutineScope,
     private val isCropMarginsEnabled: () -> Boolean,
     private val setCropMarginsEnabled: (Boolean) -> Unit,
@@ -198,8 +198,6 @@ class CropMarginsController(
         val configurator = currentConfigurator(uri) ?: return
         val viewState = binding.pdfView.captureViewState()
         val currentPage = viewState?.pageIndex ?: binding.pdfView.currentPage
-        pdf.pageNumber = currentPage
-        pdf.zoom = viewState?.zoom ?: binding.pdfView.zoom
         reloadWithCropMargins(configurator, currentPage, cropMargins, viewState)
     }
 

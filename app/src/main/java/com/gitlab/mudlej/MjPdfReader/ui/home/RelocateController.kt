@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
 import com.gitlab.mudlej.MjPdfReader.manager.storage.LibraryScanner
@@ -70,7 +71,7 @@ class RelocateController(
 
     private fun onFilePicked(record: PdfRecord, uri: Uri) {
         scope.launch {
-            val pickedHash = computeHash(activity, PDF(uri = uri))
+            val pickedHash = computeHash(activity, DocumentState(uri = uri))
             if (pickedHash == record.hash) {
                 PersistedGrantKeeper.takeReadGrant(activity, uri)
                 val canonicalFile = UriCanonicalizer.canonicalize(activity, uri)

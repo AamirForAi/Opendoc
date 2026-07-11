@@ -49,7 +49,7 @@ import androidx.core.net.toUri
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.enums.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.util.getFileName
 import java.io.File
@@ -120,7 +120,7 @@ data class PdfRecord(
             )
         }
 
-        fun from(fileHash: String, pdf: PDF, password: String? = null): PdfRecord {
+        fun from(fileHash: String, pdf: DocumentState, password: String? = null): PdfRecord {
             return PdfRecord(
                 fileHash,
                 pdf.pageNumber,

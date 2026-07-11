@@ -57,6 +57,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
@@ -98,7 +99,7 @@ fun computeHash(file: File): String? {
     }.getOrNull()
 }
 
-suspend fun computeHash(context: Context, pdf: PDF): String? {
+suspend fun computeHash(context: Context, pdf: DocumentState): String? {
     if (pdf.uri == null) return null
     val cachedBytes = PdfBytesHolder.bytesFor(pdf.uri?.toString())
     if (cachedBytes != null) {

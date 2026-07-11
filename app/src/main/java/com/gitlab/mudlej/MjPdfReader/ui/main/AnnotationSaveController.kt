@@ -8,6 +8,7 @@ import android.provider.DocumentsContract
 import androidx.activity.result.ActivityResultLauncher
 import androidx.core.net.toUri
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
@@ -29,10 +30,10 @@ import java.time.LocalDateTime
 class AnnotationSaveController(
     private val activity: Activity,
     private val binding: ActivityMainBinding,
-    private val pdf: PDF,
+    private val pdf: DocumentState,
     private val annotationController: AnnotationController,
     private val databaseManager: DatabaseManager,
-    private val session: DocumentSession,
+    private val vm: ReaderViewModel,
     private val scope: CoroutineScope,
     private val updateDestinationLauncher: ActivityResultLauncher<Intent>,
     private val createDestinationLauncher: ActivityResultLauncher<Intent>,
@@ -83,7 +84,7 @@ class AnnotationSaveController(
             return
         }
         pendingSourceUri = null
-        if (!annotationController.acceptsDocumentUri(sourceUri)) {
+        if (!vm.acceptsDocumentUri(sourceUri)) {
             pendingPostSaveAction = null
             return
         }
@@ -203,7 +204,7 @@ class AnnotationSaveController(
         clearActiveSearchResultHighlight()
         annotationController.setSaving(true)
         updateDirtyUi()
-        val loadToken = session.currentLoadToken
+        val loadToken = vm.currentLoadToken
 
         scope.launch {
             val oldHash = pdf.fileHash
@@ -219,7 +220,7 @@ class AnnotationSaveController(
 
             val destinationName = getFileName(activity, destinationUri)
             val newHash = saveResult.hash
-            val isCurrent = session.isCurrent(loadToken, sourceUri)
+            val isCurrent = vm.isCurrent(loadToken, sourceUri)
             if (isCurrent) {
                 pdf.uri = destinationUri
                 pdf.name = destinationName

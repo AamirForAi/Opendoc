@@ -10,10 +10,10 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManager.VisibilityState
+import com.gitlab.mudlej.MjPdfReader.ui.main.ReaderViewModel
 import com.gitlab.mudlej.MjPdfReader.util.divideToPercent
 import com.google.android.material.button.MaterialButton
 import java.util.Date
@@ -22,7 +22,7 @@ import kotlin.reflect.KFunction1
 
 class FullScreenOptionsManagerImpl(
     private val binding: ActivityMainBinding,
-    private val pdf: PDF,
+    private val vm: ReaderViewModel,
     private val delay: Long,
     private val preferences: Preferences,
 ) : FullScreenOptionsManager {
@@ -64,7 +64,7 @@ class FullScreenOptionsManagerImpl(
     override fun isVisible() = visibility == VisibilityState.VISIBLE
 
     override fun showAll() {
-        if (pdf.isFullScreenToggled) {
+        if (vm.isFullScreenToggled) {
             showFullScreenButtons()
         }
         showPageHandle()
@@ -145,12 +145,12 @@ class FullScreenOptionsManagerImpl(
     private fun updateInfoContent(): Boolean {
         val context = binding.root.context
         val settings = FullScreenInfoSettings.from(preferences)
-        val titleVisible = settings.showPdfName && pdf.name.isNotBlank()
+        val titleVisible = settings.showPdfName && vm.doc.name.isNotBlank()
         val pageInfo = getPageInfo(context, settings)
 
         binding.fullScreenInfoTime.text = DateFormat.getTimeFormat(context).format(Date())
         binding.fullScreenInfoTime.visibility = if (settings.showTime) View.VISIBLE else View.GONE
-        binding.fullScreenInfoTitle.text = pdf.getTitle()
+        binding.fullScreenInfoTitle.text = vm.doc.getTitle()
         binding.fullScreenInfoTitle.visibility = if (titleVisible) View.VISIBLE else View.GONE
         binding.fullScreenInfoPage.text = pageInfo.orEmpty()
         binding.fullScreenInfoPage.visibility = if (pageInfo != null) View.VISIBLE else View.GONE
@@ -159,8 +159,8 @@ class FullScreenOptionsManagerImpl(
     }
 
     private fun getPageInfo(context: Context, settings: FullScreenInfoSettings): String? {
-        val pageNumber = pdf.pageNumber + 1
-        val pageCount = pdf.length.coerceAtLeast(pageNumber)
+        val pageNumber = vm.doc.pageNumber + 1
+        val pageCount = vm.doc.length.coerceAtLeast(pageNumber)
         val percentage = pageNumber.divideToPercent(pageCount)
 
         return when {
@@ -285,27 +285,27 @@ class FullScreenOptionsManagerImpl(
     }
 
     private fun showAutoScrollLayout() {
-        if (pdf.isFullScreenToggled && pdf.isAutoScrollClicked) {
+        if (vm.isFullScreenToggled && vm.isAutoScrollClicked) {
             binding.autoScrollLayout.visibility = View.VISIBLE
             binding.autoScrollSpeedText.visibility = View.VISIBLE
         }
     }
 
     private fun hideAutoScrollLayout() {
-        if (pdf.isFullScreenToggled && pdf.isAutoScrollClicked) {
+        if (vm.isFullScreenToggled && vm.isAutoScrollClicked) {
             binding.autoScrollLayout.visibility = View.GONE
             binding.autoScrollSpeedText.visibility = View.GONE
         }
     }
 
     private fun showBrightnessLayout() {
-        if (pdf.isFullScreenToggled && pdf.isBrightnessClicked) {
+        if (vm.isFullScreenToggled && vm.isBrightnessClicked) {
             binding.brightnessLayout.visibility = View.VISIBLE
         }
     }
 
     private fun hideBrightnessLayout() {
-        if (pdf.isFullScreenToggled && pdf.isBrightnessClicked) {
+        if (vm.isFullScreenToggled && vm.isBrightnessClicked) {
             binding.brightnessLayout.visibility = View.GONE
         }
     }

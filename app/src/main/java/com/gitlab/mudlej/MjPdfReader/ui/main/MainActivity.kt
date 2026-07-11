@@ -57,6 +57,7 @@ import android.view.*
 import android.widget.*
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts.*
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -74,7 +75,6 @@ import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
 import com.gitlab.mudlej.MjPdfReader.enums.FileType
-import com.gitlab.mudlej.MjPdfReader.enums.ReadingDirection
 import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManager
 import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManagerImpl
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
@@ -131,13 +131,13 @@ class MainActivity : AppCompatActivity() {
     private val volumeKeyPager by lazy { VolumeKeyPager(binding, pdf, pref) }
     private val mousePager by lazy { MousePager(binding, pdf, pref) }
     private val zoomSwipeLockController by lazy { ZoomSwipeLockController(binding, ::drawableOf) }
-    private val brightnessController by lazy { BrightnessController(this, binding, pdf) }
+    private val brightnessController by lazy { BrightnessController(this, binding, vm) }
     private val pdfThemeController by lazy { PdfThemeController(this, binding, pref) }
     private val fullscreenController by lazy {
         FullscreenController(
             this,
             binding,
-            pdf,
+            vm,
             pref,
             fullScreenOptionsManager,
             autoScrollManager,
@@ -170,13 +170,10 @@ class MainActivity : AppCompatActivity() {
     }
     private lateinit var annotationSaveController: AnnotationSaveController
     private lateinit var pref: Preferences
-    private val pdf = PDF()
-    private val session = DocumentSession(pdf) { annotationController.acceptsDocumentUri(it) }
+    private val vm: ReaderViewModel by viewModels()
+    private val pdf: DocumentState get() = vm.doc
     private val readerHistory by lazy { ReaderHistoryManager({ binding.pdfView }, ::onHistoryChanged) }
     private var historyNavState = false to false
-    private var bookmarkedPages = mutableSetOf<Int>()
-    private var bookmarksLoadedForHash: String? = null
-    private var bookmarkActionState = false
     private val readerNavigationController: ReaderNavigationController by lazy {
         ReaderNavigationController(
             this,
@@ -201,7 +198,7 @@ class MainActivity : AppCompatActivity() {
         ReadingDirectionController(
             this,
             pdf,
-            session,
+            vm,
             pref,
             databaseManager,
             lifecycleScope,
@@ -214,7 +211,7 @@ class MainActivity : AppCompatActivity() {
             this,
             binding,
             pdf,
-            session,
+            vm,
             pref,
             databaseManager,
             readingDirectionResolver,
@@ -242,14 +239,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var appTitle: TextView
     private lateinit var appTitlePageNumber: TextView
 
-    private val launchers = Launchers(
-        Launcher(this, pdf).pdfPicker(),
-        Launcher(this, pdf).saveToDownloadPermission { granted: Boolean ->
-            onlinePdfController.saveDownloadedFileAfterPermissionRequest(granted)
-        },
-        Launcher(this, pdf).readFileErrorPermission(::restartAppIfGranted),
-        Launcher(this, pdf).settings(::displayFromUri)
-    )
+    private lateinit var launchers: Launchers
 
     private val updateAnnotationDestinationLauncher = registerForActivityResult(StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -273,7 +263,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val userBookmarksLauncher = registerForActivityResult(StartActivityForResult()) { result ->
-        bookmarksLoadedForHash = null
+        vm.bookmarksLoadedForHash = null
         ensureUserBookmarksLoaded()
         readerNavigationController.handleUserBookmarksResult(result.resultCode, result.data)
     }
@@ -310,6 +300,14 @@ class MainActivity : AppCompatActivity() {
         // To avoid FileUriExposedException, (https://stackoverflow.com/questions/38200282/)
         StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
 
+        launchers = Launchers(
+            Launcher(this, pdf).pdfPicker(),
+            Launcher(this, pdf).saveToDownloadPermission { granted: Boolean ->
+                onlinePdfController.saveDownloadedFileAfterPermissionRequest(granted)
+            },
+            Launcher(this, pdf).readFileErrorPermission(::restartAppIfGranted),
+            Launcher(this, pdf).settings(::displayFromUri)
+        )
         buildControllers()
         documentLoadController.applyTileRenderingPreferences()
 
@@ -320,9 +318,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildControllers() {
         databaseManager = DatabaseManagerImpl(AppDatabase.getInstance(applicationContext))
-        autoScrollManager = AutoScrollManagerImpl(binding, pdf, pref, autoScrollSpeedStore::onSpeedChanged)
+        autoScrollManager = AutoScrollManagerImpl(binding, vm, pref, autoScrollSpeedStore::onSpeedChanged)
         fullScreenOptionsManager = FullScreenOptionsManagerImpl(
-            binding, pdf, pref.getHideDelay().toLong(), pref
+            binding, vm, pref.getHideDelay().toLong(), pref
         )
         actionResolver = ConfigurableActionResolver(
             ::hasFile,
@@ -332,7 +330,7 @@ class MainActivity : AppCompatActivity() {
             { pref.getPdfPagesTheme() == Preferences.themeSystem },
             { readerHistory.canGoBack() },
             { readerHistory.canGoForward() },
-            { bookmarkedPages.contains(pdf.pageNumber) },
+            { vm.bookmarkedPages.contains(pdf.pageNumber) },
             createActionHandlers(),
         )
         toolbarActionController = ToolbarActionController(
@@ -353,7 +351,7 @@ class MainActivity : AppCompatActivity() {
             binding,
             pref,
             actionResolver,
-        ) { pdf.isFullScreenToggled }
+        ) { vm.isFullScreenToggled }
         cropMarginsController = CropMarginsController(
             this,
             binding,
@@ -362,19 +360,19 @@ class MainActivity : AppCompatActivity() {
             lifecycleScope,
             ::isCropMarginsEnabled,
             ::setCropMarginsEnabled,
-            session::isCurrent,
+            vm::isCurrent,
             { configurator, pageNumber, cropMargins, viewState ->
                 documentLoadController.reloadWithCropMargins(configurator, pageNumber, cropMargins, viewState)
             },
         )
-        annotationController = AnnotationController(this, binding, pdf)
+        annotationController = AnnotationController(this, binding, vm)
         annotationSaveController = AnnotationSaveController(
             this,
             binding,
             pdf,
             annotationController,
             databaseManager,
-            session,
+            vm,
             lifecycleScope,
             updateAnnotationDestinationLauncher,
             createAnnotationDestinationLauncher,
@@ -397,6 +395,7 @@ class MainActivity : AppCompatActivity() {
         signatureController = SignatureController(
             this,
             binding,
+            vm,
             SignatureStore(this),
             annotationController,
             ::onAnnotationEdit,
@@ -426,7 +425,7 @@ class MainActivity : AppCompatActivity() {
         displayFromUri(pdf.uri, true)
     }
 
-    fun initPdf(pdf: PDF, uri: Uri) {
+    fun initPdf(pdf: DocumentState, uri: Uri) {
         documentLoadController.initPdf(pdf, uri)
     }
 
@@ -436,26 +435,21 @@ class MainActivity : AppCompatActivity() {
         }
         autoScrollSpeedStore.flushPendingSave()
         cropMarginsController.cancel()
-        session.beginNewDocument(uri, pref.getAlwaysHideMargins())
         pageTextCopier.resetForNewDocument()
         readerNavigationController.resetSearchResultState()
         readerNavigationController.resetTableOfContentsState()
         readerNavigationController.resetLinkJumpState()
         readerHistory.clear()
-        bookmarkedPages = mutableSetOf()
-        bookmarksLoadedForHash = null
-        bookmarkActionState = false
         inlineAnnotationActionController.hideActions()
         signatureController.cancelPlacement()
-        PdfBytesHolder.clear()
-        annotationController.resetForDocument(uri)
+        vm.beginNewDocument(uri, pref.getAlwaysHideMargins())
         updateAnnotationDirtyUi()
     }
 
-    private fun isCropMarginsEnabled() = session.cropMarginsEnabled
+    private fun isCropMarginsEnabled() = vm.cropMarginsEnabled
 
     private fun setCropMarginsEnabled(enabled: Boolean) {
-        session.cropMarginsEnabled = enabled
+        vm.cropMarginsEnabled = enabled
         refreshConfiguredActions()
     }
 
@@ -653,10 +647,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkAlwaysHorizontal() {
-        if (pref.getAlwaysHorizontal() && pdf.isPortrait) {
+        if (pref.getAlwaysHorizontal() && vm.isPortrait) {
             rotateScreen()
         }
-        if (!pref.getAlwaysHorizontal() && !pdf.isPortrait) {
+        if (!pref.getAlwaysHorizontal() && !vm.isPortrait) {
             rotateScreen()
         }
     }
@@ -685,7 +679,7 @@ class MainActivity : AppCompatActivity() {
         val uri = documentUri ?: return
         lifecycleScope.launch {
             val hasJournal = withContext(Dispatchers.IO) { annotationController.hasJournal(uri) }
-            if (!hasJournal || !session.isCurrent(loadToken, uri)) {
+            if (!hasJournal || !vm.isCurrent(loadToken, uri)) {
                 return@launch
             }
             if (annotationController.isSessionOwned(uri)) {
@@ -712,7 +706,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun replayAnnotations(documentUri: Uri, loadToken: Long) {
-        if (!session.isCurrent(loadToken, documentUri)) {
+        if (!vm.isCurrent(loadToken, documentUri)) {
             return
         }
         annotationController.replayJournal()
@@ -790,12 +784,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun rotateScreen() {
-        requestedOrientation = if (pdf.isPortrait) {
+        requestedOrientation = if (vm.isPortrait) {
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         } else {
             ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
-        pdf.togglePortrait()
+        vm.togglePortrait()
     }
 
     private fun exitFullScreenListener(binding: ActivityMainBinding) {
@@ -976,7 +970,7 @@ class MainActivity : AppCompatActivity() {
         if (enableCropMargins) {
             cropMarginsController.startOrApply(
                 pdf.fileHash,
-                session.currentLoadToken,
+                vm.currentLoadToken,
                 pdf.uri,
                 binding.pdfView.pageCount,
             )
@@ -1128,23 +1122,24 @@ class MainActivity : AppCompatActivity() {
 
     private fun ensureUserBookmarksLoaded() {
         val hash = pdf.fileHash ?: return
-        if (bookmarksLoadedForHash == hash) {
+        if (vm.bookmarksLoadedForHash == hash) {
             return
         }
-        bookmarksLoadedForHash = hash
+        vm.bookmarksLoadedForHash = hash
         lifecycleScope.launch {
             val pages = databaseManager.findUserBookmarks(hash).map { it.pageIndex }
             if (pdf.fileHash == hash) {
-                bookmarkedPages = pages.toMutableSet()
+                vm.bookmarkedPages.clear()
+                vm.bookmarkedPages.addAll(pages)
                 refreshBookmarkActionState(pdf.pageNumber)
             }
         }
     }
 
     private fun refreshBookmarkActionState(pageIndex: Int) {
-        val bookmarked = bookmarkedPages.contains(pageIndex)
-        if (bookmarked != bookmarkActionState) {
-            bookmarkActionState = bookmarked
+        val bookmarked = vm.bookmarkedPages.contains(pageIndex)
+        if (bookmarked != vm.bookmarkActionState) {
+            vm.bookmarkActionState = bookmarked
             refreshConfiguredActions()
         }
     }
@@ -1159,11 +1154,11 @@ class MainActivity : AppCompatActivity() {
             return
         }
         val pageIndex = pdf.pageNumber
-        val adding = !bookmarkedPages.contains(pageIndex)
+        val adding = !vm.bookmarkedPages.contains(pageIndex)
         if (adding) {
-            bookmarkedPages.add(pageIndex)
+            vm.bookmarkedPages.add(pageIndex)
         } else {
-            bookmarkedPages.remove(pageIndex)
+            vm.bookmarkedPages.remove(pageIndex)
         }
         refreshBookmarkActionState(pageIndex)
         lifecycleScope.launch {
@@ -1205,7 +1200,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         val currentPageIndex = currentPdfViewPageIndex()
-        pdf.pageNumber = currentPageIndex
         Intent(this, TextModeActivity::class.java).also {
             it.putExtra(PDF.filePathKey, pdf.uri.toString())
             it.putExtra(PDF.passwordKey, pdf.password)
@@ -1291,57 +1285,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putParcelable(PDF.uriKey, pdf.uri)
-        outState.putString(PDF.fileHashKey, pdf.fileHash)
-        outState.putInt(PDF.pageNumberKey, pdf.pageNumber)
-        outState.putString(PDF.passwordKey, pdf.password)
-        outState.putString(PDF.readingDirectionOverrideKey, pdf.readingDirectionOverride?.id)
-        outState.putString(PDF.detectedReadingDirectionKey, pdf.detectedReadingDirection?.id)
-        outState.putString(PDF.effectiveReadingDirectionKey, pdf.effectiveReadingDirection.id)
-        outState.putBoolean(PDF.hasUnsavedAnnotationsKey, annotationController.hasUnsavedAnnotations)
-        outState.putStringArrayList(PDF.sessionOwnedAnnotationKeysKey, annotationController.sessionOwnedKeysForState())
-        outState.putBoolean(PDF.isPortraitKey, pdf.isPortrait)
-        outState.putBoolean(PDF.isFullScreenToggledKey, pdf.isFullScreenToggled)
-        pdf.autoScrollSpeed?.let { outState.putInt(PDF.autoScrollSpeedKey, it) }
-        outState.putBoolean(PDF.cropMarginsEnabledKey, isCropMarginsEnabled())
-        val viewState = session.saveViewState(outState, binding.pdfView.captureViewState())
-        outState.putFloat(PDF.zoomKey, viewState?.zoom ?: pdf.zoom)
+        vm.captureViewStateForSave(binding.pdfView.captureViewState())
+        signatureController.capturePlacementForState()
         readerNavigationController.saveState(outState)
         readerHistory.saveState(outState)
-        signatureController.saveState(outState)
         super.onSaveInstanceState(outState)
     }
 
     private fun restoreInstanceState(savedState: Bundle) {
-        pdf.uri = savedState.getParcelable(PDF.uriKey)
-        pdf.fileHash = savedState.getString(PDF.fileHashKey)
-        pdf.pageNumber = savedState.getInt(PDF.pageNumberKey)
-        pdf.password = savedState.getString(PDF.passwordKey)
-        pdf.readingDirectionOverride = ReadingDirection.fromOverrideId(
-            savedState.getString(PDF.readingDirectionOverrideKey),
-        )
-        pdf.detectedReadingDirection = ReadingDirection.fromId(savedState.getString(PDF.detectedReadingDirectionKey))
-        pdf.effectiveReadingDirection = ReadingDirection.fromId(
-            savedState.getString(PDF.effectiveReadingDirectionKey),
-        ) ?: ReadingDirection.LEFT_TO_RIGHT
-        pdf.isPortrait = savedState.getBoolean(PDF.isPortraitKey, true)
-        pdf.isFullScreenToggled = savedState.getBoolean(PDF.isFullScreenToggledKey)
-        pdf.autoScrollSpeed = savedState.takeIf { it.containsKey(PDF.autoScrollSpeedKey) }
-            ?.getInt(PDF.autoScrollSpeedKey)
-        session.cropMarginsEnabled = savedState.getBoolean(PDF.cropMarginsEnabledKey, pref.getAlwaysHideMargins())
-        session.pendingViewState = session.restoreViewState(savedState)
-        pdf.zoom = session.pendingViewState?.zoom ?: savedState.getFloat(PDF.zoomKey, 1f)
         readerNavigationController.restoreState(savedState)
         readerHistory.restoreState(savedState)
-        annotationController.resetForDocument(pdf.uri)
-        annotationController.restoreSessionOwnedKeys(
-            savedState.getStringArrayList(PDF.sessionOwnedAnnotationKeysKey),
-        )
-        if (savedState.getBoolean(PDF.hasUnsavedAnnotationsKey, false)) {
-            annotationController.markDirty()
-            annotationController.markSessionOwned(pdf.uri)
-        }
-        signatureController.restoreState(savedState)
         updateAnnotationDirtyUi()
     }
 

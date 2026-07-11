@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.github.barteksc.pdfviewer.PDFView
-import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationJournal
 import com.gitlab.mudlej.MjPdfReader.data.annotation.SourceKey
@@ -15,55 +14,42 @@ import kotlinx.coroutines.withContext
 class AnnotationController(
     private val context: Context,
     private val binding: ActivityMainBinding,
-    private val pdf: PDF,
+    private val vm: ReaderViewModel,
 ) {
     private val journal = AnnotationJournal(context)
-    private val sessionOwnedSourceKeys = mutableSetOf<String>()
+    private val pdf get() = vm.doc
 
-    var currentSaveDestinationUri: Uri? = null
-        private set
-    var currentSaveDestinationDurable: Boolean = false
-        private set
-    private var loadedDocumentUri: Uri? = null
-    var hasUnsavedAnnotations: Boolean = false
-        private set
-    var isSaving: Boolean = false
-        private set
-
-    fun resetForDocument(uri: Uri?) {
-        loadedDocumentUri = uri
-        currentSaveDestinationUri = null
-        currentSaveDestinationDurable = false
-        hasUnsavedAnnotations = false
-        isSaving = false
-    }
-
-    fun acceptsDocumentUri(uri: Uri?): Boolean {
-        return uri == null || uri == pdf.uri || uri == loadedDocumentUri
-    }
+    val currentSaveDestinationUri: Uri?
+        get() = vm.annotationSaveDestinationUri
+    val currentSaveDestinationDurable: Boolean
+        get() = vm.annotationSaveDestinationDurable
+    val hasUnsavedAnnotations: Boolean
+        get() = vm.hasUnsavedAnnotations
+    val isSaving: Boolean
+        get() = vm.isSavingAnnotations
 
     fun setCurrentSaveDestination(uri: Uri?, durable: Boolean = true) {
-        currentSaveDestinationUri = uri
-        currentSaveDestinationDurable = uri != null && durable
+        vm.annotationSaveDestinationUri = uri
+        vm.annotationSaveDestinationDurable = uri != null && durable
     }
 
     fun markDirty() {
-        hasUnsavedAnnotations = true
+        vm.hasUnsavedAnnotations = true
     }
 
     fun clearDirty() {
-        hasUnsavedAnnotations = false
+        vm.hasUnsavedAnnotations = false
     }
 
     fun setSaving(saving: Boolean) {
-        isSaving = saving
+        vm.isSavingAnnotations = saving
     }
 
     fun recordEdit(edit: AnnotationEdit) {
         val uri = pdf.uri ?: return
         journal.append(uri, edit)
-        sessionOwnedSourceKeys.add(SourceKey.of(uri))
-        hasUnsavedAnnotations = true
+        vm.sessionOwnedAnnotationKeys.add(SourceKey.of(uri))
+        vm.hasUnsavedAnnotations = true
     }
 
     fun hasJournal(uri: Uri?): Boolean {
@@ -71,24 +57,16 @@ class AnnotationController(
     }
 
     fun isSessionOwned(uri: Uri?): Boolean {
-        return uri != null && SourceKey.of(uri) in sessionOwnedSourceKeys
+        return uri != null && SourceKey.of(uri) in vm.sessionOwnedAnnotationKeys
     }
 
     fun markSessionOwned(uri: Uri?) {
-        uri?.let { sessionOwnedSourceKeys.add(SourceKey.of(it)) }
-    }
-
-    fun sessionOwnedKeysForState(): ArrayList<String> {
-        return ArrayList(sessionOwnedSourceKeys)
-    }
-
-    fun restoreSessionOwnedKeys(keys: List<String>?) {
-        keys?.let(sessionOwnedSourceKeys::addAll)
+        uri?.let { vm.sessionOwnedAnnotationKeys.add(SourceKey.of(it)) }
     }
 
     fun clearJournal(uri: Uri? = pdf.uri) {
         uri?.let(journal::delete)
-        hasUnsavedAnnotations = false
+        vm.hasUnsavedAnnotations = false
     }
 
     suspend fun replayJournal(): Boolean {
@@ -101,7 +79,7 @@ class AnnotationController(
             edits.forEach(::applyEdit)
         }
         markSessionOwned(uri)
-        hasUnsavedAnnotations = true
+        vm.hasUnsavedAnnotations = true
         return true
     }
 

@@ -2,14 +2,14 @@ package com.gitlab.mudlej.MjPdfReader.ui.main
 
 import android.app.Activity
 import android.net.Uri
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.enums.ReadingDirection
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
 
 class ReadingDirectionResolver(
     private val activity: Activity,
-    private val pdf: PDF,
+    private val pdf: DocumentState,
     private val pref: Preferences,
     private val databaseManager: DatabaseManager,
 ) {

@@ -6,11 +6,11 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.ui.main.MainActivity
 import com.gitlab.mudlej.MjPdfReader.util.PersistedGrantKeeper
 
-fun openSelectedDocument(activity: MainActivity, pdf: PDF, selectedDocumentUri: Uri?) {
+fun openSelectedDocument(activity: MainActivity, pdf: DocumentState, selectedDocumentUri: Uri?) {
     if (selectedDocumentUri == null) return
 
     if (pdf.uri == null || selectedDocumentUri == pdf.uri) {
@@ -28,7 +28,7 @@ fun openSelectedDocument(activity: MainActivity, pdf: PDF, selectedDocumentUri: 
     }
 }
 
-class Launcher(private val activity: MainActivity, private val pdf: PDF) {
+class Launcher(private val activity: MainActivity, private val pdf: DocumentState) {
 
     fun pdfPicker(): ActivityResultLauncher<Array<String>>
         = activity.registerForActivityResult(ActivityResultContracts.OpenDocument()) { selectedDocumentUri: Uri? ->

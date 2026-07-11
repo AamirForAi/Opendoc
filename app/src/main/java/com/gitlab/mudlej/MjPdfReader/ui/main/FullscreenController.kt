@@ -3,7 +3,6 @@ package com.gitlab.mudlej.MjPdfReader.ui.main
 import android.content.pm.ActivityInfo
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManager
@@ -14,7 +13,7 @@ import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 class FullscreenController(
     private val activity: AppCompatActivity,
     private val binding: ActivityMainBinding,
-    private val pdf: PDF,
+    private val vm: ReaderViewModel,
     private val pref: Preferences,
     private val fullScreenOptionsManager: FullScreenOptionsManager,
     private val autoScrollManager: AutoScrollManager,
@@ -24,9 +23,9 @@ class FullscreenController(
 ) {
 
     fun toggleFullscreen() {
-        if (!pdf.isFullScreenToggled) {
+        if (!vm.isFullScreenToggled) {
             hideSystemUi()
-            pdf.isFullScreenToggled = true
+            vm.isFullScreenToggled = true
             fullScreenOptionsManager.hideAll()
 
             if (pref.getShowFeaturesDialog()) {
@@ -34,7 +33,7 @@ class FullscreenController(
             }
         }
         else {
-            pdf.isFullScreenToggled = false
+            vm.isFullScreenToggled = false
             showSystemUi()
             fullScreenOptionsManager.showAllTemporarilyOrHide()
         }
@@ -53,26 +52,26 @@ class FullscreenController(
     }
 
     fun reapplyStateAfterLoad() {
-        if (pdf.isFullScreenToggled) {
+        if (vm.isFullScreenToggled) {
             hideSystemUi()
         }
     }
 
     fun checkAutoFullScreen() {
-        if (pref.getAutoFullScreen() && !pdf.isFullScreenToggled) {
+        if (pref.getAutoFullScreen() && !vm.isFullScreenToggled) {
             toggleFullscreen()
         }
     }
 
     fun restoreFullScreenIfNeeded() {
-        if (pdf.isFullScreenToggled) {
-            pdf.isFullScreenToggled = false
+        if (vm.isFullScreenToggled) {
+            vm.isFullScreenToggled = false
             toggleFullscreen()
         }
     }
 
     fun refreshOnWindowFocus(hasFocus: Boolean) {
-        if (hasFocus && pdf.isFullScreenToggled) {
+        if (hasFocus && vm.isFullScreenToggled) {
             ColorUtil.enterFullscreen(activity.window)
         }
     }

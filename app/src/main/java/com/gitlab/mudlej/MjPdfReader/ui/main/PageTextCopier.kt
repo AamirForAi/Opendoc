@@ -1,7 +1,7 @@
 package com.gitlab.mudlej.MjPdfReader.ui.main
 
 import android.util.Log
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.showCopyPageTextDialog
 import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
@@ -14,7 +14,7 @@ import kotlinx.coroutines.withContext
 class PageTextCopier(
     private val activity: MainActivity,
     private val binding: ActivityMainBinding,
-    private val pdf: PDF,
+    private val pdf: DocumentState,
     private val scope: CoroutineScope,
 ) {
 
