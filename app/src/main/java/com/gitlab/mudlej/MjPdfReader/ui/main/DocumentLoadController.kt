@@ -109,7 +109,7 @@ class DocumentLoadController(
 
     fun loadCurrentDocument(savePassword: Boolean = false) {
         val uri = pdf.uri ?: return
-        val bytes = if (PdfBytesHolder.uri == uri.toString()) PdfBytesHolder.pdfByte else null
+        val bytes = PdfBytesHolder.bytesFor(uri.toString())
         val configurator = if (bytes != null) {
             binding.pdfView.fromBytes(bytes)
         } else {

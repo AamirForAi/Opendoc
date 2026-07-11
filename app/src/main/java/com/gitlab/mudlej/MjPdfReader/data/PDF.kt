@@ -52,7 +52,6 @@ class PDF(
     var password: String? = null,
     var pageNumber: Int = 0,
     var length: Int = 0,
-    var sizeInMb: Double = 0.0,
     var zoom: Float = 1F,
     var isPortrait: Boolean = true,
     var isFullScreenToggled: Boolean = false,
@@ -64,8 +63,6 @@ class PDF(
     var readingDirectionOverride: ReadingDirection? = null,
     var detectedReadingDirection: ReadingDirection? = null,
     var effectiveReadingDirection: ReadingDirection = ReadingDirection.LEFT_TO_RIGHT,
-    val text: MutableMap<Int, String> = mutableMapOf(),
-    var isExtractingTextFinished: Boolean = false,
     var lastQuery: String? = null,
 ) {
 
@@ -110,7 +107,6 @@ class PDF(
         const val effectiveReadingDirectionKey = "effectiveReadingDirection"
         const val hasUnsavedAnnotationsKey = "hasUnsavedAnnotations"
         const val sessionOwnedAnnotationKeysKey = "sessionOwnedAnnotationKeys"
-        const val isExtractingTextFinishedKey = "isExtractingTextFinished"
         const val pdfBookmarksKey = "PDF_BOOKMARKS"
         const val chosenBookmarkKey = "chosenBookmarkKey"
         const val bookmarkExpandedPathsKey = "bookmarkExpandedPathsKey"

@@ -54,7 +54,6 @@ import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
 import android.util.Log
-import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.R
@@ -62,8 +61,6 @@ import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
 import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractorFactory
-import com.gitlab.mudlej.MjPdfReader.ui.main.MainActivity
-import com.gitlab.mudlej.MjPdfReader.ui.main.MainActivity.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.*
@@ -74,24 +71,6 @@ import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import kotlin.math.min
 
-
-fun openSelectedDocument(activity: MainActivity, pdf: PDF, selectedDocumentUri: Uri?) {
-    if (selectedDocumentUri == null) return
-
-    if (pdf.uri == null || selectedDocumentUri == pdf.uri) {
-        try {
-            activity.initPdf(pdf, selectedDocumentUri)
-            activity.displayFromUri(pdf.uri, true)
-        } catch (e: Throwable) {
-            Log.e("util.kt", "openSelectedDocument: ", e)
-            Toast.makeText(activity, "Failed to open the document!", Toast.LENGTH_LONG).show()
-        }
-    } else {
-        val intent = Intent(activity, activity.javaClass)
-        intent.data = selectedDocumentUri
-        activity.startActivity(intent)
-    }
-}
 
 fun computeHash(bytes: ByteArray): String? {
     return runCatching {
@@ -121,8 +100,8 @@ fun computeHash(file: File): String? {
 
 suspend fun computeHash(context: Context, pdf: PDF): String? {
     if (pdf.uri == null) return null
-    val cachedBytes = PdfBytesHolder.pdfByte
-    if (cachedBytes != null && PdfBytesHolder.uri == pdf.uri?.toString()) {
+    val cachedBytes = PdfBytesHolder.bytesFor(pdf.uri?.toString())
+    if (cachedBytes != null) {
         return computeHash(cachedBytes)
     }
     return try {
@@ -286,9 +265,8 @@ fun createPdfExtractor(activity: Activity, uri: Uri, password: String?): PdfExtr
     }
     try {
         Log.d(activity::class.simpleName, "createPdfExtractor: Trying to use PdfBytesHolder.pdfByte")
-        val heldBytes = PdfBytesHolder.pdfByte
-        val heldUri = PdfBytesHolder.uri
-        if (heldBytes != null && heldUri == uri.toString()) {
+        val heldBytes = PdfBytesHolder.bytesFor(uri.toString())
+        if (heldBytes != null) {
             return PdfExtractorFactory.create(activity, heldBytes, password)
         }
         else {

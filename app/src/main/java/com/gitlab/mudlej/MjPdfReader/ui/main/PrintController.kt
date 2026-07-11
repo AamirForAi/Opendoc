@@ -25,7 +25,7 @@ class PrintController(
 
     fun printFile() {
         val documentUri = pdf.uri
-        val bytes = if (PdfBytesHolder.uri == documentUri?.toString()) PdfBytesHolder.pdfByte else null
+        val bytes = PdfBytesHolder.bytesFor(documentUri?.toString())
         if (bytes == null) {
             printUri(documentUri)
             return

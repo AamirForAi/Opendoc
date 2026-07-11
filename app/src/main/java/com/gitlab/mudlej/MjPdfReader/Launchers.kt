@@ -2,12 +2,31 @@ package com.gitlab.mudlej.MjPdfReader
 
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.ui.main.MainActivity
 import com.gitlab.mudlej.MjPdfReader.util.PersistedGrantKeeper
-import com.gitlab.mudlej.MjPdfReader.util.openSelectedDocument
+
+fun openSelectedDocument(activity: MainActivity, pdf: PDF, selectedDocumentUri: Uri?) {
+    if (selectedDocumentUri == null) return
+
+    if (pdf.uri == null || selectedDocumentUri == pdf.uri) {
+        try {
+            activity.initPdf(pdf, selectedDocumentUri)
+            activity.displayFromUri(pdf.uri, true)
+        } catch (e: Throwable) {
+            Log.e("Launchers", "openSelectedDocument: ", e)
+            Toast.makeText(activity, "Failed to open the document!", Toast.LENGTH_LONG).show()
+        }
+    } else {
+        val intent = Intent(activity, activity.javaClass)
+        intent.data = selectedDocumentUri
+        activity.startActivity(intent)
+    }
+}
 
 class Launcher(private val activity: MainActivity, private val pdf: PDF) {
 

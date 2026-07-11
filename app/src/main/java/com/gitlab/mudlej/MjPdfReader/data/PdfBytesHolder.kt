@@ -1,16 +1,21 @@
 package com.gitlab.mudlej.MjPdfReader.data
 
 object PdfBytesHolder {
-    var pdfByte: ByteArray? = null
-    var uri: String? = null
+
+    class Snapshot(val uri: String?, val bytes: ByteArray)
+
+    @Volatile
+    private var snapshot: Snapshot? = null
+
+    fun snapshot(): Snapshot? = snapshot
+
+    fun bytesFor(uri: String?): ByteArray? = snapshot?.takeIf { it.uri == uri }?.bytes
 
     fun set(uri: String?, bytes: ByteArray?) {
-        this.uri = uri
-        this.pdfByte = bytes
+        snapshot = if (bytes == null) null else Snapshot(uri, bytes)
     }
 
     fun clear() {
-        pdfByte = null
-        uri = null
+        snapshot = null
     }
 }

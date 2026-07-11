@@ -96,23 +96,23 @@ class OnlinePdfController(
     }
 
     fun retainSnapshot(): RetainedPdfBytes {
-        return RetainedPdfBytes(PdfBytesHolder.uri, PdfBytesHolder.pdfByte)
+        val held = PdfBytesHolder.snapshot()
+        return RetainedPdfBytes(held?.uri, held?.bytes)
     }
 
     fun downloadOrShowDownloadedFile(uri: Uri, retainedState: Any?) {
-        if (PdfBytesHolder.pdfByte == null) {
+        if (PdfBytesHolder.snapshot() == null) {
             val retained = retainedState as? RetainedPdfBytes
             if (retained?.uri == uri.toString()) {
                 PdfBytesHolder.set(retained.uri, retained.bytes)
             }
         }
-        if (PdfBytesHolder.pdfByte != null && PdfBytesHolder.uri != uri.toString()) {
-            PdfBytesHolder.clear()
-        }
-        if (PdfBytesHolder.pdfByte != null) {
-            loadFromBytes(PdfBytesHolder.pdfByte)
+        val bytes = PdfBytesHolder.bytesFor(uri.toString())
+        if (bytes != null) {
+            loadFromBytes(bytes)
         }
         else {
+            PdfBytesHolder.clear()
             startDownload(uri.toString())
         }
     }
@@ -178,7 +178,7 @@ class OnlinePdfController(
 
     fun saveDownloadedFileAfterPermissionRequest(isPermissionGranted: Boolean) {
         if (isPermissionGranted) {
-            val bytes = if (PdfBytesHolder.uri == pdf.uri?.toString()) PdfBytesHolder.pdfByte else null
+            val bytes = PdfBytesHolder.bytesFor(pdf.uri?.toString())
             if (bytes != null) {
                 trySaveToDownloads(bytes, true)
             } else {

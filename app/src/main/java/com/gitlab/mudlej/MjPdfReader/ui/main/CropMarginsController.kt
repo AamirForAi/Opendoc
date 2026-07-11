@@ -178,7 +178,7 @@ class CropMarginsController(
     private fun openDocument(documentUri: Uri): OpenedDocument? {
         val pdfiumCore = PdfiumCore(activity)
         val password = pdf.password
-        val bytes = if (PdfBytesHolder.uri == documentUri.toString()) PdfBytesHolder.pdfByte else null
+        val bytes = PdfBytesHolder.bytesFor(documentUri.toString())
         val document: PdfDocument = if (bytes != null) {
             pdfiumCore.newDocument(bytes, password)
         } else {
@@ -204,7 +204,7 @@ class CropMarginsController(
     }
 
     private fun currentConfigurator(uri: Uri): Configurator? {
-        val bytes = if (PdfBytesHolder.uri == uri.toString()) PdfBytesHolder.pdfByte else null
+        val bytes = PdfBytesHolder.bytesFor(uri.toString())
         return if (bytes != null) {
             binding.pdfView.fromBytes(bytes)
         } else {

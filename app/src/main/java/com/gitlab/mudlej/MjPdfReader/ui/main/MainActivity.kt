@@ -1251,7 +1251,7 @@ class MainActivity : AppCompatActivity() {
         if (uri == null) {
             return null
         }
-        val heldBytes = if (PdfBytesHolder.uri == uri.toString()) PdfBytesHolder.pdfByte else null
+        val heldBytes = PdfBytesHolder.bytesFor(uri.toString())
         if (heldBytes != null) {
             return heldBytes.size.toLong()
         }
@@ -1306,7 +1306,6 @@ class MainActivity : AppCompatActivity() {
         outState.putBoolean(PDF.cropMarginsEnabledKey, isCropMarginsEnabled())
         val viewState = session.saveViewState(outState, binding.pdfView.captureViewState())
         outState.putFloat(PDF.zoomKey, viewState?.zoom ?: pdf.zoom)
-        outState.putBoolean(PDF.isExtractingTextFinishedKey, pdf.isExtractingTextFinished)
         readerNavigationController.saveState(outState)
         readerHistory.saveState(outState)
         signatureController.saveState(outState)
@@ -1332,7 +1331,6 @@ class MainActivity : AppCompatActivity() {
         session.cropMarginsEnabled = savedState.getBoolean(PDF.cropMarginsEnabledKey, pref.getAlwaysHideMargins())
         session.pendingViewState = session.restoreViewState(savedState)
         pdf.zoom = session.pendingViewState?.zoom ?: savedState.getFloat(PDF.zoomKey, 1f)
-        pdf.isExtractingTextFinished = savedState.getBoolean(PDF.isExtractingTextFinishedKey)
         readerNavigationController.restoreState(savedState)
         readerHistory.restoreState(savedState)
         annotationController.resetForDocument(pdf.uri)
