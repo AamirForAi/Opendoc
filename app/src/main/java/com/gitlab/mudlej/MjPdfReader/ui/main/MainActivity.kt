@@ -72,19 +72,18 @@ import com.gitlab.mudlej.MjPdfReader.data.*
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
 import com.gitlab.mudlej.MjPdfReader.enums.FileType
-import com.gitlab.mudlej.MjPdfReader.repository.UserBookmark
 import com.gitlab.mudlej.MjPdfReader.ui.*
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.shockwave.pdfium.PdfPasswordException
+import java.io.FileNotFoundException
+import kotlin.system.exitProcess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.FileNotFoundException
-import kotlin.system.exitProcess
 
 class MainActivity : AppCompatActivity(), ReaderUi {
 
@@ -566,61 +565,6 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         runAfterDirtyAnnotationPrompt {
             startActivity(Intent(this, HomeActivity::class.java))
             finish()
-        }
-    }
-
-    internal fun onPageDisplayed(pageIndex: Int) {
-        ensureUserBookmarksLoaded()
-        refreshBookmarkActionState(pageIndex)
-    }
-
-    internal fun ensureUserBookmarksLoaded() {
-        val hash = pdf.fileHash ?: return
-        if (vm.bookmarksLoadedForHash == hash) {
-            return
-        }
-        vm.bookmarksLoadedForHash = hash
-        lifecycleScope.launch {
-            val pages = databaseManager.findUserBookmarks(hash).map { it.pageIndex }
-            if (pdf.fileHash == hash) {
-                vm.bookmarkedPages.clear()
-                vm.bookmarkedPages.addAll(pages)
-                refreshBookmarkActionState(pdf.pageNumber)
-            }
-        }
-    }
-
-    private fun refreshBookmarkActionState(pageIndex: Int) {
-        val bookmarked = vm.bookmarkedPages.contains(pageIndex)
-        if (bookmarked != vm.bookmarkActionState) {
-            vm.bookmarkActionState = bookmarked
-            reader.refreshActions()
-        }
-    }
-
-    internal fun toggleCurrentPageBookmark() {
-        if (!checkHasFile()) {
-            return
-        }
-        val hash = pdf.fileHash
-        if (hash == null) {
-            AppSnackbar.make(binding.root, R.string.bookmark_hash_unavailable, Snackbar.LENGTH_SHORT).show()
-            return
-        }
-        val pageIndex = pdf.pageNumber
-        val adding = !vm.bookmarkedPages.contains(pageIndex)
-        if (adding) {
-            vm.bookmarkedPages.add(pageIndex)
-        } else {
-            vm.bookmarkedPages.remove(pageIndex)
-        }
-        refreshBookmarkActionState(pageIndex)
-        lifecycleScope.launch {
-            if (adding) {
-                databaseManager.addUserBookmark(UserBookmark(hash, pageIndex))
-            } else {
-                databaseManager.removeUserBookmark(hash, pageIndex)
-            }
         }
     }
 

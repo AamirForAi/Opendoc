@@ -7,7 +7,6 @@ import android.os.Looper
 import android.provider.MediaStore
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
-import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManagerImpl
 import com.gitlab.mudlej.MjPdfReader.manager.permission.PermissionManager
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
 import android.os.ParcelFileDescriptor
@@ -345,7 +344,7 @@ class LibraryScanner private constructor(
                 val appContext = context.applicationContext
                 val created = LibraryScanner(
                     appContext,
-                    DatabaseManagerImpl(AppDatabase.getInstance(appContext)),
+                    DatabaseManager(AppDatabase.getInstance(appContext)),
                 )
                 INSTANCE = created
                 return created

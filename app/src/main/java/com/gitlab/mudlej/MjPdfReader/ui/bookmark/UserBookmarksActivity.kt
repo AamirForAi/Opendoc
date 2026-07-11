@@ -14,7 +14,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityUserBookmarksBinding
-import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManagerImpl
+import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.repository.UserBookmark
 import com.gitlab.mudlej.MjPdfReader.ui.toc.TocPathResolver
@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 class UserBookmarksActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityUserBookmarksBinding
-    private val databaseManager by lazy { DatabaseManagerImpl(AppDatabase.getInstance(applicationContext)) }
+    private val databaseManager by lazy { DatabaseManager(AppDatabase.getInstance(applicationContext)) }
     private val bookmarkAdapter = UserBookmarkAdapter(
         ::onBookmarkClicked,
         ::confirmDeleteBookmark,

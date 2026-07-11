@@ -21,7 +21,6 @@ import com.gitlab.mudlej.MjPdfReader.enums.HomeTab
 import com.gitlab.mudlej.MjPdfReader.enums.HomeViewMode
 import com.gitlab.mudlej.MjPdfReader.enums.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
-import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManagerImpl
 import com.gitlab.mudlej.MjPdfReader.manager.permission.PermissionManager
 import com.gitlab.mudlej.MjPdfReader.manager.storage.LibraryScanner
 import com.gitlab.mudlej.MjPdfReader.manager.thumbnail.CoverCache
@@ -92,7 +91,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        databaseManager = DatabaseManagerImpl(AppDatabase.getInstance(applicationContext))
+        databaseManager = DatabaseManager(AppDatabase.getInstance(applicationContext))
         coverCache = CoverCache.getInstance(applicationContext)
         permissionManager = PermissionManager(this) { onStorageAccessChanged() }
         libraryController = HomeLibraryController(databaseManager, pref)

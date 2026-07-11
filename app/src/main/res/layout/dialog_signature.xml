@@ -16,7 +16,7 @@
         app:strokeColor="?attr/colorOutline"
         app:strokeWidth="1dp">
 
-        <com.gitlab.mudlej.MjPdfReader.ui.main.SignatureView
+        <com.gitlab.mudlej.MjPdfReader.ui.main.annotation.SignatureView
             android:id="@+id/signatureView"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />

@@ -27,14 +27,42 @@ import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
 import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.enums.FileType
-import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManager
-import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManagerImpl
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
-import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManagerImpl
-import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManager
-import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManagerImpl
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.ui.about.AboutActivity
+import com.gitlab.mudlej.MjPdfReader.ui.main.actions.ConfigurableActionResolver
+import com.gitlab.mudlej.MjPdfReader.ui.main.actions.FullScreenButtonController
+import com.gitlab.mudlej.MjPdfReader.ui.main.actions.PageTextCopier
+import com.gitlab.mudlej.MjPdfReader.ui.main.actions.PrintController
+import com.gitlab.mudlej.MjPdfReader.ui.main.actions.ReaderMenu
+import com.gitlab.mudlej.MjPdfReader.ui.main.actions.ScreenshotController
+import com.gitlab.mudlej.MjPdfReader.ui.main.actions.ShortcutBarController
+import com.gitlab.mudlej.MjPdfReader.ui.main.actions.ToolbarActionController
+import com.gitlab.mudlej.MjPdfReader.ui.main.annotation.AnnotationController
+import com.gitlab.mudlej.MjPdfReader.ui.main.annotation.AnnotationSaveController
+import com.gitlab.mudlej.MjPdfReader.ui.main.annotation.FormFieldController
+import com.gitlab.mudlej.MjPdfReader.ui.main.annotation.InlineAnnotationActionController
+import com.gitlab.mudlej.MjPdfReader.ui.main.annotation.SignatureController
+import com.gitlab.mudlej.MjPdfReader.ui.main.controls.AutoScrollManager
+import com.gitlab.mudlej.MjPdfReader.ui.main.controls.AutoScrollSpeedStore
+import com.gitlab.mudlej.MjPdfReader.ui.main.controls.BrightnessController
+import com.gitlab.mudlej.MjPdfReader.ui.main.controls.CropMarginsController
+import com.gitlab.mudlej.MjPdfReader.ui.main.controls.FullScreenOptionsManager
+import com.gitlab.mudlej.MjPdfReader.ui.main.controls.FullscreenController
+import com.gitlab.mudlej.MjPdfReader.ui.main.controls.PdfThemeController
+import com.gitlab.mudlej.MjPdfReader.ui.main.controls.ZoomSwipeLockController
+import com.gitlab.mudlej.MjPdfReader.ui.main.controls.readingdirection.ReadingDirectionController
+import com.gitlab.mudlej.MjPdfReader.ui.main.controls.readingdirection.ReadingDirectionResolver
+import com.gitlab.mudlej.MjPdfReader.ui.main.input.MousePager
+import com.gitlab.mudlej.MjPdfReader.ui.main.input.TapDispatcher
+import com.gitlab.mudlej.MjPdfReader.ui.main.input.VolumeKeyPager
+import com.gitlab.mudlej.MjPdfReader.ui.main.load.DocumentListener
+import com.gitlab.mudlej.MjPdfReader.ui.main.load.DocumentLoadedEvent
+import com.gitlab.mudlej.MjPdfReader.ui.main.load.DocumentLoader
+import com.gitlab.mudlej.MjPdfReader.ui.main.load.OnlinePdfController
+import com.gitlab.mudlej.MjPdfReader.ui.main.navigation.ReaderHistoryManager
+import com.gitlab.mudlej.MjPdfReader.ui.main.navigation.ReaderNavigationController
+import com.gitlab.mudlej.MjPdfReader.ui.main.navigation.UserBookmarkController
 import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.showGoToPageDialog
 import com.gitlab.mudlej.MjPdfReader.ui.showSearchDialog
@@ -100,8 +128,7 @@ class ReaderComposition(
     }
 
     private val userBookmarksLauncher: ActivityResultLauncher<Intent> = activity.registerForActivityResult(StartActivityForResult()) { result ->
-        vm.bookmarksLoadedForHash = null
-        activity.ensureUserBookmarksLoaded()
+        userBookmarkController.reload()
         readerNavigationController.handleUserBookmarksResult(result.resultCode, result.data)
     }
 
@@ -125,12 +152,12 @@ class ReaderComposition(
         readerNavigationController.handleTextModeResult(result.resultCode, result.data)
     }
 
-    val databaseManager: DatabaseManager = DatabaseManagerImpl(AppDatabase.getInstance(activity.applicationContext))
+    val databaseManager: DatabaseManager = DatabaseManager(AppDatabase.getInstance(activity.applicationContext))
     val autoScrollSpeedStore = AutoScrollSpeedStore(doc, databaseManager, scope, backgroundSaveScope)
     val autoScrollManager: AutoScrollManager =
-        AutoScrollManagerImpl(binding, vm, pref, autoScrollSpeedStore::onSpeedChanged)
+        AutoScrollManager(binding, vm, pref, autoScrollSpeedStore::onSpeedChanged)
     val fullScreenOptionsManager: FullScreenOptionsManager =
-        FullScreenOptionsManagerImpl(binding, vm, pref.getHideDelay().toLong(), pref)
+        FullScreenOptionsManager(binding, vm, pref.getHideDelay().toLong(), pref)
     val zoomSwipeLockController = ZoomSwipeLockController(binding, ::drawableOf)
     val brightnessController = BrightnessController(activity, binding, vm)
     val pdfThemeController = PdfThemeController(activity, binding, pref)
@@ -207,12 +234,20 @@ class ReaderComposition(
     )
 
     val readerHistory: ReaderHistoryManager = ReaderHistoryManager({ binding.pdfView }, ::onHistoryChanged)
+    val userBookmarkController: UserBookmarkController = UserBookmarkController(
+        binding,
+        vm,
+        databaseManager,
+        scope,
+        ui,
+        ::refreshActions,
+    )
     val readerNavigationController: ReaderNavigationController = ReaderNavigationController(
         activity,
         binding,
         doc,
         readerHistory,
-        activity::onPageDisplayed,
+        userBookmarkController::onPageDisplayed,
         ui::updateTitle,
         { intent -> tableOfContentsLauncher.launch(intent) },
         { intent -> userBookmarksLauncher.launch(intent) },
@@ -229,7 +264,7 @@ class ReaderComposition(
         { pref.getPdfPagesTheme() == Preferences.themeSystem },
         { readerHistory.canGoBack() },
         { readerHistory.canGoForward() },
-        { vm.bookmarkedPages.contains(doc.pageNumber) },
+        { userBookmarkController.isCurrentPageBookmarked },
         createHandlers(),
     )
     val toolbarActionController = ToolbarActionController(
@@ -500,7 +535,7 @@ class ReaderComposition(
             fileMetadata = activity::showFileMetadata,
             about = { activity.startActivity(navIntent(activity, AboutActivity::class.java)) },
             tableOfContents = { readerNavigationController.showTableOfContents() },
-            toggleBookmark = activity::toggleCurrentPageBookmark,
+            toggleBookmark = { userBookmarkController.toggleCurrentPageBookmark() },
             userBookmarks = ::showUserBookmarks,
             linksInFile = { readerNavigationController.showLinks() },
             print = ::printFile,

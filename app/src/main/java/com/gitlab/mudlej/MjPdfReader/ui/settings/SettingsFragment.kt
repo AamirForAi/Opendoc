@@ -19,7 +19,7 @@ import androidx.preference.PreferenceScreen
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.manager.backup.BackupManager
-import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManagerImpl
+import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CancellationException
@@ -39,7 +39,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
     private var includePasswordsInExport = false
     private val backupManager by lazy {
         val appContext = requireContext().applicationContext
-        BackupManager(appContext, DatabaseManagerImpl(AppDatabase.getInstance(appContext)))
+        BackupManager(appContext, DatabaseManager(AppDatabase.getInstance(appContext)))
     }
     private val exportBackupLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),

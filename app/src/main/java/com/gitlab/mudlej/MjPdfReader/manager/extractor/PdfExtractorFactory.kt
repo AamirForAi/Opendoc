@@ -16,7 +16,7 @@ object PdfExtractorFactory {
         } else {
             pdfium.newDocument(parcelFileDescriptor, password)
         }
-        return PdfExtractorImpl(pdfium, pdfDocument)
+        return PdfExtractor(pdfium, pdfDocument)
     }
 
     @Throws(IOException::class)
@@ -27,7 +27,7 @@ object PdfExtractorFactory {
         } else {
             pdfium.newDocument(pdfBytes, password)
         }
-        return PdfExtractorImpl(pdfium, pdfDocument)
+        return PdfExtractor(pdfium, pdfDocument)
     }
 
 }
