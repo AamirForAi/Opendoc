@@ -21,18 +21,42 @@
     <string name="action_about">About</string>
     <string name="intro">Replay Intro</string>
     <string name="email">Email (Creator)</string>
-    <string name="description_open">Free of cost and free of restrictions.\nYou are free to read, edit, share and redistribute the app and its source code.</string>
-    <string name="title_open">IT IS YOURS</string>
-    <string name="description_intro">A fast, simple and powerful PDF reader</string>
     <string name="myLicense">License</string>
+
+    <string name="intro_welcome_title">Welcome to MJ PDF</string>
+    <string name="intro_welcome_tagline">A fast, simple and powerful PDF reader</string>
+    <string name="intro_welcome_privacy">Private. Nothing leaves your device.</string>
+    <string name="intro_welcome_clean">No ads. No telemetry. No accounts.</string>
+    <string name="intro_welcome_foss">Free and open source.</string>
+    <string name="intro_made_by"><![CDATA[Made by <a href="https://mudlej.com">Mudlej</a>]]></string>
+    <string name="intro_library_title">All your PDFs in one place</string>
+    <string name="intro_library_recent">Continue right where you left off</string>
+    <string name="intro_library_covers">Covers, reading progress and statuses</string>
+    <string name="intro_library_folders">Browse your folders like a file manager</string>
+    <string name="intro_library_search">Search every PDF on your device</string>
+    <string name="intro_reading_title">Made for long reading</string>
+    <string name="intro_reading_dark">Dark mode for the pages themselves</string>
+    <string name="intro_reading_crop">Crop margins for focused reading</string>
+    <string name="intro_reading_scroll">Auto scroll with adjustable speed</string>
+    <string name="intro_reading_text_mode">Text mode with your own typography</string>
+    <string name="intro_annotate_title">Do more than read</string>
+    <string name="intro_annotate_highlight">Highlight text and add notes</string>
+    <string name="intro_annotate_sign">Fill forms and sign documents</string>
+    <string name="intro_annotate_navigate">Search, contents, bookmarks and history</string>
+    <string name="intro_custom_title">Make it yours</string>
+    <string name="intro_custom_actions">Choose your toolbar and shortcut bar actions</string>
+    <string name="intro_custom_direction">Horizontal, vertical or right to left reading</string>
+    <string name="intro_custom_controls">Brightness, zoom lock and fullscreen controls</string>
+    <string name="intro_custom_colors">Dynamic colors that match your device</string>
+    <string name="intro_skip">Skip</string>
+    <string name="intro_next">Next</string>
+    <string name="intro_get_started">Get started</string>
     <string name="privacy">Privacy Policy</string>
 
     <string name="appChangelog">Features / Change Log</string>
     <string name="done">DONE</string>
     <string name="results">SEARCH RESULTS</string>
     <string name="ok">OK</string>
-    <string name="title_permission">Storage Permissions</string>
-    <string name="description_permission">The app will ask for the storage permission to be able to read / write documents.</string>
 
     <string name="libs">Open Source Libraries</string>
     <string name="code">Source Code</string>

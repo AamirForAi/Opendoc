@@ -4,7 +4,6 @@ package com.gitlab.mudlej.MjPdfReader.ui.home
 
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -74,9 +73,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         if (pref.getFirstInstall()) {
             pref.setFirstInstall(false)
             pref.setShowFeaturesDialog(true)
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
-                startActivity(Intent(this, MainIntroActivity::class.java))
-            }
+            startActivity(Intent(this, MainIntroActivity::class.java))
         }
 
         if (pref.getHomeDisabled()) {

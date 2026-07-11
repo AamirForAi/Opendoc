@@ -20,9 +20,6 @@
     <string name="action_about">Over</string>
     <string name="intro">Intro opnieuw afspelen</string>
     <string name="email">E-mail (Maker)</string>
-    <string name="description_open">Gratis en vrij van beperkingen.\nJe bent vrij om de app en de broncode te lezen, bewerken, delen en herverdelen.</string>
-    <string name="title_open">HET IS VAN JOU</string>
-    <string name="description_intro">Een snelle, eenvoudige en krachtige PDF-lezer</string>
     <string name="myLicense">Licentie</string>
     <string name="privacy">Privacybeleid</string>
 
@@ -30,8 +27,6 @@
     <string name="done">KLAAR</string>
     <string name="results">ZOEKRESULTATEN</string>
     <string name="ok">OK</string>
-    <string name="title_permission">Toestemming voor opslag</string>
-    <string name="description_permission">De app vraagt toestemming voor opslag om documenten te kunnen lezen/schrijven.</string>
 
     <string name="libs">Open Source-bibliotheken</string>
     <string name="code">Broncode</string>

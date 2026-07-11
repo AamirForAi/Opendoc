@@ -19,9 +19,6 @@
     <string name="action_about">Acerca de</string>
     <string name="intro">Reproducir intro nuevamente</string>
     <string name="email">Correo electrónico (AUTOR)</string>
-    <string name="description_open">Libre de costes y sin restricciones.\nPuedes leer, editar, compartir y redistribuir la aplicación y su código fuente.</string>
-    <string name="title_open">ES TUYO</string>
-    <string name="description_intro">Un lector de PDF rápido, sencillo y potente</string>
     <string name="myLicense">Licencia</string>
     <string name="privacy">Política de Privacidad</string>
 
@@ -29,8 +26,6 @@
     <string name="done">HECHO</string>
     <string name="results">RESULTADOS DE BÚSQUEDA</string>
     <string name="ok">OK</string>
-    <string name="title_permission">Permisos de almacenamiento</string>
-    <string name="description_permission">La aplicación solicitará permiso de almacenamiento para poder leer/escribir documentos.</string>
     <string name="libs">Bibliotecas de código abierto</string>
     <string name="code">Código fuente</string>
     <string name="share">Compartir</string>

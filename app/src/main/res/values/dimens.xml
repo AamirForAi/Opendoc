@@ -15,4 +15,6 @@
 
     <dimen name="bookmark_indent_step">24dp</dimen>
     <dimen name="bookmark_card_horizontal_margin">8dp</dimen>
+
+    <dimen name="intro_dot_margin">4dp</dimen>
 </resources>

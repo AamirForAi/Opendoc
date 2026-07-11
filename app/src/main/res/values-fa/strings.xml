@@ -20,17 +20,12 @@
     <string name="action_about">درباره</string>
     <string name="intro">اجرای مقدماتی</string>
     <string name="email">رایانامه (سازنده)</string>
-    <string name="description_open">رایگان و بدون محدودیت.\nشما می‌توانید آزادانه بخوانید، ویرایش کنید، هم‌رسانی کنید و نرم‌افزار و سورس کد آن را مجدداً توزیع کنید.</string>
-    <string name="title_open">این مال شماست</string>
-    <string name="description_intro">یک خواننده سریع، ساده و قدرتمند PDF</string>
     <string name="myLicense">مجوز</string>
     <string name="privacy">سیاست حریم خصوصی</string>
     <string name="appChangelog">ویژگی‌ها / تغییرات</string>
     <string name="done">انجام شد</string>
     <string name="results">یافته‌های جستجو</string>
     <string name="ok">تایید</string>
-    <string name="title_permission">مجوزهای فضای ذخیره‌سازی</string>
-    <string name="description_permission">برنامه برای خواندن/نوشتن سندها از شما مجوز فضای ذخیره‌سازی درخواست می‌کند.</string>
     <string name="libs">کتابخانه‌های متن باز</string>
     <string name="code">سورس کد</string>
     <string name="share">هم‌رسانی</string>

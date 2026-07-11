@@ -19,9 +19,6 @@
     <string name="action_about">Hakkında</string>
     <string name="intro">Girişi Yeniden Oynat</string>
     <string name="email">E-posta (YAZAR)</string>
-    <string name="description_open">Ücretsiz ve kısıtlamasız.\nUygulamayı ve kaynak kodunu okuyabilir, düzenleyebilir, paylaşabilir ve yeniden dağıtabilirsiniz.</string>
-    <string name="title_open">SENİNDİR</string>
-    <string name="description_intro">Hızlı, basit ve güçlü bir PDF okuyucu</string>
     <string name="myLicense">Lisans</string>
     <string name="privacy">Gizlilik Politikası</string>
 
@@ -29,8 +26,6 @@
     <string name="done">TAMAMLANDI</string>
     <string name="results">ARAMA SONUÇLARI</string>
     <string name="ok">TAMAM</string>
-    <string name="title_permission">Depolama İzinleri</string>
-    <string name="description_permission">Uygulama, belgeleri okuyup yazabilmek için depolama izni isteyecektir.</string>
     <string name="libs">Açık Kaynak Kütüphaneleri</string>
     <string name="code">Kaynak Kodu</string>
     <string name="share">Paylaş</string>

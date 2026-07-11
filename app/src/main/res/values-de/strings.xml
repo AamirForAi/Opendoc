@@ -19,9 +19,6 @@
     <string name="action_about">Über</string>
     <string name="intro">Intro wiederholen</string>
     <string name="email">E-Mail (AUTOR)</string>
-    <string name="description_open">Kostenfrei und ohne Einschränkungen.\nSie können die App und ihren Quellcode lesen, bearbeiten, teilen und redistribuieren.</string>
-    <string name="title_open">ES IST DEINS</string>
-    <string name="description_intro">Ein schneller, einfacher und mächtiger PDF-Reader</string>
     <string name="myLicense">Lizenz</string>
     <string name="privacy">Datenschutzbestimmungen</string>
 
@@ -29,8 +26,6 @@
     <string name="done">FERTIG</string>
     <string name="results">SUCHERGEBNISSE</string>
     <string name="ok">OK</string>
-    <string name="title_permission">Speicherberechtigungen</string>
-    <string name="description_permission">Die App wird um die Speicherberechtigung bitten, um Dokumente lesen/schreiben zu können.</string>
     <string name="libs">Open-Source-Bibliotheken</string>
     <string name="code">Quellcode</string>
     <string name="share">Teilen</string>

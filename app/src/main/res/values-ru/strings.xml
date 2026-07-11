@@ -20,9 +20,6 @@
     <string name="action_about">О приложении</string>
     <string name="intro">Повторно показать вступление</string>
     <string name="email">Электронная почта (Создатель)</string>
-    <string name="description_open">Бесплатно и без ограничений.\nВы можете свободно читать, редактировать, делиться и распространять приложение и его исходный код.</string>
-    <string name="title_open">ЭТО ТВОЕ</string>
-    <string name="description_intro">Быстрый, простой и мощный PDF-ридер</string>
     <string name="myLicense">Лицензия</string>
     <string name="privacy">Политика конфиденциальности</string>
 
@@ -30,8 +27,6 @@
     <string name="done">ГОТОВО</string>
     <string name="results">РЕЗУЛЬТАТЫ ПОИСКА</string>
     <string name="ok">ОК</string>
-    <string name="title_permission">Разрешения на хранение данных</string>
-    <string name="description_permission">Приложение запросит разрешение на доступ к хранилищу для чтения/записи документов.</string>
 
     <string name="libs">Библиотеки с открытым исходным кодом</string>
     <string name="code">Исходный код</string>

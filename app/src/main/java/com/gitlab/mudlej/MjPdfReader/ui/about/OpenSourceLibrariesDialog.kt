@@ -44,12 +44,6 @@ class OpenSourceLibrariesDialog : DialogFragment() {
                 "https://gitlab.com/mudlej_android/mj_pdf_reader/-/tree/main/PdfiumAndroid"
             ),
             LibraryAttribution(
-                "AppIntro",
-                "Copyright 2018 Paolo Rotolo",
-                "Apache License",
-                "https://github.com/paolorotolo/AppIntro"
-            ),
-            LibraryAttribution(
                 "Android Open Source Project",
                 "Copyright 2016 The Android Open Source Project",
                 "Apache License",

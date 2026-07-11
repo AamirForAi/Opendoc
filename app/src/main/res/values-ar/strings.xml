@@ -19,9 +19,6 @@
     <string name="action_about">حول التطبيق</string>
     <string name="intro">إعادة تشغيل المقدمة</string>
     <string name="email">البريد الإلكتروني للمطور</string>
-    <string name="description_open">مجاني وبدون قيود.\nأنت حر في قراءة، تعديل، مشاركة وإعادة توزيع التطبيق وكوده المصدري.</string>
-    <string name="title_open">هو لك</string>
-    <string name="description_intro">قارئ PDF سريع، بسيط وقوي</string>
     <string name="myLicense">الترخيص</string>
     <string name="privacy">سياسة الخصوصية</string>
 
@@ -29,8 +26,6 @@
     <string name="done">تم</string>
     <string name="results">نتائج البحث</string>
     <string name="ok">موافق</string>
-    <string name="title_permission">أذونات التخزين</string>
-    <string name="description_permission">سيطلب التطبيق إذن التخزين لقراءة وكتابة المستندات.</string>
     <string name="libs">مكتبات التطبيق</string>
     <string name="code">الكود</string>
     <string name="share">مشاركة</string>

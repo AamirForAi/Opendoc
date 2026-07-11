@@ -20,9 +20,6 @@
     <string name="action_about">关于</string>
     <string name="intro">重放简介</string>
     <string name="email">电子邮件（创建人）</string>
-    <string name="description_open">完全自由且无任何限制。\n您可以自由地阅读、编辑、分享和重新发布此应用及其源代码。</string>
-    <string name="title_open">这是属于你的</string>
-    <string name="description_intro">一个快速、简洁且功能强大的 PDF 阅读器</string>
     <string name="myLicense">许可证</string>
     <string name="privacy">隐私政策</string>
 
@@ -30,8 +27,6 @@
     <string name="done">完成</string>
     <string name="results">搜索结果</string>
     <string name="ok">确认</string>
-    <string name="title_permission">存储权限</string>
-    <string name="description_permission">此应用会请求存储权限以便能够读取／写入文档。</string>
 
     <string name="libs">开放源代码库</string>
     <string name="code">源代码</string>

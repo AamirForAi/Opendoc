@@ -20,9 +20,6 @@
     <string name="action_about">O aplikacji</string>
     <string name="intro">Odtwórz Intro</string>
     <string name="email">Email (Twórca)</string>
-    <string name="description_open">Bezpłatna i bez ograniczeń.\nMożesz swobodnie czytać, edytować, udostępniać i rozpowszechniać aplikację oraz jej kod źródłowy.</string>
-    <string name="title_open">TO JEST TWOJE</string>
-    <string name="description_intro">Szybka, prosta i potężna przeglądarka PDF</string>
     <string name="myLicense">Licencja</string>
     <string name="privacy">Polityka prywatności</string>
 
@@ -30,8 +27,6 @@
     <string name="done">GOTOWE</string>
     <string name="results">WYNIKI WYSZUKIWANIA</string>
     <string name="ok">OK</string>
-    <string name="title_permission">Uprawnienia do pamięci</string>
-    <string name="description_permission">Aplikacja poprosi o uprawnienia do pamięci, aby móc czytać i zapisywać dokumenty.</string>
 
     <string name="libs">Biblioteki Open Source</string>
     <string name="code">Kod źródłowy</string>

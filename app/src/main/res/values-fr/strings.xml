@@ -20,17 +20,12 @@
     <string name="action_about">À propos</string>
     <string name="intro">Rejouer l\'introduction</string>
     <string name="email">E-mail (Créateur)</string>
-    <string name="description_open">Gratuit et sans restrictions.\nVous êtes libre de lire, modifier, partager et redistribuer l\'application et son code source.</string>
-    <string name="title_open">ELLE EST À VOUS</string>
-    <string name="description_intro">Un lecteur de PDF rapide, simple et puissant</string>
     <string name="myLicense">Licence</string>
     <string name="privacy">Politique de vie privée</string>
     <string name="appChangelog">Fonctionnalités/Journal des changements</string>
     <string name="done">TERMINÉ</string>
     <string name="results">RÉSULTATS DE RECHERCHE</string>
     <string name="ok">OK</string>
-    <string name="title_permission">Autorisations de stockage</string>
-    <string name="description_permission">L\'application va demander l\'autorisation de stockage pour lire/écrire des documents.</string>
     <string name="libs">Bibliothèques open source</string>
     <string name="code">Code source</string>
     <string name="share">Partager</string>

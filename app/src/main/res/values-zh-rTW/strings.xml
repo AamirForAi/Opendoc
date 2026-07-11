@@ -19,16 +19,11 @@
     <string name="action_about">關於</string>
     <string name="intro">重播簡介</string>
     <string name="email">電子郵件（Mum）</string>
-    <string name="description_open">完全免費且無任何限制。\n您可以自由地閱讀、編輯、分享和重新散佈此應用程式及其原始碼。</string>
-    <string name="title_open">這是你的</string>
-    <string name="description_intro">一個快速、簡單且功能強大的 PDF 閱讀器</string>
     <string name="myLicense">授權</string>
     <string name="privacy">隱私政策</string>
     <string name="appChangelog">功能／更新日誌</string>
     <string name="done">DONE</string>
     <string name="ok">確認</string>
-    <string name="title_permission">儲存權限</string>
-    <string name="description_permission">此應用程式會請求儲存權限以便能讀取／寫入文件。</string>
     <string name="libs">開放原始碼庫</string>
     <string name="code">原始碼</string>
     <string name="share">分享</string>

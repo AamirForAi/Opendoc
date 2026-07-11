@@ -19,9 +19,6 @@
     <string name="action_about">के बारे में</string>
     <string name="intro">परिचय दोहराएं</string>
     <string name="email">ईमेल (लेखक)</string>
-    <string name="description_open">मुफ्त में और किसी भी प्रतिबंध के बिना।\nआप ऐप और इसके सोर्स कोड को पढ़ने, संपादित करने, साझा करने और पुनर्वितरित करने के लिए स्वतंत्र हैं।</string>
-    <string name="title_open">यह आपका है</string>
-    <string name="description_intro">एक तेज़, सरल और शक्तिशाली PDF रीडर</string>
     <string name="myLicense">लाइसेंस</string>
     <string name="privacy">गोपनीयता नीति</string>
 
@@ -29,8 +26,6 @@
     <string name="done">हो गया</string>
     <string name="results">खोज परिणाम</string>
     <string name="ok">ठीक</string>
-    <string name="title_permission">स्टोरेज अनुमतियाँ</string>
-    <string name="description_permission">ऐप दस्तावेज़ पढ़ने/लिखने के लिए स्टोरेज अनुमति मांगेगा।</string>
     <string name="libs">ओपन सोर्स लाइब्रेरीज</string>
     <string name="code">सोर्स कोड</string>
     <string name="share">साझा करें</string>
