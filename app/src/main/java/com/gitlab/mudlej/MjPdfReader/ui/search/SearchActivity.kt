@@ -21,10 +21,11 @@ import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.data.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivitySearchBinding
 import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
+import com.gitlab.mudlej.MjPdfReader.manager.extractor.closeAsync
+import com.gitlab.mudlej.MjPdfReader.manager.extractor.openPdfExtractorFromIntent
 import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.util.configureSearchIcon
 import com.gitlab.mudlej.MjPdfReader.util.containsAccentInsensitive
-import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
 import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
 import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
@@ -34,7 +35,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.concurrent.thread
 
 class SearchActivity : AppCompatActivity(), SearchResultFunctions {
 
@@ -110,27 +110,22 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     }
 
     private suspend fun initPdfExtractor() {
-        val pdfPath = intent.getStringExtra(PDF.filePathKey)
-        val pdfPassword = intent.getStringExtra(PDF.passwordKey)
-        try {
-            pdfExtractor = withContext(Dispatchers.IO) {
-                createPdfExtractor(this@SearchActivity, Uri.parse(pdfPath), pdfPassword)
-            }
-        }
-        catch (throwable: Throwable) {
+        val extractor = openPdfExtractorFromIntent()
+        if (extractor == null) {
             Toast.makeText(
                 this,
                 "Failed to read text! (file move or deleted?)",
                 Toast.LENGTH_SHORT
             ).show()
+            return
         }
+        pdfExtractor = extractor
     }
 
     override fun onDestroy() {
         coordinatorListener?.let { SearchCoordinator.detach(it) }
         if (::pdfExtractor.isInitialized) {
-            val extractor = pdfExtractor
-            thread { runCatching { extractor.close() } }
+            pdfExtractor.closeAsync()
         }
         super.onDestroy()
     }

@@ -17,10 +17,11 @@ import com.gitlab.mudlej.MjPdfReader.data.Link
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityLinkBinding
 import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
+import com.gitlab.mudlej.MjPdfReader.manager.extractor.closeAsync
+import com.gitlab.mudlej.MjPdfReader.manager.extractor.openPdfExtractorFromIntent
 import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.util.configureSearchIcon
 import com.gitlab.mudlej.MjPdfReader.util.copyToClipboard
-import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
 import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
 import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
@@ -28,7 +29,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
-import kotlin.concurrent.thread
 
 class LinksActivity : AppCompatActivity(), LinkFunctions {
     private lateinit var binding: ActivityLinkBinding
@@ -62,26 +62,21 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
     }
 
     private suspend fun initPdfExtractor() {
-        val pdfPath = intent.getStringExtra(PDF.filePathKey)
-        val pdfPassword = intent.getStringExtra(PDF.passwordKey)
-        try {
-            pdfExtractor = withContext(Dispatchers.IO) {
-                createPdfExtractor(this@LinksActivity, Uri.parse(pdfPath), pdfPassword)
-            }
-        }
-        catch (throwable: Throwable) {
+        val extractor = openPdfExtractorFromIntent()
+        if (extractor == null) {
             Toast.makeText(
                 this,
                 "Failed to read links! (file move or deleted?)",
                 Toast.LENGTH_SHORT
             ).show()
+            return
         }
+        pdfExtractor = extractor
     }
 
     override fun onDestroy() {
         if (::pdfExtractor.isInitialized) {
-            val extractor = pdfExtractor
-            thread { runCatching { extractor.close() } }
+            pdfExtractor.closeAsync()
         }
         super.onDestroy()
     }

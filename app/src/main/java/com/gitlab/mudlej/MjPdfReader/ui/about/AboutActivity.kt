@@ -139,11 +139,11 @@ class AboutActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.home) {
-            onBackPressed()
+        if (item.itemId == android.R.id.home) {
+            finish()
             return true
         }
-        return false
+        return super.onOptionsItemSelected(item)
     }
 
     class PrivacyInfoDialog : DialogFragment() {

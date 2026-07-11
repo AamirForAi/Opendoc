@@ -1,9 +1,12 @@
 package com.gitlab.mudlej.MjPdfReader.manager.extractor
 
+import android.util.Log
 import com.gitlab.mudlej.MjPdfReader.data.Bookmark
 import com.gitlab.mudlej.MjPdfReader.data.Link
 import com.shockwave.pdfium.PdfDocument
 import com.shockwave.pdfium.PdfiumCore
+
+private const val TAG = "PdfExtractorImpl"
 
 class PdfExtractorImpl(
     private val pdfiumCore: PdfiumCore,
@@ -15,7 +18,7 @@ class PdfExtractorImpl(
             getPageTextOrThrow(pageNumber)
         }
         catch (throwable: Throwable) {
-            throwable.printStackTrace()
+            Log.e(TAG, "getPageText: failed for page $pageNumber", throwable)
             ""
         }
     }
@@ -45,7 +48,7 @@ class PdfExtractorImpl(
             opened = true
         }
         catch (throwable: Throwable) {
-            throwable.printStackTrace()
+            Log.e(TAG, "getPageLinks: failed to open page $pageNumber", throwable)
             return listOf()
         }
         return try {
@@ -85,7 +88,7 @@ class PdfExtractorImpl(
         try {
             pdfiumCore.closeDocument(pdfDocument)
         } catch (throwable: Throwable) {
-            throwable.printStackTrace()
+            Log.e(TAG, "close: failed to close document", throwable)
         }
     }
 

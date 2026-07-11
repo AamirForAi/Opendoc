@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.text.format.DateFormat
+import android.util.Log
 import android.view.View
 import androidx.core.net.toUri
 import com.gitlab.mudlej.MjPdfReader.R
@@ -54,7 +55,7 @@ class ScreenshotController(
         catch (e: Throwable) {
             // Several error may come out with file handling or DOM
             AppSnackbar.make(binding.root, activity.getString(R.string.failed_save_screenshot), Snackbar.LENGTH_LONG).show()
-            e.printStackTrace()
+            Log.e("ScreenshotController", "takeScreenshot: failed", e)
         }
     }
 

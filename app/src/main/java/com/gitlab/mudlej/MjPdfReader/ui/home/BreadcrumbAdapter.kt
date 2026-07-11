@@ -1,10 +1,16 @@
 package com.gitlab.mudlej.MjPdfReader.ui.home
 
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.core.view.setPadding
 import androidx.recyclerview.widget.RecyclerView
+import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeBreadcrumbBinding
-import com.google.android.material.chip.Chip
+import com.google.android.material.color.MaterialColors
 
 class BreadcrumbAdapter(
     private val onCrumbClicked: (String?) -> Unit,
@@ -35,17 +41,59 @@ class BreadcrumbAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(crumbs: List<Crumb>) {
-            binding.breadcrumbGroup.removeAllViews()
+            val container = binding.breadcrumbContainer
+            container.removeAllViews()
+            val context = container.context
+            val onSurface = MaterialColors.getColor(
+                container, com.google.android.material.R.attr.colorOnSurface
+            )
+            val onSurfaceVariant = MaterialColors.getColor(
+                container, com.google.android.material.R.attr.colorOnSurfaceVariant
+            )
+
             crumbs.forEachIndexed { index, crumb ->
-                val chip = Chip(binding.root.context)
-                chip.text = crumb.label
-                chip.isClickable = index < crumbs.lastIndex
-                chip.isCheckable = false
-                if (index < crumbs.lastIndex) {
-                    chip.setOnClickListener { onCrumbClicked(crumb.path) }
+                val isLast = index == crumbs.lastIndex
+
+                if (index > 0) {
+                    container.addView(TextView(context).apply {
+                        text = context.getString(R.string.home_breadcrumb_separator)
+                        setTextColor(onSurfaceVariant)
+                        setTextAppearance(R.style.TextAppearance_Material3_BodyMedium)
+                        val gap = dp(context, 4)
+                        setPadding(gap, 0, gap, 0)
+                    })
                 }
-                binding.breadcrumbGroup.addView(chip)
+
+                container.addView(TextView(context).apply {
+                    text = crumb.label
+                    maxLines = 1
+                    setTextColor(if (isLast) onSurface else onSurfaceVariant)
+                    setTextAppearance(R.style.TextAppearance_Material3_BodyLarge)
+                    if (isLast) {
+                        setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    } else {
+                        val pad = dp(context, 4)
+                        setPadding(pad, pad, pad, pad)
+                        val outValue = TypedValue()
+                        context.theme.resolveAttribute(
+                            android.R.attr.selectableItemBackgroundBorderless, outValue, true
+                        )
+                        setBackgroundResource(outValue.resourceId)
+                        isClickable = true
+                        isFocusable = true
+                        setOnClickListener { onCrumbClicked(crumb.path) }
+                    }
+                    gravity = Gravity.CENTER_VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                    )
+                })
             }
+        }
+
+        private fun dp(context: android.content.Context, value: Int): Int {
+            return (value * context.resources.displayMetrics.density).toInt()
         }
     }
 }

@@ -159,21 +159,14 @@ class SearchNavigationController(
         textView.paintFlags = textView.paintFlags or Paint.UNDERLINE_TEXT_FLAG
         textView.setOnClickListener { openResultsList() }
         val density = activity.resources.displayMetrics.density
-        val surface = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorSurfaceContainerHigh)
-        val outline = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOutline)
         val onSurface = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOnSurface)
         val highlight = ColorStateList.valueOf(
             MaterialColors.getColor(binding.root, android.R.attr.colorControlHighlight)
         )
 
-        fun outlinedBackground(cornerSize: Float): RippleDrawable {
+        fun borderlessRipple(cornerSize: Float): RippleDrawable {
             val shape = ShapeAppearanceModel.builder().setAllCornerSizes(cornerSize).build()
-            val content = MaterialShapeDrawable(shape).apply {
-                fillColor = ColorStateList.valueOf(surface)
-                strokeColor = ColorStateList.valueOf(outline)
-                strokeWidth = density
-            }
-            return RippleDrawable(highlight, content, MaterialShapeDrawable(shape))
+            return RippleDrawable(highlight, null, MaterialShapeDrawable(shape))
         }
 
         (textView.parent as? LinearLayout)?.let { content ->
@@ -194,26 +187,29 @@ class SearchNavigationController(
                     }
                     setImageResource(iconRes)
                     imageTintList = ColorStateList.valueOf(onSurface)
-                    background = outlinedBackground(buttonSize / 2f)
+                    background = borderlessRipple(buttonSize / 2f)
                     contentDescription = activity.getString(descriptionRes)
                     setOnClickListener { onClick() }
                 }
             }
 
-            val previous = navigationButton(R.drawable.ic_chevron_left, R.string.previous_search_result, 10, 2, ::showPrevious)
+            val previous = navigationButton(R.drawable.ic_chevron_left, R.string.previous_search_result, 12, 10, ::showPrevious)
             val counter = TextView(activity).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                 ).apply {
                     gravity = Gravity.CENTER_VERTICAL
+                    marginStart = (4 * density).toInt()
+                    marginEnd = (4 * density).toInt()
                 }
-                minWidth = (40 * density).toInt()
+                minWidth = (48 * density).toInt()
+                setPadding((8 * density).toInt(), 0, (8 * density).toInt(), 0)
                 gravity = Gravity.CENTER
                 setTextColor(onSurface)
                 textSize = 14f
             }
-            val next = navigationButton(R.drawable.ic_chevron_right, R.string.next_search_result, 2, 12, ::showNext)
+            val next = navigationButton(R.drawable.ic_chevron_right, R.string.next_search_result, 10, 12, ::showNext)
 
             val insertIndex = content.indexOfChild(textView) + 1
             content.addView(previous, insertIndex)

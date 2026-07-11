@@ -111,41 +111,23 @@ class HomeSectionsAdapter(
         private val binding: ItemHomeChipRowBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        private var suppressChipCallback = false
+        private val chips = listOf(
+            binding.chipAllFiles to ListFilter.ALL,
+            binding.chipToRead to ListFilter.TO_READ,
+            binding.chipReading to ListFilter.READING,
+            binding.chipOnHold to ListFilter.ON_HOLD,
+            binding.chipCompleted to ListFilter.COMPLETED,
+            binding.chipAbandoned to ListFilter.ABANDONED,
+        )
 
         fun bind() {
-            suppressChipCallback = true
-            binding.chipGroup.check(chipIdFor(selectedFilter()))
-            suppressChipCallback = false
-
-            binding.chipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
-                if (suppressChipCallback) {
-                    return@setOnCheckedStateChangeListener
+            val selected = selectedFilter()
+            chips.forEach { (chip, filter) ->
+                chip.isChecked = filter == selected
+                chip.setOnClickListener {
+                    chips.forEach { (other, _) -> other.isChecked = other == chip }
+                    onChipSelected(filter)
                 }
-                val checkedId = checkedIds.firstOrNull() ?: return@setOnCheckedStateChangeListener
-                onChipSelected(filterFor(checkedId))
-            }
-        }
-
-        private fun chipIdFor(filter: ListFilter): Int {
-            return when (filter) {
-                ListFilter.TO_READ -> R.id.chipToRead
-                ListFilter.READING -> R.id.chipReading
-                ListFilter.ON_HOLD -> R.id.chipOnHold
-                ListFilter.COMPLETED -> R.id.chipCompleted
-                ListFilter.ABANDONED -> R.id.chipAbandoned
-                else -> R.id.chipAllFiles
-            }
-        }
-
-        private fun filterFor(chipId: Int): ListFilter {
-            return when (chipId) {
-                R.id.chipToRead -> ListFilter.TO_READ
-                R.id.chipReading -> ListFilter.READING
-                R.id.chipOnHold -> ListFilter.ON_HOLD
-                R.id.chipCompleted -> ListFilter.COMPLETED
-                R.id.chipAbandoned -> ListFilter.ABANDONED
-                else -> ListFilter.ALL
             }
         }
     }
