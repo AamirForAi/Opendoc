@@ -166,7 +166,7 @@ class OnlinePdfController(
     }
 
     private fun showDownloadError(messageRes: Int) {
-        activity.hideProgressBar()
+        activity.hideProgress()
         AppSnackbar.make(binding.root, messageRes, Snackbar.LENGTH_LONG).show()
     }
 

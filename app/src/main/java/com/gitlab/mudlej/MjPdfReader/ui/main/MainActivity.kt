@@ -45,248 +45,74 @@ package com.gitlab.mudlej.MjPdfReader.ui.main
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.*
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
-import android.graphics.*
-import android.graphics.drawable.Drawable
 import android.net.Uri
-import android.os.*
+import android.os.Bundle
+import android.os.StrictMode
 import android.util.Log
-import android.view.*
-import android.widget.*
+import android.view.KeyEvent
+import android.view.Menu
+import android.view.MenuItem
+import android.view.MotionEvent
+import android.view.View
+import android.view.WindowManager
+import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
-import androidx.activity.result.contract.ActivityResultContracts.*
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
-import androidx.core.view.*
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.github.barteksc.pdfviewer.model.CropMargins
-import com.gitlab.mudlej.MjPdfReader.Launcher
-import com.gitlab.mudlej.MjPdfReader.Launchers
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.*
-import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
-import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
 import com.gitlab.mudlej.MjPdfReader.enums.FileType
-import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManager
-import com.gitlab.mudlej.MjPdfReader.manager.autoscroll.AutoScrollManagerImpl
-import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
-import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManagerImpl
-import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManager
-import com.gitlab.mudlej.MjPdfReader.manager.fullscreen.FullScreenOptionsManagerImpl
-import com.gitlab.mudlej.MjPdfReader.manager.permission.PermissionManager
-import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.repository.UserBookmark
 import com.gitlab.mudlej.MjPdfReader.ui.*
-import com.gitlab.mudlej.MjPdfReader.ui.about.AboutActivity
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeActivity
-import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
-import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.util.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
 import com.shockwave.pdfium.PdfPasswordException
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.*
-import java.util.*
+import java.io.FileNotFoundException
 import kotlin.system.exitProcess
 
-class MainActivity : AppCompatActivity() {
-
-    private companion object {
-        val backgroundSaveScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    }
+class MainActivity : AppCompatActivity(), ReaderUi {
 
     private val TAG = "MainActivity"
     private lateinit var binding: ActivityMainBinding
-
-    private var doubleBackToExitPressedOnce = false
-    private lateinit var autoScrollManager: AutoScrollManager
-    private lateinit var fullScreenOptionsManager: FullScreenOptionsManager
-    private lateinit var permissionManager: PermissionManager
-    private lateinit var databaseManager: DatabaseManager
-    private lateinit var actionResolver: ConfigurableActionResolver
-    private lateinit var toolbarActionController: ToolbarActionController
-    private lateinit var fullScreenButtonController: FullScreenButtonController
-    private lateinit var shortcutBarController: ShortcutBarController
-    private lateinit var cropMarginsController: CropMarginsController
-    private lateinit var annotationController: AnnotationController
-    private lateinit var inlineAnnotationActionController: InlineAnnotationActionController
-    private lateinit var formFieldController: FormFieldController
-    private lateinit var signatureController: SignatureController
-    private val printController by lazy { PrintController(this, binding, pdf, lifecycleScope) }
-    private val volumeKeyPager by lazy { VolumeKeyPager(binding, pdf, pref) }
-    private val mousePager by lazy { MousePager(binding, pdf, pref) }
-    private val zoomSwipeLockController by lazy { ZoomSwipeLockController(binding, ::drawableOf) }
-    private val brightnessController by lazy { BrightnessController(this, binding, vm) }
-    private val pdfThemeController by lazy { PdfThemeController(this, binding, pref) }
-    private val fullscreenController by lazy {
-        FullscreenController(
-            this,
-            binding,
-            vm,
-            pref,
-            fullScreenOptionsManager,
-            autoScrollManager,
-            zoomSwipeLockController,
-            brightnessController,
-        ) { shortcutBarController.updateVisibility() }
-    }
-    private val autoScrollSpeedStore by lazy {
-        AutoScrollSpeedStore(pdf, databaseManager, lifecycleScope, backgroundSaveScope)
-    }
-    private val onlinePdfController: OnlinePdfController by lazy {
-        OnlinePdfController(
-            this,
-            binding,
-            pdf,
-            lifecycleScope,
-            { launchers.saveToDownloadPermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE) },
-            { bytes -> documentLoadController.initPdfViewAndLoad(binding.pdfView.fromBytes(bytes)) },
-            { uri -> runAfterDirtyAnnotationPrompt { displayFromUri(uri, savePassword = true) } },
-        )
-    }
-    private val screenshotController by lazy {
-        ScreenshotController(
-            this,
-            binding,
-            pdf,
-            { fullScreenOptionsManager.showAllTemporarilyOrHide() },
-            { uri -> shareFile(uri, FileType.IMAGE) },
-        )
-    }
-    private lateinit var annotationSaveController: AnnotationSaveController
     private lateinit var pref: Preferences
+    private lateinit var reader: ReaderComposition
+
     private val vm: ReaderViewModel by viewModels()
     private val pdf: DocumentState get() = vm.doc
-    private val readerHistory by lazy { ReaderHistoryManager({ binding.pdfView }, ::onHistoryChanged) }
-    private var historyNavState = false to false
-    private val readerNavigationController: ReaderNavigationController by lazy {
-        ReaderNavigationController(
-            this,
-            binding,
-            pdf,
-            readerHistory,
-            ::onPageDisplayed,
-            ::updateAppTitle,
-            { intent -> tableOfContentsLauncher.launch(intent) },
-            { intent -> userBookmarksLauncher.launch(intent) },
-            { intent -> navigationHistoryLauncher.launch(intent) },
-            { intent -> linksLauncher.launch(intent) },
-            { intent -> searchLauncher.launch(intent) },
-        )
-    }
-    private val readerMenu by lazy {
-        ReaderMenu(this, actionResolver, ::hasFile) { toggleSecondBar() }
-    }
-    private val pageTextCopier by lazy { PageTextCopier(this, binding, pdf, lifecycleScope) }
-    private val readingDirectionResolver by lazy { ReadingDirectionResolver(this, pdf, pref, databaseManager) }
-    private val readingDirectionController by lazy {
-        ReadingDirectionController(
-            this,
-            pdf,
-            vm,
-            pref,
-            databaseManager,
-            lifecycleScope,
-            readingDirectionResolver,
-            documentLoadController,
-        )
-    }
-    private val documentLoadController by lazy {
-        DocumentLoadController(
-            this,
-            binding,
-            pdf,
-            vm,
-            pref,
-            databaseManager,
-            readingDirectionResolver,
-            lifecycleScope,
-            annotationSaveController,
-            cropMarginsController,
-            autoScrollManager,
-            pdfThemeController,
-            readerNavigationController,
-            fullScreenOptionsManager,
-            inlineAnnotationActionController,
-            ::prepareNewDocument,
-            ::updateActionBarButtons,
-            ::updateAppTitle,
-            ::downloadOrShowDownloadedFile,
-            ::handleReaderTap,
-            ::goToPage,
-            ::hideProgressBar,
-            ::handleFileOpeningError,
-            ::onDocumentLoaded,
-        )
-    }
 
     private lateinit var actionBarMenu: Menu
     private lateinit var appTitle: TextView
     private lateinit var appTitlePageNumber: TextView
 
-    private lateinit var launchers: Launchers
+    private var doubleBackToExitPressedOnce = false
+    private var savingProgressVisible = false
 
-    private val updateAnnotationDestinationLauncher = registerForActivityResult(StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) {
-            annotationSaveController.handleDestinationResult(result.data)
-        } else {
-            annotationSaveController.clearPendingRequests()
-        }
-    }
-
-    private val createAnnotationDestinationLauncher = registerForActivityResult(StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) {
-            annotationSaveController.handleDestinationResult(result.data)
-        } else {
-            annotationSaveController.clearPendingRequests()
-        }
-    }
-
-    private val tableOfContentsLauncher = registerForActivityResult(StartActivityForResult()) { result ->
-        hideProgressBar()
-        readerNavigationController.handleTableOfContentsResult(result.resultCode, result.data)
-    }
-
-    private val userBookmarksLauncher = registerForActivityResult(StartActivityForResult()) { result ->
-        vm.bookmarksLoadedForHash = null
-        ensureUserBookmarksLoaded()
-        readerNavigationController.handleUserBookmarksResult(result.resultCode, result.data)
-    }
-
-    private val navigationHistoryLauncher = registerForActivityResult(StartActivityForResult()) { result ->
-        hideProgressBar()
-        readerNavigationController.handleNavigationHistoryResult(result.resultCode, result.data)
-    }
-
-    private val linksLauncher = registerForActivityResult(StartActivityForResult()) { result ->
-        hideProgressBar()
-        readerNavigationController.handleLinksResult(result.resultCode, result.data)
-    }
-
-    private val searchLauncher = registerForActivityResult(StartActivityForResult()) { result ->
-        hideProgressBar()
-        readerNavigationController.handleSearchResult(result.resultCode, result.data)
-    }
-
-    private val textModeLauncher = registerForActivityResult(StartActivityForResult()) { result ->
-        hideProgressBar()
-        readerNavigationController.handleTextModeResult(result.resultCode, result.data)
-    }
+    private val annotationController get() = reader.annotationController
+    private val annotationSaveController get() = reader.annotationSaveController
+    private val signatureController get() = reader.signatureController
+    private val cropMarginsController get() = reader.cropMarginsController
+    private val documentLoadController get() = reader.documentLoadController
+    private val onlinePdfController get() = reader.onlinePdfController
+    private val readerNavigationController get() = reader.readerNavigationController
+    private val readerHistory get() = reader.readerHistory
+    private val fullscreenController get() = reader.fullscreenController
+    private val databaseManager get() = reader.databaseManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -300,109 +126,12 @@ class MainActivity : AppCompatActivity() {
         // To avoid FileUriExposedException, (https://stackoverflow.com/questions/38200282/)
         StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
 
-        launchers = Launchers(
-            Launcher(this, pdf).pdfPicker(),
-            Launcher(this, pdf).saveToDownloadPermission { granted: Boolean ->
-                onlinePdfController.saveDownloadedFileAfterPermissionRequest(granted)
-            },
-            Launcher(this, pdf).readFileErrorPermission(::restartAppIfGranted),
-            Launcher(this, pdf).settings(::displayFromUri)
-        )
-        buildControllers()
+        reader = ReaderComposition(this, binding, vm, pref)
         documentLoadController.applyTileRenderingPreferences()
 
         openInitialDocument(savedInstanceState)
-        setButtonsFunctionalities()
+        reader.wireViews()
         overrideOnBackButtonPressed()
-    }
-
-    private fun buildControllers() {
-        databaseManager = DatabaseManagerImpl(AppDatabase.getInstance(applicationContext))
-        autoScrollManager = AutoScrollManagerImpl(binding, vm, pref, autoScrollSpeedStore::onSpeedChanged)
-        fullScreenOptionsManager = FullScreenOptionsManagerImpl(
-            binding, vm, pref.getHideDelay().toLong(), pref
-        )
-        actionResolver = ConfigurableActionResolver(
-            ::hasFile,
-            pref::getHorizontalScroll,
-            ::isCropMarginsEnabled,
-            { pdfThemeController.effectivePdfDarkTheme() },
-            { pref.getPdfPagesTheme() == Preferences.themeSystem },
-            { readerHistory.canGoBack() },
-            { readerHistory.canGoForward() },
-            { vm.bookmarkedPages.contains(pdf.pageNumber) },
-            createActionHandlers(),
-        )
-        toolbarActionController = ToolbarActionController(
-            actionResolver,
-            pref::getPrimaryButtonAction,
-            pref::getSecondaryButtonAction,
-        )
-        fullScreenButtonController = FullScreenButtonController(
-            this,
-            binding,
-            pref,
-            actionResolver,
-            fullScreenOptionsManager,
-            autoScrollManager,
-        ) { brightnessController.hideControl() }
-        shortcutBarController = ShortcutBarController(
-            this,
-            binding,
-            pref,
-            actionResolver,
-        ) { vm.isFullScreenToggled }
-        cropMarginsController = CropMarginsController(
-            this,
-            binding,
-            databaseManager,
-            pdf,
-            lifecycleScope,
-            ::isCropMarginsEnabled,
-            ::setCropMarginsEnabled,
-            vm::isCurrent,
-            { configurator, pageNumber, cropMargins, viewState ->
-                documentLoadController.reloadWithCropMargins(configurator, pageNumber, cropMargins, viewState)
-            },
-        )
-        annotationController = AnnotationController(this, binding, vm)
-        annotationSaveController = AnnotationSaveController(
-            this,
-            binding,
-            pdf,
-            annotationController,
-            databaseManager,
-            vm,
-            lifecycleScope,
-            updateAnnotationDestinationLauncher,
-            createAnnotationDestinationLauncher,
-            ::clearActiveSearchResultHighlight,
-            ::updateAnnotationDirtyUi,
-            { signatureController.commitPendingSignature() },
-        ) {
-            updateAppTitle()
-        }
-        inlineAnnotationActionController = InlineAnnotationActionController(
-            this,
-            binding,
-            ::clearActiveSearchResultHighlight,
-            ::onAnnotationEdit,
-            ::updateAnnotationSaveUiPosition,
-            { pref.getDetectExistingHighlights() },
-            { pref.getHighlightColors() },
-        ) { fullScreenOptionsManager.showAllTemporarilyOrHide() }
-        formFieldController = FormFieldController(this, binding, ::onAnnotationEdit)
-        signatureController = SignatureController(
-            this,
-            binding,
-            vm,
-            SignatureStore(this),
-            annotationController,
-            ::onAnnotationEdit,
-            ::updateAnnotationDirtyUi,
-        )
-        permissionManager = PermissionManager(this)
-        inlineAnnotationActionController.configure { annotationSaveController.saveHighlights() }
     }
 
     private fun openInitialDocument(savedInstanceState: Bundle?) {
@@ -415,7 +144,7 @@ class MainActivity : AppCompatActivity() {
                 if (intent.getBooleanExtra(HomeActivity.EXTRA_OPEN_ONLINE_DIALOG, false)) {
                     onlinePdfController.showOpenOnlinePdfDialog()
                 } else {
-                    pickFile()
+                    reader.pickFile()
                 }
             } else {
                 prepareNewDocument(intentUri)
@@ -429,28 +158,21 @@ class MainActivity : AppCompatActivity() {
         documentLoadController.initPdf(pdf, uri)
     }
 
-    private fun prepareNewDocument(uri: Uri) {
+    internal fun prepareNewDocument(uri: Uri) {
         if (pdf.uri == uri) {
             return
         }
-        autoScrollSpeedStore.flushPendingSave()
+        reader.autoScrollSpeedStore.flushPendingSave()
         cropMarginsController.cancel()
-        pageTextCopier.resetForNewDocument()
+        reader.pageTextCopier.resetForNewDocument()
         readerNavigationController.resetSearchResultState()
         readerNavigationController.resetTableOfContentsState()
         readerNavigationController.resetLinkJumpState()
         readerHistory.clear()
-        inlineAnnotationActionController.hideActions()
+        reader.inlineAnnotationActionController.hideActions()
         signatureController.cancelPlacement()
         vm.beginNewDocument(uri, pref.getAlwaysHideMargins())
-        updateAnnotationDirtyUi()
-    }
-
-    private fun isCropMarginsEnabled() = vm.cropMarginsEnabled
-
-    private fun setCropMarginsEnabled(enabled: Boolean) {
-        vm.cropMarginsEnabled = enabled
-        refreshConfiguredActions()
+        updateDirtyUi()
     }
 
     fun isDisplayingUri(uri: String): Boolean {
@@ -487,21 +209,7 @@ class MainActivity : AppCompatActivity() {
         actionBar?.customView = customView
     }
 
-    private fun pickFile() {
-        runAfterDirtyAnnotationPrompt { launchPdfPicker() }
-    }
-
-    private fun launchPdfPicker() {
-        try {
-            launchers.pdfPicker.launch(arrayOf(PDF.FILE_TYPE))
-        }
-        catch (e: ActivityNotFoundException) {
-            // alert user that file manager not working
-            AppSnackbar.make(binding.root, R.string.toast_pick_file_error, Snackbar.LENGTH_LONG).show()
-        }
-    }
-
-    private fun runAfterDirtyAnnotationPrompt(discardAction: () -> Unit) {
+    override fun runAfterDirtyAnnotationPrompt(discardAction: () -> Unit) {
         if (!annotationController.hasUnsavedAnnotations) {
             discardAction()
             return
@@ -524,10 +232,10 @@ class MainActivity : AppCompatActivity() {
         signatureController.cancelPlacement()
         annotationSaveController.clearPendingRequests()
         annotationController.clearJournal()
-        updateAnnotationDirtyUi()
+        updateDirtyUi()
     }
 
-    private fun confirmDiscardAnnotations() {
+    internal fun confirmDiscardAnnotations() {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.discard_unsaved_highlights_title)
             .setMessage(R.string.discard_unsaved_highlights_message)
@@ -543,7 +251,7 @@ class MainActivity : AppCompatActivity() {
         documentLoadController.displayFromUri(uri, savePassword)
     }
 
-    private fun updateAppTitle() {
+    override fun updateTitle() {
         appTitle.text = pdf.getTitle()
         appTitlePageNumber.text = pdf.getPageCounterText()
         appTitlePageNumber.visibility = if (pref.getShowAppBarPageCount() && pdf.hasFile() && pdf.length > 0) {
@@ -551,10 +259,10 @@ class MainActivity : AppCompatActivity() {
         } else {
             View.GONE
         }
-        fullScreenOptionsManager.refreshInfo()
+        reader.fullScreenOptionsManager.refreshInfo()
     }
 
-    private fun onDocumentLoaded(
+    internal fun onDocumentLoaded(
         pageCount: Int,
         cachedCropMargins: CropMargins?,
         fileHash: String?,
@@ -563,87 +271,27 @@ class MainActivity : AppCompatActivity() {
         applyDocumentLoadDefaults: Boolean,
     ) {
         if (applyDocumentLoadDefaults) {
-            checkAutoFullScreen()
+            fullscreenController.checkAutoFullScreen()
             checkAlwaysHorizontal()
-            openTextModeByDefault()
-            configureButtonsLabels()
+            reader.openTextModeByDefault()
+            reader.configureButtonsLabels()
         }
         if (pdf.uri != null) {
-            setUpSecondBar()
+            reader.shortcutBarController.configure()
         }
-        fullScreenButtonController.configure()
+        reader.fullScreenButtonController.configure()
         fullscreenController.reapplyStateAfterLoad()
         cropMarginsController.startIfNeeded(cachedCropMargins, fileHash, loadToken, documentUri, pageCount)
         maybeRestoreAnnotations(documentUri, loadToken)
         signatureController.resumeRestoredPlacementIfNeeded()
     }
 
-    private fun openTextModeByDefault() {
-        if (pref.getDefaultTextMode()) {
-            navToTextMode()
-        }
-    }
-
-    private fun updateActionBarButtons() {
+    override fun updateActionBar() {
         if (!::actionBarMenu.isInitialized) {
             return
         }
 
-        toolbarActionController.update(actionBarMenu)
-    }
-
-    private fun refreshConfiguredActions() {
-        updateActionBarButtons()
-        if (::fullScreenButtonController.isInitialized) {
-            fullScreenButtonController.configure()
-        }
-        if (::shortcutBarController.isInitialized) {
-            if (hasFile()) {
-                shortcutBarController.configure()
-            } else {
-                binding.secondBarScrollView.visibility = View.GONE
-            }
-        }
-    }
-
-    private fun hasFile() = pdf.hasFile()
-
-    private fun createActionHandlers(): ConfigurableActionResolver.Handlers {
-        return ConfigurableActionResolver.Handlers(
-            toggleFullscreen = ::toggleFullscreen,
-            exitFullscreen = ::exitFullscreen,
-            rotate = ::rotateScreen,
-            toggleHorizontalLock = { zoomSwipeLockController.toggleHorizontalSwipeLock() },
-            readingDirection = ::showReadingDirectionDialog,
-            toggleZoomLock = { zoomSwipeLockController.toggleZoomLock() },
-            toggleCropMargins = ::toggleCropMargins,
-            screenshot = ::takeScreenshot,
-            switchTheme = ::switchPdfTheme,
-            navigateBack = { readerHistory.goBack() },
-            navigateForward = { readerHistory.goForward() },
-            showNavigationHistory = ::showNavigationHistory,
-            reload = ::reloadPdf,
-            openLocal = ::pickFile,
-            openOnline = ::showOpenOnlinePdfDialog,
-            search = { showSearchDialog(this, pdf) { intent -> searchLauncher.launch(intent) } },
-            goToPage = ::goToPage,
-            extractText = ::copyPageText,
-            textMode = ::navToTextMode,
-            share = { shareFile(pdf.uri, FileType.PDF) },
-            settings = ::navToAppSettings,
-            fileMetadata = ::showFileMetadata,
-            about = { startActivity(navIntent(this, AboutActivity::class.java)) },
-            tableOfContents = ::showTableOfContents,
-            toggleBookmark = ::toggleCurrentPageBookmark,
-            userBookmarks = ::showUserBookmarks,
-            linksInFile = ::showLinks,
-            print = ::printFile,
-            addSignature = { signatureController.showSignatureDialog() },
-        )
-    }
-
-    private fun checkAutoFullScreen() {
-        fullscreenController.checkAutoFullScreen()
+        reader.toolbarActionController.update(actionBarMenu)
     }
 
     private fun checkAlwaysHorizontal() {
@@ -655,23 +303,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun copyPageText() {
-        pageTextCopier.copyPageText()
-    }
-
-    private fun onAnnotationEdit(edit: AnnotationEdit) {
-        annotationController.recordEdit(edit)
-        updateAnnotationDirtyUi()
-    }
-
-    private fun handleReaderTap(event: MotionEvent): Boolean {
-        if (inlineAnnotationActionController.handleImmediatePdfTap(event)) {
+    internal fun handleReaderTap(event: MotionEvent): Boolean {
+        if (reader.inlineAnnotationActionController.handleImmediatePdfTap(event)) {
             return true
         }
-        if (formFieldController.handlePdfTap(event)) {
+        if (reader.formFieldController.handlePdfTap(event)) {
             return true
         }
-        inlineAnnotationActionController.handleEmptyTap()
+        reader.inlineAnnotationActionController.handleEmptyTap()
         return true
     }
 
@@ -700,7 +339,7 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton(R.string.discard) { _, _ ->
                 annotationController.clearJournal(documentUri)
-                updateAnnotationDirtyUi()
+                updateDirtyUi()
             }
             .show()
     }
@@ -710,12 +349,10 @@ class MainActivity : AppCompatActivity() {
             return
         }
         annotationController.replayJournal()
-        updateAnnotationDirtyUi()
+        updateDirtyUi()
     }
 
-    private var savingProgressVisible = false
-
-    private fun updateAnnotationDirtyUi() {
+    override fun updateDirtyUi() {
         val visible = annotationController.hasUnsavedAnnotations
         val saving = annotationController.isSaving
         binding.saveAnnotationsFab.visibility = if (visible) View.VISIBLE else View.GONE
@@ -730,15 +367,15 @@ class MainActivity : AppCompatActivity() {
             binding.progressBar.visibility = View.VISIBLE
         } else if (!saving && savingProgressVisible) {
             savingProgressVisible = false
-            hideProgressBar()
+            hideProgress()
         }
-        updateAnnotationSaveUiPosition()
+        updateDirtyUiPosition()
     }
 
-    private fun updateAnnotationSaveUiPosition() {
+    override fun updateDirtyUiPosition() {
         val params = binding.saveAnnotationsFab.layoutParams as ConstraintLayout.LayoutParams
         val defaultBottomMargin = (24 * resources.displayMetrics.density).toInt()
-        val cardAtBottom = inlineAnnotationActionController.isCardAtBottom()
+        val cardAtBottom = reader.inlineAnnotationActionController.isCardAtBottom()
         val bottomMargin = if (cardAtBottom && binding.textSelectionActionCard.height > 0) {
             binding.textSelectionActionCard.height + (32 * resources.displayMetrics.density).toInt()
         } else {
@@ -750,54 +387,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setUpSecondBar() {
-        shortcutBarController.configure()
-    }
-
     @SuppressLint("SourceLockedOrientationActivity")
-    private fun setButtonsFunctionalities() {
-        exitFullScreenListener(binding)
-        autoScrollManager.setup()
-        brightnessController.attachSeekbarListener()
-        binding.apply {
-            rotateScreenButton.setOnClickListener { rotateScreen() }
-            brightnessButton.setOnClickListener { brightnessController.toggleControlVisibility() }
-            screenshotButton.setOnClickListener { takeScreenshot() }
-            toggleHorizontalSwipeButton.setOnClickListener { zoomSwipeLockController.toggleHorizontalSwipeLock() }
-            toggleZoomLockButton.setOnClickListener { zoomSwipeLockController.toggleZoomLock() }
-            toggleLabelButton.setOnClickListener { toggleLabelButtonListener() }
-            pickFileButton.setOnClickListener { pickFile() }
-            discardAnnotationsFab.setOnClickListener { confirmDiscardAnnotations() }
-        }
-        fullScreenButtonController.configure()
-    }
-
-    private fun configureButtonsLabels() {
-        if (pref.getHideButtonsLabels() == fullScreenOptionsManager.isLabelsVisible()) {
-            fullScreenOptionsManager.toggleLabelVisibility(this@MainActivity, ::drawableOf, ::getString)
-        }
-    }
-
-    private fun toggleLabelButtonListener() {
-        fullScreenOptionsManager.toggleLabelVisibility(this@MainActivity, ::drawableOf, ::getString)
-        pref.setHideButtonsLabels(!pref.getHideButtonsLabels())
-    }
-
-    private fun rotateScreen() {
+    internal fun rotateScreen() {
         requestedOrientation = if (vm.isPortrait) {
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         } else {
             ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
         vm.togglePortrait()
-    }
-
-    private fun exitFullScreenListener(binding: ActivityMainBinding) {
-        binding.exitFullScreenButton.setOnClickListener { exitFullscreen() }
-    }
-
-    private fun exitFullscreen() {
-        fullscreenController.exitFullscreen()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -812,19 +409,9 @@ class MainActivity : AppCompatActivity() {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
         if (::actionBarMenu.isInitialized) {
-            updateActionBarButtons()
+            updateActionBar()
         }
-        if (::pref.isInitialized) {
-            fullScreenButtonController.configure()
-            if (hasFile()) {
-                shortcutBarController.configure()
-            } else {
-                binding.secondBarScrollView.visibility = View.GONE
-            }
-        }
-        if (::inlineAnnotationActionController.isInitialized) {
-            inlineAnnotationActionController.rebuildHighlightSwatches()
-        }
+        reader.onResume()
 
         // check if there is a pdf at first
 
@@ -836,14 +423,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         // restore the full screen mode if was toggled On
-        restoreFullScreenIfNeeded()
-    }
-
-    private fun restoreFullScreenIfNeeded() {
         fullscreenController.restoreFullScreenIfNeeded()
     }
 
-    private fun shareFile(uri: Uri?, type: FileType) {
+    internal fun shareFile(uri: Uri?, type: FileType) {
         if (uri == null) {
             checkHasFile()  // only to show the message
             return
@@ -870,7 +453,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun handleFileOpeningError(exception: Throwable) {
+    internal fun handleFileOpeningError(exception: Throwable) {
         val fileHash = pdf.fileHash
         if (exception is PdfPasswordException && fileHash != null) {
             if (pdf.password != null) {
@@ -891,7 +474,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         else if (couldNotOpenFileDueToMissingPermission(exception)) {
-            launchers.readFileErrorPermission.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+            reader.readFileErrorPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
         else if (shouldReturnToHomeForRelocate(exception)) {
             returnToHomeForRelocate()
@@ -939,7 +522,7 @@ class MainActivity : AppCompatActivity() {
             && exceptionMessage.contains(getString(R.string.permission_denied))
     }
 
-    private fun restartAppIfGranted(isPermissionGranted: Boolean) {
+    internal fun restartAppIfGranted(isPermissionGranted: Boolean) {
         if (isPermissionGranted) {
             // This is a quick and dirty way to make the system restart the current activity *and the current app process*.
             // This is needed because on Android 6 storage permission grants do not take effect until
@@ -951,22 +534,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun toggleFullscreen() {
-        fullscreenController.toggleFullscreen()
-    }
-
-    private fun reloadPdf() {
+    internal fun reloadPdf() {
         if (checkHasFile()) {
             recreate()
         }
     }
 
-    private fun toggleCropMargins() {
+    internal fun toggleCropMargins() {
         if (!checkHasFile()) {
             return
         }
-        val enableCropMargins = !isCropMarginsEnabled()
-        setCropMarginsEnabled(enableCropMargins)
+        val enableCropMargins = !vm.cropMarginsEnabled
+        reader.setCropMarginsEnabled(enableCropMargins)
         if (enableCropMargins) {
             cropMarginsController.startOrApply(
                 pdf.fileHash,
@@ -980,7 +559,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun downloadOrShowDownloadedFile(uri: Uri) {
+    internal fun downloadOrShowDownloadedFile(uri: Uri) {
         onlinePdfController.downloadOrShowDownloadedFile(uri, lastCustomNonConfigurationInstance)
     }
 
@@ -989,40 +568,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
-        if (::databaseManager.isInitialized) {
-            autoScrollSpeedStore.flushPendingSave()
+        if (::reader.isInitialized) {
+            reader.autoScrollSpeedStore.flushPendingSave()
         }
         super.onStop()
     }
 
     override fun onDestroy() {
-        if (::databaseManager.isInitialized) {
-            autoScrollSpeedStore.flushPendingSave()
-        }
-        if (::cropMarginsController.isInitialized) {
+        if (::reader.isInitialized) {
+            reader.autoScrollSpeedStore.flushPendingSave()
             cropMarginsController.cancel()
-        }
-        if (::inlineAnnotationActionController.isInitialized) {
-            inlineAnnotationActionController.hideActions()
+            reader.inlineAnnotationActionController.hideActions()
         }
         super.onDestroy()
     }
 
-    fun hideProgressBar() {
+    override fun hideProgress() {
         binding.progressBar.visibility = View.GONE
         binding.progressBar.isIndeterminate = true
         binding.progressBar.progress = 0
-    }
-
-    private fun navToAppSettings() {
-        launchers.settings.launch(Intent(this, SettingsActivity::class.java))
-    }
-
-    private fun printFile() {
-        if (!checkHasFile()) {
-            return
-        }
-        printController.printFile()
     }
 
     private fun askForPdfPassword() {
@@ -1034,7 +598,7 @@ class MainActivity : AppCompatActivity() {
         menuInflater.inflate(R.menu.main_menu, menu)
         this.actionBarMenu = menu
         menu.showOptionalIcons(this)
-        updateActionBarButtons()
+        updateActionBar()
         return true
     }
 
@@ -1042,8 +606,8 @@ class MainActivity : AppCompatActivity() {
         when (item.itemId) {
             android.R.id.home -> navigateHome()
             R.id.toolbarPrimaryActionOption,
-            R.id.toolbarSecondaryActionOption -> if (!toolbarActionController.handle(item)) return super.onOptionsItemSelected(item)
-            R.id.readerActionsOption -> showReaderActions()
+            R.id.toolbarSecondaryActionOption -> if (!reader.toolbarActionController.handle(item)) return super.onOptionsItemSelected(item)
+            R.id.readerActionsOption -> reader.readerMenu.show()
             else -> return super.onOptionsItemSelected(item)
         }
         return true
@@ -1056,71 +620,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun toggleSecondBar() {
-        binding.apply {
-            if (secondBarScrollView.visibility == View.VISIBLE) {
-                pref.setSecondBarEnabled(false)
-                shortcutBarController.updateVisibility()
-            }
-            else {
-                pref.setSecondBarEnabled(true)
-                shortcutBarController.updateVisibility()
-            }
-        }
-    }
-
-    private fun showLinks() {
-        readerNavigationController.showLinks()
-    }
-
-    private fun showTableOfContents() {
-        readerNavigationController.showTableOfContents()
-    }
-
-    private fun showUserBookmarks() {
-        if (!checkHasFile()) {
-            return
-        }
-        if (pdf.fileHash == null) {
-            AppSnackbar.make(binding.root, R.string.bookmark_hash_unavailable, Snackbar.LENGTH_SHORT).show()
-            return
-        }
-        readerNavigationController.showUserBookmarks()
-    }
-
-    private fun showNavigationHistory() {
-        if (!checkHasFile()) {
-            return
-        }
-        readerNavigationController.showNavigationHistory()
-    }
-
-    private fun clearActiveSearchResultHighlight() {
-        readerNavigationController.clearActiveSearchResultHighlight()
-    }
-
-    private fun goToPage() {
-        fun goToPage(pageIndex: Int) {
-            readerHistory.recordJump(ReaderHistoryManager.Origin.GO_TO, pageIndex)
-            binding.pdfView.jumpTo(pageIndex)
-        }
-        showGoToPageDialog(this, binding.root, pdf.pageNumber, pdf.length, ::goToPage)
-    }
-
-    private fun onHistoryChanged() {
-        val navState = readerHistory.canGoBack() to readerHistory.canGoForward()
-        if (navState != historyNavState) {
-            historyNavState = navState
-            refreshConfiguredActions()
-        }
-    }
-
-    private fun onPageDisplayed(pageIndex: Int) {
+    internal fun onPageDisplayed(pageIndex: Int) {
         ensureUserBookmarksLoaded()
         refreshBookmarkActionState(pageIndex)
     }
 
-    private fun ensureUserBookmarksLoaded() {
+    internal fun ensureUserBookmarksLoaded() {
         val hash = pdf.fileHash ?: return
         if (vm.bookmarksLoadedForHash == hash) {
             return
@@ -1140,11 +645,11 @@ class MainActivity : AppCompatActivity() {
         val bookmarked = vm.bookmarkedPages.contains(pageIndex)
         if (bookmarked != vm.bookmarkActionState) {
             vm.bookmarkActionState = bookmarked
-            refreshConfiguredActions()
+            reader.refreshActions()
         }
     }
 
-    private fun toggleCurrentPageBookmark() {
+    internal fun toggleCurrentPageBookmark() {
         if (!checkHasFile()) {
             return
         }
@@ -1170,56 +675,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showReadingDirectionDialog() {
-        if (!checkHasFile()) {
-            return
-        }
-        readingDirectionController.showDialog()
-    }
-
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (volumeKeyPager.handleKeyDown(keyCode)) {
+        if (reader.volumeKeyPager.handleKeyDown(keyCode)) {
             return true
         }
-        if (mousePager.handleKeyDown(keyCode, event)) {
+        if (reader.mousePager.handleKeyDown(keyCode, event)) {
             return true
         }
         return super.onKeyDown(keyCode, event)
     }
 
     override fun dispatchGenericMotionEvent(ev: MotionEvent): Boolean {
-        if (mousePager.handleGenericMotionEvent(ev)) {
+        if (reader.mousePager.handleGenericMotionEvent(ev)) {
             return true
         }
         return super.dispatchGenericMotionEvent(ev)
     }
 
-    private fun navToTextMode() {
-        if (!checkHasFile()) {
-            return
-        }
-
-        val currentPageIndex = currentPdfViewPageIndex()
-        Intent(this, TextModeActivity::class.java).also {
-            it.putExtra(PDF.filePathKey, pdf.uri.toString())
-            it.putExtra(PDF.passwordKey, pdf.password)
-            it.putExtra(PDF.pageNumberKey, currentPageIndex)
-            pdf.fileHash?.let { fileHash -> it.putExtra(PDF.fileHashKey, fileHash) }
-            textModeLauncher.launch(it)
-        }
-    }
-
-    private fun currentPdfViewPageIndex(): Int {
-        val currentPage = binding.pdfView.currentPage.coerceAtLeast(0)
-        val pageCount = binding.pdfView.pageCount
-        return if (pageCount > 0) currentPage.coerceAtMost(pageCount - 1) else currentPage
-    }
-
-    private fun showReaderActions() {
-        readerMenu.show()
-    }
-
-    private fun showFileMetadata() {
+    internal fun showFileMetadata() {
         if (!checkHasFile()) {
             return
         }
@@ -1256,11 +729,7 @@ class MainActivity : AppCompatActivity() {
         }.getOrNull()
     }
 
-    private fun showOpenOnlinePdfDialog() {
-        onlinePdfController.showOpenOnlinePdfDialog()
-    }
-
-    private fun checkHasFile(): Boolean {
+    override fun checkHasFile(): Boolean {
         if (!pdf.hasFile()) {
             AppSnackbar.make(
                 binding.root, getString(R.string.no_pdf_in_app),
@@ -1269,19 +738,6 @@ class MainActivity : AppCompatActivity() {
             return false
         }
         return true
-    }
-
-    private fun switchPdfTheme() {
-        pdfThemeController.switchPdfTheme(::checkHasFile)
-        refreshConfiguredActions()
-    }
-
-    private fun takeScreenshot() {
-        screenshotController.takeScreenshot()
-    }
-
-    private fun drawableOf(id: Int): Drawable? {
-        return AppCompatResources.getDrawable(this, id)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -1295,9 +751,8 @@ class MainActivity : AppCompatActivity() {
     private fun restoreInstanceState(savedState: Bundle) {
         readerNavigationController.restoreState(savedState)
         readerHistory.restoreState(savedState)
-        updateAnnotationDirtyUi()
+        updateDirtyUi()
     }
-
 
     private fun overrideOnBackButtonPressed() {
         val onBackPressedCallback = object : OnBackPressedCallback(true) {
