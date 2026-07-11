@@ -18,7 +18,7 @@ class ReadingDirectionController(
     private val databaseManager: DatabaseManager,
     private val scope: CoroutineScope,
     private val resolver: ReadingDirectionResolver,
-    private val documentLoadController: DocumentLoadController,
+    private val documentLoader: DocumentLoader,
 ) {
 
     fun showDialog() {
@@ -81,7 +81,7 @@ class ReadingDirectionController(
                 return@launch
             }
             if (hash == null) {
-                documentLoadController.showFailedToComputeHashError()
+                documentLoader.showFailedToComputeHashError()
                 return@launch
             }
 

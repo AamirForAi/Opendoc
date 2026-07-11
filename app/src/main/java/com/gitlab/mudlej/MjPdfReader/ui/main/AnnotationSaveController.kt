@@ -92,15 +92,6 @@ class AnnotationSaveController(
         saveHighlightsToUri(destinationUri, sourceUri, saveDestinationDurably = grantPersisted)
     }
 
-    suspend fun resolveCurrentDestination(documentUri: Uri?) {
-        if (documentUri == null) {
-            annotationController.setCurrentSaveDestination(null)
-            return
-        }
-        val destination = databaseManager.findAnnotationSaveDestinationByDestinationUri(documentUri.toString())
-        annotationController.setCurrentSaveDestination(destination?.destinationUri?.toUri())
-    }
-
     private fun showSaveDestinationSheet() {
         val sourceUri = pdf.uri ?: return
         scope.launch {

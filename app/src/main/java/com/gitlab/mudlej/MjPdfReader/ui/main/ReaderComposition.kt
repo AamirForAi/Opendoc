@@ -1,9 +1,11 @@
 package com.gitlab.mudlej.MjPdfReader.ui.main
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.util.Log
@@ -14,6 +16,10 @@ import androidx.activity.result.contract.ActivityResultContracts.RequestPermissi
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.lifecycle.lifecycleScope
+import com.github.barteksc.pdfviewer.PDFView.Configurator
+import com.github.barteksc.pdfviewer.listener.OnTextSelectionChangeListener
+import com.github.barteksc.pdfviewer.scroll.DefaultScrollHandle
+import com.github.barteksc.pdfviewer.scroll.ScrollHandle
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
@@ -40,6 +46,7 @@ import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class ReaderComposition(
     private val activity: MainActivity,
@@ -51,8 +58,6 @@ class ReaderComposition(
     private val ui: ReaderUi = activity
     private val doc = vm.doc
     private val scope = activity.lifecycleScope
-
-    // result launchers, registered in a fixed order so pending results survive recreation
 
     private val pdfPickerLauncher: ActivityResultLauncher<Array<String>> = activity.registerForActivityResult(OpenDocument()) { selectedDocumentUri ->
         if (selectedDocumentUri != null) {
@@ -120,7 +125,6 @@ class ReaderComposition(
         readerNavigationController.handleTextModeResult(result.resultCode, result.data)
     }
 
-    // tier 1: leaves
     val databaseManager: DatabaseManager = DatabaseManagerImpl(AppDatabase.getInstance(activity.applicationContext))
     val autoScrollSpeedStore = AutoScrollSpeedStore(doc, databaseManager, scope, backgroundSaveScope)
     val autoScrollManager: AutoScrollManager =
@@ -142,7 +146,6 @@ class ReaderComposition(
         { uri -> activity.shareFile(uri, FileType.IMAGE) },
     )
 
-    // tier 2: features
     val annotationController: AnnotationController = AnnotationController(activity, binding, vm)
     val formFieldController = FormFieldController(activity, binding, ::onAnnotationEdit)
     val signatureController: SignatureController = SignatureController(
@@ -189,7 +192,7 @@ class ReaderComposition(
         ::setCropMarginsEnabled,
         vm::isCurrent,
         { configurator, pageNumber, cropMargins, viewState ->
-            documentLoadController.reloadWithCropMargins(configurator, pageNumber, cropMargins, viewState)
+            documentLoader.reloadWithCropMargins(configurator, pageNumber, cropMargins, viewState)
         },
     )
     val readingDirectionResolver = ReadingDirectionResolver(activity, doc, pref, databaseManager)
@@ -199,11 +202,10 @@ class ReaderComposition(
         doc,
         scope,
         { saveToDownloadPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE) },
-        { bytes -> documentLoadController.initPdfViewAndLoad(binding.pdfView.fromBytes(bytes)) },
+        { bytes -> documentLoader.initPdfViewAndLoad(binding.pdfView.fromBytes(bytes)) },
         { uri -> ui.runAfterDirtyAnnotationPrompt { activity.displayFromUri(uri, savePassword = true) } },
     )
 
-    // tier 3: navigation
     val readerHistory: ReaderHistoryManager = ReaderHistoryManager({ binding.pdfView }, ::onHistoryChanged)
     val readerNavigationController: ReaderNavigationController = ReaderNavigationController(
         activity,
@@ -219,7 +221,6 @@ class ReaderComposition(
         { intent -> searchLauncher.launch(intent) },
     )
 
-    // tier 4: surfaces
     val actionResolver: ConfigurableActionResolver = ConfigurableActionResolver(
         doc::hasFile,
         pref::getHorizontalScroll,
@@ -262,33 +263,25 @@ class ReaderComposition(
         brightnessController,
     ) { shortcutBarController.updateVisibility() }
 
-    // tier 5: loader
 
-    val documentLoadController: DocumentLoadController = DocumentLoadController(
-        activity,
+    val tapDispatcher = TapDispatcher(listOf(
+        { event -> inlineAnnotationActionController.handleImmediatePdfTap(event) },
+        { event -> formFieldController.handlePdfTap(event) },
+        { _ ->
+            inlineAnnotationActionController.handleEmptyTap()
+            true
+        },
+    ))
+    val documentLoader: DocumentLoader = DocumentLoader(
         binding,
-        doc,
         vm,
         pref,
         databaseManager,
         readingDirectionResolver,
         scope,
-        annotationSaveController,
-        cropMarginsController,
-        autoScrollManager,
-        pdfThemeController,
-        readerNavigationController,
-        fullScreenOptionsManager,
-        inlineAnnotationActionController,
-        activity::prepareNewDocument,
-        ui::updateActionBar,
-        ui::updateTitle,
+        ui,
         activity::downloadOrShowDownloadedFile,
-        activity::handleReaderTap,
-        ::goToPage,
-        ui::hideProgress,
-        activity::handleFileOpeningError,
-        activity::onDocumentLoaded,
+        ::decorateConfigurator,
     )
     val readingDirectionController: ReadingDirectionController = ReadingDirectionController(
         activity,
@@ -298,13 +291,129 @@ class ReaderComposition(
         databaseManager,
         scope,
         readingDirectionResolver,
-        documentLoadController,
+        documentLoader,
     )
 
     private var historyNavState = false to false
 
     init {
         inlineAnnotationActionController.configure { annotationSaveController.saveHighlights() }
+        subscribeDocumentListeners()
+    }
+
+    private fun decorateConfigurator(configurator: Configurator): Configurator {
+        return configurator
+            .onDocumentInteraction { motionEvent -> autoScrollManager.handleUserInteraction(motionEvent) }
+            .onTap { motionEvent -> tapDispatcher.dispatch(motionEvent) }
+            .onTapUp { motionEvent -> inlineAnnotationActionController.handleImmediatePdfTap(motionEvent) }
+            .linkHandler(readerNavigationController.createLinkHandler())
+            .scrollHandle(createScrollHandle())
+            .nightMode(pdfThemeController.effectivePdfDarkTheme())
+            .onTextSelectionChange(object : OnTextSelectionChangeListener {
+                override fun onTextSelectionChanged(viewBounds: RectF?, pageIndex: Int) {
+                    inlineAnnotationActionController.showSelectionActions(viewBounds)
+                }
+
+                override fun onTextSelectionCleared() {
+                    inlineAnnotationActionController.hideActions()
+                }
+            })
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun createScrollHandle(): ScrollHandle {
+        val handle = DefaultScrollHandle(activity, false, pref.getShowScrollHandlePageCount())
+        val fullScreenTouchListener = fullScreenOptionsManager.getOnTouchListener()
+        handle.setOnTouchListener { view, motionEvent ->
+            autoScrollManager.handleUserInteraction(motionEvent)
+            fullScreenTouchListener.onTouch(view, motionEvent)
+        }
+        handle.setOnClickListener { goToPage() }
+        return handle
+    }
+
+    private fun subscribeDocumentListeners() {
+        documentLoader.subscribe(object : DocumentListener {
+            override fun onDocumentReset() {
+                autoScrollSpeedStore.flushPendingSave()
+                pageTextCopier.resetForNewDocument()
+            }
+        })
+        documentLoader.subscribe(object : DocumentListener {
+            override fun onDocumentLoaded(event: DocumentLoadedEvent) {
+                pdfThemeController.configureTheme()
+            }
+        })
+        documentLoader.subscribe(object : DocumentListener {
+            override fun onDocumentLoaded(event: DocumentLoadedEvent) {
+                if (event.applyDocumentLoadDefaults) {
+                    fullscreenController.checkAutoFullScreen()
+                    activity.checkAlwaysHorizontal()
+                    openTextModeByDefault()
+                    configureButtonsLabels()
+                }
+                if (doc.uri != null) {
+                    shortcutBarController.configure()
+                }
+                fullScreenButtonController.configure()
+                fullscreenController.reapplyStateAfterLoad()
+                autoScrollManager.setSpeed(doc.autoScrollSpeed ?: pref.getScrollSpeed())
+                if (event.pageCount == 1) {
+                    fullScreenOptionsManager.permanentlyHidePageHandle()
+                }
+            }
+        })
+        documentLoader.subscribe(object : DocumentListener {
+            override fun onDocumentReset() {
+                readerNavigationController.resetSearchResultState()
+                readerNavigationController.resetTableOfContentsState()
+                readerNavigationController.resetLinkJumpState()
+                readerHistory.clear()
+            }
+
+            override fun onPageChanged(pageIndex: Int) {
+                readerNavigationController.onPageChanged(pageIndex)
+            }
+
+            override fun onFileHashComputed() {
+                readerNavigationController.onFileHashComputed()
+            }
+        })
+        documentLoader.subscribe(object : DocumentListener {
+            override fun onDocumentReset() {
+                cropMarginsController.cancel()
+            }
+
+            override fun onDocumentLoaded(event: DocumentLoadedEvent) {
+                cropMarginsController.startIfNeeded(
+                    event.cachedCropMargins,
+                    event.fileHash,
+                    event.loadToken,
+                    event.documentUri,
+                    event.pageCount,
+                )
+            }
+
+            override fun onRecordAvailable(fileHash: String) {
+                scope.launch { cropMarginsController.onRecordAvailable(fileHash) }
+            }
+        })
+        documentLoader.subscribe(object : DocumentListener {
+            override fun onDocumentReset() {
+                inlineAnnotationActionController.hideActions()
+                signatureController.cancelPlacement()
+            }
+
+            override fun onDocumentLoaded(event: DocumentLoadedEvent) {
+                activity.maybeRestoreAnnotations(event.documentUri, event.loadToken)
+                signatureController.resumeRestoredPlacementIfNeeded()
+            }
+        })
+        documentLoader.subscribe(object : DocumentListener {
+            override fun onLoadFailed(reason: Throwable) {
+                activity.handleFileOpeningError(reason)
+            }
+        })
     }
 
     fun wireViews() {
@@ -405,7 +514,7 @@ class ReaderComposition(
         }
         if (doc.uri == null || selectedDocumentUri == doc.uri) {
             try {
-                activity.initPdf(doc, selectedDocumentUri)
+                documentLoader.initPdf(selectedDocumentUri)
                 activity.displayFromUri(doc.uri, true)
             } catch (e: Throwable) {
                 Log.e(TAG, "openSelectedDocument: ", e)

@@ -45,6 +45,7 @@ package com.gitlab.mudlej.MjPdfReader.ui.main
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
@@ -66,7 +67,6 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
-import com.github.barteksc.pdfviewer.model.CropMargins
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.*
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
@@ -102,12 +102,13 @@ class MainActivity : AppCompatActivity(), ReaderUi {
 
     private var doubleBackToExitPressedOnce = false
     private var savingProgressVisible = false
+    private var taskDescriptionName: String? = null
 
     private val annotationController get() = reader.annotationController
     private val annotationSaveController get() = reader.annotationSaveController
     private val signatureController get() = reader.signatureController
     private val cropMarginsController get() = reader.cropMarginsController
-    private val documentLoadController get() = reader.documentLoadController
+    private val documentLoader get() = reader.documentLoader
     private val onlinePdfController get() = reader.onlinePdfController
     private val readerNavigationController get() = reader.readerNavigationController
     private val readerHistory get() = reader.readerHistory
@@ -127,7 +128,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
 
         reader = ReaderComposition(this, binding, vm, pref)
-        documentLoadController.applyTileRenderingPreferences()
+        documentLoader.applyTileRenderingPreferences()
 
         openInitialDocument(savedInstanceState)
         reader.wireViews()
@@ -147,32 +148,11 @@ class MainActivity : AppCompatActivity(), ReaderUi {
                     reader.pickFile()
                 }
             } else {
-                prepareNewDocument(intentUri)
+                documentLoader.prepareNewDocument(intentUri)
             }
         }
 
         displayFromUri(pdf.uri, true)
-    }
-
-    fun initPdf(pdf: DocumentState, uri: Uri) {
-        documentLoadController.initPdf(pdf, uri)
-    }
-
-    internal fun prepareNewDocument(uri: Uri) {
-        if (pdf.uri == uri) {
-            return
-        }
-        reader.autoScrollSpeedStore.flushPendingSave()
-        cropMarginsController.cancel()
-        reader.pageTextCopier.resetForNewDocument()
-        readerNavigationController.resetSearchResultState()
-        readerNavigationController.resetTableOfContentsState()
-        readerNavigationController.resetLinkJumpState()
-        readerHistory.clear()
-        reader.inlineAnnotationActionController.hideActions()
-        signatureController.cancelPlacement()
-        vm.beginNewDocument(uri, pref.getAlwaysHideMargins())
-        updateDirtyUi()
     }
 
     fun isDisplayingUri(uri: String): Boolean {
@@ -248,10 +228,14 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     }
 
     fun displayFromUri(uri: Uri?, savePassword: Boolean = false) {
-        documentLoadController.displayFromUri(uri, savePassword)
+        documentLoader.displayFromUri(uri, savePassword)
     }
 
     override fun updateTitle() {
+        if (pdf.name.isNotBlank() && taskDescriptionName != pdf.name) {
+            taskDescriptionName = pdf.name
+            setTaskDescription(ActivityManager.TaskDescription(pdf.name))
+        }
         appTitle.text = pdf.getTitle()
         appTitlePageNumber.text = pdf.getPageCounterText()
         appTitlePageNumber.visibility = if (pref.getShowAppBarPageCount() && pdf.hasFile() && pdf.length > 0) {
@@ -262,30 +246,6 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         reader.fullScreenOptionsManager.refreshInfo()
     }
 
-    internal fun onDocumentLoaded(
-        pageCount: Int,
-        cachedCropMargins: CropMargins?,
-        fileHash: String?,
-        loadToken: Long,
-        documentUri: Uri?,
-        applyDocumentLoadDefaults: Boolean,
-    ) {
-        if (applyDocumentLoadDefaults) {
-            fullscreenController.checkAutoFullScreen()
-            checkAlwaysHorizontal()
-            reader.openTextModeByDefault()
-            reader.configureButtonsLabels()
-        }
-        if (pdf.uri != null) {
-            reader.shortcutBarController.configure()
-        }
-        reader.fullScreenButtonController.configure()
-        fullscreenController.reapplyStateAfterLoad()
-        cropMarginsController.startIfNeeded(cachedCropMargins, fileHash, loadToken, documentUri, pageCount)
-        maybeRestoreAnnotations(documentUri, loadToken)
-        signatureController.resumeRestoredPlacementIfNeeded()
-    }
-
     override fun updateActionBar() {
         if (!::actionBarMenu.isInitialized) {
             return
@@ -294,7 +254,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         reader.toolbarActionController.update(actionBarMenu)
     }
 
-    private fun checkAlwaysHorizontal() {
+    internal fun checkAlwaysHorizontal() {
         if (pref.getAlwaysHorizontal() && vm.isPortrait) {
             rotateScreen()
         }
@@ -303,18 +263,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         }
     }
 
-    internal fun handleReaderTap(event: MotionEvent): Boolean {
-        if (reader.inlineAnnotationActionController.handleImmediatePdfTap(event)) {
-            return true
-        }
-        if (reader.formFieldController.handlePdfTap(event)) {
-            return true
-        }
-        reader.inlineAnnotationActionController.handleEmptyTap()
-        return true
-    }
-
-    private fun maybeRestoreAnnotations(documentUri: Uri?, loadToken: Long) {
+    internal fun maybeRestoreAnnotations(documentUri: Uri?, loadToken: Long) {
         val uri = documentUri ?: return
         lifecycleScope.launch {
             val hasJournal = withContext(Dispatchers.IO) { annotationController.hasJournal(uri) }
