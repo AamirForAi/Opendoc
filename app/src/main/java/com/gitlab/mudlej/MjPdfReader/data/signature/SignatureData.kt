@@ -1,3 +1,5 @@
+// Written by Mudlej. License is GPLv3.
+
 package com.gitlab.mudlej.MjPdfReader.data.signature
 
 import com.google.gson.JsonArray

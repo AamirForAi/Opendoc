@@ -1,12 +1,4 @@
-/*
- *   MJ PDF
- *   Copyright (C) 2023 Mudlej
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- */
+// Written by Mudlej. License is GPLv3.
 
 package com.gitlab.mudlej.MjPdfReader.ui.settings
 

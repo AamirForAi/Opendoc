@@ -1,3 +1,5 @@
+// Written by Mudlej. License is GPLv3.
+
 package com.gitlab.mudlej.MjPdfReader.ui.reader.annotation
 
 import androidx.annotation.StringRes

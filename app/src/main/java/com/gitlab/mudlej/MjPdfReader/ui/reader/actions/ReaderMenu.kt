@@ -1,3 +1,5 @@
+// Written by Mudlej. License is GPLv3.
+
 package com.gitlab.mudlej.MjPdfReader.ui.reader.actions
 
 import com.gitlab.mudlej.MjPdfReader.R

@@ -1,3 +1,5 @@
+// Written by Mudlej. License is GPLv3.
+
 package com.gitlab.mudlej.MjPdfReader.ui.text_mode
 
 import androidx.appcompat.app.AppCompatActivity
