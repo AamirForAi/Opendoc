@@ -19,7 +19,6 @@
     <string name="save_to_download_failed">Kan bestand niet opslaan in map Download.</string>
     <string name="action_about">Over</string>
     <string name="intro">Intro opnieuw afspelen</string>
-    <string name="email">E-mail (Maker)</string>
     <string name="myLicense">Licentie</string>
     <string name="privacy">Privacybeleid</string>
 
@@ -71,7 +70,6 @@
     <string name="gitlab" translatable="false">Gitlab</string>
     <string name="exit_fullscreen_title">Om Volledig scherm af te sluiten</string>
     <string name="exit_fullscreen_positive">Niet meer laten zien</string>
-    <string name="about_app">MJ PDF is een snelle, minimalistische, krachtige en volledig vrije PDF-viewer gemaakt door Mudlej.</string>
     <string name="permission_denied">Toestemming geweigerd</string>
     <string name="error_load_file_name">Kan bestandsnaam niet ophalen</string>
     <string name="cannot_load_page">\"Kan pagina niet laden \"</string>

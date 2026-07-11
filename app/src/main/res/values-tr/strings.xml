@@ -18,7 +18,6 @@
     <string name="save_to_download_failed">İndirilenler klasörüne dosya kaydedilemedi.</string>
     <string name="action_about">Hakkında</string>
     <string name="intro">Girişi Yeniden Oynat</string>
-    <string name="email">E-posta (YAZAR)</string>
     <string name="myLicense">Lisans</string>
     <string name="privacy">Gizlilik Politikası</string>
 
@@ -68,7 +67,6 @@
 
     <string name="exit_fullscreen_title">Tam Ekrandan Çıkmak İçin</string>
     <string name="exit_fullscreen_positive">Tekrar gösterme</string>
-    <string name="about_app">MJ PDF, Mudlej tarafından yapılmış hızlı, minimalist, güçlü ve tamamen ücretsiz bir PDF görüntüleyicisidir.</string>
     <string name="permission_denied">İzin reddedildi</string>
     <string name="error_load_file_name">Dosya adı alınamadı</string>
     <string name="cannot_load_page">"Sayfa yüklenemiyor "</string>

@@ -19,7 +19,6 @@
     <string name="save_to_download_failed">Impossible de sauvegarder le fichier dans le répertoire Téléchargements.</string>
     <string name="action_about">À propos</string>
     <string name="intro">Rejouer l\'introduction</string>
-    <string name="email">E-mail (Créateur)</string>
     <string name="myLicense">Licence</string>
     <string name="privacy">Politique de vie privée</string>
     <string name="appChangelog">Fonctionnalités/Journal des changements</string>
@@ -65,7 +64,6 @@
     <string name="gitlab" translatable="false">Gitlab</string>
     <string name="exit_fullscreen_title">Quitter le plein écran</string>
     <string name="exit_fullscreen_positive">Ne plus afficher</string>
-    <string name="about_app">MJ PDF est un lecteur de PDF rapide, minimaliste, puissant et totalement libre, par Mudlej.</string>
     <string name="permission_denied">Permission refusée</string>
     <string name="error_load_file_name">Impossible de récupérer le nom du fichier</string>
     <string name="cannot_load_page">\"Impossible de charger la page \"</string>

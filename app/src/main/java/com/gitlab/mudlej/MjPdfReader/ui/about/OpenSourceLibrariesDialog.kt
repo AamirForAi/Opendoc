@@ -60,12 +60,6 @@ class OpenSourceLibrariesDialog : DialogFragment() {
                 "Copyright 2014, Austin Andrews",
                 "SIL Open Font",
                 "https://materialdesignicons.com/"
-            ),
-            LibraryAttribution(
-                "ColorPicker",
-                "Copyright 2018 Hong Duan",
-                "Apache License",
-                "https://github.com/duanhong169/ColorPicker"
             )
         )
     }

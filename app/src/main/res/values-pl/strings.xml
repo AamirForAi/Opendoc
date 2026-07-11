@@ -19,7 +19,6 @@
     <string name="save_to_download_failed">Nie można zapisać pliku w folderze Pobrane.</string>
     <string name="action_about">O aplikacji</string>
     <string name="intro">Odtwórz Intro</string>
-    <string name="email">Email (Twórca)</string>
     <string name="myLicense">Licencja</string>
     <string name="privacy">Polityka prywatności</string>
 
@@ -71,7 +70,6 @@
     <string name="gitlab" translatable="false">Gitlab</string>
     <string name="exit_fullscreen_title">Aby wyjść z pełnego ekranu</string>
     <string name="exit_fullscreen_positive">Nie pokazuj ponownie</string>
-    <string name="about_app">MJ PDF to szybka, minimalistyczna, potężna i całkowicie darmowa przeglądarka PDF stworzona przez Mudlej.</string>
     <string name="permission_denied">Odmowa uprawnień</string>
     <string name="error_load_file_name">Nie można pobrać nazwy pliku</string>
     <string name="cannot_load_page">"Nie można załadować strony "</string>

@@ -18,7 +18,6 @@
     <string name="save_to_download_failed">No se pudo guardar el archivo en la carpeta de descargas.</string>
     <string name="action_about">Acerca de</string>
     <string name="intro">Reproducir intro nuevamente</string>
-    <string name="email">Correo electrónico (AUTOR)</string>
     <string name="myLicense">Licencia</string>
     <string name="privacy">Política de Privacidad</string>
 
@@ -67,7 +66,6 @@
 
     <string name="exit_fullscreen_title">Para Salir de Pantalla Completa</string>
     <string name="exit_fullscreen_positive">No mostrar de nuevo</string>
-    <string name="about_app">MJ PDF es un visor de PDF rápido, minimalista, potente y totalmente gratuito creado por Mudlej.</string>
     <string name="permission_denied">Permiso denegado</string>
     <string name="error_load_file_name">No se pudo recuperar el nombre del archivo</string>
     <string name="cannot_load_page">"No se puede cargar la página "</string>

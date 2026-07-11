@@ -8,7 +8,6 @@
     <string name="save_to_download_failed">Impossibile salvare il file nella cartella Download.</string>
     <string name="action_about">Info</string>
     <string name="intro">Riproduci l\'introduzione</string>
-    <string name="email">Email (Creatore)</string>
     <string name="myLicense">Licenza</string>
     <string name="privacy">Politica sulla privacy</string>
 
@@ -59,7 +58,6 @@
     <string name="exit_fullscreen_message">Toccando lo schermo, viene visualizzato un pulsante X nell\'angolo in alto a sinistra. Cliccalo per uscire dallo schermo intero.</string>
     <string name="exit_fullscreen_title">Per uscire dallo schermo intero</string>
     <string name="exit_fullscreen_positive">Non mostrare più</string>
-    <string name="about_app">MJ PDF è un visualizzatore di PDF veloce, minimalista, potente e totalmente gratuito realizzato da Mudlej.</string>
     <string name="permission_denied">Autorizzazione negata</string>
     <string name="error_load_file_name">Impossibile recuperare il nome del file</string>
     <string name="cannot_load_page">\"Impossibile caricare la pagina \"</string>

@@ -19,7 +19,6 @@
     <string name="save_to_download_failed">无法将文档保存至“下载”文件夹。</string>
     <string name="action_about">关于</string>
     <string name="intro">重放简介</string>
-    <string name="email">电子邮件（创建人）</string>
     <string name="myLicense">许可证</string>
     <string name="privacy">隐私政策</string>
 
@@ -71,7 +70,6 @@
     <string name="gitlab" translatable="false">Gitlab</string>
     <string name="exit_fullscreen_title">如何退出全屏</string>
     <string name="exit_fullscreen_positive">不再显示</string>
-    <string name="about_app">MJ PDF 是由 Mudlej 制作的一款快速、简洁、功能强大且完全免费的 PDF 阅读器。</string>
     <string name="permission_denied">没有权限</string>
     <string name="error_load_file_name">无法获取文件名</string>
     <string name="cannot_load_page">"无法加载页面 "</string>

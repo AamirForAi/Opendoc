@@ -18,7 +18,6 @@
     <string name="save_to_download_failed">डाउनलोड फ़ोल्डर में फ़ाइल सहेजने में असमर्थ।</string>
     <string name="action_about">के बारे में</string>
     <string name="intro">परिचय दोहराएं</string>
-    <string name="email">ईमेल (लेखक)</string>
     <string name="myLicense">लाइसेंस</string>
     <string name="privacy">गोपनीयता नीति</string>
 
@@ -64,7 +63,6 @@
 
     <string name="exit_fullscreen_title">पूर्ण स्क्रीन से बाहर निकलने के लिए</string>
     <string name="exit_fullscreen_positive">फिर से न दिखाएं</string>
-    <string name="about_app">MJ PDF एक तेज़, मिनिमलिस्ट, शक्तिशाली और पूर्णतः मुक्त पीडीएफ व्यूअर है जिसे Mudlej द्वारा बनाया गया है।</string>
     <string name="permission_denied">अनुमति अस्वीकृत</string>
     <string name="error_load_file_name">फाइल का नाम प्राप्त नहीं कर सका</string>
     <string name="cannot_load_page">"पृष्ठ लोड नहीं कर सकता "</string>

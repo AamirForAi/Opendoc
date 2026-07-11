@@ -19,7 +19,6 @@
     <string name="save_to_download_failed">Не удалось сохранить файл в папку «Загрузки».</string>
     <string name="action_about">О приложении</string>
     <string name="intro">Повторно показать вступление</string>
-    <string name="email">Электронная почта (Создатель)</string>
     <string name="myLicense">Лицензия</string>
     <string name="privacy">Политика конфиденциальности</string>
 
@@ -70,7 +69,6 @@
 
     <string name="exit_fullscreen_title">Для выхода из полноэкранного режима</string>
     <string name="exit_fullscreen_positive">Больше не показывать</string>
-    <string name="about_app">MJ PDF — это быстрый, минималистичный, мощный и полностью бесплатный просмотрщик PDF, созданный Mudlej.</string>
     <string name="permission_denied">Доступ запрещен</string>
     <string name="error_load_file_name">Не удалось получить имя файла</string>
     <string name="cannot_load_page">"Не удается загрузить страницу "</string>

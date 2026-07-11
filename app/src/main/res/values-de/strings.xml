@@ -18,7 +18,6 @@
     <string name="save_to_download_failed">Datei konnte nicht im Download-Ordner gespeichert werden.</string>
     <string name="action_about">Über</string>
     <string name="intro">Intro wiederholen</string>
-    <string name="email">E-Mail (AUTOR)</string>
     <string name="myLicense">Lizenz</string>
     <string name="privacy">Datenschutzbestimmungen</string>
 
@@ -67,7 +66,6 @@
 
     <string name="exit_fullscreen_title">Vollbildmodus beenden</string>
     <string name="exit_fullscreen_positive">Nicht mehr anzeigen</string>
-    <string name="about_app">MJ PDF ist ein schneller, minimalistischer, leistungsstarker und völlig kostenloser PDF-Viewer, erstellt von Mudlej.</string>
     <string name="permission_denied">Zugriff verweigert</string>
     <string name="error_load_file_name">Dateiname konnte nicht abgerufen werden</string>
     <string name="cannot_load_page">"Seite kann nicht geladen werden "</string>

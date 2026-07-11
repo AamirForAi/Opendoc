@@ -30,3 +30,13 @@ fun imageShareIntent(chooserTitle: String, fileName: String, fileUri: Uri): Inte
     return Intent.createChooser(intent, chooserTitle)
 }
 fun navIntent(context: Context, activity: Class<*>) = Intent(context, activity)
+
+fun linkIntent(url: String) = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+
+fun emailIntent(emailAddress: String, subject: String, text: String): Intent {
+    val email = Intent(Intent.ACTION_SENDTO)
+    email.data = Uri.parse("mailto:$emailAddress")
+    email.putExtra(Intent.EXTRA_SUBJECT, subject)
+    email.putExtra(Intent.EXTRA_TEXT, text)
+    return email
+}

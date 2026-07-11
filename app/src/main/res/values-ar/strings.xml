@@ -18,7 +18,6 @@
     <string name="save_to_download_failed">تعذر حفظ الملف في مجلد التحميلات.</string>
     <string name="action_about">حول التطبيق</string>
     <string name="intro">إعادة تشغيل المقدمة</string>
-    <string name="email">البريد الإلكتروني للمطور</string>
     <string name="myLicense">الترخيص</string>
     <string name="privacy">سياسة الخصوصية</string>
 
@@ -68,7 +67,6 @@
 
     <string name="exit_fullscreen_title">للخروج من وضع الشاشة الكاملة</string>
     <string name="exit_fullscreen_positive">لا تظهر مرة أخرى</string>
-    <string name="about_app">MJ PDF هو قارئ PDF سريع، بسيط، قوي ومجاني بالكامل صُنع بواسطة مدلج Mudlej.</string>
     <string name="permission_denied">تم رفض الإذن</string>
     <string name="error_load_file_name">فشل قراءة اسم الملف</string>
     <string name="cannot_load_page">\"لا يمكن تحميل الصفحة \"</string>

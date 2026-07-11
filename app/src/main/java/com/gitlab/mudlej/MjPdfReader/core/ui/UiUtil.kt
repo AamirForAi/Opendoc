@@ -18,7 +18,6 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
 import com.gitlab.mudlej.MjPdfReader.R
 import com.google.android.material.color.MaterialColors
-import top.defaults.colorpicker.ColorPickerPopup
 
 
 @SuppressLint("RestrictedApi")
@@ -35,17 +34,6 @@ fun Menu.tintIconsForChrome(context: Context) {
         getItem(index).icon?.mutate()?.setTint(color)
     }
 }
-
-fun newColorPicker(activity: Activity): ColorPickerPopup {
-    return ColorPickerPopup.Builder(activity)
-        .initialColor(Color.BLUE)
-        .enableBrightness(true)
-        .enableAlpha(true)
-        .okTitle(activity.getString(R.string.ok))
-        .cancelTitle(activity.getString(R.string.cancel))
-        .build()
-}
-
 
 fun configureSearchIcon(menu: Menu, show: Boolean) {
     val searchItem = menu.findItem(R.id.search_in_search_activity)

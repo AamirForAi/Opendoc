@@ -147,8 +147,6 @@ dependencies {
     // kotlin coroutines
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'
 
-    // A color picker for Android by Hong Duan
-    implementation 'com.github.duanhong169:colorpicker:1.1.6'
 
     //  required fir desugar for LocalDateTime with old APIs
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")

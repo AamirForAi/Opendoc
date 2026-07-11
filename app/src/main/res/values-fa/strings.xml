@@ -19,7 +19,6 @@
     <string name="save_to_download_failed">ذخیره پرونده در پوشه دریافت ناموفق بود.</string>
     <string name="action_about">درباره</string>
     <string name="intro">اجرای مقدماتی</string>
-    <string name="email">رایانامه (سازنده)</string>
     <string name="myLicense">مجوز</string>
     <string name="privacy">سیاست حریم خصوصی</string>
     <string name="appChangelog">ویژگی‌ها / تغییرات</string>
@@ -65,7 +64,6 @@
     <string name="gitlab" translatable="false">Gitlab</string>
     <string name="exit_fullscreen_title">خروج از حالت تمام‌صفحه</string>
     <string name="exit_fullscreen_positive">دیگر نشان نده</string>
-    <string name="about_app">MJ PDF یک نمایشگر PDF سریع، ساده، قدرتمند و کاملاً آزاد است که توسط Mudlej ساخته شده.</string>
     <string name="permission_denied">مجوز رد شد</string>
     <string name="error_load_file_name">ناتوان در واکشی نام پرونده</string>
     <string name="cannot_load_page">"ناتوان در بارگذاری صفحه"</string>

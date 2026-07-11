@@ -18,7 +18,6 @@
     <string name="save_to_download_failed">Não foi possível salvar o arquivo na pasta Download.</string>
     <string name="action_about">Sobre</string>
     <string name="intro">Repetir Introdução</string>
-    <string name="email">Email (AUTOR)</string>
     <string name="myLicense">Licença</string>
     <string name="privacy">Política de Privacidade</string>
 
@@ -67,7 +66,6 @@
 
     <string name="exit_fullscreen_title">Para Sair do Modo Tela Cheia</string>
     <string name="exit_fullscreen_positive">Não mostrar novamente</string>
-    <string name="about_app">MJ PDF é um visualizador de PDF rápido, minimalista, poderoso e totalmente gratuito feito por Mudlej.</string>
     <string name="permission_denied">Permissão negada</string>
     <string name="error_load_file_name">Não foi possível recuperar o nome do arquivo</string>
     <string name="cannot_load_page">"Não pode carregar a página "</string>
