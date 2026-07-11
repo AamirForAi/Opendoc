@@ -12,7 +12,7 @@ class TableOfContentsEntry(entry: PdfDocument.Bookmark, val level: Int, val path
         children = entry.children
 
         // add all children recursively
-        if (hasSubEntries())
+        if (hasChildren())
             for ((index, child) in children.withIndex())
                 subEntries.add(TableOfContentsEntry(child, level + 1, "$path.$index"))
     }

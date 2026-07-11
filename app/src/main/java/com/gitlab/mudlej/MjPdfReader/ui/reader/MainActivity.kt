@@ -514,7 +514,8 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         onlinePdfController.downloadOrShowDownloadedFile(uri, lastCustomNonConfigurationInstance)
     }
 
-    override fun onRetainCustomNonConfigurationInstance(): Any? {
+    @Deprecated("Use a {@link androidx.lifecycle.ViewModel} to store non config state.")
+    override fun onRetainCustomNonConfigurationInstance(): Any {
         return onlinePdfController.retainSnapshot()
     }
 
