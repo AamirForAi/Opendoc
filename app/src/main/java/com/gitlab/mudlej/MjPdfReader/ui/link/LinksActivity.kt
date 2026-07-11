@@ -6,20 +6,18 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.core.ui.attachFilterSearchView
+import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
 import com.gitlab.mudlej.MjPdfReader.data.Link
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityLinkBinding
+import com.gitlab.mudlej.MjPdfReader.manager.extractor.ExtractorScreen
 import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
-import com.gitlab.mudlej.MjPdfReader.manager.extractor.closeAsync
-import com.gitlab.mudlej.MjPdfReader.manager.extractor.openPdfExtractorFromIntent
-import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.util.configureSearchIcon
 import com.gitlab.mudlej.MjPdfReader.util.copyToClipboard
 import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
@@ -33,6 +31,7 @@ import kotlinx.coroutines.yield
 class LinksActivity : AppCompatActivity(), LinkFunctions {
     private lateinit var binding: ActivityLinkBinding
     private lateinit var pdfExtractor: PdfExtractor
+    private val extractorScreen = ExtractorScreen(this)
     private val linkAdapter = LinkAdapter(this, this)
     private var links: List<Link> = listOf()
     private val lastPageLiveData = MutableLiveData<Int>()
@@ -41,19 +40,15 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
         super.onCreate(savedInstanceState)
         binding = ActivityLinkBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        ColorUtil.colorize(this, window, supportActionBar)
+        setupScreenChrome()
+        title = getString(R.string.loading)
 
         showProgressBar()
 
-        lifecycleScope.launch {
-            initPdfExtractor()
-            if (::pdfExtractor.isInitialized) {
-                initActionBar()
-                initLinks()
-                initUi()
-            } else {
-                finish()
-            }
+        extractorScreen.open("Failed to read links! (file move or deleted?)") { extractor ->
+            pdfExtractor = extractor
+            initLinks()
+            initUi()
         }
     }
 
@@ -61,23 +56,8 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
         binding.progressBar.visibility = View.VISIBLE
     }
 
-    private suspend fun initPdfExtractor() {
-        val extractor = openPdfExtractorFromIntent()
-        if (extractor == null) {
-            Toast.makeText(
-                this,
-                "Failed to read links! (file move or deleted?)",
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        pdfExtractor = extractor
-    }
-
     override fun onDestroy() {
-        if (::pdfExtractor.isInitialized) {
-            pdfExtractor.closeAsync()
-        }
+        extractorScreen.close()
         super.onDestroy()
     }
 
@@ -147,13 +127,6 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
         }
     }
 
-    private fun initActionBar() {
-        // add back button to the action bar
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        title = getString(R.string.loading)
-    }
-
     private fun initUi() {
         title = getString(R.string.links_activity_title)
         linkAdapter.submitList(links)
@@ -172,33 +145,23 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        // set search functionality
-        val searchView = menu.findItem(R.id.search_in_search_activity).actionView as SearchView
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String) = false
-
-            override fun onQueryTextChange(query: String): Boolean {
+        menu.attachFilterSearchView(
+            binding.root,
+            onQueryChanged = { query ->
                 linkAdapter.nestedQuery = query
                 binding.progressBar.visibility = View.VISIBLE
                 val filteredList = links.filter {
-                    it.url.contains(query, true)  || it.text.contains(query, true)
+                    it.url.contains(query, true) || it.text.contains(query, true)
                 }
                 linkAdapter.submitList(filteredList)
                 linkAdapter.notifyDataSetChanged() // because the comparator doesn't see the difference in text style
-
-                AppSnackbar.make(
-                    binding.root,
-                    getString(R.string.number_of_filtered_results).format(filteredList.size),
-                    Snackbar.LENGTH_SHORT
-                ).show()
-                return false
-            }
-        })
-        searchView.setOnCloseListener {
-            linkAdapter.submitList(links)
-            true
-        }
-
+                filteredList.size
+            },
+            onClosed = {
+                linkAdapter.submitList(links)
+                true
+            },
+        )
         return super.onPrepareOptionsMenu(menu)
     }
 

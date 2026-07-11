@@ -1,7 +1,6 @@
 package com.gitlab.mudlej.MjPdfReader.ui.search
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -9,7 +8,6 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.lifecycleScope
@@ -20,10 +18,10 @@ import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.data.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivitySearchBinding
+import com.gitlab.mudlej.MjPdfReader.core.ui.attachFilterSearchView
+import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
+import com.gitlab.mudlej.MjPdfReader.manager.extractor.ExtractorScreen
 import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
-import com.gitlab.mudlej.MjPdfReader.manager.extractor.closeAsync
-import com.gitlab.mudlej.MjPdfReader.manager.extractor.openPdfExtractorFromIntent
-import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.util.configureSearchIcon
 import com.gitlab.mudlej.MjPdfReader.util.containsAccentInsensitive
 import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
@@ -42,6 +40,7 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     private val searchResultAdapter = SearchResultAdapter(this)
     private var searchResults: MutableList<SearchResult> = mutableListOf()
     private lateinit var pdfExtractor: PdfExtractor
+    private val extractorScreen = ExtractorScreen(this)
     private lateinit var actionBarMenu: Menu
     private var fileHash: String? = null
     private var searchQuery: String = ""
@@ -58,21 +57,17 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         super.onCreate(savedInstanceState)
         binding = ActivitySearchBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        ColorUtil.colorize(this, window, supportActionBar)
+        setupScreenChrome()
+        title = getString(R.string.searching)
 
         val pref = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
         ignoreAccents = pref.getSearchIgnoreAccents()
         searchResultAdapter.ignoreAccents = ignoreAccents
 
-        lifecycleScope.launch {
-            initPdfExtractor()
-            if (::pdfExtractor.isInitialized) {
-                initUi()
-                initSearchResults()
-            }
-            else {
-                finish()
-            }
+        extractorScreen.open("Failed to read text! (file move or deleted?)") { extractor ->
+            pdfExtractor = extractor
+            initUi()
+            initSearchResults()
         }
     }
 
@@ -82,7 +77,6 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     }
 
     private fun initUi() {
-        initActionBar()
         initLoadingProgressBar()
         initRecyclerView()
     }
@@ -102,31 +96,9 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         binding.progressBar.visibility = View.GONE
     }
 
-    private fun initActionBar() {
-        // add back button to the action bar
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        title = getString(R.string.searching)
-    }
-
-    private suspend fun initPdfExtractor() {
-        val extractor = openPdfExtractorFromIntent()
-        if (extractor == null) {
-            Toast.makeText(
-                this,
-                "Failed to read text! (file move or deleted?)",
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        pdfExtractor = extractor
-    }
-
     override fun onDestroy() {
         coordinatorListener?.let { SearchCoordinator.detach(it) }
-        if (::pdfExtractor.isInitialized) {
-            pdfExtractor.closeAsync()
-        }
+        extractorScreen.close()
         super.onDestroy()
     }
 
@@ -301,12 +273,9 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        // set search functionality
-        val searchView = menu.findItem(R.id.search_in_search_activity).actionView as SearchView
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String) = false
-
-            override fun onQueryTextChange(query: String): Boolean {
+        menu.attachFilterSearchView(
+            binding.root,
+            onQueryChanged = { query ->
                 nestedQueryJob?.cancel()
                 nestedQueryJob = lifecycleScope.launch {
                     delay(NESTED_QUERY_DEBOUNCE_MS)
@@ -320,20 +289,21 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
                         Snackbar.LENGTH_SHORT
                     ).show()
                 }
-                return false
-            }
-        })
-        searchView.setOnCloseListener {
-            nestedQueryJob?.cancel()
-            searchResultAdapter.nestedQuery = null
-            searchResultAdapter.submitList(visibleResultRows())
-            true
-        }
+                null
+            },
+            onClosed = {
+                nestedQueryJob?.cancel()
+                searchResultAdapter.nestedQuery = null
+                searchResultAdapter.submitList(visibleResultRows())
+                true
+            },
+        )
         val nestedQuery = restoredNestedQuery
         if (!restoredNestedQueryApplied && !nestedQuery.isNullOrBlank()) {
             restoredNestedQueryApplied = true
-            menu.findItem(R.id.search_in_search_activity).expandActionView()
-            searchView.setQuery(nestedQuery, false)
+            val searchItem = menu.findItem(R.id.search_in_search_activity)
+            searchItem.expandActionView()
+            (searchItem.actionView as SearchView).setQuery(nestedQuery, false)
         }
 
         return super.onPrepareOptionsMenu(menu)

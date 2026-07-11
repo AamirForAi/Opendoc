@@ -6,23 +6,20 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.core.ui.attachFilterSearchView
+import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
 import com.gitlab.mudlej.MjPdfReader.data.Bookmark
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityTableOfContentsBinding
+import com.gitlab.mudlej.MjPdfReader.manager.extractor.ExtractorScreen
 import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
-import com.gitlab.mudlej.MjPdfReader.manager.extractor.closeAsync
-import com.gitlab.mudlej.MjPdfReader.manager.extractor.openPdfExtractorFromIntent
-import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.util.configureSearchIcon
 import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
-import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
-import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,6 +27,7 @@ import kotlinx.coroutines.withContext
 class TableOfContentsActivity : AppCompatActivity(), TableOfContentsFunctions {
     private lateinit var binding: ActivityTableOfContentsBinding
     private lateinit var pdfExtractor: PdfExtractor
+    private val extractorScreen = ExtractorScreen(this)
     private val bookmarkAdapter = TableOfContentsAdapter(this, this)
     private var bookmarks: List<Bookmark> = listOf()
     private lateinit var layoutManager: LinearLayoutManager
@@ -43,19 +41,15 @@ class TableOfContentsActivity : AppCompatActivity(), TableOfContentsFunctions {
         super.onCreate(savedInstanceState)
         binding = ActivityTableOfContentsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        ColorUtil.colorize(this, window, supportActionBar)
+        setupScreenChrome()
+        title = getString(R.string.loading)
         restoreTableOfContentsState(savedInstanceState)
 
         showProgressBar()
-        lifecycleScope.launch {
-            initPdfExtractor()
-            if (::pdfExtractor.isInitialized) {
-                initActionBar()
-                initUi()
-                initBookmarks()
-            } else {
-                finish()
-            }
+        extractorScreen.open("Failed to read bookmarks! (file move or deleted?)") { extractor ->
+            pdfExtractor = extractor
+            initUi()
+            initBookmarks()
         }
     }
 
@@ -70,23 +64,8 @@ class TableOfContentsActivity : AppCompatActivity(), TableOfContentsFunctions {
         binding.progressBar.visibility = View.VISIBLE
     }
 
-    private suspend fun initPdfExtractor() {
-        val extractor = openPdfExtractorFromIntent()
-        if (extractor == null) {
-            Toast.makeText(
-                this,
-                "Failed to read bookmarks! (file move or deleted?)",
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        pdfExtractor = extractor
-    }
-
     override fun onDestroy() {
-        if (::pdfExtractor.isInitialized) {
-            pdfExtractor.closeAsync()
-        }
+        extractorScreen.close()
         super.onDestroy()
     }
 
@@ -124,13 +103,6 @@ class TableOfContentsActivity : AppCompatActivity(), TableOfContentsFunctions {
         menu.findItem(R.id.collapse_all_bookmarks)?.isVisible = show
     }
 
-    private fun initActionBar() {
-        // add back button to the action bar
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        title = getString(R.string.loading)
-    }
-
     private fun initUi() {
         title = getString(R.string.table_of_contents)
         layoutManager = LinearLayoutManager(this@TableOfContentsActivity)
@@ -152,33 +124,29 @@ class TableOfContentsActivity : AppCompatActivity(), TableOfContentsFunctions {
     }
 
     private fun initSearchView(menu: Menu) {
-        val searchItem = menu.findItem(R.id.search_in_search_activity)
-        val searchView = searchItem.actionView as SearchView
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String) = false
-
-            override fun onQueryTextChange(query: String): Boolean {
-                if (applyingSearchState) return false
-
-                activeQuery = query.trim().takeUnless { it.isBlank() }
-                bookmarkAdapter.query = activeQuery
-                val visibleBookmarks = submitVisibleBookmarks()
-                if (!activeQuery.isNullOrBlank()) {
-                    AppSnackbar.make(
-                        binding.root,
-                        getString(R.string.number_of_filtered_results).format(bookmarkAdapter.visibleBookmarkCount(visibleBookmarks)),
-                        Snackbar.LENGTH_SHORT
-                    ).show()
+        menu.attachFilterSearchView(
+            binding.root,
+            onQueryChanged = { query ->
+                if (applyingSearchState) {
+                    null
+                } else {
+                    activeQuery = query.trim().takeUnless { it.isBlank() }
+                    bookmarkAdapter.query = activeQuery
+                    val visibleBookmarks = submitVisibleBookmarks()
+                    if (activeQuery.isNullOrBlank()) {
+                        null
+                    } else {
+                        bookmarkAdapter.visibleBookmarkCount(visibleBookmarks)
+                    }
                 }
-                return false
-            }
-        })
-        searchView.setOnCloseListener {
-            activeQuery = null
-            bookmarkAdapter.query = null
-            submitVisibleBookmarks()
-            false
-        }
+            },
+            onClosed = {
+                activeQuery = null
+                bookmarkAdapter.query = null
+                submitVisibleBookmarks()
+                false
+            },
+        )
     }
 
     private fun restoreSearchViewState(menu: Menu) {

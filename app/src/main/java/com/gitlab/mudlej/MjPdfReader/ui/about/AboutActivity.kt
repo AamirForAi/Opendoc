@@ -52,10 +52,10 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.DialogFragment
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
+import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityAboutBinding
 import com.gitlab.mudlej.MjPdfReader.ui.main.MainIntroActivity
 import com.gitlab.mudlej.MjPdfReader.ui.showAppFeaturesDialog
-import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.util.emailIntent
 import com.gitlab.mudlej.MjPdfReader.util.getAppVersion
 import com.gitlab.mudlej.MjPdfReader.util.linkIntent
@@ -76,13 +76,12 @@ class AboutActivity : AppCompatActivity() {
             layoutInflater
         )
         setContentView(binding.root)
-        ColorUtil.colorize(this, window, supportActionBar)
+        setupScreenChrome()
         initUi()
     }
 
     private fun initUi() {
         setVersionText()
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
     private fun setVersionText() {

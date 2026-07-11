@@ -68,6 +68,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.core.ui.confirmDialog
 import com.gitlab.mudlej.MjPdfReader.data.*
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
@@ -215,15 +216,15 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     }
 
     internal fun confirmDiscardAnnotations() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.discard_unsaved_highlights_title)
-            .setMessage(R.string.discard_unsaved_highlights_message)
-            .setPositiveButton(R.string.discard) { _, _ ->
-                clearUnsavedAnnotationState()
-                reloadPdf()
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+        confirmDialog(
+            this,
+            R.string.discard_unsaved_highlights_title,
+            getString(R.string.discard_unsaved_highlights_message),
+            R.string.discard,
+        ) {
+            clearUnsavedAnnotationState()
+            reloadPdf()
+        }
     }
 
     fun displayFromUri(uri: Uri?, savePassword: Boolean = false) {

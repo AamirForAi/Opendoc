@@ -50,8 +50,8 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivitySettingsBinding
-import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.util.tintIconsForChrome
 
 
@@ -67,10 +67,7 @@ class SettingsActivity : AppCompatActivity(), SettingsFragment.Navigation {
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        ColorUtil.colorize(this, window, supportActionBar)
-
-        // add back button to the action bar
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        setupScreenChrome()
 
         currentPage = savedInstanceState?.getString(CURRENT_PAGE_KEY)?.let(SettingsPage::valueOf)
         searchQuery = savedInstanceState?.getString(SEARCH_QUERY_KEY).orEmpty()

@@ -14,11 +14,12 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityUserBookmarksBinding
+import com.gitlab.mudlej.MjPdfReader.core.ui.confirmDialog
+import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.repository.UserBookmark
 import com.gitlab.mudlej.MjPdfReader.ui.toc.TocPathResolver
-import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
@@ -38,8 +39,7 @@ class UserBookmarksActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityUserBookmarksBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        ColorUtil.colorize(this, window, supportActionBar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        setupScreenChrome()
         title = getString(R.string.bookmarks)
 
         fileHash = intent.getStringExtra(PDF.fileHashKey)
@@ -102,12 +102,12 @@ class UserBookmarksActivity : AppCompatActivity() {
     private fun confirmDeleteBookmark(bookmark: UserBookmark) {
         val label = bookmark.label?.takeIf { it.isNotBlank() }
             ?: getString(R.string.bookmark_page_label, bookmark.pageIndex + 1)
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.remove_bookmark)
-            .setMessage(getString(R.string.delete_bookmark_confirm_message, label))
-            .setPositiveButton(R.string.delete) { _, _ -> deleteBookmark(bookmark) }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+        confirmDialog(
+            this,
+            R.string.remove_bookmark,
+            getString(R.string.delete_bookmark_confirm_message, label),
+            R.string.delete,
+        ) { deleteBookmark(bookmark) }
     }
 
     private fun deleteBookmark(bookmark: UserBookmark) {

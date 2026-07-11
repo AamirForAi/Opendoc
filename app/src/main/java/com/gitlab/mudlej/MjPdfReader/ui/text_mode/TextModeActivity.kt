@@ -1,23 +1,18 @@
 package com.gitlab.mudlej.MjPdfReader.ui.text_mode
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.view.GestureDetector
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnNextLayout
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -26,41 +21,31 @@ import com.gitlab.mudlej.MjPdfReader.data.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityTextModeBinding
-import com.gitlab.mudlej.MjPdfReader.databinding.TextModeTypographySheetBinding
 import com.gitlab.mudlej.MjPdfReader.manager.database.DatabaseManager
-import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
 import com.gitlab.mudlej.MjPdfReader.repository.AppDatabase
-import com.gitlab.mudlej.MjPdfReader.ui.toc.TableOfContentsState
-import com.gitlab.mudlej.MjPdfReader.ui.toc.TableOfContentsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.showGoToPageDialog
+import com.gitlab.mudlej.MjPdfReader.ui.toc.TableOfContentsActivity
+import com.gitlab.mudlej.MjPdfReader.ui.toc.TableOfContentsState
+import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.util.computeHash
-import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.slider.Slider
-import com.gitlab.mudlej.MjPdfReader.util.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
-import java.util.Collections
 
 class TextModeActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityTextModeBinding
     private lateinit var adapter: TextModePageAdapter
     private lateinit var layoutManager: LinearLayoutManager
-    private lateinit var pdfExtractor: PdfExtractor
     private lateinit var databaseManager: DatabaseManager
+    private lateinit var contentLoader: TextModeContentLoader
+    private lateinit var controlsController: TextModeControlsController
     private lateinit var pdfUri: Uri
 
-    private var pendingExtractor: PdfExtractor? = null
+    private val typographyController = TextModeTypographyController(this, { settings }, ::updateSettings)
+
     private var pdfPassword: String? = null
     private var fileHash: String? = null
     private var pageCount = 0
@@ -69,11 +54,10 @@ class TextModeActivity : AppCompatActivity() {
     private var sliderTracking = false
     private var seekSettling = false
     private var resultPrepared = false
-    @Volatile
-    private var isClosing = false
     private var settings = TextModeSettings()
     private var bookmarkState = TableOfContentsState()
     private var savedPageIndex = -1
+    private var setupJob: Job? = null
 
     private val bookmarksLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -86,26 +70,13 @@ class TextModeActivity : AppCompatActivity() {
         }
     }
 
-    private val extractionMutex = Mutex()
-    private val extractionJobs = Collections.synchronizedSet(mutableSetOf<Job>())
-    private var setupJob: Job? = null
-    private val loadingPages = mutableSetOf<Int>()
-    private val textCache = LinkedHashMap<Int, String>(CACHE_PAGE_LIMIT, 0.75f, true)
-    private val controlsHideHandler = Handler(Looper.getMainLooper())
-    private val hideControlsRunnable = Runnable { hideReaderControls() }
-    private val loadVisiblePagesRunnable = Runnable {
-        if (::binding.isInitialized && ::layoutManager.isInitialized) {
-            loadVisiblePages()
-        }
-    }
     private val seekSettleRunnable = Runnable {
         seekSettling = false
         if (::binding.isInitialized && ::layoutManager.isInitialized) {
-            loadTargetWindow(currentPageIndex)
-            loadVisiblePages()
+            contentLoader.loadTargetWindow(currentPageIndex)
+            contentLoader.loadVisiblePages()
         }
     }
-    private var controlsHideDelayMillis = Preferences.hideDelayDefault.toLong()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -127,21 +98,22 @@ class TextModeActivity : AppCompatActivity() {
         databaseManager = DatabaseManager(AppDatabase.getInstance(applicationContext))
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         settings = TextModeSettings.load(sharedPreferences)
-        controlsHideDelayMillis = Preferences(sharedPreferences).getHideDelay().toLong() + CONTROLS_EXTRA_HIDE_DELAY_MS
+        val hideDelayMillis = Preferences(sharedPreferences).getHideDelay().toLong() + CONTROLS_EXTRA_HIDE_DELAY_MS
+        contentLoader = TextModeContentLoader(this, binding.textPagesRecyclerView)
+        controlsController = TextModeControlsController(binding, hideDelayMillis)
         restoreState(savedInstanceState)
         initPdfProperties()
         if (!::pdfUri.isInitialized) return
 
         setupJob = lifecycleScope.launch {
             showLoading()
-            val extractor = createExtractor()
-            if (extractor == null) {
-                badFileExit()
+            if (!contentLoader.open(pdfUri, pdfPassword)) {
+                if (!contentLoader.closing) {
+                    badFileExit()
+                }
                 return@launch
             }
-            if (!initializeExtractor(extractor)) {
-                return@launch
-            }
+            pageCount = contentLoader.pageCount
             if (pageCount <= 0) {
                 badFileExit()
                 return@launch
@@ -174,51 +146,15 @@ class TextModeActivity : AppCompatActivity() {
         pdfPassword = intent.getStringExtra(PDF.passwordKey)
     }
 
-    private suspend fun createExtractor(): PdfExtractor? {
-        return withContext(Dispatchers.IO) {
-            extractionMutex.withLock {
-                try {
-                    createPdfExtractor(this@TextModeActivity, pdfUri, pdfPassword).also { extractor ->
-                        if (isClosing) {
-                            extractor.close()
-                        } else {
-                            pendingExtractor = extractor
-                        }
-                    }
-                } catch (throwable: Throwable) {
-                    null
-                }
-            }
-        }
-    }
-
-    private suspend fun initializeExtractor(extractor: PdfExtractor): Boolean {
-        return withContext(Dispatchers.IO) {
-            extractionMutex.withLock {
-                if (isClosing) {
-                    extractor.close()
-                    if (pendingExtractor === extractor) {
-                        pendingExtractor = null
-                    }
-                    return@withLock false
-                }
-
-                pdfExtractor = extractor
-                pendingExtractor = null
-                pageCount = pdfExtractor.getPageCount()
-                true
-            }
-        }
-    }
-
     private fun initReader() {
         val initialPageIndex = currentPageIndex
-        adapter = TextModePageAdapter(::retryPage)
+        adapter = TextModePageAdapter(contentLoader::retryPage)
         layoutManager = LinearLayoutManager(this)
+        contentLoader.attach(adapter, layoutManager, { currentPageIndex }, { seekSettling })
         binding.textPagesRecyclerView.adapter = adapter
         binding.textPagesRecyclerView.layoutManager = layoutManager
         binding.textPagesRecyclerView.itemAnimator = null
-        initReaderTapListener()
+        controlsController.attachTapListener()
         binding.textPagesRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 updateCurrentPageFromScroll()
@@ -233,7 +169,7 @@ class TextModeActivity : AppCompatActivity() {
         binding.textPagesRecyclerView.addOnChildAttachStateChangeListener(
             object : RecyclerView.OnChildAttachStateChangeListener {
                 override fun onChildViewAttachedToWindow(view: View) {
-                    scheduleLoadVisiblePages()
+                    contentLoader.scheduleLoadVisiblePages()
                 }
 
                 override fun onChildViewDetachedFromWindow(view: View) = Unit
@@ -246,7 +182,7 @@ class TextModeActivity : AppCompatActivity() {
         initControls()
         binding.textPagesRecyclerView.post {
             scrollToPage(initialPageIndex)
-            binding.textPagesRecyclerView.post { loadVisiblePages() }
+            binding.textPagesRecyclerView.post { contentLoader.loadVisiblePages() }
         }
     }
 
@@ -257,7 +193,7 @@ class TextModeActivity : AppCompatActivity() {
             showGoToPageDialog(this, binding.root, currentPageIndex, pageCount, ::scrollToPage)
         }
         binding.tocButton.setOnClickListener { showBookmarks() }
-        binding.typographyButton.setOnClickListener { showTypographySheet() }
+        binding.typographyButton.setOnClickListener { typographyController.showSheet() }
         binding.backToPdfButton.setOnClickListener { finish() }
 
         binding.pageSlider.valueFrom = if (pageCount > 1) 1f else 0f
@@ -281,186 +217,8 @@ class TextModeActivity : AppCompatActivity() {
             }
         }
         updatePageControls()
-        setReaderControlsTouchListeners()
-        showReaderControlsTemporarily()
-    }
-
-    private fun initReaderTapListener() {
-        val tapDetector = GestureDetector(
-            this,
-            object : GestureDetector.SimpleOnGestureListener() {
-                override fun onSingleTapConfirmed(event: MotionEvent): Boolean {
-                    showReaderControlsTemporarilyOrHide()
-                    return true
-                }
-            },
-        )
-        binding.textPagesRecyclerView.addOnItemTouchListener(
-            object : RecyclerView.SimpleOnItemTouchListener() {
-                override fun onInterceptTouchEvent(recyclerView: RecyclerView, event: MotionEvent): Boolean {
-                    tapDetector.onTouchEvent(event)
-                    return false
-                }
-            },
-        )
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setReaderControlsTouchListeners() {
-        val listener = View.OnTouchListener { _, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> keepReaderControlsVisible()
-                MotionEvent.ACTION_UP,
-                MotionEvent.ACTION_CANCEL -> scheduleReaderControlsHide()
-            }
-            false
-        }
-        listOf(
-            binding.readerControlsCard,
-            binding.pageSlider,
-            binding.previousPageButton,
-            binding.pageButton,
-            binding.nextPageButton,
-            binding.tocButton,
-            binding.typographyButton,
-            binding.backToPdfButton,
-        ).forEach { it.setOnTouchListener(listener) }
-    }
-
-    private fun showReaderControlsTemporarilyOrHide() {
-        if (binding.readerControlsCard.visibility == View.VISIBLE) {
-            hideReaderControls()
-        } else {
-            showReaderControlsTemporarily()
-        }
-    }
-
-    private fun showReaderControlsTemporarily() {
-        binding.readerControlsCard.visibility = View.VISIBLE
-        scheduleReaderControlsHide()
-    }
-
-    private fun hideReaderControls() {
-        controlsHideHandler.removeCallbacks(hideControlsRunnable)
-        if (::binding.isInitialized) {
-            binding.readerControlsCard.visibility = View.GONE
-        }
-    }
-
-    private fun keepReaderControlsVisible() {
-        controlsHideHandler.removeCallbacks(hideControlsRunnable)
-    }
-
-    private fun scheduleReaderControlsHide() {
-        controlsHideHandler.removeCallbacks(hideControlsRunnable)
-        controlsHideHandler.postDelayed(hideControlsRunnable, controlsHideDelayMillis)
-    }
-
-    private fun showTypographySheet() {
-        val dialog = BottomSheetDialog(this)
-        val sheetBinding = TextModeTypographySheetBinding.inflate(layoutInflater)
-        dialog.setContentView(sheetBinding.root)
-
-        syncTypographySheet(sheetBinding)
-
-        sheetBinding.fontSizeSlider.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
-            override fun onStartTrackingTouch(slider: Slider) = Unit
-            override fun onStopTrackingTouch(slider: Slider) {
-                updateSettings(settings.copy(fontSize = slider.value))
-            }
-        })
-        sheetBinding.lineSpacingSlider.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
-            override fun onStartTrackingTouch(slider: Slider) = Unit
-            override fun onStopTrackingTouch(slider: Slider) {
-                updateSettings(settings.copy(lineSpacing = slider.value))
-            }
-        })
-        sheetBinding.marginSlider.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
-            override fun onStartTrackingTouch(slider: Slider) = Unit
-            override fun onStopTrackingTouch(slider: Slider) {
-                updateSettings(settings.copy(horizontalMargin = slider.value.toInt()))
-            }
-        })
-        sheetBinding.readableLineLengthSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (settings.readableLineLength != isChecked) {
-                updateSettings(settings.copy(readableLineLength = isChecked))
-            }
-        }
-        configureThemeButton(sheetBinding.systemThemeButton, sheetBinding, ReaderTheme.SYSTEM)
-        configureThemeButton(sheetBinding.lightThemeButton, sheetBinding, ReaderTheme.LIGHT)
-        configureThemeButton(sheetBinding.sepiaThemeButton, sheetBinding, ReaderTheme.SEPIA)
-        configureThemeButton(sheetBinding.darkThemeButton, sheetBinding, ReaderTheme.DARK)
-        configureThemeButton(sheetBinding.blackThemeButton, sheetBinding, ReaderTheme.BLACK)
-        configureThemeButton(sheetBinding.draculaThemeButton, sheetBinding, ReaderTheme.DRACULA)
-        configureFontButton(sheetBinding.sansFontButton, sheetBinding, ReaderFontFamily.SANS)
-        configureFontButton(sheetBinding.serifFontButton, sheetBinding, ReaderFontFamily.SERIF)
-        configureFontButton(sheetBinding.monoFontButton, sheetBinding, ReaderFontFamily.MONO)
-        sheetBinding.resetSettingsButton.setOnClickListener {
-            updateSettings(TextModeSettings())
-            syncTypographySheet(sheetBinding)
-        }
-        dialog.show()
-    }
-
-    private fun syncTypographySheet(sheetBinding: TextModeTypographySheetBinding) {
-        sheetBinding.fontSizeSlider.value = settings.fontSize.coerceIn(
-            sheetBinding.fontSizeSlider.valueFrom,
-            sheetBinding.fontSizeSlider.valueTo,
-        )
-        sheetBinding.lineSpacingSlider.value = settings.lineSpacing.coerceIn(
-            sheetBinding.lineSpacingSlider.valueFrom,
-            sheetBinding.lineSpacingSlider.valueTo,
-        )
-        sheetBinding.marginSlider.value = settings.horizontalMargin.toFloat().coerceIn(
-            sheetBinding.marginSlider.valueFrom,
-            sheetBinding.marginSlider.valueTo,
-        )
-        sheetBinding.readableLineLengthSwitch.isChecked = settings.readableLineLength
-
-        val checkedThemeButtonId = themeButtonId(settings.theme)
-        listOf(
-            sheetBinding.systemThemeButton,
-            sheetBinding.lightThemeButton,
-            sheetBinding.sepiaThemeButton,
-            sheetBinding.darkThemeButton,
-            sheetBinding.blackThemeButton,
-            sheetBinding.draculaThemeButton,
-        ).forEach { button ->
-            button.setCheckable(true)
-            button.isChecked = button.id == checkedThemeButtonId
-        }
-
-        val checkedFontButtonId = fontButtonId(settings.fontFamily)
-        listOf(
-            sheetBinding.sansFontButton,
-            sheetBinding.serifFontButton,
-            sheetBinding.monoFontButton,
-        ).forEach { button ->
-            button.setCheckable(true)
-            button.isChecked = button.id == checkedFontButtonId
-        }
-    }
-
-    private fun configureThemeButton(
-        button: MaterialButton,
-        sheetBinding: TextModeTypographySheetBinding,
-        theme: ReaderTheme,
-    ) {
-        button.setOnClickListener {
-            updateSettings(settings.copy(theme = theme))
-            syncTypographySheet(sheetBinding)
-        }
-    }
-
-    private fun configureFontButton(
-        button: MaterialButton,
-        sheetBinding: TextModeTypographySheetBinding,
-        fontFamily: ReaderFontFamily,
-    ) {
-        button.setOnClickListener {
-            updateSettings(settings.copy(fontFamily = fontFamily))
-            syncTypographySheet(sheetBinding)
-        }
+        controlsController.setControlsTouchListeners()
+        controlsController.showTemporarily()
     }
 
     private fun updateSettings(newSettings: TextModeSettings) {
@@ -477,7 +235,7 @@ class TextModeActivity : AppCompatActivity() {
         }
 
         adapter.applySettings(settings)
-        scheduleLoadVisiblePages()
+        contentLoader.scheduleLoadVisiblePages()
     }
 
     private fun applyReaderTheme() {
@@ -487,177 +245,14 @@ class TextModeActivity : AppCompatActivity() {
         binding.message.setTextColor(colors.label)
     }
 
-    private fun themeButtonId(theme: ReaderTheme): Int {
-        return when (theme) {
-            ReaderTheme.SYSTEM -> R.id.systemThemeButton
-            ReaderTheme.LIGHT -> R.id.lightThemeButton
-            ReaderTheme.SEPIA -> R.id.sepiaThemeButton
-            ReaderTheme.DARK -> R.id.darkThemeButton
-            ReaderTheme.BLACK -> R.id.blackThemeButton
-            ReaderTheme.DRACULA -> R.id.draculaThemeButton
-        }
-    }
-
-    private fun fontButtonId(fontFamily: ReaderFontFamily): Int {
-        return when (fontFamily) {
-            ReaderFontFamily.SANS -> R.id.sansFontButton
-            ReaderFontFamily.SERIF -> R.id.serifFontButton
-            ReaderFontFamily.MONO -> R.id.monoFontButton
-        }
-    }
-
-    private fun loadAround(pageIndex: Int) {
-        for (index in pageIndex - PREFETCH_DISTANCE..pageIndex + PREFETCH_DISTANCE) {
-            loadPage(index)
-        }
-    }
-
-    private fun loadTargetWindow(pageIndex: Int) {
-        for (index in (pageIndex - PREFETCH_DISTANCE)..(pageIndex + JUMP_LOAD_AHEAD)) {
-            loadPage(index)
-        }
-    }
-
-    private fun loadVisiblePages() {
-        val firstVisiblePage = layoutManager.findFirstVisibleItemPosition()
-        val lastVisiblePage = layoutManager.findLastVisibleItemPosition()
-        if (firstVisiblePage == RecyclerView.NO_POSITION || lastVisiblePage == RecyclerView.NO_POSITION) {
-            loadAround(currentPageIndex)
-            return
-        }
-
-        for (index in (firstVisiblePage - PREFETCH_DISTANCE)..(lastVisiblePage + PREFETCH_DISTANCE)) {
-            loadPage(index)
-        }
-    }
-
-    private fun scheduleLoadVisiblePages() {
-        if (!::binding.isInitialized) return
-        if (seekSettling) return
-
-        binding.textPagesRecyclerView.removeCallbacks(loadVisiblePagesRunnable)
-        binding.textPagesRecyclerView.post(loadVisiblePagesRunnable)
-    }
-
-    private fun retryPage(pageIndex: Int) {
-        loadPage(pageIndex, force = true)
-    }
-
-    private fun loadPage(pageIndex: Int, force: Boolean = false) {
-        if (pageIndex !in 0 until pageCount) return
-
-        textCache[pageIndex]?.let { cachedText ->
-            val currentState = adapter.pageState(pageIndex)
-            if (currentState !is TextModePageState.Ready || currentState.text != cachedText) {
-                updatePageState(TextModePageState.Ready(pageIndex, cachedText))
-                scheduleLoadVisiblePages()
-            }
-            return
-        }
-        if (loadingPages.contains(pageIndex)) return
-        if (!force) {
-            when (adapter.pageState(pageIndex)) {
-                is TextModePageState.Ready,
-                is TextModePageState.Empty,
-                is TextModePageState.Error -> return
-                else -> Unit
-            }
-        }
-
-        loadingPages.add(pageIndex)
-        updatePageState(TextModePageState.Loading(pageIndex))
-        val job = lifecycleScope.launch(Dispatchers.IO) {
-            val state = extractionMutex.withLock {
-                val relevant = withContext(Dispatchers.Main) { isPageStillWanted(pageIndex) }
-                if (!relevant) {
-                    null
-                } else {
-                    try {
-                        val rawText = pdfExtractor.getPageTextOrThrow(pageIndex + 1)
-                        val text = TextModeTextFormatter.format(rawText)
-                        if (text.isBlank()) {
-                            TextModePageState.Empty(pageIndex)
-                        } else {
-                            TextModePageState.Ready(pageIndex, text)
-                        }
-                    } catch (throwable: Throwable) {
-                        TextModePageState.Error(pageIndex, throwable.message.orEmpty())
-                    }
-                }
-            }
-
-            withContext(Dispatchers.Main) {
-                loadingPages.remove(pageIndex)
-                if (state == null) {
-                    if (adapter.pageState(pageIndex) is TextModePageState.Loading) {
-                        updatePageState(TextModePageState.NotLoaded(pageIndex))
-                    }
-                    return@withContext
-                }
-                if (state is TextModePageState.Ready) {
-                    cacheText(state.pageIndex, state.text)
-                }
-                updatePageState(state)
-                scheduleLoadVisiblePages()
-            }
-        }
-        extractionJobs.add(job)
-        job.invokeOnCompletion { extractionJobs.remove(job) }
-    }
-
-    private fun isPageStillWanted(pageIndex: Int): Boolean {
-        if (isClosing || !::layoutManager.isInitialized) return false
-
-        val nearCurrent = pageIndex in (currentPageIndex - PREFETCH_DISTANCE)..(currentPageIndex + JUMP_LOAD_AHEAD)
-        if (nearCurrent) return true
-
-        val firstVisiblePage = layoutManager.findFirstVisibleItemPosition()
-        val lastVisiblePage = layoutManager.findLastVisibleItemPosition()
-        if (firstVisiblePage == RecyclerView.NO_POSITION || lastVisiblePage == RecyclerView.NO_POSITION) return true
-
-        return pageIndex in (firstVisiblePage - PREFETCH_DISTANCE)..(lastVisiblePage + PREFETCH_DISTANCE)
-    }
-
-    private fun updatePageState(state: TextModePageState) {
-        if (binding.textPagesRecyclerView.isComputingLayout) {
-            binding.textPagesRecyclerView.post { updatePageState(state) }
-            return
-        }
-        if (state is TextModePageState.Loading && !loadingPages.contains(state.pageIndex)) {
-            return
-        }
-        adapter.updatePageState(state)
-    }
-
-    private fun cacheText(pageIndex: Int, text: String) {
-        textCache[pageIndex] = text
-        if (textCache.size <= CACHE_PAGE_LIMIT) return
-
-        val firstVisiblePage = layoutManager.findFirstVisibleItemPosition()
-        val lastVisiblePage = layoutManager.findLastVisibleItemPosition()
-        val protectedRange = if (firstVisiblePage == RecyclerView.NO_POSITION || lastVisiblePage == RecyclerView.NO_POSITION) {
-            (currentPageIndex - PREFETCH_DISTANCE)..(currentPageIndex + JUMP_LOAD_AHEAD)
-        } else {
-            (firstVisiblePage - PREFETCH_DISTANCE)..(lastVisiblePage + PREFETCH_DISTANCE)
-        }
-
-        val iterator = textCache.keys.iterator()
-        while (textCache.size > CACHE_PAGE_LIMIT && iterator.hasNext()) {
-            val eldestPageIndex = iterator.next()
-            if (eldestPageIndex == pageIndex || eldestPageIndex in protectedRange) continue
-            iterator.remove()
-            updatePageState(TextModePageState.NotLoaded(eldestPageIndex))
-        }
-    }
-
     private fun scrollToPage(pageIndex: Int) {
         if (pageCount <= 0) return
 
         currentPageIndex = pageIndex.coerceIn(0, pageCount - 1)
         pendingScrollTarget = currentPageIndex
         layoutManager.scrollToPositionWithOffset(currentPageIndex, 0)
-        loadTargetWindow(currentPageIndex)
-        binding.textPagesRecyclerView.doOnNextLayout { loadVisiblePages() }
+        contentLoader.loadTargetWindow(currentPageIndex)
+        binding.textPagesRecyclerView.doOnNextLayout { contentLoader.loadVisiblePages() }
         updatePageControls()
         saveCurrentPage()
     }
@@ -684,7 +279,7 @@ class TextModeActivity : AppCompatActivity() {
         if (firstVisiblePage == RecyclerView.NO_POSITION) return
 
         if (!seekSettling) {
-            loadVisiblePages()
+            contentLoader.loadVisiblePages()
         }
 
         val pending = pendingScrollTarget
@@ -757,25 +352,16 @@ class TextModeActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        isClosing = true
-        controlsHideHandler.removeCallbacksAndMessages(null)
+        if (::controlsController.isInitialized) {
+            controlsController.release()
+        }
         if (::binding.isInitialized) {
-            binding.textPagesRecyclerView.removeCallbacks(loadVisiblePagesRunnable)
             binding.textPagesRecyclerView.removeCallbacks(seekSettleRunnable)
         }
-        setupJob?.cancel()
-        synchronized(extractionJobs) {
-            extractionJobs.toList()
-        }.forEach { it.cancel() }
-        CoroutineScope(Dispatchers.IO + NonCancellable).launch {
-            extractionMutex.withLock {
-                pendingExtractor?.close()
-                pendingExtractor = null
-                if (::pdfExtractor.isInitialized) {
-                    pdfExtractor.close()
-                }
-            }
+        if (::contentLoader.isInitialized) {
+            contentLoader.close()
         }
+        setupJob?.cancel()
         super.onDestroy()
     }
 
@@ -808,10 +394,7 @@ class TextModeActivity : AppCompatActivity() {
 
     companion object {
         private const val CURRENT_PAGE_KEY = "CURRENT_TEXT_MODE_PAGE"
-        private const val PREFETCH_DISTANCE = 2
-        private const val JUMP_LOAD_AHEAD = 8
         private const val SEEK_SETTLE_DELAY_MS = 50L
-        private const val CACHE_PAGE_LIMIT = 24
         private const val CONTROLS_EXTRA_HIDE_DELAY_MS = 1500L
     }
 }

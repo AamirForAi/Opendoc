@@ -10,11 +10,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
 import com.gitlab.mudlej.MjPdfReader.data.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityNavigationHistoryBinding
 import com.gitlab.mudlej.MjPdfReader.ui.main.navigation.ReaderHistoryManager
 import com.gitlab.mudlej.MjPdfReader.ui.toc.TocPathResolver
-import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
 import kotlinx.coroutines.launch
 
 class NavigationHistoryActivity : AppCompatActivity() {
@@ -26,8 +26,7 @@ class NavigationHistoryActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityNavigationHistoryBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        ColorUtil.colorize(this, window, supportActionBar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        setupScreenChrome()
         title = getString(R.string.navigation_history)
 
         binding.navigationHistoryRecyclerView.apply {
