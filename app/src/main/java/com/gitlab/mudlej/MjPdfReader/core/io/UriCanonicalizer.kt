@@ -2,8 +2,10 @@
 
 package com.gitlab.mudlej.MjPdfReader.core.io
 
+import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
@@ -15,6 +17,8 @@ object UriCanonicalizer {
     private const val DOWNLOADS_AUTHORITY = "com.android.providers.downloads.documents"
     private const val PRIMARY_VOLUME = "primary"
     private const val RAW_PREFIX = "raw:"
+    private const val MEDIA_STORE_FILE_PREFIX = "msf:"
+    private const val MEDIA_STORE_DOCUMENT_PREFIX = "msd:"
 
     fun canonicalize(context: Context, uri: Uri): File? {
         val file = when (uri.scheme) {
@@ -49,11 +53,18 @@ object UriCanonicalizer {
 
     private fun fromDownloadsDocument(context: Context, uri: Uri): File? {
         val docId = runCatching { DocumentsContract.getDocumentId(uri) }.getOrNull() ?: return null
-        return if (docId.startsWith(RAW_PREFIX)) {
-            File(docId.removePrefix(RAW_PREFIX))
-        } else {
-            fromMediaStoreData(context, uri)
+        if (docId.startsWith(RAW_PREFIX)) {
+            return File(docId.removePrefix(RAW_PREFIX))
         }
+        val mediaStoreId = docId
+            .removePrefix(MEDIA_STORE_FILE_PREFIX)
+            .removePrefix(MEDIA_STORE_DOCUMENT_PREFIX)
+            .toLongOrNull()
+        if (mediaStoreId != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val mediaStoreUri = ContentUris.withAppendedId(MediaStore.Downloads.EXTERNAL_CONTENT_URI, mediaStoreId)
+            fromMediaStoreData(context, mediaStoreUri)?.let { return it }
+        }
+        return fromMediaStoreData(context, uri)
     }
 
     private fun fromMediaStoreData(context: Context, uri: Uri): File? {

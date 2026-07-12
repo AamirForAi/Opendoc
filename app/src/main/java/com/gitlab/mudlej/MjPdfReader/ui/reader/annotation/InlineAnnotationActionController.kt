@@ -162,7 +162,7 @@ class InlineAnnotationActionController(
     private fun showHighlightAnnotationActions(annotation: PDFView.HighlightAnnotation) {
         activeHighlightAnnotation = annotation
         binding.pdfView.setSelectedHighlightAnnotation(annotation)
-        val textActionVisibility = if (annotation.contents.isBlank()) View.GONE else View.VISIBLE
+        val textActionVisibility = if (annotation.quote.isBlank()) View.GONE else View.VISIBLE
         binding.textSelectionCopyButton.visibility = textActionVisibility
         binding.textSelectionShareButton.visibility = textActionVisibility
         binding.textSelectionSearchWebButton.visibility = textActionVisibility
@@ -374,7 +374,7 @@ class InlineAnnotationActionController(
     }
 
     private fun selectedText(): String {
-        return activeHighlightAnnotation?.contents ?: binding.pdfView.getSelectedText()
+        return activeHighlightAnnotation?.quote ?: binding.pdfView.getSelectedText()
     }
 
     private fun shareSelectedQuote() {

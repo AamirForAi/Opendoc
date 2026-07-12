@@ -29,12 +29,17 @@ fun showShareQuoteDialog(
     binding.bookNameInput.setText(bookName)
     binding.authorInput.setText(author)
 
+    val themeChips = listOf(
+        binding.themeLight to QuoteCardTheme.LIGHT,
+        binding.themeDark to QuoteCardTheme.DARK,
+        binding.themeSepia to QuoteCardTheme.SEPIA,
+        binding.themeRose to QuoteCardTheme.ROSE,
+        binding.themeLavender to QuoteCardTheme.LAVENDER,
+        binding.themeMint to QuoteCardTheme.MINT,
+    )
+
     fun currentOptions(): QuoteCardOptions {
-        val theme = when (binding.themeChips.checkedChipId) {
-            R.id.themeDark -> QuoteCardTheme.DARK
-            R.id.themeSepia -> QuoteCardTheme.SEPIA
-            else -> QuoteCardTheme.LIGHT
-        }
+        val theme = themeChips.firstOrNull { it.first.isChecked }?.second ?: QuoteCardTheme.LIGHT
         return QuoteCardOptions(
             quote = quote,
             bookName = binding.bookNameInput.text?.toString().orEmpty(),
@@ -58,7 +63,12 @@ fun showShareQuoteDialog(
     }
     binding.bookNameInput.onTextChanged { refreshPreview() }
     binding.authorInput.onTextChanged { refreshPreview() }
-    binding.themeChips.setOnCheckedStateChangeListener { _, _ -> refreshPreview() }
+    themeChips.forEach { (chip, _) ->
+        chip.setOnClickListener {
+            themeChips.forEach { (other, _) -> other.isChecked = other === chip }
+            refreshPreview()
+        }
+    }
     binding.madeBySwitch.setOnCheckedChangeListener { _, _ -> refreshPreview() }
     binding.reflowSwitch.setOnCheckedChangeListener { _, _ -> refreshPreview() }
     refreshPreview()

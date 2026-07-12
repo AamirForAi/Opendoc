@@ -83,38 +83,94 @@
                     android:maxLines="1" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <com.google.android.material.chip.ChipGroup
-                android:id="@+id/themeChips"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                app:chipSpacingHorizontal="6dp"
-                app:selectionRequired="true"
-                app:singleLine="true"
-                app:singleSelection="true">
+                android:layout_marginTop="10dp"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/themeLight"
-                    android:layout_width="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:checkable="true"
+                    android:layout_marginHorizontal="5dp"
+                    android:layout_weight="1"
                     android:checked="true"
-                    android:text="@string/light" />
+                    android:text="@string/light"
+                    android:textAlignment="center"
+                    app:checkedIconVisible="false"
+                    app:chipMinHeight="36dp" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/themeDark"
-                    android:layout_width="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:checkable="true"
-                    android:text="@string/dark" />
+                    android:layout_marginHorizontal="5dp"
+                    android:layout_weight="1"
+                    android:text="@string/dark"
+                    android:textAlignment="center"
+                    app:checkedIconVisible="false"
+                    app:chipMinHeight="36dp" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/themeSepia"
-                    android:layout_width="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:checkable="true"
-                    android:text="@string/sepia" />
-            </com.google.android.material.chip.ChipGroup>
+                    android:layout_marginHorizontal="5dp"
+                    android:layout_weight="1"
+                    android:text="@string/sepia"
+                    android:textAlignment="center"
+                    app:checkedIconVisible="false"
+                    app:chipMinHeight="36dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/themeRose"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="5dp"
+                    android:layout_weight="1"
+                    android:text="@string/theme_rose"
+                    android:textAlignment="center"
+                    app:checkedIconVisible="false"
+                    app:chipMinHeight="36dp" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/themeLavender"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="5dp"
+                    android:layout_weight="1"
+                    android:text="@string/theme_lavender"
+                    android:textAlignment="center"
+                    app:checkedIconVisible="false"
+                    app:chipMinHeight="36dp" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/themeMint"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="5dp"
+                    android:layout_weight="1"
+                    android:text="@string/theme_mint"
+                    android:textAlignment="center"
+                    app:checkedIconVisible="false"
+                    app:chipMinHeight="36dp" />
+            </LinearLayout>
 
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/madeBySwitch"

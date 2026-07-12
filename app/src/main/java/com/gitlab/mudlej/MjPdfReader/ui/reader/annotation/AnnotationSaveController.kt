@@ -20,6 +20,8 @@ import com.gitlab.mudlej.MjPdfReader.data.entity.PdfAnnotationSaveDestination
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
+import com.gitlab.mudlej.MjPdfReader.core.PermissionManager
+import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
 import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.gitlab.mudlej.MjPdfReader.core.io.getFileName
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -131,10 +133,13 @@ class AnnotationSaveController(
             .setTitle(R.string.save_highlights)
             .setItems(options) { _, which ->
                 if (which == 0) {
-                    if (savedCopyDestination != null) {
-                        saveHighlightsToUri(savedCopyDestination, sourceUri, saveDestinationDurably = true)
-                    } else {
-                        launchUpdateDestinationPicker()
+                    val directDestination = directWriteDestination(sourceUri)
+                    when {
+                        directDestination != null ->
+                            saveHighlightsToUri(directDestination, sourceUri, saveDestinationDurably = true)
+                        savedCopyDestination != null ->
+                            saveHighlightsToUri(savedCopyDestination, sourceUri, saveDestinationDurably = true)
+                        else -> launchUpdateDestinationPicker()
                     }
                 } else {
                     launchCreateDestinationPicker()
@@ -142,6 +147,17 @@ class AnnotationSaveController(
             }
             .setOnCancelListener { clearPendingRequests() }
             .show()
+    }
+
+    private fun directWriteDestination(sourceUri: Uri): Uri? {
+        if (!PermissionManager.hasFullAccess(activity)) {
+            return null
+        }
+        val file = UriCanonicalizer.canonicalize(activity, sourceUri) ?: return null
+        if (!file.canWrite()) {
+            return null
+        }
+        return Uri.fromFile(file)
     }
 
     private fun launchUpdateDestinationPicker() {

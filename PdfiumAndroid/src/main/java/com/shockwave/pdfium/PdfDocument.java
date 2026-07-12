@@ -113,31 +113,31 @@ public class PdfDocument {
         private int annotationIndex;
         private String groupKey;
         private RectF bounds;
-        private String contents;
+        private String quote;
         private int color;
         private boolean appOwned;
         private String note;
         private String creationDate;
 
-        public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String contents) {
-            this(annotationIndex, groupKey, bounds, contents, 0xFFFFFF00, false);
+        public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String quote) {
+            this(annotationIndex, groupKey, bounds, quote, 0xFFFFFF00, false);
         }
 
-        public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String contents, int color) {
-            this(annotationIndex, groupKey, bounds, contents, color, false);
+        public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String quote, int color) {
+            this(annotationIndex, groupKey, bounds, quote, color, false);
         }
 
-        public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String contents,
+        public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String quote,
                                    int color, boolean appOwned) {
-            this(annotationIndex, groupKey, bounds, contents, color, appOwned, null, null);
+            this(annotationIndex, groupKey, bounds, quote, color, appOwned, null, null);
         }
 
-        public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String contents,
+        public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String quote,
                                    int color, boolean appOwned, String note, String creationDate) {
             this.annotationIndex = annotationIndex;
             this.groupKey = groupKey == null ? "" : groupKey;
             this.bounds = bounds;
-            this.contents = contents == null ? "" : contents;
+            this.quote = quote == null ? "" : quote;
             this.color = color;
             this.appOwned = appOwned;
             this.note = note == null ? "" : note;
@@ -156,8 +156,8 @@ public class PdfDocument {
             return bounds;
         }
 
-        public String getContents() {
-            return contents;
+        public String getQuote() {
+            return quote;
         }
 
         public int getColor() {

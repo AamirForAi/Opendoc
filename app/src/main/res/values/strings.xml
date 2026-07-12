@@ -118,7 +118,12 @@
     <string name="share_quote_author">Author</string>
     <string name="share_quote_show_made_by">Show made by MJ PDF</string>
     <string name="share_quote_reflow">Remove line breaks</string>
+    <string name="theme_rose">Rose</string>
+    <string name="theme_lavender">Lavender</string>
+    <string name="theme_mint">Mint</string>
     <string name="share_quote_failed">Couldn\'t share the image</string>
+    <string name="expand">Expand</string>
+    <string name="collapse">Collapse</string>
     <string name="advanced_summary">Rendering limits and technical reader options</string>
     <string name="anti_aliasing">Smooth Edges / Anti-Aliasing</string>
     <string name="anti_aliasing_summary">Smooth text and page edges while rendering. Usually improves appearance with little performance cost.</string>
@@ -251,7 +256,7 @@
     <string name="reset">Reset</string>
     <string name="cancel">Cancel</string>
     <string name="page">Page</string>
-    <string name="bookmarks">Bookmarks</string>
+    <string name="bookmarks">My Bookmarks</string>
     <string name="no_bookmarks">This file doesn\'t contain bookmarks</string>
     <string name="additional_options">More</string>
     <string name="search">Search</string>

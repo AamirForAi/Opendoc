@@ -46,7 +46,7 @@ class UserHighlightsActivity : AppCompatActivity() {
     private lateinit var binding: ActivityUserHighlightsBinding
     private lateinit var pdfExtractor: PdfExtractor
     private val extractorScreen = ExtractorScreen(this)
-    private val highlightAdapter = UserNoteAdapter(::onHighlightClicked)
+    private val highlightAdapter = UserNoteAdapter(::onHighlightClicked, notesMode = false)
     private var highlights: List<SweptHighlight> = listOf()
     private var query: String = ""
     private var sortByDate: Boolean = false

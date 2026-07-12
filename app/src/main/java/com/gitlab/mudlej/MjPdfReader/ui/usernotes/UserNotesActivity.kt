@@ -41,7 +41,7 @@ class UserNotesActivity : AppCompatActivity() {
     private lateinit var binding: ActivityUserNotesBinding
     private lateinit var pdfExtractor: PdfExtractor
     private val extractorScreen = ExtractorScreen(this)
-    private val noteAdapter = UserNoteAdapter(::onNoteClicked)
+    private val noteAdapter = UserNoteAdapter(::onNoteClicked, notesMode = true)
     private var notes: List<SweptHighlight> = listOf()
     private var query: String = ""
     private var sortByDate: Boolean = false

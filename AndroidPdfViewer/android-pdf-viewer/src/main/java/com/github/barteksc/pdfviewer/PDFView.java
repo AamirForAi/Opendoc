@@ -196,27 +196,27 @@ public class PDFView extends RelativeLayout {
         public final String groupKey;
         public final RectF viewBounds;
         public final RectF pdfBounds;
-        public final String contents;
+        public final String quote;
         public final String note;
 
         public HighlightAnnotation(int pageIndex, int annotationIndex, String groupKey,
-                                   RectF viewBounds, String contents) {
-            this(pageIndex, annotationIndex, groupKey, viewBounds, null, contents, null);
+                                   RectF viewBounds, String quote) {
+            this(pageIndex, annotationIndex, groupKey, viewBounds, null, quote, null);
         }
 
         public HighlightAnnotation(int pageIndex, int annotationIndex, String groupKey,
-                                   RectF viewBounds, RectF pdfBounds, String contents) {
-            this(pageIndex, annotationIndex, groupKey, viewBounds, pdfBounds, contents, null);
+                                   RectF viewBounds, RectF pdfBounds, String quote) {
+            this(pageIndex, annotationIndex, groupKey, viewBounds, pdfBounds, quote, null);
         }
 
         public HighlightAnnotation(int pageIndex, int annotationIndex, String groupKey,
-                                   RectF viewBounds, RectF pdfBounds, String contents, String note) {
+                                   RectF viewBounds, RectF pdfBounds, String quote, String note) {
             this.pageIndex = pageIndex;
             this.annotationIndex = annotationIndex;
             this.groupKey = groupKey == null ? "" : groupKey;
             this.viewBounds = viewBounds == null ? null : new RectF(viewBounds);
             this.pdfBounds = pdfBounds == null ? null : new RectF(pdfBounds);
-            this.contents = contents == null ? "" : contents;
+            this.quote = quote == null ? "" : quote;
             this.note = note == null ? "" : note;
         }
     }
@@ -2099,7 +2099,7 @@ public class PDFView extends RelativeLayout {
                 hitGroup,
                 viewBounds,
                 pdfBounds,
-                hit.getContents(),
+                hit.getQuote(),
                 hit.getNote()
         );
     }
@@ -2164,7 +2164,7 @@ public class PDFView extends RelativeLayout {
                     group,
                     viewBounds,
                     pdfBounds,
-                    first.getContents(),
+                    first.getQuote(),
                     first.getNote()
             );
         }

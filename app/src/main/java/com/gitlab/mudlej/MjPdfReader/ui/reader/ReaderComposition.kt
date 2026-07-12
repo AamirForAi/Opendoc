@@ -218,7 +218,7 @@ class ReaderComposition(
         ui::updateDirtyUiPosition,
         { pref.getDetectExistingHighlights() },
         { pref.getHighlightColors() },
-        { doc.name },
+        { doc.getTitle() },
     ) { fullScreenOptionsManager.showAllTemporarilyOrHide() }
     val annotationSaveController: AnnotationSaveController = AnnotationSaveController(
         activity,

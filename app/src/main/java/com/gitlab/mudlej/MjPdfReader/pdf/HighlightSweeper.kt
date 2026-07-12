@@ -26,7 +26,7 @@ fun sweepPageHighlights(extractor: PdfExtractor, pageIndex: Int): List<SweptHigh
                 annotationIndex = annotation.annotationIndex,
                 groupKey = group,
                 color = annotation.color,
-                quotedText = annotation.contents,
+                quotedText = annotation.quote,
                 note = annotation.note,
                 creationDate = annotation.creationDate.takeIf { it.isNotBlank() },
             )

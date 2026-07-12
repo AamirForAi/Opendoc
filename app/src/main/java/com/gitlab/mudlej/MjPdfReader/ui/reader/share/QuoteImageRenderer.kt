@@ -20,6 +20,9 @@ enum class QuoteCardTheme(
     LIGHT(0xFFF8F4EC.toInt(), 0xFF23262D.toInt(), 0xFF6A6E76.toInt(), 0x2823262D),
     DARK(0xFF20232A.toInt(), 0xFFECEDEF.toInt(), 0xFFA4A8B0.toInt(), 0x28ECEDEF),
     SEPIA(0xFFF0E3C9.toInt(), 0xFF4A3B28.toInt(), 0xFF87755C.toInt(), 0x284A3B28.toInt()),
+    ROSE(0xFFFCE4EC.toInt(), 0xFF7A2E4E.toInt(), 0xFFB05C7E.toInt(), 0x33D81B7A),
+    LAVENDER(0xFFEDE7F6.toInt(), 0xFF4A337E.toInt(), 0xFF7E6BAE.toInt(), 0x335E35B1),
+    MINT(0xFFE3F4EC.toInt(), 0xFF1F5140.toInt(), 0xFF4F8574.toInt(), 0x2300796B),
 }
 
 data class QuoteCardOptions(

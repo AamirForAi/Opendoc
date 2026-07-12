@@ -130,7 +130,20 @@ class DocumentLoader(
                 return@launch
             }
             if (hash == null && doc.pageNumber == 0) {
-                showFailedToComputeHashError()
+                val recoveredFile = doc.uri?.let { unreadableUri ->
+                    withContext(Dispatchers.IO) { UriCanonicalizer.canonicalize(context, unreadableUri) }
+                }
+                if (!vm.isCurrent(loadToken, documentUri)) {
+                    return@launch
+                }
+                val recoveredUri = recoveredFile?.let(Uri::fromFile)
+                if (recoveredUri != null && recoveredUri != doc.uri) {
+                    withContext(Dispatchers.Main) {
+                        displayFromUri(recoveredUri, savePassword)
+                    }
+                } else {
+                    showFailedToComputeHashError()
+                }
                 return@launch
             }
 
