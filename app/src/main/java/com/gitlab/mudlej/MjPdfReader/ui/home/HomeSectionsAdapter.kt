@@ -15,6 +15,7 @@ import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeEmptyStateBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeHeroSectionBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomePermissionCardBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeScanProgressBinding
+import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeScanSetupCardBinding
 import kotlinx.coroutines.CoroutineScope
 
 class HomeSectionsAdapter(
@@ -22,6 +23,7 @@ class HomeSectionsAdapter(
     private val scope: CoroutineScope,
     private val functions: HomeItemFunctions,
     private val onGrantAccessClicked: () -> Unit = {},
+    private val onScanSetupClicked: () -> Unit = {},
     private val selectedFilter: () -> ListFilter = { ListFilter.ALL },
     private val onChipSelected: (ListFilter) -> Unit = {},
 ) : ListAdapter<HomeSection, RecyclerView.ViewHolder>(SectionComparator()) {
@@ -36,6 +38,7 @@ class HomeSectionsAdapter(
     override fun getItemViewType(position: Int): Int {
         return when (getItem(position)) {
             is HomeSection.PermissionCard -> TYPE_PERMISSION_CARD
+            is HomeSection.ScanSetupCard -> TYPE_SCAN_SETUP
             is HomeSection.Hero -> TYPE_HERO
             is HomeSection.Chips -> TYPE_CHIPS
             is HomeSection.EmptyState -> TYPE_EMPTY_STATE
@@ -48,6 +51,9 @@ class HomeSectionsAdapter(
         return when (viewType) {
             TYPE_PERMISSION_CARD -> PermissionCardViewHolder(
                 ItemHomePermissionCardBinding.inflate(inflater, parent, false)
+            )
+            TYPE_SCAN_SETUP -> ScanSetupCardViewHolder(
+                ItemHomeScanSetupCardBinding.inflate(inflater, parent, false)
             )
             TYPE_HERO -> HeroSectionViewHolder(
                 ItemHomeHeroSectionBinding.inflate(inflater, parent, false)
@@ -67,6 +73,7 @@ class HomeSectionsAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val section = getItem(position)) {
             is HomeSection.PermissionCard -> (holder as PermissionCardViewHolder).bind()
+            is HomeSection.ScanSetupCard -> (holder as ScanSetupCardViewHolder).bind()
             is HomeSection.Hero -> (holder as HeroSectionViewHolder).bind(section)
             is HomeSection.Chips -> (holder as ChipRowViewHolder).bind()
             is HomeSection.ScanProgressRow -> (holder as ScanProgressViewHolder).bind(section)
@@ -80,6 +87,15 @@ class HomeSectionsAdapter(
 
         fun bind() {
             binding.grantAccessButton.setOnClickListener { onGrantAccessClicked() }
+        }
+    }
+
+    inner class ScanSetupCardViewHolder(
+        private val binding: ItemHomeScanSetupCardBinding,
+    ) : RecyclerView.ViewHolder(binding.root) {
+
+        fun bind() {
+            binding.scanSetupButton.setOnClickListener { onScanSetupClicked() }
         }
     }
 
@@ -170,5 +186,6 @@ class HomeSectionsAdapter(
         private const val TYPE_CHIPS = 2
         private const val TYPE_EMPTY_STATE = 3
         private const val TYPE_SCAN_PROGRESS = 4
+        private const val TYPE_SCAN_SETUP = 5
     }
 }

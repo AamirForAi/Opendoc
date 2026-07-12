@@ -454,6 +454,14 @@
     <string name="storage_permission_not_now">Not Now</string>
     <string name="storage_permission_grant">Allow Access</string>
     <string name="home_permission_card_message">Allow file access to build your library from the PDFs on this device.</string>
+    <string name="home_scan_setup_message">Choose where MJ PDF should look for PDF files to build your library.</string>
+    <string name="home_scan_setup_button">Scan for PDFs</string>
+    <string name="home_scan_choice_title">Scan for PDFs</string>
+    <string name="home_scan_choice_whole_device">Scan whole device (recommended)</string>
+    <string name="home_scan_choice_selected_locations">Scan selected locations</string>
+    <string name="home_scan_locations_title">Scan locations</string>
+    <string name="home_scan_locations_save">Save</string>
+    <string name="home_menu_scan_locations">Scan locations</string>
     <string name="home_search_hint">Search your library</string>
     <string name="home_tab_recent">Recent</string>
     <string name="home_tab_library">Library</string>

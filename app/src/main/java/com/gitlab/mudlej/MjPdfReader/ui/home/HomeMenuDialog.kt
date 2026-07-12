@@ -23,6 +23,8 @@ class HomeMenuDialog(
     private val onSortChanged: () -> Unit,
     private val onFolderModeChanged: () -> Unit,
     private val onShowStats: () -> Unit,
+    private val hasFullAccess: () -> Boolean,
+    private val onScanLocations: () -> Unit,
 ) {
 
     fun show() {
@@ -59,6 +61,12 @@ class HomeMenuDialog(
         binding.statsButton.setOnClickListener {
             dialog.dismiss()
             onShowStats()
+        }
+        binding.scanLocationsButton.visibility =
+            if (hasFullAccess()) View.VISIBLE else View.GONE
+        binding.scanLocationsButton.setOnClickListener {
+            dialog.dismiss()
+            onScanLocations()
         }
         binding.openOnlineButton.setOnClickListener {
             dialog.dismiss()

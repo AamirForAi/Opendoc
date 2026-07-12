@@ -2,19 +2,55 @@
 
 package com.gitlab.mudlej.MjPdfReader.ui.home
 
+import android.content.Context
+import android.os.Build
 import android.os.Environment
+import android.os.storage.StorageManager as AndroidStorageManager
+import androidx.core.content.ContextCompat
 import java.io.File
 
 class StorageManager {
 
-    fun readAllFiles(): FileTreeWalk {
-        return File(ROOT_DIR).walk()
-            .onEnter { file ->                        // before entering this dir check if
-                !file.isHidden                             // it is not hidden
-                && file != ANDROID_DIR                     // it is not Android directory
-                && file != DATA_DIR                        // it is not data directory
-                && !File(file, ".nomedia").exists()   // there is no .nomedia file inside
+    fun readAllFiles(): Sequence<File> = readAllFiles(listOf(File(ROOT_DIR)))
+
+    fun readAllFiles(roots: List<File>): Sequence<File> {
+        return roots.asSequence().flatMap { root ->
+            root.walk().onEnter { file ->
+                !file.isHidden
+                && file != ANDROID_DIR
+                && file != DATA_DIR
+                && !File(file, ".nomedia").exists()
             }
+        }
+    }
+
+    fun volumeRoots(context: Context): List<File> {
+        val roots = LinkedHashMap<String, File>()
+        val primary = Environment.getExternalStorageDirectory()
+        roots[primary.absolutePath] = primary
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            context.getSystemService(AndroidStorageManager::class.java)
+                ?.storageVolumes
+                ?.forEach { volume ->
+                    val directory = volume.directory ?: return@forEach
+                    if (volume.state == Environment.MEDIA_MOUNTED
+                        || volume.state == Environment.MEDIA_MOUNTED_READ_ONLY
+                    ) {
+                        roots.putIfAbsent(directory.absolutePath, directory)
+                    }
+                }
+        } else {
+            ContextCompat.getExternalFilesDirs(context, null)
+                .filterNotNull()
+                .forEach { filesDir ->
+                    val volumeRoot = filesDir.parentFile?.parentFile?.parentFile?.parentFile
+                        ?: return@forEach
+                    roots.putIfAbsent(volumeRoot.absolutePath, volumeRoot)
+                }
+        }
+
+        return roots.values.filter { it.isDirectory && it.canRead() }
     }
 
     companion object {

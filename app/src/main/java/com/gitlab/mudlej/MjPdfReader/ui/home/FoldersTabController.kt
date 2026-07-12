@@ -19,6 +19,8 @@ class FoldersTabController(
     functions: HomeItemFunctions,
     onGrantAccessClicked: () -> Unit,
     private val hasFullAccess: () -> Boolean,
+    private val showScanSetup: () -> Boolean,
+    onScanSetupClicked: () -> Unit,
     private val libraryController: HomeLibraryController,
     private val onNavigationChanged: () -> Unit,
 ) {
@@ -28,6 +30,7 @@ class FoldersTabController(
         scope,
         functions,
         onGrantAccessClicked = onGrantAccessClicked,
+        onScanSetupClicked = onScanSetupClicked,
     )
     private val breadcrumbAdapter = BreadcrumbAdapter { path -> navigateTo(path) }
     private val folderAdapter = FolderAdapter { node -> navigateTo(node.path) }
@@ -130,13 +133,15 @@ class FoldersTabController(
         topSections.submitList(buildList {
             if (!hasFullAccess()) {
                 add(HomeSection.PermissionCard)
+            } else if (showScanSetup()) {
+                add(HomeSection.ScanSetupCard)
             }
             if (lastScanning) {
                 add(HomeSection.ScanProgressRow(lastEntriesCount))
             }
         })
         bottomSections.submitList(buildList {
-            if (folders.isEmpty() && files.isEmpty() && !lastScanning) {
+            if (folders.isEmpty() && files.isEmpty() && !lastScanning && !showScanSetup()) {
                 add(
                     HomeSection.EmptyState(
                         R.string.home_empty_all_title, R.string.home_empty_all_message

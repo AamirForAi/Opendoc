@@ -8,6 +8,8 @@ sealed class HomeSection {
 
     data object PermissionCard : HomeSection()
 
+    data object ScanSetupCard : HomeSection()
+
     data class Hero(val items: List<HomeItem>) : HomeSection()
 
     data object Chips : HomeSection()

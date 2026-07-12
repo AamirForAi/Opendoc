@@ -218,6 +218,16 @@
             app:icon="@drawable/ic_stats" />
 
         <Button
+            android:id="@+id/scanLocationsButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/home_menu_scan_locations"
+            android:visibility="gone"
+            app:icon="@drawable/ic_folder" />
+
+        <Button
             android:id="@+id/openOnlineButton"
             style="@style/Widget.Material3.Button.TonalButton"
             android:layout_width="match_parent"

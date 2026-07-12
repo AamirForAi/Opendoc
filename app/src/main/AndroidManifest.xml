@@ -58,6 +58,9 @@
             android:name=".ui.history.NavigationHistoryActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.home.ScanLocationsActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.history.ReadingHistoryActivity"
             android:exported="false" />
         <activity

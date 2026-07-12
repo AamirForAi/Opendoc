@@ -10,6 +10,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.home.HomeSortOrder
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeTab
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeViewMode
 import com.gitlab.mudlej.MjPdfReader.ui.home.ListFilter
+import com.gitlab.mudlej.MjPdfReader.ui.home.ScanMode
 
 class Preferences(private val prefMan: SharedPreferences) {
 
@@ -90,6 +91,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val goToPageGridColumnsKey = "goToPageGridColumns"
         const val homeSortKey = "homeSort"
         const val historyEnabledKey = "historyEnabled"
+        const val scanModeKey = "scanMode"
+        const val scanLocationsKey = "scanLocations"
 
         // Default values
         const val firstInstallDefault = true
@@ -148,6 +151,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val homeGridSizeDefault = "MEDIUM"
         const val homeSortDefault = "LAST_OPENED"
         const val historyEnabledDefault = true
+        const val scanModeDefault = "NOT_CONFIGURED"
+        val scanLocationsDefault: Set<String> = emptySet()
         const val themeSystem = "system"
         const val themeLight = "light"
         const val themeDark = "dark"
@@ -271,6 +276,11 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getHomeGridSize() = HomeGridSize.valueOf(prefMan.getString(homeGridSizeKey, homeGridSizeDefault) as String)
     fun getHomeSort() = HomeSortOrder.valueOf(prefMan.getString(homeSortKey, homeSortDefault) as String)
     fun getHistoryEnabled() = prefMan.getBoolean(historyEnabledKey, historyEnabledDefault)
+    fun getScanMode() = ScanMode.valueOf(prefMan.getString(scanModeKey, scanModeDefault) as String)
+    fun getScanLocations(): Set<String> {
+        return prefMan.getStringSet(scanLocationsKey, scanLocationsDefault)?.toSet()
+            ?: scanLocationsDefault
+    }
 
     // put values in Shared Preferences
     fun setFirstInstall(value: Boolean) = prefMan.edit().putBoolean(firstInstallKey, value).apply()
@@ -345,5 +355,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setHomeGridSize(value: HomeGridSize) = prefMan.edit().putString(homeGridSizeKey, value.name).apply()
     fun setHomeSort(value: HomeSortOrder) = prefMan.edit().putString(homeSortKey, value.name).apply()
     fun setHistoryEnabled(value: Boolean) = prefMan.edit().putBoolean(historyEnabledKey, value).apply()
+    fun setScanMode(value: ScanMode) = prefMan.edit().putString(scanModeKey, value.name).apply()
+    fun setScanLocations(value: Set<String>) = prefMan.edit().putStringSet(scanLocationsKey, value).apply()
 
 }

@@ -21,6 +21,8 @@ class LibraryTabController(
     private val libraryScanner: LibraryScanner,
     private val hasFullAccess: () -> Boolean,
     onGrantAccessClicked: () -> Unit,
+    private val showScanSetup: () -> Boolean,
+    onScanSetupClicked: () -> Unit,
     onFilterChanged: () -> Unit,
 ) {
 
@@ -31,6 +33,7 @@ class LibraryTabController(
         scope,
         functions,
         onGrantAccessClicked = onGrantAccessClicked,
+        onScanSetupClicked = onScanSetupClicked,
         selectedFilter = ::currentFilter,
         onChipSelected = { filter ->
             pref.setListFilter(filter)
@@ -90,12 +93,14 @@ class LibraryTabController(
         sectionsAdapter.submitList(buildList {
             if (!hasFullAccess()) {
                 add(HomeSection.PermissionCard)
+            } else if (showScanSetup()) {
+                add(HomeSection.ScanSetupCard)
             }
             add(HomeSection.Chips)
             if (scanningAll) {
                 add(HomeSection.ScanProgressRow(scanIndex.entries.size))
             }
-            if (gridItems.isEmpty() && !scanningAll) {
+            if (gridItems.isEmpty() && !scanningAll && !showScanSetup()) {
                 add(emptyStateFor(filter))
             }
         })

@@ -52,6 +52,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     private lateinit var selectionController: HomeSelectionController
     private lateinit var relocateController: RelocateController
     private lateinit var menuDialog: HomeMenuDialog
+    private lateinit var scanSetupDialog: ScanSetupDialog
     private lateinit var recordOptionsDialog: RecordOptionsDialog
     private lateinit var searchResultsAdapter: LibraryAdapter
     private lateinit var recentTab: RecentTabController
@@ -67,6 +68,14 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     }
 
     private var pickIncognito = false
+
+    private val scanLocationsPicker =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                libraryScanner.refresh(force = true)
+                refresh()
+            }
+        }
 
     private val pdfPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         val incognito = pickIncognito
@@ -111,6 +120,18 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         permissionManager = PermissionManager(this) { onStorageAccessChanged() }
         libraryController = HomeLibraryController(pdfRepository, pref)
         libraryScanner = LibraryScanner.getInstance(applicationContext)
+        scanSetupDialog = ScanSetupDialog(
+            this,
+            pref,
+            onWholeDeviceChosen = {
+                pref.setScanMode(ScanMode.WHOLE_DEVICE)
+                libraryScanner.refresh(force = true)
+                refresh()
+            },
+            onPickLocationsChosen = {
+                scanLocationsPicker.launch(Intent(this, ScanLocationsActivity::class.java))
+            },
+        )
 
         recordOptionsDialog = RecordOptionsDialog(
             this,
@@ -142,6 +163,8 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             libraryScanner = libraryScanner,
             hasFullAccess = { permissionManager.hasFullAccess() },
             onGrantAccessClicked = { permissionManager.requestFullAccess() },
+            showScanSetup = ::shouldShowScanSetup,
+            onScanSetupClicked = { scanSetupDialog.show() },
             onFilterChanged = ::refresh,
         )
         foldersTab = FoldersTabController(
@@ -152,6 +175,8 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             this,
             onGrantAccessClicked = { permissionManager.requestFullAccess() },
             hasFullAccess = { permissionManager.hasFullAccess() },
+            showScanSetup = ::shouldShowScanSetup,
+            onScanSetupClicked = { scanSetupDialog.show() },
             libraryController = libraryController,
             onNavigationChanged = ::updateFoldersBackState,
         )
@@ -185,6 +210,8 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             onShowStats = {
                 showLibraryStatsDialog(this, allItems, libraryScanner.index.value.entries)
             },
+            hasFullAccess = { permissionManager.hasFullAccess() },
+            onScanLocations = { scanSetupDialog.show() },
         )
         onBackPressedDispatcher.addCallback(this, foldersBackCallback)
         binding.searchBar.inflateMenu(R.menu.home_search_bar)
@@ -305,6 +332,12 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
                 libraryController.searchAll(allItems, libraryScanner.index.value.entries, query)
             )
         }
+    }
+
+    private fun shouldShowScanSetup(): Boolean {
+        return permissionManager.hasFullAccess()
+            && pref.getScanMode() == ScanMode.NOT_CONFIGURED
+            && libraryScanner.index.value.loaded
     }
 
     private fun onStorageAccessChanged() {
