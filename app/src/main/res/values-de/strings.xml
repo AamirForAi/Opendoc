@@ -209,7 +209,6 @@
     <string name="detect_existing_highlights_summary">Text, der genau mit einer Hervorhebung übereinstimmt, zeigt deren Aktionen anstatt eine neue zu erstellen.</string>
     <string name="detect_existing_highlights_title">Bestehende Hervorhebungen erkennen</string>
     <string name="discard">Verwerfen</string>
-    <string name="double_tap_to_exit_summary">Erfordert zweimaliges Drücken von Zurück, um den Reader zu schließen.</string>
     <string name="dracula">Dracula</string>
     <string name="drag_to_reorder">Zum Neuordnen ziehen</string>
     <string name="expand_all">Alle ausklappen</string>
@@ -219,14 +218,6 @@
     <string name="form_field_update_failed">Formularfeld konnte nicht aktualisiert werden</string>
     <string name="fullscreen_buttons">Vollbild-Aktionen</string>
     <string name="fullscreen_buttons_summary">Wählen Sie, welche Aktionen im Vollbildmodus erscheinen.</string>
-    <string name="fullscreen_info_show_page_number">Seitenzahl im Vollbild anzeigen</string>
-    <string name="fullscreen_info_show_page_number_summary">Aktuelle Seitenzahl in der Vollbild-Infokarte anzeigen.</string>
-    <string name="fullscreen_info_show_pdf_name">PDF-Namen im Vollbild anzeigen</string>
-    <string name="fullscreen_info_show_pdf_name_summary">PDF-Namen in der Vollbild-Infokarte anzeigen.</string>
-    <string name="fullscreen_info_show_reading_percentage">Leseprozentsatz im Vollbild anzeigen</string>
-    <string name="fullscreen_info_show_reading_percentage_summary">Lese Fortschritt als Prozentsatz in der Vollbild-Infokarte anzeigen.</string>
-    <string name="fullscreen_info_show_time">Uhrzeit im Vollbild anzeigen</string>
-    <string name="fullscreen_info_show_time_summary">Aktuelle Uhrzeit in der Vollbild-Infokarte anzeigen.</string>
     <string name="fullscreen_page_info">Seite %1$d / %2$d · %3$d%%</string>
     <string name="fullscreen_page_number_info">Seite %1$d / %2$d</string>
     <string name="fullscreen_percentage_info">%1$d%%</string>
@@ -293,7 +284,6 @@
     <string name="show_margins">Ränder anzeigen</string>
     <string name="show_scroll_handle_page_count_summary">Scroll-Handle als aktuelle Seite/Gesamtseiten statt nur aktuelle Seite anzeigen.</string>
     <string name="show_scroll_handle_page_count_title">Seitenanzahl im Scroll-Handle anzeigen</string>
-    <string name="signature_cancel_placement">Signaturplatzierung abbrechen</string>
     <string name="signature_clear">Löschen</string>
     <string name="signature_color_black">Schwarze Tinte</string>
     <string name="signature_color_blue">Blaue Tinte</string>

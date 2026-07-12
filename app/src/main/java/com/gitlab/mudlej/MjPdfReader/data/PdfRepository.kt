@@ -6,6 +6,7 @@ import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfAnnotationSaveDestination
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.data.entity.ScannedPdfEntry
+import com.gitlab.mudlej.MjPdfReader.data.entity.TextModeReflowOverride
 import com.gitlab.mudlej.MjPdfReader.data.entity.UserBookmark
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -317,6 +318,18 @@ class PdfRepository(private val database: AppDatabase) {
     suspend fun setDetectedReadingDirection(fileHash: String, direction: String) {
         withContext(Dispatchers.IO) {
             database.pdfRecordDao().updateDetectedReadingDirection(fileHash, direction)
+        }
+    }
+
+    suspend fun findTextModeReflow(fileHash: String): TextModeReflowOverride? {
+        return withContext(Dispatchers.IO) {
+            database.pdfRecordDao().findTextModeReflow(fileHash)
+        }
+    }
+
+    suspend fun setTextModeReflow(fileHash: String, joinParagraphs: Boolean?, detectHeadings: Boolean?, codeBlocks: Boolean?) {
+        withContext(Dispatchers.IO) {
+            database.pdfRecordDao().updateTextModeReflow(fileHash, joinParagraphs, detectHeadings, codeBlocks)
         }
     }
 

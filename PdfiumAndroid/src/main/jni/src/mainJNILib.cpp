@@ -1224,11 +1224,15 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
 
     double endMs = monotonicMillis();
     //LOGD("renderPageBitmap: %dx%d in %.1f ms (page %.1f, forms %.1f, convert %.1f)",
-         canvasHorSize, canvasVerSize,
-         endMs - startMs,
-         formsStartMs - pageStartMs,
-         convertStartMs - formsStartMs,
-         endMs - convertStartMs);
+    //     canvasHorSize, canvasVerSize,
+    //     endMs - startMs,
+    //     formsStartMs - pageStartMs,
+    //     convertStartMs - formsStartMs,
+    //     endMs - convertStartMs);
+    (void) pageStartMs;
+    (void) formsStartMs;
+    (void) convertStartMs;
+    (void) endMs;
 }
 
 int mapToDisplay(int dpi, int x) {
@@ -2210,6 +2214,68 @@ JNI_FUNC(jfloatArray, PdfiumCore, nativeTextGetRects)(JNI_ARGS, jlong textPagePt
     jfloatArray result = env->NewFloatArray(values.size());
     if (result != NULL && !values.empty()) {
         env->SetFloatArrayRegion(result, 0, values.size(), values.data());
+    }
+    return result;
+}
+
+JNI_FUNC(jdoubleArray, PdfiumCore, nativeTextCharMetrics)(JNI_ARGS, jlong textPagePtr,
+    jint start,
+    jint count
+) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL || count <= 0) {
+        return env->NewDoubleArray(0);
+    }
+
+    int charCount = FPDFText_CountChars(textPage);
+    if (charCount <= 0) {
+        return env->NewDoubleArray(0);
+    }
+    if (start < 0) {
+        start = 0;
+    }
+    if (start >= charCount) {
+        return env->NewDoubleArray(0);
+    }
+
+    int available = charCount - start;
+    int safeCount = count < available ? count : available;
+    if (safeCount <= 0) {
+        return env->NewDoubleArray(0);
+    }
+
+    std::vector<jdouble> values;
+    values.reserve(static_cast<size_t>(safeCount) * 9);
+    for (int i = start; i < start + safeCount; i++) {
+        double left = 0, bottom = 0, right = 0, top = 0;
+        FS_RECTF looseRect;
+        if (FPDFText_GetLooseCharBox(textPage, i, &looseRect)) {
+            left = looseRect.left;
+            bottom = looseRect.bottom;
+            right = looseRect.right;
+            top = looseRect.top;
+        } else if (!FPDFText_GetCharBox(textPage, i, &left, &right, &bottom, &top)) {
+            left = bottom = right = top = 0;
+        }
+        int fontFlags = -1;
+        char fontName[128];
+        if (FPDFText_GetFontInfo(textPage, i, fontName, sizeof(fontName), &fontFlags) == 0) {
+            fontFlags = -1;
+        }
+        values.push_back(left);
+        values.push_back(bottom);
+        values.push_back(right);
+        values.push_back(top);
+        values.push_back(FPDFText_GetFontSize(textPage, i));
+        values.push_back(static_cast<jdouble>(FPDFText_GetFontWeight(textPage, i)));
+        values.push_back(static_cast<jdouble>(FPDFText_GetUnicode(textPage, i)));
+        values.push_back(static_cast<jdouble>(FPDFText_GetCharAngle(textPage, i)));
+        values.push_back(static_cast<jdouble>(fontFlags));
+    }
+
+    jdoubleArray result = env->NewDoubleArray(values.size());
+    if (result != NULL && !values.empty()) {
+        env->SetDoubleArrayRegion(result, 0, values.size(), values.data());
     }
     return result;
 }

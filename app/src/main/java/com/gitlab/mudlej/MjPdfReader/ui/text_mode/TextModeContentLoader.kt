@@ -4,6 +4,7 @@ package com.gitlab.mudlej.MjPdfReader.ui.text_mode
 
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.doOnNextLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -22,6 +23,9 @@ import java.util.Collections
 class TextModeContentLoader(
     private val activity: AppCompatActivity,
     private val recyclerView: RecyclerView,
+    private val joinParagraphs: () -> Boolean,
+    private val detectHeadings: () -> Boolean,
+    private val detectCodeBlocks: () -> Boolean,
 ) {
 
     var pageCount = 0
@@ -33,7 +37,6 @@ class TextModeContentLoader(
     private lateinit var adapter: TextModePageAdapter
     private lateinit var layoutManager: LinearLayoutManager
     private lateinit var currentPageIndex: () -> Int
-    private lateinit var isSeekSettling: () -> Boolean
 
     private var pendingExtractor: PdfExtractor? = null
 
@@ -42,7 +45,9 @@ class TextModeContentLoader(
     private val extractionMutex = Mutex()
     private val extractionJobs = Collections.synchronizedSet(mutableSetOf<Job>())
     private val loadingPages = mutableSetOf<Int>()
-    private val textCache = LinkedHashMap<Int, String>(CACHE_PAGE_LIMIT, 0.75f, true)
+    private val loadingJobs = HashMap<Int, Job>()
+    private val textCache = LinkedHashMap<Int, CharSequence>(CACHE_PAGE_LIMIT, 0.75f, true)
+    private var cacheGeneration = 0
     private val loadVisiblePagesRunnable = Runnable {
         if (::layoutManager.isInitialized) {
             loadVisiblePages()
@@ -88,12 +93,10 @@ class TextModeContentLoader(
         adapter: TextModePageAdapter,
         layoutManager: LinearLayoutManager,
         currentPageIndex: () -> Int,
-        isSeekSettling: () -> Boolean,
     ) {
         this.adapter = adapter
         this.layoutManager = layoutManager
         this.currentPageIndex = currentPageIndex
-        this.isSeekSettling = isSeekSettling
     }
 
     fun loadAround(pageIndex: Int) {
@@ -103,8 +106,19 @@ class TextModeContentLoader(
     }
 
     fun loadTargetWindow(pageIndex: Int) {
-        for (index in (pageIndex - PREFETCH_DISTANCE)..(pageIndex + JUMP_LOAD_AHEAD)) {
+        val window = (pageIndex - PREFETCH_DISTANCE)..(pageIndex + JUMP_LOAD_AHEAD)
+        cancelLoadsOutside(window)
+        for (index in window) {
             loadPage(index)
+        }
+    }
+
+    private fun cancelLoadsOutside(keep: IntRange) {
+        if (loadingJobs.isEmpty()) return
+        for ((page, job) in loadingJobs.toList()) {
+            if (page !in keep) {
+                job.cancel()
+            }
         }
     }
 
@@ -122,8 +136,6 @@ class TextModeContentLoader(
     }
 
     fun scheduleLoadVisiblePages() {
-        if (isSeekSettling()) return
-
         recyclerView.removeCallbacks(loadVisiblePagesRunnable)
         recyclerView.post(loadVisiblePagesRunnable)
     }
@@ -154,7 +166,7 @@ class TextModeContentLoader(
 
         textCache[pageIndex]?.let { cachedText ->
             val currentState = adapter.pageState(pageIndex)
-            if (currentState !is TextModePageState.Ready || currentState.text != cachedText) {
+            if (currentState !is TextModePageState.Ready || currentState.text !== cachedText) {
                 updatePageState(TextModePageState.Ready(pageIndex, cachedText))
                 scheduleLoadVisiblePages()
             }
@@ -172,6 +184,10 @@ class TextModeContentLoader(
 
         loadingPages.add(pageIndex)
         updatePageState(TextModePageState.Loading(pageIndex))
+        val useJoinParagraphs = joinParagraphs()
+        val useDetectHeadings = detectHeadings()
+        val useDetectCodeBlocks = detectCodeBlocks()
+        val generation = cacheGeneration
         val job = activity.lifecycleScope.launch(Dispatchers.IO) {
             val state = extractionMutex.withLock {
                 val relevant = withContext(Dispatchers.Main) { isPageStillWanted(pageIndex) }
@@ -179,8 +195,7 @@ class TextModeContentLoader(
                     null
                 } else {
                     try {
-                        val rawText = pdfExtractor.getPageTextOrThrow(pageIndex + 1)
-                        val text = TextModeTextFormatter.format(rawText)
+                        val text = extractPageText(pageIndex, useJoinParagraphs, useDetectHeadings, useDetectCodeBlocks)
                         if (text.isBlank()) {
                             TextModePageState.Empty(pageIndex)
                         } else {
@@ -200,6 +215,15 @@ class TextModeContentLoader(
                     }
                     return@withContext
                 }
+                if (generation != cacheGeneration) {
+                    if (adapter.pageState(pageIndex) is TextModePageState.Loading) {
+                        updatePageState(TextModePageState.NotLoaded(pageIndex))
+                    }
+                    if (isPageStillWanted(pageIndex)) {
+                        loadPage(pageIndex)
+                    }
+                    return@withContext
+                }
                 if (state is TextModePageState.Ready) {
                     cacheText(state.pageIndex, state.text)
                 }
@@ -208,7 +232,64 @@ class TextModeContentLoader(
             }
         }
         extractionJobs.add(job)
-        job.invokeOnCompletion { extractionJobs.remove(job) }
+        loadingJobs[pageIndex] = job
+        job.invokeOnCompletion { cause ->
+            extractionJobs.remove(job)
+            recyclerView.post {
+                if (loadingJobs[pageIndex] === job) {
+                    loadingJobs.remove(pageIndex)
+                }
+                if (cause != null && loadingPages.remove(pageIndex)) {
+                    if (adapter.pageState(pageIndex) is TextModePageState.Loading) {
+                        updatePageState(TextModePageState.NotLoaded(pageIndex))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun extractPageText(
+        pageIndex: Int,
+        joinParagraphs: Boolean,
+        detectHeadings: Boolean,
+        detectCodeBlocks: Boolean,
+    ): CharSequence {
+        if (!joinParagraphs && !detectHeadings && !detectCodeBlocks) {
+            return TextModeTextFormatter.format(pdfExtractor.getPageTextOrThrow(pageIndex + 1))
+        }
+        val metrics = pdfExtractor.getPageCharMetrics(pageIndex + 1)
+        val structuredText = metrics?.let {
+            runCatching { StructuredTextFormatter.format(it, joinParagraphs, detectHeadings, detectCodeBlocks) }.getOrNull()
+        }
+        if (structuredText != null) return structuredText
+        val rawText = pdfExtractor.getPageTextOrThrow(pageIndex + 1)
+        return if (joinParagraphs) {
+            TextModeTextFormatter.formatJoined(rawText)
+        } else {
+            TextModeTextFormatter.format(rawText)
+        }
+    }
+
+    fun invalidateAndReload() {
+        if (recyclerView.isComputingLayout) {
+            recyclerView.post { invalidateAndReload() }
+            return
+        }
+        cacheGeneration++
+        textCache.clear()
+        if (!::adapter.isInitialized || !::layoutManager.isInitialized) return
+
+        val firstVisiblePage = layoutManager.findFirstVisibleItemPosition()
+        val lastVisiblePage = layoutManager.findLastVisibleItemPosition()
+        adapter.submitPageCount(pageCount)
+        if (firstVisiblePage == RecyclerView.NO_POSITION || lastVisiblePage == RecyclerView.NO_POSITION) {
+            loadTargetWindow(currentPageIndex())
+        } else {
+            for (index in (firstVisiblePage - PREFETCH_DISTANCE)..(lastVisiblePage + PREFETCH_DISTANCE)) {
+                loadPage(index)
+            }
+        }
+        recyclerView.doOnNextLayout { loadVisiblePages() }
     }
 
     private fun isPageStillWanted(pageIndex: Int): Boolean {
@@ -235,7 +316,7 @@ class TextModeContentLoader(
         adapter.updatePageState(state)
     }
 
-    private fun cacheText(pageIndex: Int, text: String) {
+    private fun cacheText(pageIndex: Int, text: CharSequence) {
         textCache[pageIndex] = text
         if (textCache.size <= CACHE_PAGE_LIMIT) return
 

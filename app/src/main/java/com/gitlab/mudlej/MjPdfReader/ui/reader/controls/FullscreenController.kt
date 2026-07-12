@@ -5,6 +5,8 @@ package com.gitlab.mudlej.MjPdfReader.ui.reader.controls
 import android.content.pm.ActivityInfo
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
@@ -84,6 +86,7 @@ class FullscreenController(
         if (pref.getSecondBarEnabled()) {
             updateShortcutBarVisibility()
         }
+        binding.pdfView.scrollHandle?.setTopReachLimit(0)
     }
 
     private fun hideSystemUi() {
@@ -91,6 +94,12 @@ class FullscreenController(
         binding.appBarBottomShadow.visibility = View.GONE
         binding.secondBarScrollView.visibility = View.GONE
         ColorUtil.enterFullscreen(activity.window)
+        binding.pdfView.scrollHandle?.setTopReachLimit(statusBarInset())
+    }
+
+    private fun statusBarInset(): Int {
+        val insets = ViewCompat.getRootWindowInsets(binding.root) ?: return 0
+        return insets.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.statusBars()).top
     }
 
     private fun unlockScreenOrientation() {

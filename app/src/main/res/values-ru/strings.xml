@@ -210,7 +210,6 @@
     <string name="detect_existing_highlights_summary">Выделение текста, точно совпадающего с подсветкой, показывает её действия вместо создания новой.</string>
     <string name="detect_existing_highlights_title">Обнаруживать существующие подсветки</string>
     <string name="discard">Отменить</string>
-    <string name="double_tap_to_exit_summary">Требуется дважды нажать Назад, чтобы закрыть читалку.</string>
     <string name="dracula">Дракула</string>
     <string name="drag_to_reorder">Перетащите для изменения порядка</string>
     <string name="expand_all">Развернуть всё</string>
@@ -220,14 +219,6 @@
     <string name="form_field_update_failed">Не удалось обновить поле формы</string>
     <string name="fullscreen_buttons">Действия в полноэкранном режиме</string>
     <string name="fullscreen_buttons_summary">Выберите, какие действия отображаются в полноэкранном режиме.</string>
-    <string name="fullscreen_info_show_page_number">Показывать номер страницы в полноэкранном режиме</string>
-    <string name="fullscreen_info_show_page_number_summary">Отображать текущий номер страницы в карточке информации полноэкранного режима.</string>
-    <string name="fullscreen_info_show_pdf_name">Показывать имя PDF в полноэкранном режиме</string>
-    <string name="fullscreen_info_show_pdf_name_summary">Отображать имя PDF в карточке информации полноэкранного режима.</string>
-    <string name="fullscreen_info_show_reading_percentage">Показывать процент чтения в полноэкранном режиме</string>
-    <string name="fullscreen_info_show_reading_percentage_summary">Отображать прогресс чтения в процентах в карточке информации полноэкранного режима.</string>
-    <string name="fullscreen_info_show_time">Показывать время в полноэкранном режиме</string>
-    <string name="fullscreen_info_show_time_summary">Отображать текущее время в карточке информации полноэкранного режима.</string>
     <string name="fullscreen_page_info">Страница %1$d / %2$d · %3$d%%</string>
     <string name="fullscreen_page_number_info">Страница %1$d / %2$d</string>
     <string name="fullscreen_percentage_info">%1$d%%</string>
@@ -294,7 +285,6 @@
     <string name="show_margins">Показать поля</string>
     <string name="show_scroll_handle_page_count_summary">Показывать ползунок прокрутки как текущая страница/всего страниц вместо только текущей страницы.</string>
     <string name="show_scroll_handle_page_count_title">Показывать количество страниц в ползунке прокрутки</string>
-    <string name="signature_cancel_placement">Отменить размещение подписи</string>
     <string name="signature_clear">Очистить</string>
     <string name="signature_color_black">Чёрные чернила</string>
     <string name="signature_color_blue">Синие чернила</string>

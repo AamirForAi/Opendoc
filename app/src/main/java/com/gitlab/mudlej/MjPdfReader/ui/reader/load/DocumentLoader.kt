@@ -141,7 +141,7 @@ class DocumentLoader(
                 return@launch
             }
 
-            val pageNumber = if (doc.pageNumber == 0 && hash != null) {
+            val pageNumber = if (doc.pageNumber == 0 && hash != null && !pref.getAlwaysOpenAtFirstPage()) {
                 pdfRepository.findPageNumber(hash)
             } else {
                 doc.pageNumber

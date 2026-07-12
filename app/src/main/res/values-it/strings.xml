@@ -196,7 +196,6 @@
     <string name="detect_existing_highlights_summary">Selezionare testo che corrisponde esattamente a un\'evidenziazione mostra le sue azioni invece di crearne una nuova.</string>
     <string name="detect_existing_highlights_title">Rileva evidenziazioni esistenti</string>
     <string name="discard">Scarta</string>
-    <string name="double_tap_to_exit_summary">Richiede di premere Indietro due volte per chiudere il lettore.</string>
     <string name="dracula">Dracula</string>
     <string name="drag_to_reorder">Trascina per riordinare</string>
     <string name="expand_all">Espandi tutto</string>
@@ -206,14 +205,6 @@
     <string name="form_field_update_failed">Impossibile aggiornare il campo modulo</string>
     <string name="fullscreen_buttons">Azioni a schermo intero</string>
     <string name="fullscreen_buttons_summary">Scegli quali azioni appaiono in modalità a schermo intero.</string>
-    <string name="fullscreen_info_show_page_number">Mostra numero di pagina a schermo intero</string>
-    <string name="fullscreen_info_show_page_number_summary">Mostra il numero di pagina corrente nella scheda informazioni a schermo intero.</string>
-    <string name="fullscreen_info_show_pdf_name">Mostra nome PDF a schermo intero</string>
-    <string name="fullscreen_info_show_pdf_name_summary">Mostra il nome del PDF nella scheda informazioni a schermo intero.</string>
-    <string name="fullscreen_info_show_reading_percentage">Mostra percentuale di lettura a schermo intero</string>
-    <string name="fullscreen_info_show_reading_percentage_summary">Mostra il progresso di lettura come percentuale nella scheda informazioni a schermo intero.</string>
-    <string name="fullscreen_info_show_time">Mostra ora a schermo intero</string>
-    <string name="fullscreen_info_show_time_summary">Mostra l\'ora corrente nella scheda informazioni a schermo intero.</string>
     <string name="fullscreen_page_info">Pagina %1$d / %2$d · %3$d%%</string>
     <string name="fullscreen_page_number_info">Pagina %1$d / %2$d</string>
     <string name="fullscreen_percentage_info">%1$d%%</string>
@@ -280,7 +271,6 @@
     <string name="show_margins">Mostra margini</string>
     <string name="show_scroll_handle_page_count_summary">Mostra il cursore di scorrimento come pagina corrente/totale pagine invece che solo pagina corrente.</string>
     <string name="show_scroll_handle_page_count_title">Mostra conteggio pagine nel cursore di scorrimento</string>
-    <string name="signature_cancel_placement">Annulla posizionamento firma</string>
     <string name="signature_clear">Pulisci</string>
     <string name="signature_color_black">Inchiostro nero</string>
     <string name="signature_color_blue">Inchiostro blu</string>

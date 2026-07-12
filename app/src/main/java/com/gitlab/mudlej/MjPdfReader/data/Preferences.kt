@@ -74,6 +74,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val fullScreenInfoShowPageNumberKey = "fullScreenInfoShowPageNumber"
         const val fullScreenInfoShowReadingPercentageKey = "fullScreenInfoShowReadingPercentage"
         const val doubleTapToExitEnabledKey = "doubleTapToExitEnabled"
+        const val alwaysOpenAtFirstPageKey = "alwaysOpenAtFirstPage"
         const val autoFullScreenKey = "autoFullScreenSwitch"
         const val alwaysHorizontalKey = "alwaysHorizontal"
         const val scrollSpeedKey = "scrollSpeed"
@@ -84,6 +85,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val homeFolderFlatKey = "homeFolderFlat"
         const val homeViewModeKey = "homeViewMode"
         const val homeGridSizeKey = "homeGridSize"
+        const val goToPageGridColumnsKey = "goToPageGridColumns"
         const val homeSortKey = "homeSort"
 
         // Default values
@@ -112,6 +114,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val maxZoomDefault = 10.0f
         const val partSizeDefault = 512f
         const val thumbnailRatioDefault = 0.45f
+        const val goToPageGridColumnsDefault = 3
         const val inlineTextSelectionDefault = true
         const val detectExistingHighlightsDefault = true
         const val searchIgnoreAccentsDefault = false
@@ -126,7 +129,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val fullScreenInfoShowPdfNameDefault = false
         const val fullScreenInfoShowPageNumberDefault = true
         const val fullScreenInfoShowReadingPercentageDefault = true
-        const val doubleTapToExitEnabledDefault = true
+        const val doubleTapToExitEnabledDefault = false
+        const val alwaysOpenAtFirstPageDefault = false
         const val autoFullScreenDefault = false
         const val alwaysHorizontalDefault = false
         const val scrollSpeedDefault = 3
@@ -184,6 +188,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getHideDelay() = prefMan.getInt(hideDelayKey, hideDelayDefault)
     fun getPartSize() = prefMan.getFloat(partSizeKey, partSizeDefault)
     fun getThumbnailRation() = prefMan.getFloat(thumbnailRatioKey, thumbnailRatioDefault)
+
+    fun getGoToPageGridColumns() = prefMan.getInt(goToPageGridColumnsKey, goToPageGridColumnsDefault)
     fun getMaxZoom() = prefMan.getFloat(maxZoomKey, maxZoomDefault)
     fun getInlineTextSelection() = prefMan.getBoolean(inlineTextSelectionKey, inlineTextSelectionDefault)
     fun getDetectExistingHighlights() = prefMan.getBoolean(detectExistingHighlightsKey, detectExistingHighlightsDefault)
@@ -212,6 +218,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getFullScreenInfoShowPageNumber() = prefMan.getBoolean(fullScreenInfoShowPageNumberKey, fullScreenInfoShowPageNumberDefault)
     fun getFullScreenInfoShowReadingPercentage() = prefMan.getBoolean(fullScreenInfoShowReadingPercentageKey, fullScreenInfoShowReadingPercentageDefault)
     fun getDoubleTapToExitEnabled() = prefMan.getBoolean(doubleTapToExitEnabledKey, doubleTapToExitEnabledDefault)
+
+    fun getAlwaysOpenAtFirstPage() = prefMan.getBoolean(alwaysOpenAtFirstPageKey, alwaysOpenAtFirstPageDefault)
     fun getAutoFullScreen() = prefMan.getBoolean(autoFullScreenKey, autoFullScreenDefault)
     fun getAlwaysHorizontal() = prefMan.getBoolean(alwaysHorizontalKey, alwaysHorizontalDefault)
     fun getEnableReloadButton() = prefMan.getBoolean(enableReloadButtonKey, enableReloadButtonDefault)
@@ -282,6 +290,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setHideDelay(value: Int) = prefMan.edit().putInt(hideDelayKey, value).apply()
     fun setPartSize(value: Float) = prefMan.edit().putFloat(partSizeKey, value).apply()
     fun setThumbnailRatio(value: Float) = prefMan.edit().putFloat(thumbnailRatioKey, value).apply()
+
+    fun setGoToPageGridColumns(value: Int) = prefMan.edit().putInt(goToPageGridColumnsKey, value).apply()
     fun setMaxZoom(value: Float) = prefMan.edit().putFloat(maxZoomKey, value).apply()
     fun setInlineTextSelection(value: Boolean) = prefMan.edit().putBoolean(inlineTextSelectionKey, value).apply()
     fun setDetectExistingHighlights(value: Boolean) = prefMan.edit().putBoolean(detectExistingHighlightsKey, value).apply()

@@ -71,10 +71,14 @@ class AnimationManager {
     }
 
     public void startZoomAnimation(float centerX, float centerY, float zoomFrom, float zoomTo) {
+        startZoomAnimation(centerX, centerY, zoomFrom, zoomTo, null);
+    }
+
+    public void startZoomAnimation(float centerX, float centerY, float zoomFrom, float zoomTo, PointF endOffsets) {
         stopAll();
         animation = ValueAnimator.ofFloat(zoomFrom, zoomTo);
         animation.setInterpolator(new DecelerateInterpolator());
-        ZoomAnimation zoomAnim = new ZoomAnimation(centerX, centerY);
+        ZoomAnimation zoomAnim = new ZoomAnimation(centerX, centerY, zoomTo, endOffsets);
         animation.addUpdateListener(zoomAnim);
         animation.addListener(zoomAnim);
         animation.setDuration(400);
@@ -177,10 +181,14 @@ class AnimationManager {
 
         private final float centerX;
         private final float centerY;
+        private final float targetZoom;
+        private final PointF endOffsets;
 
-        public ZoomAnimation(float centerX, float centerY) {
+        public ZoomAnimation(float centerX, float centerY, float targetZoom, PointF endOffsets) {
             this.centerX = centerX;
             this.centerY = centerY;
+            this.targetZoom = targetZoom;
+            this.endOffsets = endOffsets;
         }
 
         @Override
@@ -197,8 +205,14 @@ class AnimationManager {
 
         @Override
         public void onAnimationEnd(Animator animation) {
-            pdfView.loadPages();
-            pdfView.performPageSnap();
+            if (endOffsets != null) {
+                pdfView.zoomTo(targetZoom);
+                pdfView.moveTo(endOffsets.x, endOffsets.y);
+                pdfView.loadPages();
+            } else {
+                pdfView.loadPages();
+                pdfView.performPageSnap();
+            }
             hideHandle();
         }
 

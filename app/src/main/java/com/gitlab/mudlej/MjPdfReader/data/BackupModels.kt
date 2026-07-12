@@ -34,6 +34,9 @@ data class BackupPdfRecord(
     val detectedReadingDirection: String? = null,
     val documentTitle: String? = null,
     val uri: String? = null,
+    val textModeJoinParagraphs: Boolean? = null,
+    val textModeDetectHeadings: Boolean? = null,
+    val textModeCodeBlocks: Boolean? = null,
 )
 
 data class BackupUserBookmark(

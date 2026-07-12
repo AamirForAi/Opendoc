@@ -112,6 +112,8 @@ public class PdfiumCore {
 
     private native float[] nativeTextGetRects(long textPagePtr, int start, int count);
 
+    private native double[] nativeTextCharMetrics(long textPagePtr, int start, int count);
+
 
     private native boolean nativeCreateAnnotInPage(long pagePtr, int l, int r, int t, int b, int dpi, boolean padding);
 
@@ -373,6 +375,17 @@ public class PdfiumCore {
             }
             float[] rects = nativeTextGetRects(textPagePtr, start, count);
             return rects == null ? new float[0] : rects;
+        }
+    }
+
+    public double[] textCharMetrics(PdfDocument doc, int pageIndex, int start, int count) {
+        synchronized (lock) {
+            Long textPagePtr = doc.mNativeTextPagesPtr.get(pageIndex);
+            if (textPagePtr == null || textPagePtr == 0L || count <= 0) {
+                return new double[0];
+            }
+            double[] values = nativeTextCharMetrics(textPagePtr, start, count);
+            return values == null ? new double[0] : values;
         }
     }
 

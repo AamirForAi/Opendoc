@@ -207,7 +207,6 @@
     <string name="detect_existing_highlights_summary">Seleccionar texto que coincida exactamente con un resaltado muestra sus acciones en lugar de crear uno nuevo.</string>
     <string name="detect_existing_highlights_title">Detectar resaltados existentes</string>
     <string name="discard">Descartar</string>
-    <string name="double_tap_to_exit_summary">Requiere presionar Atrás dos veces para cerrar el lector.</string>
     <string name="dracula">Drácula</string>
     <string name="drag_to_reorder">Arrastrar para reordenar</string>
     <string name="expand_all">Expandir todo</string>
@@ -217,14 +216,6 @@
     <string name="form_field_update_failed">No se pudo actualizar el campo de formulario</string>
     <string name="fullscreen_buttons">Acciones de pantalla completa</string>
     <string name="fullscreen_buttons_summary">Elija qué acciones aparecen en modo de pantalla completa.</string>
-    <string name="fullscreen_info_show_page_number">Mostrar número de página en pantalla completa</string>
-    <string name="fullscreen_info_show_page_number_summary">Muestra el número de página actual en la tarjeta de información de pantalla completa.</string>
-    <string name="fullscreen_info_show_pdf_name">Mostrar nombre del PDF en pantalla completa</string>
-    <string name="fullscreen_info_show_pdf_name_summary">Muestra el nombre del PDF en la tarjeta de información de pantalla completa.</string>
-    <string name="fullscreen_info_show_reading_percentage">Mostrar porcentaje de lectura en pantalla completa</string>
-    <string name="fullscreen_info_show_reading_percentage_summary">Muestra el progreso de lectura como porcentaje en la tarjeta de información de pantalla completa.</string>
-    <string name="fullscreen_info_show_time">Mostrar hora en pantalla completa</string>
-    <string name="fullscreen_info_show_time_summary">Muestra la hora actual en la tarjeta de información de pantalla completa.</string>
     <string name="fullscreen_page_info">Página %1$d / %2$d · %3$d%%</string>
     <string name="fullscreen_page_number_info">Página %1$d / %2$d</string>
     <string name="fullscreen_percentage_info">%1$d%%</string>
@@ -291,7 +282,6 @@
     <string name="show_margins">Mostrar márgenes</string>
     <string name="show_scroll_handle_page_count_summary">Mostrar el controlador de desplazamiento como página actual/total de páginas en lugar de solo página actual.</string>
     <string name="show_scroll_handle_page_count_title">Mostrar conteo de páginas en el controlador de desplazamiento</string>
-    <string name="signature_cancel_placement">Cancelar colocación de firma</string>
     <string name="signature_clear">Borrar</string>
     <string name="signature_color_black">Tinta negra</string>
     <string name="signature_color_blue">Tinta azul</string>

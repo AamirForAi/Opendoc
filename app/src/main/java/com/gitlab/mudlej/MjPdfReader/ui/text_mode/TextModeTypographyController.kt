@@ -9,10 +9,21 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.slider.Slider
 
+class ReflowControls(
+    val getJoinParagraphs: () -> Boolean,
+    val getDetectHeadings: () -> Boolean,
+    val getCodeBlocks: () -> Boolean,
+    val onJoinParagraphsChanged: (Boolean) -> Unit,
+    val onDetectHeadingsChanged: (Boolean) -> Unit,
+    val onCodeBlocksChanged: (Boolean) -> Unit,
+    val onReset: () -> Unit,
+)
+
 class TextModeTypographyController(
     private val activity: AppCompatActivity,
     private val getSettings: () -> TextModeSettings,
     private val onSettingsChanged: (TextModeSettings) -> Unit,
+    private val reflowControls: ReflowControls,
 ) {
 
     fun showSheet() {
@@ -45,6 +56,21 @@ class TextModeTypographyController(
                 onSettingsChanged(getSettings().copy(readableLineLength = isChecked))
             }
         }
+        sheetBinding.joinParagraphsSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (reflowControls.getJoinParagraphs() != isChecked) {
+                reflowControls.onJoinParagraphsChanged(isChecked)
+            }
+        }
+        sheetBinding.detectHeadingsSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (reflowControls.getDetectHeadings() != isChecked) {
+                reflowControls.onDetectHeadingsChanged(isChecked)
+            }
+        }
+        sheetBinding.codeBlocksSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (reflowControls.getCodeBlocks() != isChecked) {
+                reflowControls.onCodeBlocksChanged(isChecked)
+            }
+        }
         configureThemeButton(sheetBinding.systemThemeButton, sheetBinding, ReaderTheme.SYSTEM)
         configureThemeButton(sheetBinding.lightThemeButton, sheetBinding, ReaderTheme.LIGHT)
         configureThemeButton(sheetBinding.sepiaThemeButton, sheetBinding, ReaderTheme.SEPIA)
@@ -56,6 +82,7 @@ class TextModeTypographyController(
         configureFontButton(sheetBinding.monoFontButton, sheetBinding, ReaderFontFamily.MONO)
         sheetBinding.resetSettingsButton.setOnClickListener {
             onSettingsChanged(TextModeSettings())
+            reflowControls.onReset()
             syncSheet(sheetBinding)
         }
         dialog.show()
@@ -76,6 +103,9 @@ class TextModeTypographyController(
             sheetBinding.marginSlider.valueTo,
         )
         sheetBinding.readableLineLengthSwitch.isChecked = settings.readableLineLength
+        sheetBinding.joinParagraphsSwitch.isChecked = reflowControls.getJoinParagraphs()
+        sheetBinding.detectHeadingsSwitch.isChecked = reflowControls.getDetectHeadings()
+        sheetBinding.codeBlocksSwitch.isChecked = reflowControls.getCodeBlocks()
 
         val checkedThemeButtonId = themeButtonId(settings.theme)
         listOf(

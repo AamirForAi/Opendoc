@@ -16,6 +16,7 @@ import com.gitlab.mudlej.MjPdfReader.pdf.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.userbookmarks.UserBookmarksActivity
 import com.gitlab.mudlej.MjPdfReader.ui.history.NavigationHistoryActivity
+import com.gitlab.mudlej.MjPdfReader.ui.gotopage.GoToPageActivity
 import com.gitlab.mudlej.MjPdfReader.ui.links.LinksActivity
 import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsState
@@ -34,6 +35,7 @@ class ReaderNavigationController(
     private val launchNavigationHistory: (Intent) -> Unit,
     private val launchLinks: (Intent) -> Unit,
     private val launchSearch: (Intent) -> Unit,
+    private val launchGoToPageGrid: (Intent) -> Unit,
 ) {
 
     private val searchNavigationController =
@@ -56,8 +58,18 @@ class ReaderNavigationController(
         Intent(activity, TableOfContentsActivity::class.java).also { tocIntent ->
             tocIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
             tocIntent.putExtra(PDF.passwordKey, pdf.password)
+            tocIntent.putExtra(PDF.pageNumberKey, pdf.pageNumber)
             tableOfContentsState.putInto(tocIntent)
             launchTableOfContents(tocIntent)
+        }
+    }
+
+    fun showGoToPageGrid() {
+        Intent(activity, GoToPageActivity::class.java).also { gridIntent ->
+            gridIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
+            gridIntent.putExtra(PDF.passwordKey, pdf.password)
+            gridIntent.putExtra(PDF.pageNumberKey, pdf.pageNumber)
+            launchGoToPageGrid(gridIntent)
         }
     }
 
@@ -71,11 +83,17 @@ class ReaderNavigationController(
     }
 
     fun showNavigationHistory() {
-        val entries = historyManager.backEntries()
-        if (entries.isEmpty()) {
+        val backEntries = historyManager.backEntries()
+        val forwardEntries = historyManager.forwardEntries()
+        if (backEntries.isEmpty() && forwardEntries.isEmpty()) {
             return
         }
-        val historyIntent = NavigationHistoryActivity.createIntent(activity, entries)
+        val historyIntent = NavigationHistoryActivity.createIntent(
+            activity,
+            backEntries,
+            forwardEntries,
+            binding.pdfView.currentPage,
+        )
         historyIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
         historyIntent.putExtra(PDF.passwordKey, pdf.password)
         launchNavigationHistory(historyIntent)
@@ -135,8 +153,16 @@ class ReaderNavigationController(
 
     fun handleNavigationHistoryResult(resultCode: Int, intent: Intent?) {
         if (resultCode == Activity.RESULT_OK) {
-            val backStackIndex = intent?.getIntExtra(NavigationHistoryActivity.EXTRA_SELECTED_BACK_STACK_INDEX, -1) ?: return
-            historyManager.goBackToBackStackIndex(backStackIndex)
+            val data = intent ?: return
+            val forwardStackIndex = data.getIntExtra(NavigationHistoryActivity.EXTRA_SELECTED_FORWARD_STACK_INDEX, -1)
+            if (forwardStackIndex >= 0) {
+                historyManager.goForwardToForwardStackIndex(forwardStackIndex)
+                return
+            }
+            val backStackIndex = data.getIntExtra(NavigationHistoryActivity.EXTRA_SELECTED_BACK_STACK_INDEX, -1)
+            if (backStackIndex >= 0) {
+                historyManager.goBackToBackStackIndex(backStackIndex)
+            }
         }
     }
 
@@ -147,6 +173,14 @@ class ReaderNavigationController(
             val boundedPageIndex = if (pageCount > 0) pageIndex.coerceIn(0, pageCount - 1) else pageIndex.coerceAtLeast(0)
             historyManager.recordJump(ReaderHistoryManager.Origin.TEXT_MODE, boundedPageIndex)
             binding.pdfView.jumpTo(boundedPageIndex)
+        }
+    }
+
+    fun handleGoToPageGridResult(resultCode: Int, intent: Intent?) {
+        if (resultCode == PDF.GO_TO_PAGE_RESULT_OK) {
+            val pageIndex = intent?.getIntExtra(PDF.chosenPageIndexKey, pdf.pageNumber) ?: return
+            historyManager.recordJump(ReaderHistoryManager.Origin.GO_TO, pageIndex)
+            binding.pdfView.jumpTo(pageIndex)
         }
     }
 

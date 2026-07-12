@@ -2316,50 +2316,84 @@ public class PDFView extends RelativeLayout {
         zoomWithAnimation(NORMAL_SCALE);   // mudlej: I think double tap should always reset to 1f rather than the min zoom
     }
 
+    public void resetZoomToFitPageWithAnimation() {
+        if (pdfFile == null || swipeVertical || getHeight() <= 0) {
+            resetZoomWithAnimation();
+            return;
+        }
+        float pageHeight = pdfFile.getPageSize(currentPage).getHeight();
+        if (pageHeight <= 0) {
+            resetZoomWithAnimation();
+            return;
+        }
+        float fitHeightZoom = getHeight() / pageHeight;
+        zoomWithAnimation(MathUtils.limit(fitHeightZoom, minZoom, NORMAL_SCALE));
+    }
+
     public void zoomWithAnimation(float centerX, float centerY, float scaleTo) {
         animationManager.startZoomAnimation(centerX, centerY, zoom, scaleTo);
     }
 
-    //public void zoomWithAnimation(float centerX, float centerY, float scaleFrom, float scaleTo) {
-    public void zoomWithAnimation(RectF rect, float scaleTo, int pageNumber) {
-        float previousY = 0;
-        for (int i = 0; i < currentPage; ++i) {
-            SizeF size = getPageSize(i);
-            if (size != null) previousY += size.getHeight();
+    public RectF focusOnPdfRect(int pageIndex, RectF pdfRect, float targetZoom) {
+        if (pdfFile == null || pdfRect == null || getWidth() == 0 || getHeight() == 0) {
+            return null;
         }
-        Log.d(TAG, "zoomWithAnimation: -----------------------------------------");
-        Log.d(TAG, "zoomWithAnimation: previousY=" + previousY);
-
-
-        int pageX, pageY;
-        SizeF pageSize = pdfFile.getScaledPageSize(pageNumber, zoom);
-        if (swipeVertical) {
-            pageX = (int) pdfFile.getSecondaryPageOffset(pageNumber, zoom);
-            pageY = (int) pdfFile.getPageOffset(pageNumber, zoom);
+        if (targetZoom < zoom) {
+            targetZoom = zoom;
+        }
+        RectF docRect = pdfFile.pdfRectToDocument(pageIndex, targetZoom,
+                pdfRect.left, pdfRect.bottom, pdfRect.right, pdfRect.top, false);
+        if (docRect == null) {
+            return null;
+        }
+        float targetXOffset = clampTargetXOffset(-(docRect.centerX() - getWidth() / 2f), targetZoom);
+        float targetYOffset = clampTargetYOffset(-(docRect.centerY() - getHeight() / 2f), targetZoom);
+        float scale = targetZoom / zoom;
+        if (scale > 1.001f) {
+            float pivotX = (targetXOffset - currentXOffset * scale) / (1f - scale);
+            float pivotY = (targetYOffset - currentYOffset * scale) / (1f - scale);
+            animationManager.startZoomAnimation(pivotX, pivotY, zoom, targetZoom,
+                    new PointF(targetXOffset, targetYOffset));
         } else {
-            pageX = (int) pdfFile.getPageOffset(pageNumber, zoom);
-            pageY = (int) pdfFile.getSecondaryPageOffset(pageNumber, zoom);
+            moveTo(targetXOffset, targetYOffset);
+            loadPages();
         }
+        return new RectF(
+                docRect.left + targetXOffset,
+                docRect.top + targetYOffset,
+                docRect.right + targetXOffset,
+                docRect.bottom + targetYOffset
+        );
+    }
 
-        Log.d(TAG, "zoomWithAnimation: pageNumber=" + pageNumber + ", pageX: " + pageX + ", pageY: " + pageY);
-
-        RectF mappedRectF = pdfFile.mapRectToDevice(pageNumber, pageX, pageY, (int) pageSize.getWidth(), (int) pageSize.getHeight(), rect);
-        if (mappedRectF == null) {
-            Log.e(TAG, "zoomWithAnimation: mappedRectF is null!");
-            return;
+    private float clampTargetXOffset(float offsetX, float targetZoom) {
+        if (swipeVertical) {
+            float scaledPageWidth = pdfFile.getMaxPageWidth() * targetZoom;
+            if (scaledPageWidth < getWidth()) {
+                return getWidth() / 2f - scaledPageWidth / 2f;
+            }
+            return Math.max(Math.min(offsetX, 0), getWidth() - scaledPageWidth);
         }
-        Log.d(TAG, "zoomWithAnimation: rect= " + rect);
-        Log.d(TAG, "zoomWithAnimation: centerX= " + rect.centerX() + ", centerY: " + rect.centerY());
-        Log.d(TAG, "zoomWithAnimation: mappedRectF: " + mappedRectF);
-        Log.d(TAG, "zoomWithAnimation: mappedRectF.centerY(): " + mappedRectF.centerY());
-        Log.d(TAG, "zoomWithAnimation: currentYOffset(): " + currentYOffset);
-        Log.d(TAG, "zoomWithAnimation: pageX= " + pageX + ", pageY=" + pageY);
-        Log.d(TAG, "zoomWithAnimation: getWidth=" + getWidth() + ", getHeight()=" + getHeight());
+        float contentWidth = pdfFile.getDocLen(targetZoom);
+        if (contentWidth < getWidth()) {
+            return (getWidth() - contentWidth) / 2f;
+        }
+        return Math.max(Math.min(offsetX, 0), getWidth() - contentWidth);
+    }
 
-        float x = mappedRectF.centerX() + currentXOffset;
-        float y = mappedRectF.centerY() + currentYOffset;
-        Log.d(TAG, "zoomWithAnimation: x=" + x + ", y=" + y);
-        animationManager.startZoomAnimation(x, y, zoom, scaleTo);
+    private float clampTargetYOffset(float offsetY, float targetZoom) {
+        if (swipeVertical) {
+            float contentHeight = pdfFile.getDocLen(targetZoom);
+            if (contentHeight < getHeight()) {
+                return (getHeight() - contentHeight) / 2f;
+            }
+            return Math.max(Math.min(offsetY, 0), getHeight() - contentHeight);
+        }
+        float scaledPageHeight = pdfFile.getMaxPageHeight() * targetZoom;
+        if (scaledPageHeight < getHeight()) {
+            return getHeight() / 2f - scaledPageHeight / 2f;
+        }
+        return Math.max(Math.min(offsetY, 0), getHeight() - scaledPageHeight);
     }
 
     public void zoomWithAnimation(float scale) {

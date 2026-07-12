@@ -6,9 +6,12 @@ import android.app.Activity
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.drawable.RippleDrawable
 import android.view.Gravity
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -26,6 +29,7 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.shape.ShapeAppearanceModel
 import com.google.android.material.snackbar.Snackbar
+import kotlin.math.max
 
 class SearchNavigationController(
     private val activity: Activity,
@@ -251,14 +255,47 @@ class SearchNavigationController(
         val textBounds = binding.pdfView.createHighlightText(hit.pageNumber, highlightStart, highlightCount, true)
         if (textBounds.isEmpty()) {
             AppSnackbar.make(binding.root, R.string.failed_to_highlight_search_result, Snackbar.LENGTH_SHORT).show()
+            binding.pdfView.jumpUsingPageNumber(hit.pageNumber)
         }
         else {
             activeHighlightPageNumber = hit.pageNumber
-            binding.pdfView.resetZoomWithAnimation()
             binding.pdfView.reloadPages()
+            val targetZoom = max(binding.pdfView.zoom, binding.pdfView.midZoom)
+                .coerceAtMost(binding.pdfView.maxZoom)
+            val screenRect =
+                binding.pdfView.focusOnPdfRect(hit.pageNumber - 1, unionPdfRect(textBounds), targetZoom)
+            if (screenRect == null) {
+                binding.pdfView.jumpUsingPageNumber(hit.pageNumber)
+            }
+            positionSnackbar(screenRect)
         }
-        binding.pdfView.jumpUsingPageNumber(hit.pageNumber)
         updateControls()
+    }
+
+    private fun unionPdfRect(bounds: Array<Rect>): RectF {
+        return RectF(
+            bounds.minOf { it.left }.toFloat(),
+            bounds.maxOf { it.top }.toFloat(),
+            bounds.maxOf { it.right }.toFloat(),
+            bounds.minOf { it.bottom }.toFloat(),
+        )
+    }
+
+    private fun positionSnackbar(matchScreenRect: RectF?) {
+        val bar = snackbar ?: return
+        val params = bar.view.layoutParams as? FrameLayout.LayoutParams ?: return
+        val viewHeight = binding.pdfView.height
+        val nearBottom = matchScreenRect != null && viewHeight > 0
+                && matchScreenRect.centerY() > viewHeight * BOTTOM_AREA_START
+        val gravity = if (nearBottom) {
+            Gravity.TOP or Gravity.CENTER_HORIZONTAL
+        } else {
+            Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+        }
+        if (params.gravity != gravity) {
+            params.gravity = gravity
+            bar.view.layoutParams = params
+        }
     }
 
     private fun updateControls() {
@@ -293,5 +330,9 @@ class SearchNavigationController(
             }
             launchSearch(searchIntent)
         }
+    }
+
+    companion object {
+        private const val BOTTOM_AREA_START = 0.6f
     }
 }

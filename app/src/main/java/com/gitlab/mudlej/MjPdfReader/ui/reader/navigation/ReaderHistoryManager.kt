@@ -44,6 +44,8 @@ class ReaderHistoryManager(
 
     fun backEntries(): List<Entry> = backStack.toList()
 
+    fun forwardEntries(): List<Entry> = forwardStack.toList()
+
     fun recordJump(origin: Origin, targetPageIndex: Int? = null) {
         val view = pdfView()
         if (targetPageIndex != null && targetPageIndex == view.currentPage) {
@@ -86,6 +88,27 @@ class ReaderHistoryManager(
     fun goBackToBackStackIndex(index: Int): Boolean {
         val entry = backStack.toList().getOrNull(index) ?: return false
         goBackTo(entry)
+        return true
+    }
+
+    fun goForwardTo(entry: Entry) {
+        if (forwardStack.none { it === entry }) {
+            return
+        }
+        pushBack(currentEntry(Origin.HISTORY))
+        while (forwardStack.isNotEmpty()) {
+            val top = forwardStack.removeLast()
+            if (top === entry) {
+                navigate(top)
+                return
+            }
+            pushBack(top)
+        }
+    }
+
+    fun goForwardToForwardStackIndex(index: Int): Boolean {
+        val entry = forwardStack.toList().getOrNull(index) ?: return false
+        goForwardTo(entry)
         return true
     }
 

@@ -80,8 +80,12 @@ class LibraryAdapter(
             if (item.progressPercent > 0) {
                 binding.progress.visibility = View.VISIBLE
                 binding.progress.progress = item.progressPercent
+                binding.progressBadge.visibility = View.VISIBLE
+                binding.progressCircle.progress = item.progressPercent
+                binding.progressPercent.text = item.progressPercent.toString()
             } else {
                 binding.progress.visibility = View.GONE
+                binding.progressBadge.visibility = View.GONE
             }
 
             applySelection(item)
@@ -89,6 +93,7 @@ class LibraryAdapter(
 
             binding.coverCard.setOnClickListener { functions.onItemClicked(item) }
             binding.coverCard.setOnLongClickListener { functions.onItemLongClicked(item) }
+            binding.optionsButton.setOnClickListener { functions.onItemOptionsClicked(item) }
         }
 
         fun applySelection(item: HomeItem) {

@@ -8,17 +8,21 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.TableOfContentsRowItemBinding
+import com.google.android.material.color.MaterialColors
 
 class TableOfContentsViewHolder(
     private val binding: TableOfContentsRowItemBinding,
     private val tableOfContentsAdapter: TableOfContentsAdapter,
 ) : RecyclerView.ViewHolder(binding.root) {
 
+    private val defaultCardColor = binding.root.cardBackgroundColor
+
     fun bind(row: TableOfContentsRow) {
         val entry = row.entry
         val textSize = PDF.TABLE_OF_CONTENTS_TEXT_SIZE - entry.level * PDF.TABLE_OF_CONTENTS_TEXT_SIZE_DEC
 
         indent(entry.level)
+        highlightCurrentEntry(entry.path)
 
         binding.bookmarkText.text = entry.title
         binding.bookmarkText.textSize = textSize
@@ -51,6 +55,21 @@ class TableOfContentsViewHolder(
             toggle.isClickable = false
         } else {
             toggle.setOnClickListener { tableOfContentsAdapter.onToggleClicked(row.entry) }
+        }
+    }
+
+    private fun highlightCurrentEntry(path: String) {
+        val currentPath = tableOfContentsAdapter.currentEntryPath
+        val onCurrentChain = currentPath != null
+                && (currentPath == path || currentPath.startsWith("$path."))
+        if (onCurrentChain) {
+            val highlightColor = MaterialColors.getColor(
+                binding.root,
+                com.google.android.material.R.attr.colorSecondaryContainer,
+            )
+            binding.root.setCardBackgroundColor(highlightColor)
+        } else {
+            binding.root.setCardBackgroundColor(defaultCardColor)
         }
     }
 

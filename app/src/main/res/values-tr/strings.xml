@@ -212,7 +212,6 @@
     <string name="detect_existing_highlights_summary">Tam olarak bir vurguyla eşleşen metni seçmek, yeni oluşturmak yerine eylemlerini gösterir.</string>
     <string name="detect_existing_highlights_title">Mevcut vurguları algıla</string>
     <string name="discard">Vazgeç</string>
-    <string name="double_tap_to_exit_summary">Okuyucuyu kapatmak için Geri\'ye iki kez basılmasını gerektirir.</string>
     <string name="dracula">Drakula</string>
     <string name="drag_to_reorder">Yeniden sıralamak için sürükle</string>
     <string name="expand_all">Tümünü genişlet</string>
@@ -222,14 +221,6 @@
     <string name="form_field_update_failed">Form alanı güncellenemedi</string>
     <string name="fullscreen_buttons">Tam ekran eylemleri</string>
     <string name="fullscreen_buttons_summary">Tam ekran modunda hangi eylemlerin görüneceğini seçin.</string>
-    <string name="fullscreen_info_show_page_number">Tam ekranda sayfa numarasını göster</string>
-    <string name="fullscreen_info_show_page_number_summary">Tam ekran bilgi kartında geçerli sayfa numarasını görüntüle.</string>
-    <string name="fullscreen_info_show_pdf_name">Tam ekranda PDF adını göster</string>
-    <string name="fullscreen_info_show_pdf_name_summary">Tam ekran bilgi kartında PDF adını görüntüle.</string>
-    <string name="fullscreen_info_show_reading_percentage">Tam ekranda okuma yüzdesini göster</string>
-    <string name="fullscreen_info_show_reading_percentage_summary">Tam ekran bilgi kartında okuma ilerlemesini yüzde olarak görüntüle.</string>
-    <string name="fullscreen_info_show_time">Tam ekranda saati göster</string>
-    <string name="fullscreen_info_show_time_summary">Tam ekran bilgi kartında geçerli saati görüntüle.</string>
     <string name="fullscreen_page_info">Sayfa %1$d / %2$d · %3$d%%</string>
     <string name="fullscreen_page_number_info">Sayfa %1$d / %2$d</string>
     <string name="fullscreen_percentage_info">%1$d%%</string>
@@ -296,7 +287,6 @@
     <string name="show_margins">Kenar boşluklarını göster</string>
     <string name="show_scroll_handle_page_count_summary">Kaydırma tutamacını yalnızca geçerli sayfa yerine geçerli sayfa/toplam sayfalar olarak göster.</string>
     <string name="show_scroll_handle_page_count_title">Kaydırma tutamacında sayfa sayısını göster</string>
-    <string name="signature_cancel_placement">İmza yerleştirmeyi iptal et</string>
     <string name="signature_clear">Temizle</string>
     <string name="signature_color_black">Siyah mürekkep</string>
     <string name="signature_color_blue">Mavi mürekkep</string>

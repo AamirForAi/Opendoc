@@ -203,7 +203,6 @@
     <string name="detect_existing_highlights_summary">選取與現有醒目標示完全相符的文字時，會顯示其動作而非建立新的醒目標示。</string>
     <string name="detect_existing_highlights_title">偵測現有醒目標示</string>
     <string name="discard">捨棄</string>
-    <string name="double_tap_to_exit_summary">需要按兩下返回才能關閉閱讀器。</string>
     <string name="dracula">Dracula</string>
     <string name="drag_to_reorder">拖曳以重新排序</string>
     <string name="expand_all">全部展開</string>
@@ -213,14 +212,6 @@
     <string name="form_field_update_failed">無法更新表單欄位</string>
     <string name="fullscreen_buttons">全螢幕動作</string>
     <string name="fullscreen_buttons_summary">選擇在全螢幕模式中顯示的動作。</string>
-    <string name="fullscreen_info_show_page_number">在全螢幕顯示頁碼</string>
-    <string name="fullscreen_info_show_page_number_summary">在全螢幕資訊卡中顯示目前頁碼。</string>
-    <string name="fullscreen_info_show_pdf_name">在全螢幕顯示 PDF 名稱</string>
-    <string name="fullscreen_info_show_pdf_name_summary">在全螢幕資訊卡中顯示 PDF 名稱。</string>
-    <string name="fullscreen_info_show_reading_percentage">在全螢幕顯示閱讀百分比</string>
-    <string name="fullscreen_info_show_reading_percentage_summary">在全螢幕資訊卡中以百分比顯示閱讀進度。</string>
-    <string name="fullscreen_info_show_time">在全螢幕顯示時間</string>
-    <string name="fullscreen_info_show_time_summary">在全螢幕資訊卡中顯示目前時間。</string>
     <string name="fullscreen_page_info">第 %1$d 頁 / 共 %2$d 頁 · %3$d%%</string>
     <string name="fullscreen_page_number_info">第 %1$d 頁 / 共 %2$d 頁</string>
     <string name="fullscreen_percentage_info">%1$d%%</string>
@@ -287,7 +278,6 @@
     <string name="show_margins">顯示邊距</string>
     <string name="show_scroll_handle_page_count_summary">將捲動控制顯示為「目前頁碼/總頁數」，而非僅顯示目前頁碼。</string>
     <string name="show_scroll_handle_page_count_title">在捲動控制中顯示頁數</string>
-    <string name="signature_cancel_placement">取消簽名放置</string>
     <string name="signature_clear">清除</string>
     <string name="signature_color_black">黑色墨水</string>
     <string name="signature_color_blue">藍色墨水</string>

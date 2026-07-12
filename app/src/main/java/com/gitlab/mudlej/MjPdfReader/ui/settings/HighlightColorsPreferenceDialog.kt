@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
@@ -100,6 +101,14 @@ private class HighlightColorViewHolder(
         itemView.setOnClickListener {
             if (requestToggle(row)) {
                 checkbox.isChecked = row.enabled
+            } else {
+                val context = itemView.context
+                val message = if (row.enabled) {
+                    context.getString(R.string.highlight_colors_min_toast, Preferences.minHighlightColors)
+                } else {
+                    context.getString(R.string.highlight_colors_max_toast, Preferences.maxHighlightColors)
+                }
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             }
         }
     }

@@ -22,15 +22,8 @@ class HomeMenuDialog(
     private val onGridSizeChanged: () -> Unit,
     private val onSortChanged: () -> Unit,
     private val onFolderModeChanged: () -> Unit,
-    private val stats: () -> HomeStats,
+    private val onShowStats: () -> Unit,
 ) {
-
-    data class HomeStats(
-        val onDevice: Int,
-        val inLibrary: Int,
-        val reading: Int,
-        val completed: Int,
-    )
 
     fun show() {
         val binding = DialogHomeMenuBinding.inflate(activity.layoutInflater)
@@ -48,7 +41,6 @@ class HomeMenuDialog(
         bindGridSize(binding)
         bindSort(binding)
         bindFoldersMode(binding)
-        bindStats(binding)
         updateGridSizeVisibility(binding)
 
         SegmentedButtonStyler.attach(binding.viewModeGroup)
@@ -63,6 +55,10 @@ class HomeMenuDialog(
         binding.aboutButton.setOnClickListener {
             dialog.dismiss()
             activity.startActivity(Intent(activity, AboutActivity::class.java))
+        }
+        binding.statsButton.setOnClickListener {
+            dialog.dismiss()
+            onShowStats()
         }
         binding.openOnlineButton.setOnClickListener {
             dialog.dismiss()
@@ -162,11 +158,4 @@ class HomeMenuDialog(
         }
     }
 
-    private fun bindStats(binding: DialogHomeMenuBinding) {
-        val currentStats = stats()
-        binding.statsOnDevice.text = currentStats.onDevice.toString()
-        binding.statsInLibrary.text = currentStats.inLibrary.toString()
-        binding.statsReading.text = currentStats.reading.toString()
-        binding.statsCompleted.text = currentStats.completed.toString()
-    }
 }

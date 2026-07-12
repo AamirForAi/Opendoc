@@ -14,15 +14,23 @@
         android:visible="false"/>
 
     <item
-        android:id="@+id/expand_all_entries"
+        android:id="@+id/locate_current_entry"
         android:orderInCategory="2"
+        android:title="@string/locate_me"
+        android:icon="@drawable/ic_locate_me"
+        android:visible="false"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/expand_all_entries"
+        android:orderInCategory="3"
         android:title="@string/expand_all"
         android:visible="false"
         app:showAsAction="never"/>
 
     <item
         android:id="@+id/collapse_all_entries"
-        android:orderInCategory="3"
+        android:orderInCategory="4"
         android:title="@string/collapse_all"
         android:visible="false"
         app:showAsAction="never"/>

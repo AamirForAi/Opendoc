@@ -23,9 +23,6 @@ class HomeSelectionController(
         get() = actionMode != null
 
     fun begin(item: HomeItem): Boolean {
-        if (item.isScanOnly) {
-            return false
-        }
         if (active) {
             toggle(item)
             return true
@@ -38,9 +35,6 @@ class HomeSelectionController(
     }
 
     fun toggle(item: HomeItem) {
-        if (item.isScanOnly) {
-            return
-        }
         if (!selectedHashes.remove(item.hash)) {
             selectedHashes.add(item.hash)
         }

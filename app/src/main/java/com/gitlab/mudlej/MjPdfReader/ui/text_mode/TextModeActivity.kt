@@ -25,7 +25,8 @@ import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityTextModeBinding
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
-import com.gitlab.mudlej.MjPdfReader.core.ui.showGoToPageDialog
+import com.gitlab.mudlej.MjPdfReader.ui.gotopage.GoToPageActivity
+import com.gitlab.mudlej.MjPdfReader.ui.gotopage.showGoToPageDialog
 import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsState
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
@@ -46,7 +47,20 @@ class TextModeActivity : AppCompatActivity() {
     private lateinit var controlsController: TextModeControlsController
     private lateinit var pdfUri: Uri
 
-    private val typographyController = TextModeTypographyController(this, { settings }, ::updateSettings)
+    private val typographyController = TextModeTypographyController(
+        this,
+        { settings },
+        ::updateSettings,
+        ReflowControls(
+            getJoinParagraphs = { joinParagraphsEnabled },
+            getDetectHeadings = { detectHeadingsEnabled },
+            getCodeBlocks = { codeBlocksEnabled },
+            onJoinParagraphsChanged = ::setJoinParagraphs,
+            onDetectHeadingsChanged = ::setDetectHeadings,
+            onCodeBlocksChanged = ::setCodeBlocks,
+            onReset = ::resetReflowOverrides,
+        ),
+    )
 
     private var pdfPassword: String? = null
     private var fileHash: String? = null
@@ -54,9 +68,11 @@ class TextModeActivity : AppCompatActivity() {
     private var currentPageIndex = 0
     private var pendingScrollTarget = RecyclerView.NO_POSITION
     private var sliderTracking = false
-    private var seekSettling = false
     private var resultPrepared = false
     private var settings = TextModeSettings()
+    private var joinParagraphsOverride: Boolean? = null
+    private var detectHeadingsOverride: Boolean? = null
+    private var codeBlocksOverride: Boolean? = null
     private var tableOfContentsState = TableOfContentsState()
     private var savedPageIndex = -1
     private var setupJob: Job? = null
@@ -72,11 +88,14 @@ class TextModeActivity : AppCompatActivity() {
         }
     }
 
-    private val seekSettleRunnable = Runnable {
-        seekSettling = false
-        if (::binding.isInitialized && ::layoutManager.isInitialized) {
-            contentLoader.loadTargetWindow(currentPageIndex)
-            contentLoader.loadVisiblePages()
+    private val goToPageGridLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == PDF.GO_TO_PAGE_RESULT_OK) {
+            val pageIndex = result.data?.getIntExtra(PDF.chosenPageIndexKey, -1) ?: -1
+            if (pageIndex >= 0) {
+                scrollToPage(pageIndex)
+            }
         }
     }
 
@@ -101,7 +120,13 @@ class TextModeActivity : AppCompatActivity() {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         settings = TextModeSettings.load(sharedPreferences)
         val hideDelayMillis = Preferences(sharedPreferences).getHideDelay().toLong() + CONTROLS_EXTRA_HIDE_DELAY_MS
-        contentLoader = TextModeContentLoader(this, binding.textPagesRecyclerView)
+        contentLoader = TextModeContentLoader(
+            this,
+            binding.textPagesRecyclerView,
+            { joinParagraphsEnabled },
+            { detectHeadingsEnabled },
+            { codeBlocksEnabled },
+        )
         controlsController = TextModeControlsController(binding, hideDelayMillis)
         restoreState(savedInstanceState)
         initPdfProperties()
@@ -122,6 +147,13 @@ class TextModeActivity : AppCompatActivity() {
             }
             if (fileHash == null) {
                 fileHash = computeHash(this@TextModeActivity, pdfUri)
+            }
+            fileHash?.let { hash ->
+                pdfRepository.findTextModeReflow(hash)?.let { override ->
+                    joinParagraphsOverride = override.textModeJoinParagraphs
+                    detectHeadingsOverride = override.textModeDetectHeadings
+                    codeBlocksOverride = override.textModeCodeBlocks
+                }
             }
             currentPageIndex = currentPageIndex.coerceIn(0, pageCount - 1)
             initReader()
@@ -152,7 +184,7 @@ class TextModeActivity : AppCompatActivity() {
         val initialPageIndex = currentPageIndex
         adapter = TextModePageAdapter(contentLoader::retryPage)
         layoutManager = LinearLayoutManager(this)
-        contentLoader.attach(adapter, layoutManager, { currentPageIndex }, { seekSettling })
+        contentLoader.attach(adapter, layoutManager) { currentPageIndex }
         binding.textPagesRecyclerView.adapter = adapter
         binding.textPagesRecyclerView.layoutManager = layoutManager
         binding.textPagesRecyclerView.itemAnimator = null
@@ -192,7 +224,16 @@ class TextModeActivity : AppCompatActivity() {
         binding.previousPageButton.setOnClickListener { scrollToPage(currentPageIndex - 1) }
         binding.nextPageButton.setOnClickListener { scrollToPage(currentPageIndex + 1) }
         binding.pageButton.setOnClickListener {
-            showGoToPageDialog(this, binding.root, currentPageIndex, pageCount, ::scrollToPage)
+            showGoToPageDialog(
+                this,
+                binding.root,
+                currentPageIndex,
+                pageCount,
+                pdfUri,
+                pdfPassword,
+                ::scrollToPage,
+                showAllPages = ::showGoToPageGrid,
+            )
         }
         binding.tableOfContentsButton.setOnClickListener { showTableOfContents() }
         binding.typographyButton.setOnClickListener { typographyController.showSheet() }
@@ -209,7 +250,6 @@ class TextModeActivity : AppCompatActivity() {
 
             override fun onStopTrackingTouch(slider: Slider) {
                 sliderTracking = false
-                finishSeekSettling()
                 scrollToPage(slider.value.toInt() - 1)
             }
         })
@@ -228,6 +268,63 @@ class TextModeActivity : AppCompatActivity() {
         settings.save(PreferenceManager.getDefaultSharedPreferences(this))
         applySettingsToPages()
         applyReaderTheme()
+    }
+
+    private val joinParagraphsEnabled: Boolean
+        get() = joinParagraphsOverride ?: DEFAULT_JOIN_PARAGRAPHS
+
+    private val detectHeadingsEnabled: Boolean
+        get() = detectHeadingsOverride ?: DEFAULT_DETECT_HEADINGS
+
+    private val codeBlocksEnabled: Boolean
+        get() = codeBlocksOverride ?: DEFAULT_CODE_BLOCKS
+
+    private fun setJoinParagraphs(enabled: Boolean) {
+        if (joinParagraphsEnabled == enabled) return
+        joinParagraphsOverride = enabled
+        persistReflowOverrides()
+        contentLoader.invalidateAndReload()
+    }
+
+    private fun setDetectHeadings(enabled: Boolean) {
+        if (detectHeadingsEnabled == enabled) return
+        detectHeadingsOverride = enabled
+        persistReflowOverrides()
+        contentLoader.invalidateAndReload()
+    }
+
+    private fun setCodeBlocks(enabled: Boolean) {
+        if (codeBlocksEnabled == enabled) return
+        codeBlocksOverride = enabled
+        persistReflowOverrides()
+        contentLoader.invalidateAndReload()
+    }
+
+    private fun resetReflowOverrides() {
+        val effectiveChanged = joinParagraphsEnabled != DEFAULT_JOIN_PARAGRAPHS ||
+            detectHeadingsEnabled != DEFAULT_DETECT_HEADINGS ||
+            codeBlocksEnabled != DEFAULT_CODE_BLOCKS
+        val hadOverrides = joinParagraphsOverride != null || detectHeadingsOverride != null ||
+            codeBlocksOverride != null
+        joinParagraphsOverride = null
+        detectHeadingsOverride = null
+        codeBlocksOverride = null
+        if (hadOverrides) {
+            persistReflowOverrides()
+        }
+        if (effectiveChanged) {
+            contentLoader.invalidateAndReload()
+        }
+    }
+
+    private fun persistReflowOverrides() {
+        val hash = fileHash ?: return
+        val joinParagraphs = joinParagraphsOverride
+        val detectHeadings = detectHeadingsOverride
+        val codeBlocks = codeBlocksOverride
+        lifecycleScope.launch {
+            pdfRepository.setTextModeReflow(hash, joinParagraphs, detectHeadings, codeBlocks)
+        }
     }
 
     private fun applySettingsToPages() {
@@ -263,26 +360,14 @@ class TextModeActivity : AppCompatActivity() {
         if (pageCount <= 0) return
 
         currentPageIndex = pageIndex.coerceIn(0, pageCount - 1)
-        pendingScrollTarget = currentPageIndex
-        seekSettling = true
-        layoutManager.scrollToPositionWithOffset(currentPageIndex, 0)
-        binding.textPagesRecyclerView.removeCallbacks(seekSettleRunnable)
-        binding.textPagesRecyclerView.postDelayed(seekSettleRunnable, SEEK_SETTLE_DELAY_MS)
         updatePageControls()
-    }
-
-    private fun finishSeekSettling() {
-        seekSettling = false
-        binding.textPagesRecyclerView.removeCallbacks(seekSettleRunnable)
     }
 
     private fun updateCurrentPageFromScroll() {
         val firstVisiblePage = layoutManager.findFirstVisibleItemPosition()
         if (firstVisiblePage == RecyclerView.NO_POSITION) return
 
-        if (!seekSettling) {
-            contentLoader.loadVisiblePages()
-        }
+        contentLoader.loadVisiblePages()
 
         val pending = pendingScrollTarget
         if (pending != RecyclerView.NO_POSITION) {
@@ -327,8 +412,18 @@ class TextModeActivity : AppCompatActivity() {
         Intent(this, TableOfContentsActivity::class.java).also { bookmarkIntent ->
             bookmarkIntent.putExtra(PDF.filePathKey, pdfUri.toString())
             bookmarkIntent.putExtra(PDF.passwordKey, pdfPassword)
+            bookmarkIntent.putExtra(PDF.pageNumberKey, currentPageIndex)
             tableOfContentsState.putInto(bookmarkIntent)
             tableOfContentsLauncher.launch(bookmarkIntent)
+        }
+    }
+
+    private fun showGoToPageGrid() {
+        Intent(this, GoToPageActivity::class.java).also { gridIntent ->
+            gridIntent.putExtra(PDF.filePathKey, pdfUri.toString())
+            gridIntent.putExtra(PDF.passwordKey, pdfPassword)
+            gridIntent.putExtra(PDF.pageNumberKey, currentPageIndex)
+            goToPageGridLauncher.launch(gridIntent)
         }
     }
 
@@ -356,9 +451,6 @@ class TextModeActivity : AppCompatActivity() {
     override fun onDestroy() {
         if (::controlsController.isInitialized) {
             controlsController.release()
-        }
-        if (::binding.isInitialized) {
-            binding.textPagesRecyclerView.removeCallbacks(seekSettleRunnable)
         }
         if (::contentLoader.isInitialized) {
             contentLoader.close()
@@ -396,7 +488,9 @@ class TextModeActivity : AppCompatActivity() {
 
     companion object {
         private const val CURRENT_PAGE_KEY = "CURRENT_TEXT_MODE_PAGE"
-        private const val SEEK_SETTLE_DELAY_MS = 50L
         private const val CONTROLS_EXTRA_HIDE_DELAY_MS = 1500L
+        private const val DEFAULT_JOIN_PARAGRAPHS = true
+        private const val DEFAULT_DETECT_HEADINGS = true
+        private const val DEFAULT_CODE_BLOCKS = true
     }
 }

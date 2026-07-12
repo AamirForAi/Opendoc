@@ -180,6 +180,17 @@ class RecordOptionsDialog(
         }
     }
 
+    suspend fun ensureRecordHash(item: HomeItem): String? {
+        if (!item.isScanOnly) {
+            return item.hash
+        }
+        val hash = resolveContentHash(item) ?: return null
+        if (!pdfRepository.hasRecord(hash)) {
+            pdfRepository.saveRecordInBackground(newRecord(item, hash))
+        }
+        return hash
+    }
+
     private suspend fun resolveContentHash(item: HomeItem): String? {
         val path = item.uri.path ?: return null
         val known = libraryScanner.index.value.entries.find { it.path == path }?.hash

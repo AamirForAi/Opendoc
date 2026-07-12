@@ -208,7 +208,6 @@
     <string name="detect_existing_highlights_summary">تحديد النص المطابق تمامًا لتظليل يظهر إجراءاته بدلًا من إنشاء تظليل جديد.</string>
     <string name="detect_existing_highlights_title">اكتشاف التظليلات الموجودة</string>
     <string name="discard">تجاهل</string>
-    <string name="double_tap_to_exit_summary">يتطلب الضغط مرتين على زر الرجوع لإغلاق القارئ.</string>
     <string name="dracula">دراكولا</string>
     <string name="drag_to_reorder">اسحب لإعادة الترتيب</string>
     <string name="expand_all">توسيع الكل</string>
@@ -218,14 +217,6 @@
     <string name="form_field_update_failed">تعذر تحديث حقل النموذج</string>
     <string name="fullscreen_buttons">إجراءات الشاشة الكاملة</string>
     <string name="fullscreen_buttons_summary">اختر الإجراءات التي تظهر في وضع الشاشة الكاملة.</string>
-    <string name="fullscreen_info_show_page_number">عرض رقم الصفحة في الشاشة الكاملة</string>
-    <string name="fullscreen_info_show_page_number_summary">عرض رقم الصفحة الحالي في بطاقة معلومات الشاشة الكاملة.</string>
-    <string name="fullscreen_info_show_pdf_name">عرض اسم PDF في الشاشة الكاملة</string>
-    <string name="fullscreen_info_show_pdf_name_summary">عرض اسم PDF في بطاقة معلومات الشاشة الكاملة.</string>
-    <string name="fullscreen_info_show_reading_percentage">عرض نسبة القراءة في الشاشة الكاملة</string>
-    <string name="fullscreen_info_show_reading_percentage_summary">عرض تقدم القراءة كنسبة مئوية في بطاقة معلومات الشاشة الكاملة.</string>
-    <string name="fullscreen_info_show_time">عرض الوقت في الشاشة الكاملة</string>
-    <string name="fullscreen_info_show_time_summary">عرض الوقت الحالي في بطاقة معلومات الشاشة الكاملة.</string>
     <string name="fullscreen_page_info">الصفحة %1$d / %2$d · %3$d%%</string>
     <string name="fullscreen_page_number_info">الصفحة %1$d / %2$d</string>
     <string name="fullscreen_percentage_info">%1$d%%</string>
@@ -292,7 +283,6 @@
     <string name="show_margins">إظهار الهوامش</string>
     <string name="show_scroll_handle_page_count_summary">عرض مقبض التمرير كصفحة حالية/إجمالي الصفحات بدلًا من الصفحة الحالية فقط.</string>
     <string name="show_scroll_handle_page_count_title">عرض عدد الصفحات في مقبض التمرير</string>
-    <string name="signature_cancel_placement">إلغاء وضع التوقيع</string>
     <string name="signature_clear">مسح</string>
     <string name="signature_color_black">حبر أسود</string>
     <string name="signature_color_blue">حبر أزرق</string>

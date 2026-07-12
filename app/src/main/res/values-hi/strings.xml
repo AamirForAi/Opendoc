@@ -208,7 +208,6 @@
     <string name="detect_existing_highlights_summary">टेक्स्ट का चयन करना जो ठीक से हाइलाइट से मेल खाता है, नया बनाने के बजाय उसकी कार्रवाइयाँ दिखाता है।</string>
     <string name="detect_existing_highlights_title">मौजूदा हाइलाइट्स का पता लगाएँ</string>
     <string name="discard">रद्द करें</string>
-    <string name="double_tap_to_exit_summary">रीडर को बंद करने के लिए बैक दो बार दबाना आवश्यक है।</string>
     <string name="dracula">ड्रैकुला</string>
     <string name="drag_to_reorder">पुनः क्रमित करने के लिए खींचें</string>
     <string name="expand_all">सभी विस्तृत करें</string>
@@ -218,14 +217,6 @@
     <string name="form_field_update_failed">फॉर्म फ़ील्ड अपडेट नहीं किया जा सका</string>
     <string name="fullscreen_buttons">फुलस्क्रीन कार्रवाइयाँ</string>
     <string name="fullscreen_buttons_summary">चुनें कि फुलस्क्रीन मोड में कौन सी कार्रवाइयाँ दिखें।</string>
-    <string name="fullscreen_info_show_page_number">फुलस्क्रीन में पृष्ठ संख्या दिखाएँ</string>
-    <string name="fullscreen_info_show_page_number_summary">फुलस्क्रीन जानकारी कार्ड में वर्तमान पृष्ठ संख्या प्रदर्शित करें।</string>
-    <string name="fullscreen_info_show_pdf_name">फुलस्क्रीन में पीडीएफ नाम दिखाएँ</string>
-    <string name="fullscreen_info_show_pdf_name_summary">फुलस्क्रीन जानकारी कार्ड में पीडीएफ नाम प्रदर्शित करें।</string>
-    <string name="fullscreen_info_show_reading_percentage">फुलस्क्रीन में पढ़ने का प्रतिशत दिखाएँ</string>
-    <string name="fullscreen_info_show_reading_percentage_summary">फुलस्क्रीन जानकारी कार्ड में पढ़ने की प्रगति को प्रतिशत के रूप में प्रदर्शित करें।</string>
-    <string name="fullscreen_info_show_time">फुलस्क्रीन में समय दिखाएँ</string>
-    <string name="fullscreen_info_show_time_summary">फुलस्क्रीन जानकारी कार्ड में वर्तमान समय प्रदर्शित करें।</string>
     <string name="fullscreen_page_info">पृष्ठ %1$d / %2$d · %3$d%%</string>
     <string name="fullscreen_page_number_info">पृष्ठ %1$d / %2$d</string>
     <string name="fullscreen_percentage_info">%1$d%%</string>
@@ -292,7 +283,6 @@
     <string name="show_margins">मार्जिन दिखाएँ</string>
     <string name="show_scroll_handle_page_count_summary">स्क्रॉल हैंडल को केवल वर्तमान पृष्ठ के बजाय वर्तमान पृष्ठ/कुल पृष्ठों के रूप में दिखाएँ।</string>
     <string name="show_scroll_handle_page_count_title">स्क्रॉल हैंडल में पृष्ठ गणना दिखाएँ</string>
-    <string name="signature_cancel_placement">हस्ताक्षर प्लेसमेंट रद्द करें</string>
     <string name="signature_clear">साफ़ करें</string>
     <string name="signature_color_black">काली स्याही</string>
     <string name="signature_color_blue">नीली स्याही</string>

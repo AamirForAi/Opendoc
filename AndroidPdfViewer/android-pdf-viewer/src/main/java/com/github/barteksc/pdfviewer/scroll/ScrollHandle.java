@@ -1,7 +1,6 @@
 package com.github.barteksc.pdfviewer.scroll;
 
 import android.view.View;
-import android.widget.TextView;
 
 import com.github.barteksc.pdfviewer.PDFView;
 
@@ -70,8 +69,7 @@ public interface ScrollHandle {
     void disablePermanentHide();
     void cancelHideRunner();
     void activateHandlerHideDelayed();
-    TextView getReadingProgressText();
-    void setReadingProgressTextEnabled(boolean enabled);
+    void setTopReachLimit(int limitPx);
 
     void setOnTouchListener(View.OnTouchListener onTouchListener);
 

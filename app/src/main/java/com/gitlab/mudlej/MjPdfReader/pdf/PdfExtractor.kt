@@ -2,11 +2,13 @@
 
 package com.gitlab.mudlej.MjPdfReader.pdf
 
+import android.graphics.Bitmap
 import android.util.Log
 import com.shockwave.pdfium.PdfDocument
 import com.shockwave.pdfium.PdfiumCore
 
 private const val TAG = "PdfExtractor"
+private const val MAX_METRICS_CHARS = 20_000
 
 class PdfExtractor(
     private val pdfiumCore: PdfiumCore,
@@ -39,7 +41,69 @@ class PdfExtractor(
         }
     }
 
+    fun getPageCharMetrics(pageNumber: Int): PageCharMetrics? {
+        val index = getIndex(pageNumber) ?: return null
+        return try {
+            var opened = false
+            try {
+                pdfiumCore.openPage(pdfDocument, index)
+                opened = true
+                val textPagePtr = pdfiumCore.openTextPage(pdfDocument, index)
+                if (textPagePtr == 0L) {
+                    return null
+                }
+                val charCount = pdfiumCore.textCountChars(pdfDocument, index)
+                if (charCount <= 0 || charCount > MAX_METRICS_CHARS) {
+                    return null
+                }
+                val raw = pdfiumCore.textCharMetrics(pdfDocument, index, 0, charCount)
+                val metrics = PageCharMetrics.fromRaw(raw)
+                if (metrics == null && raw.isNotEmpty()) {
+                    Log.e(TAG, "getPageCharMetrics: unexpected metrics size ${raw.size} for $charCount chars on page $pageNumber")
+                }
+                metrics
+            }
+            finally {
+                if (opened) {
+                    pdfiumCore.closePage(pdfDocument, index)
+                }
+            }
+        }
+        catch (throwable: Throwable) {
+            Log.e(TAG, "getPageCharMetrics: failed for page $pageNumber", throwable)
+            null
+        }
+    }
+
     fun getPageCount() = pdfiumCore.getPageCount(pdfDocument)
+
+    fun renderPageThumbnail(pageIndex: Int, widthPx: Int): Bitmap? {
+        return try {
+            var opened = false
+            try {
+                pdfiumCore.openPage(pdfDocument, pageIndex)
+                opened = true
+                val pageWidth = pdfiumCore.getPageWidthPoint(pdfDocument, pageIndex)
+                val pageHeight = pdfiumCore.getPageHeightPoint(pdfDocument, pageIndex)
+                if (pageWidth <= 0 || pageHeight <= 0 || widthPx <= 0) {
+                    return null
+                }
+                val heightPx = (widthPx.toFloat() * pageHeight / pageWidth).toInt().coerceAtLeast(1)
+                val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.RGB_565)
+                pdfiumCore.renderPageBitmap(pdfDocument, bitmap, pageIndex, 0, 0, widthPx, heightPx)
+                bitmap
+            }
+            finally {
+                if (opened) {
+                    pdfiumCore.closePage(pdfDocument, pageIndex)
+                }
+            }
+        }
+        catch (throwable: Throwable) {
+            Log.e(TAG, "renderPageThumbnail: failed for page $pageIndex", throwable)
+            null
+        }
+    }
 
     fun getPageLinks(pageNumber: Int): List<PdfDocument.Link> {
         var opened = false

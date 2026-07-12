@@ -6,14 +6,12 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Handler;
 import android.util.TypedValue;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
@@ -21,9 +19,6 @@ import androidx.core.content.ContextCompat;
 import com.github.barteksc.pdfviewer.PDFView;
 import com.github.barteksc.pdfviewer.R;
 import com.github.barteksc.pdfviewer.util.Util;
-import com.google.android.material.textview.MaterialTextView;
-
-import java.util.Locale;
 
 public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle {
 
@@ -42,8 +37,6 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
 
     private final TapGestureDetector tapGestureDetector;
 
-    public TextView readingProgressText;
-
     private final Handler handler = new Handler();
     private final Runnable hidePageScrollerRunnable = new Runnable() {
         @Override
@@ -52,7 +45,7 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
         }
     };
     boolean permanentHidden = false;
-    private boolean readingProgressTextEnabled = true;
+    private int topReachLimit = 0;
     private View.OnTouchListener customOnTouchListener;
 
     public DefaultScrollHandle(Context context) {
@@ -131,31 +124,16 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
         lp.addRule(align);
         pdfView.addView(this, lp);
 
-        // Custom TextView to shor reading progress as 250/500 (50%)
-        MaterialTextView textView = (MaterialTextView) LayoutInflater.from(context)
-                .inflate(R.layout.read_progress_text_view, null);
-
-        LayoutParams layoutParams = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        layoutParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, RelativeLayout.TRUE);
-        int margin = 50;
-        layoutParams.setMargins(margin, margin, margin, margin);
-        textView.setText(getProgressText());
-        readingProgressText = textView;
-        pdfView.addView(readingProgressText, layoutParams);
-
         this.pdfView = pdfView;
     }
 
     @Override
-    public TextView getReadingProgressText() {
-        return readingProgressText;
-    }
-
-    @Override
-    public void setReadingProgressTextEnabled(boolean enabled) {
-        readingProgressTextEnabled = enabled;
-        if (!enabled && readingProgressText != null) {
-            readingProgressText.setVisibility(GONE);
+    public void setTopReachLimit(int limitPx) {
+        topReachLimit = Math.max(0, limitPx);
+        if (pdfView != null && pdfView.isSwipeVertical() && getY() < topReachLimit) {
+            setY(topReachLimit);
+            calculateMiddle();
+            invalidate();
         }
     }
 
@@ -203,8 +181,9 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
         }
         pos -= relativeHandlerMiddle;
 
-        if (pos < 0) {
-            pos = 0;
+        float minPos = pdfView.isSwipeVertical() ? topReachLimit : 0;
+        if (pos < minPos) {
+            pos = minPos;
         } else if (pos > pdfViewSize - Util.getDP(context, HANDLE_SHORT)) {
             pos = pdfViewSize - Util.getDP(context, HANDLE_SHORT);
         }
@@ -317,26 +296,17 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
                 else {
                     currentPos = event.getRawX() - getX();
                 }
-                if (readingProgressTextEnabled) {
-                    readingProgressText.setVisibility(VISIBLE);
-                    readingProgressText.setText(getProgressText());
-                }
             case MotionEvent.ACTION_MOVE:
                 if (pdfView.isSwipeVertical()) {
                     setPosition(event.getRawY() - currentPos + relativeHandlerMiddle);
-                    pdfView.setPositionOffset(relativeHandlerMiddle / (float) getHeight(), false);
                 } else {
                     setPosition(event.getRawX() - currentPos + relativeHandlerMiddle);
-                    pdfView.setPositionOffset(relativeHandlerMiddle / (float) getWidth(), false);
                 }
-                if (readingProgressTextEnabled) {
-                    readingProgressText.setText(getProgressText());
-                }
+                pdfView.setPositionOffset(computePositionOffset(), false);
                 return true;
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_POINTER_UP:
-                readingProgressText.setVisibility(GONE);
                 pdfView.performPageSnap();
                 return true;
         }
@@ -344,28 +314,24 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
         return super.onTouchEvent(event);
     }
 
-    @NonNull
-    private String getProgressText() {
-        int read = pdfView != null ? pdfView.getCurrentPage() + 1 : 0;
-        int total = pdfView != null ? pdfView.getPageCount() : 0;
-        String progress = read + "/" + total;
-        return progress;
-//        String percentage = calculatePercentage(read, total);
-//        return String.format("%s (%s)", progress, percentage);
-    }
-
-    public static String calculatePercentage(int read, int total) {
-        if (total <= 0 || read < 0) {
-            return "";
-        }
-        double result = ((double) read / total) * 100;
-        if (result % 1 == 0) {
-            return (int) result + "%";                 // 23%
+    private float computePositionOffset() {
+        float pdfViewSize;
+        float pos;
+        if (pdfView.isSwipeVertical()) {
+            pdfViewSize = pdfView.getHeight();
+            pos = getY();
         } else {
-            return String.format(Locale.US, "%.1f%%", result);  // 23.5%
+            pdfViewSize = pdfView.getWidth();
+            pos = getX();
         }
+        float minPos = pdfView.isSwipeVertical() ? topReachLimit : 0;
+        float maxPos = pdfViewSize - Util.getDP(context, HANDLE_SHORT);
+        if (maxPos <= minPos) {
+            return 0;
+        }
+        float offset = (pos - minPos) / (maxPos - minPos);
+        return Math.max(0, Math.min(1, offset));
     }
-
 
     @Override
     public void cancelHideRunner() {

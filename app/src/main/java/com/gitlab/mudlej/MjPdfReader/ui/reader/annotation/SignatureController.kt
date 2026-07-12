@@ -27,10 +27,6 @@ class SignatureController(
     private val updateDirtyUi: () -> Unit,
 ) {
 
-    init {
-        binding.cancelSignatureFab.setOnClickListener { cancelPlacement() }
-    }
-
     fun showSignatureDialog() {
         if (binding.pdfView.hasPendingStampPlacement()) {
             AppSnackbar.make(binding.root, R.string.signature_pending_hint, Snackbar.LENGTH_SHORT).show()
@@ -121,17 +117,14 @@ class SignatureController(
                 strokeWidth = pending.normalizedStrokeWidth,
             )
         )
-        hideCancelAffordance()
         return true
     }
 
     fun cancelPlacement() {
         if (!binding.pdfView.hasPendingStampPlacement()) {
-            hideCancelAffordance()
             return
         }
         binding.pdfView.cancelStampPlacement()
-        hideCancelAffordance()
         if (!vm.signatureDirtyBeforePlacement) {
             annotationController.clearDirty()
         }
@@ -160,7 +153,6 @@ class SignatureController(
         val data = store.load() ?: return
         binding.pdfView.startStampPlacement(page, rect, data.toNativeStrokes(), data.color, data.strokeWidth)
         annotationController.markDirty()
-        showCancelAffordance()
         updateDirtyUi()
     }
 
@@ -173,17 +165,8 @@ class SignatureController(
             return
         }
         annotationController.markDirty()
-        showCancelAffordance()
         updateDirtyUi()
         AppSnackbar.make(binding.root, R.string.signature_pending_hint, Snackbar.LENGTH_SHORT).show()
-    }
-
-    private fun showCancelAffordance() {
-        binding.cancelSignatureFab.visibility = android.view.View.VISIBLE
-    }
-
-    private fun hideCancelAffordance() {
-        binding.cancelSignatureFab.visibility = android.view.View.GONE
     }
 
     private companion object {

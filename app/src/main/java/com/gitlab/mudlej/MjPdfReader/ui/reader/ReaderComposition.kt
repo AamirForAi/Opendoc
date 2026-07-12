@@ -11,6 +11,7 @@ import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
@@ -65,7 +66,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.reader.navigation.ReaderHistoryManager
 import com.gitlab.mudlej.MjPdfReader.ui.reader.navigation.ReaderNavigationController
 import com.gitlab.mudlej.MjPdfReader.ui.reader.navigation.UserBookmarkController
 import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
-import com.gitlab.mudlej.MjPdfReader.core.ui.showGoToPageDialog
+import com.gitlab.mudlej.MjPdfReader.ui.gotopage.showGoToPageDialog
 import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
@@ -88,11 +89,17 @@ class ReaderComposition(
     private val scope = activity.lifecycleScope
 
     private val pdfPickerLauncher: ActivityResultLauncher<Array<String>> = activity.registerForActivityResult(OpenDocument()) { selectedDocumentUri ->
+        val exitOnCancel = pickerOpenedByBackButton
+        pickerOpenedByBackButton = false
         if (selectedDocumentUri != null) {
             PersistedGrantKeeper.takeReadGrant(activity, selectedDocumentUri)
+            openSelectedDocument(selectedDocumentUri)
+        } else if (exitOnCancel) {
+            activity.finish()
         }
-        openSelectedDocument(selectedDocumentUri)
     }
+
+    private var pickerOpenedByBackButton = false
 
     private val saveToDownloadPermissionLauncher: ActivityResultLauncher<String> = activity.registerForActivityResult(RequestPermission()) { granted ->
         onlinePdfController.saveDownloadedFileAfterPermissionRequest(granted)
@@ -145,6 +152,11 @@ class ReaderComposition(
     private val searchLauncher: ActivityResultLauncher<Intent> = activity.registerForActivityResult(StartActivityForResult()) { result ->
         ui.hideProgress()
         readerNavigationController.handleSearchResult(result.resultCode, result.data)
+    }
+
+    private val goToPageGridLauncher: ActivityResultLauncher<Intent> = activity.registerForActivityResult(StartActivityForResult()) { result ->
+        ui.hideProgress()
+        readerNavigationController.handleGoToPageGridResult(result.resultCode, result.data)
     }
 
     private val textModeLauncher: ActivityResultLauncher<Intent> = activity.registerForActivityResult(StartActivityForResult()) { result ->
@@ -254,6 +266,7 @@ class ReaderComposition(
         { intent -> navigationHistoryLauncher.launch(intent) },
         { intent -> linksLauncher.launch(intent) },
         { intent -> searchLauncher.launch(intent) },
+        { intent -> goToPageGridLauncher.launch(intent) },
     )
 
     val actionResolver: ConfigurableActionResolver = ConfigurableActionResolver(
@@ -361,6 +374,11 @@ class ReaderComposition(
         val fullScreenTouchListener = fullScreenOptionsManager.getOnTouchListener()
         handle.setOnTouchListener { view, motionEvent ->
             autoScrollManager.handleUserInteraction(motionEvent)
+            when (motionEvent.actionMasked) {
+                MotionEvent.ACTION_DOWN -> fullScreenOptionsManager.onHandleDragStarted()
+                MotionEvent.ACTION_MOVE -> fullScreenOptionsManager.refreshInfo()
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> fullScreenOptionsManager.onHandleDragEnded()
+            }
             fullScreenTouchListener.onTouch(view, motionEvent)
         }
         handle.setOnClickListener { goToPage() }
@@ -494,7 +512,15 @@ class ReaderComposition(
     }
 
     fun pickFile() {
-        ui.runAfterDirtyAnnotationPrompt { launchPdfPicker() }
+        ui.runAfterDirtyAnnotationPrompt {
+            pickerOpenedByBackButton = false
+            launchPdfPicker()
+        }
+    }
+
+    fun pickFileOnBackPressed() {
+        pickerOpenedByBackButton = true
+        launchPdfPicker()
     }
 
     fun openTextModeByDefault() {
@@ -646,10 +672,19 @@ class ReaderComposition(
     }
 
     private fun goToPage() {
-        showGoToPageDialog(activity, binding.root, doc.pageNumber, doc.length) { pageIndex ->
-            readerHistory.recordJump(ReaderHistoryManager.Origin.GO_TO, pageIndex)
-            binding.pdfView.jumpTo(pageIndex)
-        }
+        showGoToPageDialog(
+            activity,
+            binding.root,
+            doc.pageNumber,
+            doc.length,
+            doc.uri,
+            doc.password,
+            goToPageFunc = { pageIndex ->
+                readerHistory.recordJump(ReaderHistoryManager.Origin.GO_TO, pageIndex)
+                binding.pdfView.jumpTo(pageIndex)
+            },
+            showAllPages = { readerNavigationController.showGoToPageGrid() },
+        )
     }
 
     private fun toggleLabels() {

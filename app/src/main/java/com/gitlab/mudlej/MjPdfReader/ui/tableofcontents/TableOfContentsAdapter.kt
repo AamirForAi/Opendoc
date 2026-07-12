@@ -18,6 +18,7 @@ class TableOfContentsAdapter(
     private var roots: List<TableOfContentsEntry> = emptyList()
 
     var query: String? = null
+    var currentEntryPath: String? = null
 
     fun submitEntries(newRoots: List<TableOfContentsEntry>, commitCallback: (() -> Unit)? = null) {
         roots = newRoots
@@ -64,6 +65,13 @@ class TableOfContentsAdapter(
                 expandedEntryPaths.add(entry.path)
                 addExpandablePaths(entry.subEntries)
             }
+        }
+    }
+
+    fun expandAncestors(path: String) {
+        val parts = path.split('.')
+        for (length in 1 until parts.size) {
+            expandedEntryPaths.add(parts.take(length).joinToString("."))
         }
     }
 

@@ -59,6 +59,15 @@ data class PdfRecord(
 
     @ColumnInfo(defaultValue = UNSET_HIDDEN)
     var hidden: Boolean = false,
+
+    @ColumnInfo(defaultValue = UNSET_TEXT_MODE_REFLOW)
+    val textModeJoinParagraphs: Boolean? = null,
+
+    @ColumnInfo(defaultValue = UNSET_TEXT_MODE_REFLOW)
+    val textModeDetectHeadings: Boolean? = null,
+
+    @ColumnInfo(defaultValue = UNSET_TEXT_MODE_REFLOW)
+    val textModeCodeBlocks: Boolean? = null,
 ) {
 
     companion object {
@@ -91,5 +100,6 @@ data class PdfRecord(
         const val UNSET_READING_DIRECTION = "NULL"
         const val UNSET_DOCUMENT_TITLE = "NULL"
         const val UNSET_HIDDEN = "false"
+        const val UNSET_TEXT_MODE_REFLOW = "NULL"
     }
 }

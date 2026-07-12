@@ -168,6 +168,14 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 summaryRes = R.string.double_tap_to_exit_summary,
                 keywords = listOf("exit", "back"),
             ),
+            switchEntry(
+                page = SettingsPage.READING,
+                titleRes = R.string.always_open_first_page_title,
+                key = Preferences.alwaysOpenAtFirstPageKey,
+                defaultValue = Preferences.alwaysOpenAtFirstPageDefault,
+                summaryRes = R.string.always_open_first_page_summary,
+                keywords = listOf("first page", "page 1", "start", "resume", "position"),
+            ),
         )
     }
 
@@ -203,38 +211,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 summaryRes = R.string.auto_full_screen_summary,
                 keywords = listOf("fullscreen", "startup", "open"),
             ),
-            switchEntry(
-                page = SettingsPage.CUSTOMIZE_CONTROLS,
-                titleRes = R.string.fullscreen_info_show_time,
-                key = Preferences.fullScreenInfoShowTimeKey,
-                defaultValue = Preferences.fullScreenInfoShowTimeDefault,
-                summaryRes = R.string.fullscreen_info_show_time_summary,
-                keywords = listOf("fullscreen", "info", "clock"),
-            ),
-            switchEntry(
-                page = SettingsPage.CUSTOMIZE_CONTROLS,
-                titleRes = R.string.fullscreen_info_show_pdf_name,
-                key = Preferences.fullScreenInfoShowPdfNameKey,
-                defaultValue = Preferences.fullScreenInfoShowPdfNameDefault,
-                summaryRes = R.string.fullscreen_info_show_pdf_name_summary,
-                keywords = listOf("fullscreen", "info", "title", "file"),
-            ),
-            switchEntry(
-                page = SettingsPage.CUSTOMIZE_CONTROLS,
-                titleRes = R.string.fullscreen_info_show_page_number,
-                key = Preferences.fullScreenInfoShowPageNumberKey,
-                defaultValue = Preferences.fullScreenInfoShowPageNumberDefault,
-                summaryRes = R.string.fullscreen_info_show_page_number_summary,
-                keywords = listOf("fullscreen", "info", "page"),
-            ),
-            switchEntry(
-                page = SettingsPage.CUSTOMIZE_CONTROLS,
-                titleRes = R.string.fullscreen_info_show_reading_percentage,
-                key = Preferences.fullScreenInfoShowReadingPercentageKey,
-                defaultValue = Preferences.fullScreenInfoShowReadingPercentageDefault,
-                summaryRes = R.string.fullscreen_info_show_reading_percentage_summary,
-                keywords = listOf("fullscreen", "info", "percent", "progress"),
-            ),
+            scrollingInfoCardEntry(),
         )
     }
 
@@ -370,6 +347,17 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             keywords = listOf("fullscreen", "buttons", "actions"),
         ) { breadcrumb ->
             fullScreenButtonsPreference(breadcrumb = breadcrumb)
+        }
+    }
+
+    private fun scrollingInfoCardEntry(): SettingEntry {
+        return SettingEntry(
+            page = SettingsPage.CUSTOMIZE_CONTROLS,
+            titleRes = R.string.scrolling_info_card,
+            summaryRes = R.string.scrolling_info_card_summary,
+            keywords = listOf("scrolling", "fullscreen", "info", "card", "time", "clock", "page", "percent", "progress", "title", "file"),
+        ) { breadcrumb ->
+            scrollingInfoCardPreference(breadcrumb = breadcrumb)
         }
     }
 }

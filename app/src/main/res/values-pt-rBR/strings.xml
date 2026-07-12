@@ -208,7 +208,6 @@
     <string name="detect_existing_highlights_summary">Selecionar texto que corresponde exatamente a um destaque mostra suas ações em vez de criar um novo.</string>
     <string name="detect_existing_highlights_title">Detectar destaques existentes</string>
     <string name="discard">Descartar</string>
-    <string name="double_tap_to_exit_summary">Requer pressionar Voltar duas vezes para fechar o leitor.</string>
     <string name="dracula">Drácula</string>
     <string name="drag_to_reorder">Arrastar para reordenar</string>
     <string name="expand_all">Expandir tudo</string>
@@ -218,14 +217,6 @@
     <string name="form_field_update_failed">Não foi possível atualizar o campo de formulário</string>
     <string name="fullscreen_buttons">Ações em tela cheia</string>
     <string name="fullscreen_buttons_summary">Escolha quais ações aparecem no modo de tela cheia.</string>
-    <string name="fullscreen_info_show_page_number">Mostrar número da página em tela cheia</string>
-    <string name="fullscreen_info_show_page_number_summary">Exibir o número da página atual no cartão de informações de tela cheia.</string>
-    <string name="fullscreen_info_show_pdf_name">Mostrar nome do PDF em tela cheia</string>
-    <string name="fullscreen_info_show_pdf_name_summary">Exibir o nome do PDF no cartão de informações de tela cheia.</string>
-    <string name="fullscreen_info_show_reading_percentage">Mostrar porcentagem de leitura em tela cheia</string>
-    <string name="fullscreen_info_show_reading_percentage_summary">Exibir o progresso da leitura como porcentagem no cartão de informações de tela cheia.</string>
-    <string name="fullscreen_info_show_time">Mostrar hora em tela cheia</string>
-    <string name="fullscreen_info_show_time_summary">Exibir a hora atual no cartão de informações de tela cheia.</string>
     <string name="fullscreen_page_info">Página %1$d / %2$d · %3$d%%</string>
     <string name="fullscreen_page_number_info">Página %1$d / %2$d</string>
     <string name="fullscreen_percentage_info">%1$d%%</string>
@@ -292,7 +283,6 @@
     <string name="show_margins">Mostrar margines</string>
     <string name="show_scroll_handle_page_count_summary">Mostrar o identificador de rolagem como página atual/total de páginas em vez de apenas página atual.</string>
     <string name="show_scroll_handle_page_count_title">Mostrar contagem de páginas no identificador de rolagem</string>
-    <string name="signature_cancel_placement">Cancelar posicionamento de assinatura</string>
     <string name="signature_clear">Limpar</string>
     <string name="signature_color_black">Tinta preta</string>
     <string name="signature_color_blue">Tinta azul</string>

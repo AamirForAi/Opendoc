@@ -34,6 +34,7 @@ class FullScreenOptionsManager(
     
     private var visibility: VisibilityState = VisibilityState.INVISIBLE
     private var labelVisibility: VisibilityState = VisibilityState.VISIBLE
+    private var isHandleDragged = false
 
     private val viewsList: MutableList<View> = mutableListOf(
         binding.fullScreenButtonsLayout,
@@ -127,10 +128,19 @@ class FullScreenOptionsManager(
 
     fun refreshInfo() {
         val shouldShowInfo = updateInfoContent()
-            && binding.fullScreenButtonsLayout.visibility == View.VISIBLE
+            && (isHandleDragged || binding.fullScreenButtonsLayout.visibility == View.VISIBLE)
 
         binding.fullScreenInfoLayout.visibility = if (shouldShowInfo) View.VISIBLE else View.GONE
-        binding.pdfView.scrollHandle?.setReadingProgressTextEnabled(!shouldShowInfo)
+    }
+
+    fun onHandleDragStarted() {
+        isHandleDragged = true
+        refreshInfo()
+    }
+
+    fun onHandleDragEnded() {
+        isHandleDragged = false
+        refreshInfo()
     }
 
     fun registerFullScreenButton(button: MaterialButton, label: String?) {
@@ -268,15 +278,8 @@ class FullScreenOptionsManager(
     private fun hideFullScreenButtons() = changeFullScreenButtonsVisibility(false)
 
     private fun changeFullScreenButtonsVisibility(isVisible: Boolean) {
-        val visibility = if (isVisible) View.VISIBLE else View.GONE
-        binding.fullScreenButtonsLayout.visibility = visibility
-        if (isVisible) {
-            refreshInfo()
-        }
-        else {
-            binding.fullScreenInfoLayout.visibility = View.GONE
-            binding.pdfView.scrollHandle?.setReadingProgressTextEnabled(true)
-        }
+        binding.fullScreenButtonsLayout.visibility = if (isVisible) View.VISIBLE else View.GONE
+        refreshInfo()
     }
 
     private fun showPageHandle() {

@@ -157,7 +157,9 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             onGridSizeChanged = { libraryTab.applyGridSize() },
             onSortChanged = ::refresh,
             onFolderModeChanged = { foldersTab.onModeChanged() },
-            stats = ::buildStats,
+            onShowStats = {
+                showLibraryStatsDialog(this, allItems, libraryScanner.index.value.entries)
+            },
         )
         onBackPressedDispatcher.addCallback(this, foldersBackCallback)
         binding.searchBar.inflateMenu(R.menu.home_search_bar)
@@ -274,15 +276,6 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         }
     }
 
-    private fun buildStats(): HomeMenuDialog.HomeStats {
-        return HomeMenuDialog.HomeStats(
-            onDevice = libraryScanner.index.value.entries.size,
-            inLibrary = allItems.size,
-            reading = allItems.count { it.readingStatus == ReadingStatus.READING },
-            completed = allItems.count { it.readingStatus == ReadingStatus.COMPLETED },
-        )
-    }
-
     private fun onStorageAccessChanged() {
         recentTab.onCoversChanged()
         libraryTab.onCoversChanged()
@@ -353,9 +346,8 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             .setTitle(R.string.home_set_status)
             .setItems(labels) { _, index ->
                 lifecycleScope.launch {
-                    pdfRepository.setReadingBatch(
-                        items.map { it.hash }, ReadingStatus.entries[index]
-                    )
+                    val hashes = items.mapNotNull { recordOptionsDialog.ensureRecordHash(it) }
+                    pdfRepository.setReadingBatch(hashes, ReadingStatus.entries[index])
                     selectionController.finish()
                     refresh()
                 }

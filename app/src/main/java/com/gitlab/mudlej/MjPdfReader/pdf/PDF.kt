@@ -12,6 +12,7 @@ object PDF {
     const val TABLE_OF_CONTENTS_RESULT_OK = 48645
     const val SEARCH_RESULT_OK = 48632
     const val LINK_RESULT_OK = 48032
+    const val GO_TO_PAGE_RESULT_OK = 48214
     const val SCREENSHOT_IMAGE_QUALITY = 100
     const val SEARCH_RESULT_OFFSET = 40
     const val ADDITIONAL_SEARCH_RESULT_OFFSET = 100
@@ -55,4 +56,5 @@ object PDF {
     const val searchIgnoreAccentsKey = "searchIgnoreAccents"
     const val resultPositionInListKey = "searchResultPositionKey"
     const val filePathKey = "filePathKey"
+    const val chosenPageIndexKey = "chosenPageIndexKey"
 }

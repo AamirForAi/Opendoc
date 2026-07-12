@@ -130,11 +130,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         actionBar?.setDisplayShowCustomEnabled(true)
         actionBar?.elevation = 0F
 
-        val homeEnabled = !pref.getHomeDisabled()
-        actionBar?.setDisplayHomeAsUpEnabled(homeEnabled)
-        if (homeEnabled) {
-            actionBar?.setHomeAsUpIndicator(R.drawable.ic_home)
-        }
+        updateHomeUpIndicator()
 
         val customView: View = layoutInflater.inflate(R.layout.actionbar_title, null)
         appTitlePageNumber = customView.findViewById(R.id.actionbarPageNumber)
@@ -151,6 +147,15 @@ class MainActivity : AppCompatActivity(), ReaderUi {
 
         // Apply the custom view
         actionBar?.customView = customView
+    }
+
+    private fun updateHomeUpIndicator() {
+        val actionBar = supportActionBar
+        val homeEnabled = !pref.getHomeDisabled()
+        actionBar?.setDisplayHomeAsUpEnabled(homeEnabled)
+        if (homeEnabled) {
+            actionBar?.setHomeAsUpIndicator(R.drawable.ic_home)
+        }
     }
 
     override fun runAfterDirtyAnnotationPrompt(discardAction: () -> Unit) {
@@ -324,6 +329,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         if (::actionBarMenu.isInitialized) {
             updateActionBar()
         }
+        updateHomeUpIndicator()
         reader.onResume()
 
         // check if there is a pdf at first
@@ -614,18 +620,14 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         val onBackPressedCallback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (annotationController.hasUnsavedAnnotations) {
-                    runAfterDirtyAnnotationPrompt {
-                        isEnabled = false
-                        onBackPressedDispatcher.onBackPressed()
-                    }
+                    runAfterDirtyAnnotationPrompt { leaveReader(this) }
                     return
                 }
                 if (!pref.getDoubleTapToExitEnabled()
                     || intent.getBooleanExtra(HomeActivity.EXTRA_FROM_HOME, false)
                     || doubleBackToExitPressedOnce
                 ) {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
+                    leaveReader(this)
                 } else {
                     AppSnackbar.make(binding.root, getString(R.string.press_back_again), Snackbar.LENGTH_LONG).show()
                     doubleBackToExitPressedOnce = true
@@ -638,6 +640,21 @@ class MainActivity : AppCompatActivity(), ReaderUi {
             }
         }
         onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+    }
+
+    private fun leaveReader(callback: OnBackPressedCallback) {
+        val launchedByPickerFlow = pref.getHomeDisabled()
+                && intent.action == null
+                && intent.data == null
+        if (launchedByPickerFlow && pdf.uri != null) {
+            doubleBackToExitPressedOnce = false
+            reader.pickFileOnBackPressed()
+        } else if (intent.getBooleanExtra(HomeActivity.EXTRA_FROM_HOME, false)) {
+            navigateHome()
+        } else {
+            callback.isEnabled = false
+            onBackPressedDispatcher.onBackPressed()
+        }
     }
 
 }

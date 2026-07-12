@@ -38,6 +38,7 @@ class TableOfContentsActivity : AppCompatActivity(), TableOfContentsFunctions {
     private var activeQuery: String? = null
     private var resultPrepared = false
     private var applyingSearchState = false
+    private var currentPageIndex = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +46,7 @@ class TableOfContentsActivity : AppCompatActivity(), TableOfContentsFunctions {
         setContentView(binding.root)
         setupScreenChrome()
         title = getString(R.string.loading)
+        currentPageIndex = intent.getIntExtra(PDF.pageNumberKey, -1)
         restoreTableOfContentsState(savedInstanceState)
 
         showProgressBar()
@@ -78,6 +80,7 @@ class TableOfContentsActivity : AppCompatActivity(), TableOfContentsFunctions {
             }
 
             entries = loadedEntries
+            tableOfContentsAdapter.currentEntryPath = findCurrentEntryPath()
             binding.progressBar.visibility = View.GONE
             submitVisibleEntries(restoreScroll = true)
             postGettingEntries()
@@ -95,6 +98,7 @@ class TableOfContentsActivity : AppCompatActivity(), TableOfContentsFunctions {
         if (::actionBarMenu.isInitialized) {
             configureSearchIcon(actionBarMenu, entries.isNotEmpty())
             configureExpandCollapseItems(actionBarMenu)
+            configureLocateMeItem(actionBarMenu)
             restoreSearchViewState(actionBarMenu)
         }
     }
@@ -103,6 +107,40 @@ class TableOfContentsActivity : AppCompatActivity(), TableOfContentsFunctions {
         val show = entries.any { it.hasSubEntries() }
         menu.findItem(R.id.expand_all_entries)?.isVisible = show
         menu.findItem(R.id.collapse_all_entries)?.isVisible = show
+    }
+
+    private fun configureLocateMeItem(menu: Menu) {
+        menu.findItem(R.id.locate_current_entry)?.isVisible =
+            tableOfContentsAdapter.currentEntryPath != null
+    }
+
+    private fun findCurrentEntryPath(): String? {
+        if (currentPageIndex < 0) return null
+
+        val flattened = mutableListOf<TableOfContentsEntry>()
+        fun collect(entry: TableOfContentsEntry) {
+            if (entry.pageIdx >= 0) flattened.add(entry)
+            entry.subEntries.forEach(::collect)
+        }
+        entries.forEach(::collect)
+
+        return flattened
+            .sortedWith(compareBy({ it.pageIdx }, { it.level }))
+            .lastOrNull { it.pageIdx <= currentPageIndex }
+            ?.path
+    }
+
+    private fun locateCurrentEntry() {
+        val path = tableOfContentsAdapter.currentEntryPath ?: return
+        if (tableOfContentsAdapter.isFiltering()) return
+
+        tableOfContentsAdapter.expandAncestors(path)
+        tableOfContentsAdapter.refresh {
+            val position = tableOfContentsAdapter.currentList.indexOfFirst { it.entry.path == path }
+            if (position >= 0) {
+                layoutManager.scrollToPositionWithOffset(position, binding.bookmarksRecyclerView.height / 3)
+            }
+        }
     }
 
     private fun initUi() {
@@ -120,6 +158,7 @@ class TableOfContentsActivity : AppCompatActivity(), TableOfContentsFunctions {
         actionBarMenu = menu
         configureSearchIcon(menu, entries.isNotEmpty())
         configureExpandCollapseItems(menu)
+        configureLocateMeItem(menu)
         initSearchView(menu)
         restoreSearchViewState(menu)
         return true
@@ -192,6 +231,7 @@ class TableOfContentsActivity : AppCompatActivity(), TableOfContentsFunctions {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             android.R.id.home -> finish()
+            R.id.locate_current_entry -> locateCurrentEntry()
             R.id.expand_all_entries -> tableOfContentsAdapter.expandAll()
             R.id.collapse_all_entries -> tableOfContentsAdapter.collapseAll()
             else -> super.onOptionsItemSelected(item)

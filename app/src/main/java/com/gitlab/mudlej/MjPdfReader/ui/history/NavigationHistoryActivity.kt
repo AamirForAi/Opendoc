@@ -73,45 +73,84 @@ class NavigationHistoryActivity : AppCompatActivity() {
         val pages = intent.getIntArrayExtra(EXTRA_PAGES) ?: return emptyList()
         val origins = intent.getStringArrayExtra(EXTRA_ORIGINS) ?: return emptyList()
         val timestamps = intent.getLongArrayExtra(EXTRA_TIMESTAMPS) ?: return emptyList()
-        val backStackIndices = intent.getIntArrayExtra(EXTRA_BACK_STACK_INDICES) ?: return emptyList()
-        if (pages.size != origins.size || pages.size != timestamps.size || pages.size != backStackIndices.size) {
+        val kinds = intent.getStringArrayExtra(EXTRA_KINDS) ?: return emptyList()
+        val stackIndices = intent.getIntArrayExtra(EXTRA_STACK_INDICES) ?: return emptyList()
+        if (pages.size != origins.size || pages.size != timestamps.size
+            || pages.size != kinds.size || pages.size != stackIndices.size) {
             return emptyList()
         }
 
         return pages.indices.map { index ->
             val origin = ReaderHistoryManager.Origin.entries.firstOrNull { it.name == origins[index] }
                 ?: ReaderHistoryManager.Origin.HISTORY
+            val kind = NavigationHistoryRow.Kind.entries.firstOrNull { it.name == kinds[index] }
+                ?: NavigationHistoryRow.Kind.BACK
             NavigationHistoryRow(
                 pageIndex = pages[index],
                 origin = origin,
                 timestamp = timestamps[index],
-                backStackIndex = backStackIndices[index],
+                kind = kind,
+                stackIndex = stackIndices[index],
                 tableOfContentsPath = null,
             )
         }
     }
 
     private fun onHistoryEntryClicked(entry: NavigationHistoryRow) {
-        val resultIntent = Intent().putExtra(EXTRA_SELECTED_BACK_STACK_INDEX, entry.backStackIndex)
+        val resultIntent = Intent()
+        when (entry.kind) {
+            NavigationHistoryRow.Kind.BACK -> resultIntent.putExtra(EXTRA_SELECTED_BACK_STACK_INDEX, entry.stackIndex)
+            NavigationHistoryRow.Kind.FORWARD -> resultIntent.putExtra(EXTRA_SELECTED_FORWARD_STACK_INDEX, entry.stackIndex)
+            NavigationHistoryRow.Kind.CURRENT -> return
+        }
         setResult(Activity.RESULT_OK, resultIntent)
         finish()
     }
 
     companion object {
         const val EXTRA_SELECTED_BACK_STACK_INDEX = "selectedBackStackIndex"
+        const val EXTRA_SELECTED_FORWARD_STACK_INDEX = "selectedForwardStackIndex"
 
         private const val EXTRA_PAGES = "pages"
         private const val EXTRA_ORIGINS = "origins"
         private const val EXTRA_TIMESTAMPS = "timestamps"
-        private const val EXTRA_BACK_STACK_INDICES = "backStackIndices"
+        private const val EXTRA_KINDS = "kinds"
+        private const val EXTRA_STACK_INDICES = "stackIndices"
 
-        fun createIntent(context: Context, entries: List<ReaderHistoryManager.Entry>): Intent {
-            val rows = entries.withIndex().toList().asReversed()
+        fun createIntent(
+            context: Context,
+            backEntries: List<ReaderHistoryManager.Entry>,
+            forwardEntries: List<ReaderHistoryManager.Entry>,
+            currentPageIndex: Int,
+        ): Intent {
+            val pages = mutableListOf<Int>()
+            val origins = mutableListOf<String>()
+            val timestamps = mutableListOf<Long>()
+            val kinds = mutableListOf<String>()
+            val stackIndices = mutableListOf<Int>()
+
+            fun addRow(pageIndex: Int, origin: ReaderHistoryManager.Origin, timestamp: Long, kind: NavigationHistoryRow.Kind, stackIndex: Int) {
+                pages.add(pageIndex)
+                origins.add(origin.name)
+                timestamps.add(timestamp)
+                kinds.add(kind.name)
+                stackIndices.add(stackIndex)
+            }
+
+            forwardEntries.forEachIndexed { index, entry ->
+                addRow(entry.pageIndex, entry.origin, entry.timestamp, NavigationHistoryRow.Kind.FORWARD, index)
+            }
+            addRow(currentPageIndex, ReaderHistoryManager.Origin.HISTORY, 0L, NavigationHistoryRow.Kind.CURRENT, -1)
+            backEntries.withIndex().toList().asReversed().forEach { (index, entry) ->
+                addRow(entry.pageIndex, entry.origin, entry.timestamp, NavigationHistoryRow.Kind.BACK, index)
+            }
+
             return Intent(context, NavigationHistoryActivity::class.java).apply {
-                putExtra(EXTRA_PAGES, rows.map { it.value.pageIndex }.toIntArray())
-                putExtra(EXTRA_ORIGINS, rows.map { it.value.origin.name }.toTypedArray())
-                putExtra(EXTRA_TIMESTAMPS, rows.map { it.value.timestamp }.toLongArray())
-                putExtra(EXTRA_BACK_STACK_INDICES, rows.map { it.index }.toIntArray())
+                putExtra(EXTRA_PAGES, pages.toIntArray())
+                putExtra(EXTRA_ORIGINS, origins.toTypedArray())
+                putExtra(EXTRA_TIMESTAMPS, timestamps.toLongArray())
+                putExtra(EXTRA_KINDS, kinds.toTypedArray())
+                putExtra(EXTRA_STACK_INDICES, stackIndices.toIntArray())
             }
         }
     }
@@ -121,6 +160,9 @@ data class NavigationHistoryRow(
     val pageIndex: Int,
     val origin: ReaderHistoryManager.Origin,
     val timestamp: Long,
-    val backStackIndex: Int,
+    val kind: Kind,
+    val stackIndex: Int,
     val tableOfContentsPath: String?,
-)
+) {
+    enum class Kind { BACK, CURRENT, FORWARD }
+}

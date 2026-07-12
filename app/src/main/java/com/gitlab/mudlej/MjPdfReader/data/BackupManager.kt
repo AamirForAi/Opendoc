@@ -136,6 +136,9 @@ class BackupManager(
                         readingDirectionOverride = backup.readingDirectionOverride,
                         detectedReadingDirection = backup.detectedReadingDirection,
                         documentTitle = backup.documentTitle,
+                        textModeJoinParagraphs = backup.textModeJoinParagraphs,
+                        textModeDetectHeadings = backup.textModeDetectHeadings,
+                        textModeCodeBlocks = backup.textModeCodeBlocks,
                     )
                 )
                 inserted++
@@ -153,6 +156,9 @@ class BackupManager(
                         readingDirectionOverride = backup.readingDirectionOverride ?: existing.readingDirectionOverride,
                         detectedReadingDirection = backup.detectedReadingDirection ?: existing.detectedReadingDirection,
                         documentTitle = backup.documentTitle ?: existing.documentTitle,
+                        textModeJoinParagraphs = backup.textModeJoinParagraphs ?: existing.textModeJoinParagraphs,
+                        textModeDetectHeadings = backup.textModeDetectHeadings ?: existing.textModeDetectHeadings,
+                        textModeCodeBlocks = backup.textModeCodeBlocks ?: existing.textModeCodeBlocks,
                     )
                 )
                 updated++
@@ -207,6 +213,9 @@ class BackupManager(
             detectedReadingDirection = detectedReadingDirection,
             documentTitle = documentTitle,
             uri = uri.toString(),
+            textModeJoinParagraphs = textModeJoinParagraphs,
+            textModeDetectHeadings = textModeDetectHeadings,
+            textModeCodeBlocks = textModeCodeBlocks,
         )
     }
 

@@ -152,6 +152,19 @@ internal class SettingsPreferenceFactory(
         }
     }
 
+    fun scrollingInfoCardPreference(breadcrumb: String?): Preference {
+        return Preference(context).apply {
+            title = getString(R.string.scrolling_info_card)
+            key = Preferences.fullScreenInfoShowPageNumberKey
+            summary = formatSummary(breadcrumb, getString(R.string.scrolling_info_card_summary))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showScrollingInfoCardPreferenceDialog(context, appPreferences)
+                true
+            }
+        }
+    }
+
     fun shortcutBarButtonsPreference(breadcrumb: String?): Preference {
         return Preference(context).apply {
             title = getString(R.string.shortcut_bar_buttons)

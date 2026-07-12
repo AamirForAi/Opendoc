@@ -39,6 +39,9 @@
             android:name=".ui.search.SearchActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.gotopage.GoToPageActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.links.LinksActivity"
             android:exported="false" />
         <activity

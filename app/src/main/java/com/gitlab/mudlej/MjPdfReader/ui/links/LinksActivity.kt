@@ -36,6 +36,7 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
     private val extractorScreen = ExtractorScreen(this)
     private val linkAdapter = LinkAdapter(this, this)
     private var links: List<Link> = listOf()
+    private var actionBarMenu: Menu? = null
     private val lastPageLiveData = MutableLiveData<Int>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,6 +97,7 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
                         links = snapshot
                         linkAdapter.submitList(snapshot)
                         binding.message.visibility = View.GONE
+                        actionBarMenu?.let { configureSearchIcon(it, true) }
                     }
                 }
             }
@@ -116,6 +118,7 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
         else {
             binding.message.text = getString(R.string.no_links_put_in_pdf)
         }
+        actionBarMenu?.let { configureSearchIcon(it, links.isNotEmpty()) }
 
         // set up the title in the App Bar
         title = "${"%,d".format(links.size)} ${getString(R.string.links_in_document)}"
@@ -142,6 +145,7 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.search_menu, menu)
         menu.tintIconsForChrome(this)
+        actionBarMenu = menu
         configureSearchIcon(menu, links.isNotEmpty())
         return true
     }

@@ -4,6 +4,7 @@ package com.gitlab.mudlej.MjPdfReader.ui.search
 
 object SearchSessionCache {
     private const val MAX_SESSIONS = 5
+    private const val MAX_CACHED_HITS = 5000
     private const val NO_POSITION = -1
 
     data class Key(val fileHash: String, val query: String, val ignoreAccents: Boolean)
@@ -39,6 +40,10 @@ object SearchSessionCache {
     @Synchronized
     fun put(fileHash: String?, query: String, ignoreAccents: Boolean, hits: List<Hit>) {
         val key = key(fileHash, query, ignoreAccents) ?: return
+        if (hits.size > MAX_CACHED_HITS) {
+            sessions.remove(key)
+            return
+        }
         sessions[key] = Session(key, hits.toList())
     }
 

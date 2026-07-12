@@ -9,6 +9,12 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import java.time.LocalDateTime
 
+data class TextModeReflowOverride(
+    val textModeJoinParagraphs: Boolean?,
+    val textModeDetectHeadings: Boolean?,
+    val textModeCodeBlocks: Boolean?,
+)
+
 @Dao
 interface PdfRecordDao {
 
@@ -77,6 +83,12 @@ interface PdfRecordDao {
 
     @Query("UPDATE PdfRecord SET detectedReadingDirection = :direction WHERE hash = :fileHash")
     fun updateDetectedReadingDirection(fileHash: String, direction: String): Int
+
+    @Query("SELECT textModeJoinParagraphs, textModeDetectHeadings, textModeCodeBlocks FROM PdfRecord WHERE hash = :fileHash LIMIT 1")
+    fun findTextModeReflow(fileHash: String): TextModeReflowOverride?
+
+    @Query("UPDATE PdfRecord SET textModeJoinParagraphs = :joinParagraphs, textModeDetectHeadings = :detectHeadings, textModeCodeBlocks = :codeBlocks WHERE hash = :fileHash")
+    fun updateTextModeReflow(fileHash: String, joinParagraphs: Boolean?, detectHeadings: Boolean?, codeBlocks: Boolean?): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(saveLocations: PdfRecord)
