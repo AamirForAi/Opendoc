@@ -20,7 +20,6 @@ import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
 import com.gitlab.mudlej.MjPdfReader.databinding.AboutRowItemBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityAboutBinding
 import com.gitlab.mudlej.MjPdfReader.ui.intro.MainIntroActivity
-import com.gitlab.mudlej.MjPdfReader.ui.reader.showAppFeaturesDialog
 import com.google.android.material.snackbar.Snackbar
 
 class AboutActivity : AppCompatActivity() {
@@ -47,8 +46,8 @@ class AboutActivity : AppCompatActivity() {
     }
 
     private fun bindRows() {
-        bindRow(binding.whatsNewRow, R.drawable.log_icon, R.string.appChangelog) {
-            showAppFeaturesDialog(this)
+        bindRow(binding.whatsNewRow, R.drawable.log_icon, R.string.whats_new_title) {
+            startActivity(navIntent(applicationContext, WhatsNewActivity::class.java))
         }
         bindRow(binding.replayIntroRow, R.drawable.replay_icon, R.string.intro) {
             startActivity(navIntent(applicationContext, MainIntroActivity::class.java))

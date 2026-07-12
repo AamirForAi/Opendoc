@@ -1,16 +1,6 @@
 <!-- Written by Mudlej. License is GPLv3. -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="mj_app_name" translatable="false">MJ PDF</string>
-    <string name="what_is_new">
-        * Added support for Arabic, Chinese, Turkish, German, Spanish, Portuguese, Hindi, Russian.\n\n
-        * Search Enhancements: Back to results button; better highlighting.\n\n
-        * UI Fixes: Consistent icon colors, improved layout and visibility.\n\n
-        * Added Always Horizontal mode.\n\n
-        * Added Experimental Reload PDF button in the settings.\n\n
-        * Better support for password-protected and non-local PDFs.\n\n
-        * Stability: Fixed crashes from background operations.\n\n
-        * Development: Upgraded SDK, Gradle, and dependencies.
-    </string>
     <string name="pick_file">Pick File</string>
     <string name="toast_pick_file_error">Unable to pick file! Check your file manager on your phone.</string>
     <string name="toast_http_code_error">Remote server responded with an error.</string>
@@ -52,7 +42,22 @@
     <string name="intro_get_started">Get started</string>
     <string name="privacy">Privacy Policy</string>
 
-    <string name="appChangelog">Features / Change Log</string>
+    <string name="whats_new_title">What\'s New</string>
+    <string name="whats_new_intro">This release brings a new home screen, annotation tools, and a large rework across the whole app.</string>
+    <string name="whats_new_section_home">Home</string>
+    <string name="whats_new_home_title">A new home screen</string>
+    <string name="whats_new_home_body">Your library with covers, reading progress, statuses and search.</string>
+    <string name="whats_new_folders_title">Folders</string>
+    <string name="whats_new_folders_body">Browse every PDF on your device, organized by folder.</string>
+    <string name="whats_new_section_reading">Reading</string>
+    <string name="whats_new_two_pages_title">Two page mode</string>
+    <string name="whats_new_two_pages_body">Read pages side by side like a book.</string>
+    <string name="whats_new_section_annotation">Annotation</string>
+    <string name="whats_new_highlights_title">Highlights and notes</string>
+    <string name="whats_new_highlights_body">Select text, highlight it, add notes, and save them into the PDF file.</string>
+    <string name="whats_new_section_privacy">Privacy</string>
+    <string name="whats_new_incognito_title">Incognito mode</string>
+    <string name="whats_new_incognito_body">Read without saving any reading history.</string>
     <string name="done">DONE</string>
     <string name="results">SEARCH RESULTS</string>
     <string name="ok">OK</string>

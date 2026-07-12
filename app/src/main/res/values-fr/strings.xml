@@ -1,15 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="mj_app_name" translatable="false">MJ PDF</string>
-    <string name="what_is_new">
-        * Ajout de la prise en charge de l\'arabe, chinois, turc, allemand, espagnol, portugais, hindi, russe.\n\n
-        * Amélioration de la recherche: bouton de retour aux résultats ; meilleur surlignage.\n\n
-        * Correction de l\'interface utilisateur: couleurs d\'icônes constantes, disposition et visibilité améliorées.\n\n
-        * Ajout du mode Toujours horizontal.\n\n
-        * Ajout du bouton de rechargement du PDF expérimental dans les réglages.\n\n
-        * Meilleure prise en charge des PDF protégés par mot de passe et non-locaux.\n\n
-        * Stabilité: correction de crashs d\'opérations en arrière-plan.\n\n
-        * Développement: mise à jour du SDK, Gradle, et des dépendances.
-    </string>
     <string name="pick_file">Choisir un fichier</string>
     <string name="toast_pick_file_error">Impossible de choisir un fichier ! Vérifiez le gestionnaire de fichiers de votre appareil.</string>
     <string name="toast_http_code_error">Le serveur distant a répondu par une erreur.</string>
@@ -21,7 +11,6 @@
     <string name="intro">Rejouer l\'introduction</string>
     <string name="myLicense">Licence</string>
     <string name="privacy">Politique de vie privée</string>
-    <string name="appChangelog">Fonctionnalités/Journal des changements</string>
     <string name="done">TERMINÉ</string>
     <string name="results">RÉSULTATS DE RECHERCHE</string>
     <string name="ok">OK</string>

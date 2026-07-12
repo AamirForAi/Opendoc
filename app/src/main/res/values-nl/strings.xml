@@ -1,15 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="mj_app_name" translatable="false">MJ PDF</string>
-    <string name="what_is_new">
-        * Ondersteuning toegevoegd voor Arabisch, Chinees, Turks, Duits, Spaans, Portugees, Hindi, Russisch.\n\n
-        * Zoekverbeteringen: Knop Terug naar resultaten; verbeterde markering.\n\n
-        * UI-verbeteringen: consistente pictogramkleuren, verbeterde lay-out en zichtbaarheid.\n\n
-        * Altijd horizontale modus toegevoegd.\n\n
-        * Experimentele knop PDF Opnieuw laden toegevoegd in de instellingen.\n\n
-        * Verbeterde ondersteuning voor met een wachtwoord beveiligde en niet-lokale pdf\'s.\n\n
-        * Stabiliteit: reparatie van crashes van achtergrondoperaties.\n\n
-        * Ontwikkeling: verbeterde SDK, gradle en afhankelijkheden.
-    </string>
     <string name="pick_file">Kies een bestand</string>
     <string name="toast_pick_file_error">Kan bestand niet kiezen! Controleer je bestandsbeheerder op je telefoon.</string>
     <string name="toast_http_code_error">Externe server reageerde met een fout.</string>
@@ -22,7 +12,6 @@
     <string name="myLicense">Licentie</string>
     <string name="privacy">Privacybeleid</string>
 
-    <string name="appChangelog">Functies / wijzigingslog</string>
     <string name="done">KLAAR</string>
     <string name="results">ZOEKRESULTATEN</string>
     <string name="ok">OK</string>

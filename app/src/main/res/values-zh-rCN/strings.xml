@@ -1,15 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="mj_app_name" translatable="false">MJ PDF</string>
-    <string name="what_is_new">
-        * 新增对阿拉伯语、中文、土耳其语、德语、西班牙语、葡萄牙语、印地语、俄语的支持。\n\n
-        * 搜索增强功能：返回结果按钮；更好的高亮显示。\n\n
-        * 用户界面修复：保持图标颜色一致，改进布局和可见性。\n\n
-        * 新增固定横屏模式。\n\n
-        * 在设置中新增实验性的“重新加载 PDF”按钮。\n\n
-        * 更好地支持受密码保护和非本地的 PDF 文档。\n\n
-        * 稳定性：修复了后台操作导致的崩溃。\n\n
-        * 开发：升级了 SDK、Gradle 和依赖。
-    </string>
     <string name="pick_file">选择文档</string>
     <string name="toast_pick_file_error">无法选择文档！请检查手机的文件管理应用。</string>
     <string name="toast_http_code_error">远程服务器返回错误。</string>
@@ -22,7 +12,6 @@
     <string name="myLicense">许可证</string>
     <string name="privacy">隐私政策</string>
 
-    <string name="appChangelog">更新日志</string>
     <string name="done">完成</string>
     <string name="results">搜索结果</string>
     <string name="ok">确认</string>

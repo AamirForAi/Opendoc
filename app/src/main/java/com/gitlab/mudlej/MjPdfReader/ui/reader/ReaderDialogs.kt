@@ -17,7 +17,6 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.text.isDigitsOnly
-import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
@@ -40,21 +39,6 @@ import java.io.File
 import java.util.Locale
 
 private const val TAG = "ReaderDialogs"
-
-fun showAppFeaturesDialog(context: Context) {
-    val dialog = MaterialAlertDialogBuilder(context)
-        .setTitle("${context.resources.getString(R.string.mj_app_name)} ${BuildConfig.VERSION_NAME}")
-        .setMessage(context.resources.getString(R.string.what_is_new))
-        .setPositiveButton(context.resources.getString(R.string.ok)) { dialog, _ -> dialog.dismiss() }
-        .create()
-
-    try {
-        dialog.show()
-    }
-    catch (e: Throwable) {
-        Log.e(TAG, "showAppFeaturesDialog: Error showing the dialog.(${e.message})")
-    }
-}
 
 fun showMetaDialog(
     context: Context,

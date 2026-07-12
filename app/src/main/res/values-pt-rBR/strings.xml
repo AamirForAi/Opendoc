@@ -1,14 +1,4 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="what_is_new">
-        * Adicionado suporte para árabe, chinês, turco, alemão, espanhol, português, hindi, russo.\n\n
-        * Melhorias na pesquisa: botão de voltar aos resultados; melhor destaque.\n\n
-        * Correções de UI: cores de ícones consistentes, layout e visibilidade melhorados.\n\n
-        * Adicionado modo Sempre Horizontal.\n\n
-        * Adicionado botão Experimental Recarregar PDF nas configurações.\n\n
-        * Melhor suporte para PDFs protegidos por senha e não locais.\n\n
-        * Estabilidade: corrigidos falhas devido a operações em segundo plano.\n\n
-        * Desenvolvimento: Atualizado SDK, Gradle e dependências.
-    </string>
     <string name="pick_file">Escolher Arquivo</string>
     <string name="toast_pick_file_error">Não foi possível escolher o arquivo! Verifique o gerenciador de arquivos do seu telefone.</string>
     <string name="toast_http_code_error">Servidor remoto respondeu com um erro.</string>
@@ -21,7 +11,6 @@
     <string name="myLicense">Licença</string>
     <string name="privacy">Política de Privacidade</string>
 
-    <string name="appChangelog">Recursos / Registro de Alterações</string>
     <string name="done">CONCLUÍDO</string>
     <string name="results">RESULTADOS DA PESQUISA</string>
     <string name="ok">OK</string>

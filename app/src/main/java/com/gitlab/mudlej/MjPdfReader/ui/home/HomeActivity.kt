@@ -27,7 +27,7 @@ import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationJournal
 import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
 import com.gitlab.mudlej.MjPdfReader.core.PermissionManager
 import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
-import com.gitlab.mudlej.MjPdfReader.ui.reader.showAppFeaturesDialog
+import com.gitlab.mudlej.MjPdfReader.ui.about.WhatsNewActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.intro.MainIntroActivity
 import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
@@ -235,7 +235,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             libraryScanner.index.collect { refresh() }
         }
 
-        showAppFeaturesDialogOnFirstRun()
+        showWhatsNewOnFirstRun()
         handleRelocateIntent(intent)
     }
 
@@ -278,12 +278,12 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
 
     private fun currentTab(): HomeTab = HomeTab.entries[binding.homePager.currentItem]
 
-    private fun showAppFeaturesDialogOnFirstRun() {
+    private fun showWhatsNewOnFirstRun() {
         if (pref.getShowFeaturesDialog()) {
             lifecycleScope.launch {
                 delay(500)
                 if (!isFinishing) {
-                    showAppFeaturesDialog(this@HomeActivity)
+                    startActivity(Intent(this@HomeActivity, WhatsNewActivity::class.java))
                 }
             }
             pref.setShowFeaturesDialog(false)

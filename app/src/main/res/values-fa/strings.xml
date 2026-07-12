@@ -1,15 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="mj_app_name" translatable="false">MJ PDF</string>
-    <string name="what_is_new">
-        * افزودن پشتیبانی برای عربی، چینی، ترکی، آلمانی، اسپانیایی، پرتغالی، هندی، روسی.\n\n
-        * بهبود جستجو: دکمه بازگشت به یافته‌ها؛ برجسته‌سازی(Highlight) بهتر.\n\n
-        * حل مشکلات رابط کاربری: رنگ‌های نمادها یکسان‌تر، بهبود طرح‌بندی و دید.\n\n
-        * افزودن حالت همیشه افقی.\n\n
-        * افزودن دکمه بارگذاری مجدد PDF در تنظیمات (آزمایشی).\n\n
-        * پشتیبانی بهتر برای PDFهای محافظت‌شده با رمز و PDFهای غیرمحلی.\n\n
-        * ثبات: رفع خرابی‌های ناشی از کار در پس‌زمینه.\n\n
-        * توسعه: ارتقای SDK، Gradle و وابستگی‌ها.
-    </string>
     <string name="pick_file">انتخاب پرونده</string>
     <string name="toast_pick_file_error">ناتوانی در انتخاب پرونده! لطفاً مدیر پرونده گوشی خود را بررسی کنید.</string>
     <string name="toast_http_code_error">سرور با خطایی پاسخ داد.</string>
@@ -21,7 +11,6 @@
     <string name="intro">اجرای مقدماتی</string>
     <string name="myLicense">مجوز</string>
     <string name="privacy">سیاست حریم خصوصی</string>
-    <string name="appChangelog">ویژگی‌ها / تغییرات</string>
     <string name="done">انجام شد</string>
     <string name="results">یافته‌های جستجو</string>
     <string name="ok">تایید</string>

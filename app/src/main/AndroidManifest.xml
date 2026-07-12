@@ -141,6 +141,10 @@
             android:label="@string/action_about"
             android:parentActivityName=".ui.reader.MainActivity" />
         <activity
+            android:name=".ui.about.WhatsNewActivity"
+            android:exported="false"
+            android:label="@string/whats_new_title" />
+        <activity
             android:name=".ui.intro.MainIntroActivity"
             android:exported="true"
             android:label="@string/mj_app_name" />
