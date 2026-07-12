@@ -33,6 +33,8 @@ object PDF {
     const val viewStateHorizontalReadingDirectionRtlKey = "viewStateHorizontalReadingDirectionRtl"
     const val viewStateRelativeCrossAxisCenterKey = "viewStateRelativeCrossAxisCenter"
     const val viewStatePageCenterOffsetRatioKey = "viewStatePageCenterOffsetRatio"
+    const val viewStatePagesPerRowKey = "viewStatePagesPerRow"
+    const val viewStateFirstPageAloneKey = "viewStateFirstPageAlone"
     const val isPortraitKey = "isPortrait"
     const val isFullScreenToggledKey = "isFullScreenToggled"
     const val autoScrollSpeedKey = "autoScrollSpeedKey"

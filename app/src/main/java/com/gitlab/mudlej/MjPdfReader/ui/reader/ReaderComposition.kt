@@ -280,6 +280,7 @@ class ReaderComposition(
         doc::hasFile,
         pref::getHorizontalScroll,
         { vm.cropMarginsEnabled },
+        pref::getTwoPagesPerRow,
         { pdfThemeController.effectivePdfDarkTheme() },
         { pref.getPdfPagesTheme() == Preferences.themeSystem },
         { readerHistory.canGoBack() },
@@ -554,6 +555,7 @@ class ReaderComposition(
             readingDirection = ::showReadingDirectionDialog,
             toggleZoomLock = { zoomSwipeLockController.toggleZoomLock() },
             toggleCropMargins = activity::toggleCropMargins,
+            toggleTwoPages = ::toggleTwoPagesPerRow,
             screenshot = { screenshotController.takeScreenshot() },
             switchTheme = ::switchPdfTheme,
             navigateBack = { readerHistory.goBack() },
@@ -578,6 +580,16 @@ class ReaderComposition(
             addSignature = { signatureController.showSignatureDialog() },
             toggleIncognito = ::toggleIncognito,
         )
+    }
+
+    private fun toggleTwoPagesPerRow() {
+        if (!doc.hasFile()) {
+            return
+        }
+        pref.setTwoPagesPerRow(!pref.getTwoPagesPerRow())
+        vm.captureViewStateForSave(binding.pdfView.captureViewState())
+        refreshActions()
+        activity.displayFromUri(doc.uri)
     }
 
     private fun toggleIncognito() {

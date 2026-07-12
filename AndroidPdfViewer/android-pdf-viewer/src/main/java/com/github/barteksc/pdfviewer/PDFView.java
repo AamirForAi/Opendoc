@@ -138,15 +138,20 @@ public class PDFView extends RelativeLayout {
         public final boolean horizontalReadingDirectionRtl;
         public final float relativeCrossAxisCenter;
         public final float pageCenterOffsetRatio;
+        public final int pagesPerRow;
+        public final boolean firstPageAlone;
 
         public ViewState(float zoom, int pageIndex, boolean swipeVertical, boolean horizontalReadingDirectionRtl,
-                         float relativeCrossAxisCenter, float pageCenterOffsetRatio) {
+                         float relativeCrossAxisCenter, float pageCenterOffsetRatio,
+                         int pagesPerRow, boolean firstPageAlone) {
             this.zoom = zoom;
             this.pageIndex = pageIndex;
             this.swipeVertical = swipeVertical;
             this.horizontalReadingDirectionRtl = horizontalReadingDirectionRtl;
             this.relativeCrossAxisCenter = relativeCrossAxisCenter;
             this.pageCenterOffsetRatio = pageCenterOffsetRatio;
+            this.pagesPerRow = pagesPerRow;
+            this.firstPageAlone = firstPageAlone;
         }
     }
 
@@ -424,6 +429,10 @@ public class PDFView extends RelativeLayout {
      */
     private int spacingPx = 0;
 
+    private int pagesPerRow = 1;
+
+    private boolean firstPageAlone = false;
+
     /**
      * Add dynamic spacing to fit each page separately on the screen.
      */
@@ -641,7 +650,9 @@ public class PDFView extends RelativeLayout {
                 swipeVertical,
                 isHorizontalReadingDirectionRtl(),
                 relativeCrossAxisCenter,
-                MathUtils.limit(pageCenterOffsetRatio, 0f, 1f));
+                MathUtils.limit(pageCenterOffsetRatio, 0f, 1f),
+                pdfFile.getPagesPerRow(),
+                pdfFile.isFirstPageAlone());
     }
 
     public void stopFling() {
@@ -1149,10 +1160,10 @@ public class PDFView extends RelativeLayout {
         if (listener != null) {
             float translateX, translateY;
             if (swipeVertical) {
-                translateX = 0;
+                translateX = pdfFile.getSecondaryPageOffset(page, zoom);
                 translateY = pdfFile.getPageOffset(page, zoom);
             } else {
-                translateY = 0;
+                translateY = pdfFile.getSecondaryPageOffset(page, zoom);
                 translateX = pdfFile.getPageOffset(page, zoom);
             }
 
@@ -1191,12 +1202,10 @@ public class PDFView extends RelativeLayout {
 
             if (swipeVertical) {
                 localTranslationY = pdfFile.getPageOffset(part.getPage(), zoom);
-                float maxWidth = pdfFile.getMaxPageWidth();
-                localTranslationX = toCurrentScale(maxWidth - size.getWidth()) / 2;
+                localTranslationX = pdfFile.getSecondaryPageOffset(part.getPage(), zoom);
             } else {
                 localTranslationX = pdfFile.getPageOffset(part.getPage(), zoom);
-                float maxHeight = pdfFile.getMaxPageHeight();
-                localTranslationY = toCurrentScale(maxHeight - size.getHeight()) / 2;
+                localTranslationY = pdfFile.getSecondaryPageOffset(part.getPage(), zoom);
             }
             canvas.translate(localTranslationX, localTranslationY);
 
@@ -1316,6 +1325,8 @@ public class PDFView extends RelativeLayout {
         zoomTo(validZoom(viewState.zoom));
         if (viewState.swipeVertical != swipeVertical
                 || viewState.horizontalReadingDirectionRtl != isHorizontalReadingDirectionRtl()
+                || viewState.pagesPerRow != pdfFile.getPagesPerRow()
+                || viewState.firstPageAlone != pdfFile.isFirstPageAlone()
                 || getWidth() <= 0
                 || getHeight() <= 0) {
             jumpTo(pageIndex, false);
@@ -1577,10 +1588,11 @@ public class PDFView extends RelativeLayout {
         if (!pageSnap || page < 0) {
             return SnapEdge.NONE;
         }
+        int row = pdfFile.getRowOfPage(page);
         float currentOffset = swipeVertical ? currentYOffset : currentXOffset;
-        float offset = -pdfFile.getPageOffset(page, zoom);
+        float offset = -pdfFile.getRowOffset(row, zoom);
         int length = swipeVertical ? getHeight() : getWidth();
-        float pageLength = pdfFile.getPageLength(page, zoom);
+        float pageLength = pdfFile.getRowLength(row, zoom);
 
         if (length >= pageLength) {
             return SnapEdge.CENTER;
@@ -1600,10 +1612,11 @@ public class PDFView extends RelativeLayout {
      * Get the offset to move to in order to snap to the page
      */
     float snapOffsetForPage(int pageIndex, SnapEdge edge) {
-        float offset = pdfFile.getPageOffset(pageIndex, zoom);
+        int row = pdfFile.getRowOfPage(pageIndex);
+        float offset = pdfFile.getRowOffset(row, zoom);
 
         float length = swipeVertical ? getHeight() : getWidth();
-        float pageLength = pdfFile.getPageLength(pageIndex, zoom);
+        float pageLength = pdfFile.getRowLength(row, zoom);
 
         if (edge == SnapEdge.CENTER) {
             offset = offset - length / 2f + pageLength / 2f;
@@ -1627,6 +1640,30 @@ public class PDFView extends RelativeLayout {
         return pdfFile.getPageAtOffset(-center, zoom);
     }
 
+    public int getPageAfterRowStep(int fromPage, int direction) {
+        if (pdfFile == null || pdfFile.getPagesCount() == 0) {
+            return fromPage;
+        }
+        int row = pdfFile.getRowOfPage(pdfFile.determineValidPageNumberFrom(fromPage));
+        int targetRow = Math.max(0, Math.min(pdfFile.getRowCount() - 1, row + direction));
+        return pdfFile.getRowFirstPage(targetRow);
+    }
+
+    public int getRowFirstPage(int pageIndex) {
+        if (pdfFile == null) {
+            return pageIndex;
+        }
+        return pdfFile.getRowFirstPage(pdfFile.getRowOfPage(pageIndex));
+    }
+
+    public int getRowLastPage(int pageIndex) {
+        if (pdfFile == null) {
+            return pageIndex;
+        }
+        int row = pdfFile.getRowOfPage(pageIndex);
+        return pdfFile.getRowFirstPage(row) + pdfFile.getPagesInRow(row) - 1;
+    }
+
     /**
      * @return true if single page fills the entire screen in the scrolling direction
      */
@@ -1634,8 +1671,9 @@ public class PDFView extends RelativeLayout {
         if (pdfFile == null) {
             return false;
         }
-        float start = -pdfFile.getPageOffset(currentPage, zoom);
-        float end = start - pdfFile.getPageLength(currentPage, zoom);
+        int row = pdfFile.getRowOfPage(currentPage);
+        float start = -pdfFile.getRowOffset(row, zoom);
+        float end = start - pdfFile.getRowLength(row, zoom);
         if (isSwipeVertical()) {
             return start > currentYOffset && end < currentYOffset - getHeight();
         } else {
@@ -1895,7 +1933,8 @@ public class PDFView extends RelativeLayout {
         }
         float docX = -currentXOffset + getWidth() / 2f;
         float docY = -currentYOffset + getHeight() / 2f;
-        int page = pdfFile.getPageAtOffset(isSwipeVertical() ? docY : docX, zoom);
+        int page = pdfFile.getPageAtOffset(isSwipeVertical() ? docY : docX,
+                isSwipeVertical() ? docX : docY, zoom);
         if (page < 0 || page >= pdfFile.getPagesCount()) {
             return false;
         }
@@ -1985,7 +2024,8 @@ public class PDFView extends RelativeLayout {
         }
         float docX = -getCurrentXOffset() + viewX;
         float docY = -getCurrentYOffset() + viewY;
-        int page = pdfFile.getPageAtOffset(isSwipeVertical() ? docY : docX, getZoom());
+        int page = pdfFile.getPageAtOffset(isSwipeVertical() ? docY : docX,
+                isSwipeVertical() ? docX : docY, getZoom());
         if (page < 0 || page >= pdfFile.getPagesCount()) {
             return null;
         }
@@ -2229,7 +2269,8 @@ public class PDFView extends RelativeLayout {
         }
         float docX = -getCurrentXOffset() + viewX;
         float docY = -getCurrentYOffset() + viewY;
-        int page = pdfFile.getPageAtOffset(isSwipeVertical() ? docY : docX, getZoom());
+        int page = pdfFile.getPageAtOffset(isSwipeVertical() ? docY : docX,
+                isSwipeVertical() ? docX : docY, getZoom());
         if (page < 0 || page >= pdfFile.getPagesCount()) {
             return null;
         }
@@ -2521,6 +2562,22 @@ public class PDFView extends RelativeLayout {
         this.autoSpacing = autoSpacing;
     }
 
+    private void setPagesPerRow(int pagesPerRow) {
+        this.pagesPerRow = pagesPerRow;
+    }
+
+    public int getPagesPerRow() {
+        return pagesPerRow;
+    }
+
+    private void setFirstPageAlone(boolean firstPageAlone) {
+        this.firstPageAlone = firstPageAlone;
+    }
+
+    public boolean isFirstPageAlone() {
+        return firstPageAlone;
+    }
+
     private void setAutoReleasingWhenDetachedFromWindow(boolean autoReleasing) {
         this.autoReleasingWhenDetachedFromWindow = autoReleasing;
     }
@@ -2776,6 +2833,10 @@ public class PDFView extends RelativeLayout {
 
         private boolean autoSpacing = false;
 
+        private int pagesPerRow = 1;
+
+        private boolean firstPageAlone = false;
+
         private boolean autoReleasingWhenDetachedFromWindow = true;
 
         private FitPolicy pageFitPolicy = FitPolicy.WIDTH;
@@ -2959,6 +3020,16 @@ public class PDFView extends RelativeLayout {
             return this;
         }
 
+        public Configurator pagesPerRow(int pagesPerRow) {
+            this.pagesPerRow = pagesPerRow;
+            return this;
+        }
+
+        public Configurator firstPageAlone(boolean firstPageAlone) {
+            this.firstPageAlone = firstPageAlone;
+            return this;
+        }
+
         public Configurator autoReleasingWhenDetachedFromWindow(boolean autoReleasing) {
             this.autoReleasingWhenDetachedFromWindow = autoReleasing;
             return this;
@@ -3049,6 +3120,8 @@ public class PDFView extends RelativeLayout {
             PDFView.this.enableRenderDuringScale(renderDuringScale);
             PDFView.this.setSpacing(spacing);
             PDFView.this.setAutoSpacing(autoSpacing);
+            PDFView.this.setPagesPerRow(pagesPerRow);
+            PDFView.this.setFirstPageAlone(firstPageAlone);
             PDFView.this.setAutoReleasingWhenDetachedFromWindow(autoReleasingWhenDetachedFromWindow);
             PDFView.this.setPageFitPolicy(pageFitPolicy);
             PDFView.this.setFitEachPage(fitEachPage);

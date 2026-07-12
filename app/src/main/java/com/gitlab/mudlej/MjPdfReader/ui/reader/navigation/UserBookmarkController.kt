@@ -27,7 +27,7 @@ class UserBookmarkController(
     private val doc get() = vm.doc
 
     val isCurrentPageBookmarked: Boolean
-        get() = vm.bookmarkedPages.contains(doc.pageNumber)
+        get() = visibleRowPages(doc.pageNumber).any { vm.bookmarkedPages.contains(it) }
 
     fun onPageDisplayed(pageIndex: Int) {
         ensureLoaded()
@@ -49,7 +49,9 @@ class UserBookmarkController(
             return
         }
         val pageIndex = doc.pageNumber
-        val adding = !vm.bookmarkedPages.contains(pageIndex)
+        val rowPages = visibleRowPages(pageIndex)
+        val bookmarkedRowPages = rowPages.filter { vm.bookmarkedPages.contains(it) }
+        val adding = bookmarkedRowPages.isEmpty()
         if (adding && !historyPolicy.canRecord()) {
             AppSnackbar.make(binding.root, R.string.history_action_blocked, Snackbar.LENGTH_SHORT).show()
             return
@@ -57,16 +59,20 @@ class UserBookmarkController(
         if (adding) {
             vm.bookmarkedPages.add(pageIndex)
         } else {
-            vm.bookmarkedPages.remove(pageIndex)
+            vm.bookmarkedPages.removeAll(bookmarkedRowPages.toSet())
         }
         refreshActionState(pageIndex)
         scope.launch {
             if (adding) {
                 pdfRepository.addUserBookmark(UserBookmark(hash, pageIndex))
             } else {
-                pdfRepository.removeUserBookmark(hash, pageIndex)
+                bookmarkedRowPages.forEach { pdfRepository.removeUserBookmark(hash, it) }
             }
         }
+    }
+
+    private fun visibleRowPages(pageIndex: Int): IntRange {
+        return binding.pdfView.getRowFirstPage(pageIndex)..binding.pdfView.getRowLastPage(pageIndex)
     }
 
     private fun ensureLoaded() {
@@ -86,7 +92,7 @@ class UserBookmarkController(
     }
 
     private fun refreshActionState(pageIndex: Int) {
-        val bookmarked = vm.bookmarkedPages.contains(pageIndex)
+        val bookmarked = visibleRowPages(pageIndex).any { vm.bookmarkedPages.contains(it) }
         if (bookmarked != vm.bookmarkActionState) {
             vm.bookmarkActionState = bookmarked
             onBookmarkStateChanged()

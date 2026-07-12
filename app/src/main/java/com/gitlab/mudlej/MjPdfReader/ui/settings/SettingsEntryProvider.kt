@@ -115,6 +115,22 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             ),
             switchEntry(
                 page = SettingsPage.READING,
+                titleRes = R.string.two_pages_per_row_title,
+                key = Preferences.twoPagesPerRowKey,
+                defaultValue = Preferences.twoPagesPerRowDefault,
+                summaryRes = R.string.two_pages_per_row_summary,
+                keywords = listOf("two pages", "double", "spread", "facing", "side by side"),
+            ),
+            switchEntry(
+                page = SettingsPage.READING,
+                titleRes = R.string.two_pages_first_page_alone_title,
+                key = Preferences.twoPagesFirstPageAloneKey,
+                defaultValue = Preferences.twoPagesFirstPageAloneDefault,
+                summaryRes = R.string.two_pages_first_page_alone_summary,
+                keywords = listOf("cover", "first page", "spread", "book"),
+            ),
+            switchEntry(
+                page = SettingsPage.READING,
                 titleRes = R.string.snap,
                 key = Preferences.pageSnapKey,
                 defaultValue = Preferences.pageSnapDefault,

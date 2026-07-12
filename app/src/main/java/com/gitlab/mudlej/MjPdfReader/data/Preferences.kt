@@ -36,6 +36,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val highQualityKey = "highQuality"
         const val antiAliasingKey = "antiAliasing"
         const val horizontalScrollKey = "horizontalScroll"
+        const val twoPagesPerRowKey = "twoPagesPerRow"
+        const val twoPagesFirstPageAloneKey = "twoPagesFirstPageAlone"
         const val pageSnapKey = "pageSnap"
         const val pageFlingKey = "pageFling"
         const val browserScrollModeKey = "browserScrollMode"
@@ -95,6 +97,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val highQualityDefault = false
         const val antiAliasingDefault = true
         const val horizontalScrollDefault = false
+        const val twoPagesPerRowDefault = false
+        const val twoPagesFirstPageAloneDefault = false
         const val pageSnapDefault = false
         const val pageFlingDefault = false
         const val browserScrollModeDefault = false
@@ -170,6 +174,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getHighQuality() = prefMan.getBoolean(highQualityKey, highQualityDefault)
     fun getAntiAliasing() = prefMan.getBoolean(antiAliasingKey, antiAliasingDefault)
     fun getHorizontalScroll() = prefMan.getBoolean(horizontalScrollKey, horizontalScrollDefault)
+    fun getTwoPagesPerRow() = prefMan.getBoolean(twoPagesPerRowKey, twoPagesPerRowDefault)
+    fun getTwoPagesFirstPageAlone() = prefMan.getBoolean(twoPagesFirstPageAloneKey, twoPagesFirstPageAloneDefault)
     fun getPageSnap() = prefMan.getBoolean(pageSnapKey, pageSnapDefault)
     fun getPageFling() = prefMan.getBoolean(pageFlingKey, pageFlingDefault)
     fun getBrowserScrollMode() = prefMan.getBoolean(browserScrollModeKey, browserScrollModeDefault)
@@ -272,6 +278,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setHighQuality(value: Boolean) = prefMan.edit().putBoolean(highQualityKey, value).apply()
     fun setAntiAliasing(value: Boolean) = prefMan.edit().putBoolean(antiAliasingKey, value).apply()
     fun setHorizontalScroll(value: Boolean) = prefMan.edit().putBoolean(horizontalScrollKey, value).apply()
+    fun setTwoPagesPerRow(value: Boolean) = prefMan.edit().putBoolean(twoPagesPerRowKey, value).apply()
+    fun setTwoPagesFirstPageAlone(value: Boolean) = prefMan.edit().putBoolean(twoPagesFirstPageAloneKey, value).apply()
     fun setPageSnap(value: Boolean) = prefMan.edit().putBoolean(pageSnapKey, value).apply()
     fun setPageFling(value: Boolean) = prefMan.edit().putBoolean(pageFlingKey, value).apply()
     fun setBrowserScrollMode(value: Boolean) = prefMan.edit().putBoolean(browserScrollModeKey, value).apply()

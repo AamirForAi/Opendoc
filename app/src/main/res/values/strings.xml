@@ -94,6 +94,11 @@
     <string name="anti_aliasing_summary">Smooth text and page edges while rendering. Usually improves appearance with little performance cost.</string>
     <string name="horizontal_scrolling_mode">Horizontal Scrolling</string>
     <string name="horizontal_scrolling_summary">Navigate pages horizontally instead of vertically. MJ PDF will try to auto-detect the right reading direction. You can override it per PDF from Menu &gt; Reading Direction after enabling horizontal scrolling.</string>
+    <string name="two_pages_per_row_title">Two Pages per Row</string>
+    <string name="two_pages_per_row_summary">Show pages side by side while scrolling vertically. Useful for wide tables and book spreads. Ignored in horizontal scrolling mode.</string>
+    <string name="two_pages_first_page_alone_title">First Page Alone</string>
+    <string name="two_pages_first_page_alone_summary">Show the first page by itself so the following pages pair like a book.</string>
+    <string name="single_page_per_row">Single Page per Row</string>
     <string name="double_tap_to_exit">Double Tap Back to Exit</string>
     <string name="double_tap_to_exit_summary">Require pressing Back twice to leave the reader. This applies when a PDF was opened from another app, or when the Home Page is disabled and Back returns to the file picker.</string>
     <string name="always_open_first_page_title">Always Open at First Page</string>
@@ -268,6 +273,7 @@
     <string name="back_to_table_of_contents">Back to Table of Contents</string>
     <string name="back_to_page">Back to page %1$d</string>
     <string name="page_x_of_y">Page %1$d of %2$d</string>
+    <string name="pages_x_to_y_of_z">Pages %1$d to %2$d of %3$d</string>
     <string name="selectable_text">Selectable Text of Page</string>
     <string name="inline_text_selection_title">Enable Text Selection on PDF Pages</string>
     <string name="inline_text_selection_summary">Enable selecting and copying text directly from the PDF page view.</string>
@@ -352,6 +358,8 @@
     <string name="fullscreen_page_info">Page %1$d / %2$d · %3$d%%</string>
     <string name="fullscreen_page_number_info">Page %1$d / %2$d</string>
     <string name="fullscreen_percentage_info">%1$d%%</string>
+    <string name="fullscreen_page_range_info">Pages %1$d-%2$d / %3$d · %4$d%%</string>
+    <string name="fullscreen_page_range_number_info">Pages %1$d-%2$d / %3$d</string>
     <string name="next_page">Next Page</string>
     <string name="prev_page">Prev Page</string>
     <string name="text_color">Text Color</string>

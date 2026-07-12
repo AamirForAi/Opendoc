@@ -19,11 +19,11 @@ class VolumeKeyPager(
         }
         return when (keyCode) {
             KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                binding.pdfView.jumpTo(pdf.pageNumber + 1)
+                binding.pdfView.jumpTo(binding.pdfView.getPageAfterRowStep(pdf.pageNumber, 1))
                 true
             }
             KeyEvent.KEYCODE_VOLUME_UP -> {
-                binding.pdfView.jumpTo(pdf.pageNumber - 1)
+                binding.pdfView.jumpTo(binding.pdfView.getPageAfterRowStep(pdf.pageNumber, -1))
                 true
             }
             else -> false

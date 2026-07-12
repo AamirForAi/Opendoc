@@ -271,6 +271,7 @@ class DocumentLoader(
         pdfView.maxZoom = pref.getMaxZoom()
         val spacing = if (pref.getSpaceBetweenPages()) Preferences.spacingDefault else 0
         val browserScrollMode = pref.getBrowserScrollMode() && !pref.getHorizontalScroll()
+        val twoPagesPerRow = pref.getTwoPagesPerRow() && !pref.getHorizontalScroll()
 
         val configurator = viewConfigurator
             .defaultPage(pageNumber)
@@ -293,6 +294,8 @@ class DocumentLoader(
             .disableHorizontalSwipe(horizontalSwipeDisabled)
             .zoomDisabled(zoomDisabled)
             .autoSpacing(pref.getHorizontalScroll())
+            .pagesPerRow(if (twoPagesPerRow) 2 else 1)
+            .firstPageAlone(pref.getTwoPagesFirstPageAlone())
             .pageSnap(pref.getPageSnap() && !browserScrollMode)
             .pageFling(pref.getPageFling() && !browserScrollMode)
             .freeScrollMode(browserScrollMode)
@@ -471,10 +474,16 @@ class DocumentLoader(
             return
         }
         vm.setPage(pageNumber)
+        doc.pageRangeEnd = binding.pdfView.getRowLastPage(pageNumber)
         doc.initPdfLength(pageCount)
         ui.updateTitle()
         emit { it.onPageChanged(pageNumber) }
-        binding.pdfView.announceForAccessibility(context.getString(R.string.page_x_of_y, pageNumber + 1, pageCount))
+        val announcement = if (doc.pageRangeEnd > pageNumber) {
+            context.getString(R.string.pages_x_to_y_of_z, pageNumber + 1, doc.pageRangeEnd + 1, pageCount)
+        } else {
+            context.getString(R.string.page_x_of_y, pageNumber + 1, pageCount)
+        }
+        binding.pdfView.announceForAccessibility(announcement)
 
         scope.launch {
             if (!vm.isCurrent(loadToken, documentUri)) {

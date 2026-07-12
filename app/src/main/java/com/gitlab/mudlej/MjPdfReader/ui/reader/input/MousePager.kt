@@ -62,6 +62,6 @@ class MousePager(
     }
 
     private fun turnPage(delta: Int) {
-        binding.pdfView.jumpTo(pdf.pageNumber + delta)
+        binding.pdfView.jumpTo(binding.pdfView.getPageAfterRowStep(pdf.pageNumber, delta))
     }
 }

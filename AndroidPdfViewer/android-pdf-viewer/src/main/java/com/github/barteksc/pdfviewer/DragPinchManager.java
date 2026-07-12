@@ -116,7 +116,8 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         }
         float mappedX = -pdfView.getCurrentXOffset() + x;
         float mappedY = -pdfView.getCurrentYOffset() + y;
-        int page = pdfFile.getPageAtOffset(pdfView.isSwipeVertical() ? mappedY : mappedX, pdfView.getZoom());
+        int page = pdfFile.getPageAtOffset(pdfView.isSwipeVertical() ? mappedY : mappedX,
+                pdfView.isSwipeVertical() ? mappedX : mappedY, pdfView.getZoom());
         SizeF pageSize = pdfFile.getScaledPageSize(page, pdfView.getZoom());
         int pageX, pageY;
         if (pdfView.isSwipeVertical()) {
@@ -160,7 +161,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         float offsetX = pdfView.getCurrentXOffset() - delta * pdfView.getZoom();
         float offsetY = pdfView.getCurrentYOffset() - delta * pdfView.getZoom();
         int startingPage = pdfView.findFocusPage(offsetX, offsetY);
-        int targetPage = Math.max(0, Math.min(pdfView.getPageCount() - 1, startingPage + direction));
+        int targetPage = pdfView.getPageAfterRowStep(startingPage, direction);
 
         SnapEdge edge = pdfView.findSnapEdge(targetPage);
         float offset = pdfView.snapOffsetForPage(targetPage, edge);
@@ -315,8 +316,9 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
 
         PdfFile pdfFile = pdfView.pdfFile;
 
-        float pageStart = -pdfFile.getPageOffset(pdfView.getCurrentPage(), pdfView.getZoom());
-        float pageEnd = pageStart - pdfFile.getPageLength(pdfView.getCurrentPage(), pdfView.getZoom());
+        int row = pdfFile.getRowOfPage(pdfView.getCurrentPage());
+        float pageStart = -pdfFile.getRowOffset(row, pdfView.getZoom());
+        float pageEnd = pageStart - pdfFile.getRowLength(row, pdfView.getZoom());
         float minX, minY, maxX, maxY;
         if (pdfView.isSwipeVertical()) {
             minX = -(pdfView.toCurrentScale(pdfFile.getMaxPageWidth()) - pdfView.getWidth());

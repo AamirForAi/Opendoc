@@ -48,7 +48,7 @@ class TextModeActivity : AppCompatActivity() {
     private lateinit var contentLoader: TextModeContentLoader
     private lateinit var controlsController: TextModeControlsController
     private lateinit var pdfUri: Uri
-// no
+
     private val typographyController = TextModeTypographyController(
         this,
         { settings },

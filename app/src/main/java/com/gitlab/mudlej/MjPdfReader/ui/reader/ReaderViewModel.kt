@@ -70,6 +70,7 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
         doc.uri = uri
         doc.fileHash = null
         doc.pageNumber = 0
+        doc.pageRangeEnd = 0
         doc.autoScrollSpeed = null
         doc.readingDirectionOverride = null
         doc.detectedReadingDirection = null
@@ -120,6 +121,8 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
             out.putBoolean(PDF.viewStateHorizontalReadingDirectionRtlKey, viewState.horizontalReadingDirectionRtl)
             out.putFloat(PDF.viewStateRelativeCrossAxisCenterKey, viewState.relativeCrossAxisCenter)
             out.putFloat(PDF.viewStatePageCenterOffsetRatioKey, viewState.pageCenterOffsetRatio)
+            out.putInt(PDF.viewStatePagesPerRowKey, viewState.pagesPerRow)
+            out.putBoolean(PDF.viewStateFirstPageAloneKey, viewState.firstPageAlone)
         }
         out.putBoolean(PDF.hasUnsavedAnnotationsKey, hasUnsavedAnnotations)
         out.putStringArrayList(PDF.sessionOwnedAnnotationKeysKey, ArrayList(sessionOwnedAnnotationKeys))
@@ -163,6 +166,8 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
                 saved.getBoolean(PDF.viewStateHorizontalReadingDirectionRtlKey, false),
                 saved.getFloat(PDF.viewStateRelativeCrossAxisCenterKey, 0.5f),
                 saved.getFloat(PDF.viewStatePageCenterOffsetRatioKey, 0.5f),
+                saved.getInt(PDF.viewStatePagesPerRowKey, 1),
+                saved.getBoolean(PDF.viewStateFirstPageAloneKey, false),
             )
         }
         loadedAnnotationDocumentUri = saved.getParcelable(KEY_LOADED_ANNOTATION_URI)

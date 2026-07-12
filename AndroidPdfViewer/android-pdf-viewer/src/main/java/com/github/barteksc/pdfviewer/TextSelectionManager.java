@@ -115,7 +115,8 @@ final class TextSelectionManager {
 
         float docX = -pdfView.getCurrentXOffset() + viewX;
         float docY = -pdfView.getCurrentYOffset() + viewY;
-        int page = pdfFile.getPageAtOffset(pdfView.isSwipeVertical() ? docY : docX, pdfView.getZoom());
+        int page = pdfFile.getPageAtOffset(pdfView.isSwipeVertical() ? docY : docX,
+                pdfView.isSwipeVertical() ? docX : docY, pdfView.getZoom());
         if (page < 0 || page >= pdfFile.getPagesCount()) {
             return false;
         }
