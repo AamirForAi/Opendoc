@@ -14,8 +14,13 @@ object SearchSessionCache {
         val originalIndex: Int,
         val resultIndex: Int,
         val expanded: Boolean = false,
-        val matchLength: Int = 0,
-    )
+        val text: String = "",
+        val inputStart: Int = 0,
+        val inputEnd: Int = 0,
+    ) {
+        val matchLength: Int
+            get() = inputEnd - inputStart
+    }
 
     data class Session(
         val key: Key,
@@ -66,12 +71,25 @@ object SearchSessionCache {
     }
 
     @Synchronized
-    fun setExpanded(fileHash: String?, query: String, ignoreAccents: Boolean, resultIndex: Int, expanded: Boolean) {
+    fun updateHit(
+        fileHash: String?,
+        query: String,
+        ignoreAccents: Boolean,
+        resultIndex: Int,
+        expanded: Boolean,
+        text: String,
+        inputStart: Int,
+        inputEnd: Int,
+    ) {
         val key = key(fileHash, query, ignoreAccents) ?: return
         val session = sessions[key] ?: return
         sessions[key] = session.copy(
             hits = session.hits.map { hit ->
-                if (hit.resultIndex == resultIndex) hit.copy(expanded = expanded) else hit
+                if (hit.resultIndex == resultIndex) {
+                    hit.copy(expanded = expanded, text = text, inputStart = inputStart, inputEnd = inputEnd)
+                } else {
+                    hit
+                }
             },
         )
     }

@@ -145,21 +145,14 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
             restoredListPosition = cachedSession.listPosition
             restoredListOffsetPx = cachedSession.listOffsetPx
             restoredNestedQuery = cachedSession.nestedQuery
-            showProgressBar()
+            hideProgressBar()
             binding.searchProgressBar.visibility = View.GONE
-            lifecycleScope.launch(Dispatchers.Default) {
-                val results = cachedSearchResults(searchQuery, cachedSession.hits)
-                withContext(Dispatchers.Main) {
-                    searchResults = results
-                    searchResultAdapter.nestedQuery = restoredNestedQuery
-                    searchResultAdapter.submitList(visibleResultRows())
-                    hideProgressBar()
-                    binding.searchProgressBar.visibility = View.GONE
-                    postSearch()
-                    if (!restoredNestedQuery.isNullOrBlank()) {
-                        invalidateOptionsMenu()
-                    }
-                }
+            searchResults = cachedSearchResults(cachedSession.hits)
+            searchResultAdapter.nestedQuery = restoredNestedQuery
+            searchResultAdapter.submitList(visibleResultRows())
+            postSearch()
+            if (!restoredNestedQuery.isNullOrBlank()) {
+                invalidateOptionsMenu()
             }
             return
         }
@@ -196,32 +189,19 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
         )
     }
 
-    private fun cachedSearchResults(query: String, hits: List<SearchSessionCache.Hit>): MutableList<SearchResult> {
-        val pageTextCache = mutableMapOf<Int, String>()
-        val results = hits.sortedBy { it.resultIndex }.mapNotNull { hit ->
-            val pageText = pageTextCache.getOrPut(hit.pageNumber) { pdfExtractor.getPageText(hit.pageNumber) }
-            val matchLength = if (hit.matchLength > 0) hit.matchLength else query.length
-            if (hit.originalIndex !in pageText.indices || hit.originalIndex + matchLength > pageText.length) {
-                return@mapNotNull null
-            }
-            SearchCoordinator.buildSearchResult(
-                query,
-                hit.originalIndex,
-                pageText,
-                hit.pageNumber,
-                textOffset = if (hit.expanded) 200 else null,
+    private fun cachedSearchResults(hits: List<SearchSessionCache.Hit>): MutableList<SearchResult> {
+        return hits.sortedBy { it.resultIndex }.map { hit ->
+            SearchResult(
+                originalIndex = hit.originalIndex,
+                inputStart = hit.inputStart,
+                inputEnd = hit.inputEnd,
+                text = hit.text,
+                pageNumber = hit.pageNumber,
                 expanded = hit.expanded,
-                matchLength = matchLength,
             ).apply {
                 searchResultIndexInList = hit.resultIndex
             }
         }.toMutableList()
-
-        if (results.size != hits.size) {
-            results.forEachIndexed { index, result -> result.searchResultIndexInList = index }
-            SearchSessionCache.put(fileHash, query, ignoreAccents, SearchCoordinator.cacheHits(results))
-        }
-        return results
     }
 
     private fun visibleSearchResults(): List<SearchResult> {
@@ -347,7 +327,16 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
                 return@launch
             }
             searchResults[searchResultIndex] = newSearchResult
-            SearchSessionCache.setExpanded(fileHash, searchQuery, ignoreAccents, searchResultIndex, expanded = true)
+            SearchSessionCache.updateHit(
+                fileHash,
+                searchQuery,
+                ignoreAccents,
+                searchResultIndex,
+                expanded = true,
+                text = newSearchResult.text,
+                inputStart = newSearchResult.inputStart,
+                inputEnd = newSearchResult.inputEnd,
+            )
             searchResultAdapter.submitList(visibleResultRows())
         }
     }

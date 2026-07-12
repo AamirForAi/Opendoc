@@ -33,6 +33,9 @@ fun navIntent(context: Context, activity: Class<*>) = Intent(context, activity)
 
 fun linkIntent(url: String) = Intent(Intent.ACTION_VIEW, Uri.parse(url))
 
+fun browserLinkIntent(url: String): Intent =
+    Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_BROWSER).setData(Uri.parse(url))
+
 fun emailIntent(emailAddress: String, subject: String, text: String): Intent {
     val email = Intent(Intent.ACTION_SENDTO)
     email.data = Uri.parse("mailto:$emailAddress")

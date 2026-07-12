@@ -20,6 +20,7 @@ import android.widget.FrameLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.github.barteksc.pdfviewer.PDFView
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.core.io.browserLinkIntent
 import com.gitlab.mudlej.MjPdfReader.core.io.linkIntent
 import com.gitlab.mudlej.MjPdfReader.core.io.pdfDateNow
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
@@ -431,6 +432,13 @@ class InlineAnnotationActionController(
         if (url == null) {
             AppSnackbar.make(binding.root, R.string.translation_custom_url_invalid, Snackbar.LENGTH_LONG).show()
             return false
+        }
+        if (settings.engine.forceBrowser) {
+            try {
+                activity.startActivity(browserLinkIntent(url))
+                return true
+            } catch (e: ActivityNotFoundException) {
+            }
         }
         return try {
             activity.startActivity(linkIntent(url))

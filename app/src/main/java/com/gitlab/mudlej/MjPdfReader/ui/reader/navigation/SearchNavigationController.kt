@@ -90,7 +90,9 @@ class SearchNavigationController(
                     pageNumber = searchResult.pageNumber,
                     originalIndex = searchResult.originalIndex,
                     resultIndex = searchResult.searchResultIndexInList,
-                    matchLength = searchResult.inputEnd - searchResult.inputStart,
+                    text = searchResult.text,
+                    inputStart = searchResult.inputStart,
+                    inputEnd = searchResult.inputEnd,
                 )
             )
         if (session == null) {

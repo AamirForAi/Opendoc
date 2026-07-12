@@ -228,7 +228,9 @@ object SearchCoordinator {
                 originalIndex = result.originalIndex,
                 resultIndex = result.searchResultIndexInList,
                 expanded = result.expanded,
-                matchLength = result.inputEnd - result.inputStart,
+                text = result.text,
+                inputStart = result.inputStart,
+                inputEnd = result.inputEnd,
             )
         }
     }

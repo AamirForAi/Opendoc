@@ -11,6 +11,7 @@ enum class TranslationEngine(
     val urlTemplate: String?,
     val langOverrides: Map<String, String> = emptyMap(),
     val unstable: Boolean = false,
+    val forceBrowser: Boolean = false,
 ) {
     GOOGLE(
         "google",
@@ -24,6 +25,7 @@ enum class TranslationEngine(
         "https://www.deepl.com/en/translator?share=generic#auto/{lang}/{text}",
         mapOf("no" to "nb", "pt" to "pt-BR"),
         unstable = true,
+        forceBrowser = true,
     ),
     BING(
         "bing",
