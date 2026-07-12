@@ -22,6 +22,7 @@ class FullscreenController(
     private val autoScrollManager: AutoScrollManager,
     private val zoomSwipeLockController: ZoomSwipeLockController,
     private val brightnessController: BrightnessController,
+    private val topBarColor: () -> Int?,
     private val updateShortcutBarVisibility: () -> Unit,
 ) {
 
@@ -80,7 +81,7 @@ class FullscreenController(
     }
 
     private fun showSystemUi() {
-        ColorUtil.exitFullscreen(activity, activity.window, activity.supportActionBar)
+        ColorUtil.exitFullscreen(activity, activity.window, activity.supportActionBar, topBarColor())
         activity.supportActionBar?.show()
         binding.appBarBottomShadow.visibility = View.VISIBLE
         if (pref.getSecondBarEnabled()) {

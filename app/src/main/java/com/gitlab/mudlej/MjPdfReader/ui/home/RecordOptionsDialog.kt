@@ -50,7 +50,7 @@ class RecordOptionsDialog(
 
     private fun buildAndShow(item: HomeItem, record: PdfRecord?) {
         val binding = DialogRecordOptionsBinding.inflate(activity.layoutInflater)
-        val dialog = MaterialAlertDialogBuilder(activity)
+        val dialog = MaterialAlertDialogBuilder(activity, R.style.CompactMaterialAlertDialog)
             .setView(binding.root)
             .create()
 
@@ -90,8 +90,8 @@ class RecordOptionsDialog(
         bindStatus(binding, item, record)
 
         if (item.hasBeenOpened && record != null) {
-            binding.removeRecentButton.visibility = View.VISIBLE
-            binding.removeRecentButton.setOnClickListener {
+            binding.removeRecentRow.visibility = View.VISIBLE
+            binding.removeRecentRow.setOnClickListener {
                 dialog.dismiss()
                 scope.launch {
                     pdfRepository.setLastOpened(
@@ -102,14 +102,14 @@ class RecordOptionsDialog(
             }
         }
 
-        binding.hideButton.setText(
+        binding.hideRowLabel.setText(
             if (record?.hidden == true) {
                 R.string.home_show_in_library
             } else {
                 R.string.home_hide_from_library
             }
         )
-        binding.hideButton.setOnClickListener {
+        binding.hideRow.setOnClickListener {
             dialog.dismiss()
             scope.launch {
                 val hash = record?.hash ?: resolveContentHash(item) ?: return@launch
@@ -125,7 +125,7 @@ class RecordOptionsDialog(
             }
         }
 
-        binding.openIncognitoButton.setOnClickListener {
+        binding.openIncognitoRow.setOnClickListener {
             dialog.dismiss()
             onOpenIncognito(item)
         }
@@ -133,15 +133,15 @@ class RecordOptionsDialog(
         binding.optionsInfoButton.setOnClickListener { showFullProperties(item, record) }
 
         if (item.uri.scheme == "file") {
-            binding.renameButton.setOnClickListener {
+            binding.renameRow.setOnClickListener {
                 dialog.dismiss()
                 showRenameDialog(item, record)
             }
         } else {
-            binding.renameButton.visibility = View.GONE
+            binding.renameRow.visibility = View.GONE
         }
 
-        binding.deleteButton.setOnClickListener {
+        binding.deleteRow.setOnClickListener {
             dialog.dismiss()
             confirmDelete(item, record)
         }

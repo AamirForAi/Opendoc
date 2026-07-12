@@ -1135,7 +1135,7 @@ public class PDFView extends RelativeLayout {
             }
             Map<String, List<PdfDocument.HighlightAnnotation>> groups = new LinkedHashMap<>();
             for (PdfDocument.HighlightAnnotation annotation : annotations) {
-                if (annotation.getBounds() == null) {
+                if (annotation.getBounds() == null || annotation.isSearchResult()) {
                     continue;
                 }
                 String groupKey = annotation.getGroupKey();

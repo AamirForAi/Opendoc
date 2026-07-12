@@ -188,7 +188,7 @@ class ReaderComposition(
         FullScreenOptionsManager(binding, vm, pref.getHideDelay().toLong(), pref)
     val zoomSwipeLockController = ZoomSwipeLockController(binding, ::drawableOf)
     val brightnessController = BrightnessController(activity, binding, vm)
-    val pdfThemeController = PdfThemeController(activity, binding, pref)
+    val pdfThemeController = PdfThemeController(activity, binding, pref, activity::barColorOverride)
     val volumeKeyPager = VolumeKeyPager(binding, doc, pref)
     val mousePager = MousePager(binding, doc, pref)
     val printController = PrintController(activity, binding, doc, scope)
@@ -347,6 +347,7 @@ class ReaderComposition(
         autoScrollManager,
         zoomSwipeLockController,
         brightnessController,
+        activity::barColorOverride,
     ) { shortcutBarController.updateVisibility() }
 
 
@@ -524,6 +525,7 @@ class ReaderComposition(
             discardAnnotationsFab.setOnClickListener { activity.confirmDiscardAnnotations() }
         }
         fullScreenButtonController.configure()
+        updateIncognitoIndicator()
     }
 
     fun onResume() {
@@ -631,7 +633,12 @@ class ReaderComposition(
             documentLoader.persistCurrentDocument()
             AppSnackbar.make(binding.root, R.string.incognito_off_message, Snackbar.LENGTH_SHORT).show()
         }
+        updateIncognitoIndicator()
         refreshActions()
+    }
+
+    fun updateIncognitoIndicator() {
+        activity.updateIncognitoChrome()
     }
 
     private fun openSelectedDocument(selectedDocumentUri: Uri?) {

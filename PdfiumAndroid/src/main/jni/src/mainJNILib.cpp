@@ -1528,7 +1528,7 @@ JNI_FUNC(jobjectArray, PdfiumCore, nativeGetHighlightAnnotations)(JNI_ARGS,
     }
     jmethodID rectConstructor = env->GetMethodID(rectClass, "<init>", "(FFFF)V");
     jmethodID hitConstructor = env->GetMethodID(hitClass, "<init>",
-            "(ILjava/lang/String;Landroid/graphics/RectF;Ljava/lang/String;IZLjava/lang/String;Ljava/lang/String;)V");
+            "(ILjava/lang/String;Landroid/graphics/RectF;Ljava/lang/String;IZZLjava/lang/String;Ljava/lang/String;)V");
     if (rectConstructor == NULL || hitConstructor == NULL) {
         env->DeleteLocalRef(rectClass);
         env->DeleteLocalRef(hitClass);
@@ -1577,9 +1577,10 @@ JNI_FUNC(jobjectArray, PdfiumCore, nativeGetHighlightAnnotations)(JNI_ARGS,
         jstring noteString = wideToJString(env, getAnnotWideString(annot, "Contents"));
         jstring createdString = wideToJString(env, getAnnotWideString(annot, "CreationDate"));
         jboolean appOwned = isAppHighlightAnnotation(annot);
+        jboolean searchResult = !getAnnotWideString(annot, "MJSearch").empty();
         jobject hitObject = env->NewObject(hitClass, hitConstructor,
                 static_cast<jint>(i), groupString, rectObject, contentsString, static_cast<jint>(color), appOwned,
-                noteString, createdString);
+                searchResult, noteString, createdString);
         if (hitObject != NULL) {
             annotations.push_back(env->NewGlobalRef(hitObject));
             env->DeleteLocalRef(hitObject);

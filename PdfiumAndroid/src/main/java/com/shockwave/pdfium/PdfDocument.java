@@ -116,6 +116,7 @@ public class PdfDocument {
         private String quote;
         private int color;
         private boolean appOwned;
+        private boolean searchResult;
         private String note;
         private String creationDate;
 
@@ -134,12 +135,19 @@ public class PdfDocument {
 
         public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String quote,
                                    int color, boolean appOwned, String note, String creationDate) {
+            this(annotationIndex, groupKey, bounds, quote, color, appOwned, false, note, creationDate);
+        }
+
+        public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String quote,
+                                   int color, boolean appOwned, boolean searchResult,
+                                   String note, String creationDate) {
             this.annotationIndex = annotationIndex;
             this.groupKey = groupKey == null ? "" : groupKey;
             this.bounds = bounds;
             this.quote = quote == null ? "" : quote;
             this.color = color;
             this.appOwned = appOwned;
+            this.searchResult = searchResult;
             this.note = note == null ? "" : note;
             this.creationDate = creationDate == null ? "" : creationDate;
         }
@@ -166,6 +174,10 @@ public class PdfDocument {
 
         public boolean isAppOwned() {
             return appOwned;
+        }
+
+        public boolean isSearchResult() {
+            return searchResult;
         }
 
         public String getNote() {

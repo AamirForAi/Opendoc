@@ -38,6 +38,8 @@ class HomeMenuDialog(
             if (tab == HomeTab.LIBRARY) View.VISIBLE else View.GONE
         binding.foldersSection.visibility =
             if (tab == HomeTab.FOLDERS) View.VISIBLE else View.GONE
+        binding.menuDivider.visibility =
+            if (tab == HomeTab.RECENT) View.GONE else View.VISIBLE
 
         bindViewMode(binding)
         bindGridSize(binding)
@@ -50,25 +52,25 @@ class HomeMenuDialog(
         SegmentedButtonStyler.attach(binding.sortGroup)
         SegmentedButtonStyler.attach(binding.foldersModeGroup)
 
-        binding.settingsButton.setOnClickListener {
+        binding.settingsRow.setOnClickListener {
             dialog.dismiss()
             activity.startActivity(Intent(activity, SettingsActivity::class.java))
         }
-        binding.aboutButton.setOnClickListener {
+        binding.aboutRow.setOnClickListener {
             dialog.dismiss()
             activity.startActivity(Intent(activity, AboutActivity::class.java))
         }
-        binding.statsButton.setOnClickListener {
+        binding.statsRow.setOnClickListener {
             dialog.dismiss()
             onShowStats()
         }
-        binding.scanLocationsButton.visibility =
+        binding.scanLocationsRow.visibility =
             if (hasFullAccess()) View.VISIBLE else View.GONE
-        binding.scanLocationsButton.setOnClickListener {
+        binding.scanLocationsRow.setOnClickListener {
             dialog.dismiss()
             onScanLocations()
         }
-        binding.openOnlineButton.setOnClickListener {
+        binding.openOnlineRow.setOnClickListener {
             dialog.dismiss()
             val intent = Intent(activity, MainActivity::class.java)
             intent.putExtra(HomeActivity.EXTRA_OPEN_ONLINE_DIALOG, true)
