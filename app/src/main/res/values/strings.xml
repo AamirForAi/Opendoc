@@ -528,4 +528,36 @@
     <string name="home_show_pdf_title_title">Show PDF Titles</string>
     <string name="home_show_pdf_title_summary">Use the title from the PDF metadata when available instead of the file name.</string>
 
+    <string name="incognito">Incognito</string>
+    <string name="incognito_exit">Exit Incognito</string>
+    <string name="incognito_on_message">Incognito is on. Nothing about this document will be saved.</string>
+    <string name="incognito_off_message">Incognito is off. Reading history is saved again.</string>
+    <string name="history_action_blocked">Not available while incognito or history saving is off</string>
+    <string name="open_in_incognito">Open in Incognito</string>
+    <string name="open_in_incognito_summary">Read a file without saving any history about it</string>
+    <string name="open_in_incognito_hint">Choose a file to open in incognito</string>
+    <string name="settings_history_privacy">History and Privacy</string>
+    <string name="settings_history_privacy_summary">Reading history, incognito, and data removal</string>
+    <string name="history_enabled_title">Save Reading History</string>
+    <string name="history_enabled_summary">Remember opened files, reading positions, and per file settings.</string>
+    <string name="reading_history">Reading History</string>
+    <string name="reading_history_row_summary">View and delete everything the app remembers about your files</string>
+    <string name="reading_history_empty">No reading history yet.</string>
+    <string name="reading_history_never_opened">Never opened</string>
+    <string name="reading_history_delete_message">Remove "%1$s" from history? Its saved position, bookmarks, and settings will be deleted. The file itself stays on your device.</string>
+    <string name="clear_reading_history_title">Clear Reading History</string>
+    <string name="clear_reading_history_summary">Delete all remembered files, positions, passwords, and per file settings</string>
+    <string name="clear_reading_history_message">Delete the whole reading history? Saved positions, per file settings, passwords, and covers will be removed. Your PDF files are not touched.</string>
+    <string name="clear_saved_passwords_title">Clear Saved Passwords</string>
+    <string name="clear_saved_passwords_summary">Remove stored PDF passwords and keep everything else</string>
+    <string name="clear_saved_passwords_message">Remove all saved PDF passwords? You will need to enter them again.</string>
+    <string name="clear_bookmarks_title">Clear All Bookmarks</string>
+    <string name="clear_bookmarks_summary">Delete every bookmark in every file</string>
+    <string name="clear_bookmarks_message">Delete all bookmarks from all files?</string>
+    <string name="clear_annotation_journals_title">Clear Unsaved Highlights and Signature</string>
+    <string name="clear_annotation_journals_summary">Delete crash recovery data for highlights and the stored signature</string>
+    <string name="clear_annotation_journals_message">Delete all unsaved highlight recovery data and the stored signature? Highlights already saved into files are not affected.</string>
+    <string name="cleared_entries">%1$d entries deleted</string>
+    <string name="cleared_done">Done</string>
+
 </resources>

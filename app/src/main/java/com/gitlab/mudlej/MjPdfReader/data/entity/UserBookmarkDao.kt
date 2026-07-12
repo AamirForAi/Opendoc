@@ -28,6 +28,12 @@ interface UserBookmarkDao {
     @Query("DELETE FROM UserBookmark WHERE fileHash = :fileHash AND pageIndex = :pageIndex")
     fun delete(fileHash: String, pageIndex: Int)
 
+    @Query("DELETE FROM UserBookmark WHERE fileHash = :fileHash")
+    fun deleteByFileHash(fileHash: String): Int
+
+    @Query("DELETE FROM UserBookmark")
+    fun deleteAll(): Int
+
     @Query("UPDATE UserBookmark SET label = :label WHERE fileHash = :fileHash AND pageIndex = :pageIndex")
     fun updateLabel(fileHash: String, pageIndex: Int, label: String?)
 

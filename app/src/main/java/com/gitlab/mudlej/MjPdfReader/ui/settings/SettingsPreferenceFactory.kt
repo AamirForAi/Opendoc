@@ -3,6 +3,7 @@
 package com.gitlab.mudlej.MjPdfReader.ui.settings
 
 import android.content.DialogInterface
+import android.content.Intent
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.SeekBar
@@ -18,6 +19,9 @@ import androidx.preference.PreferenceViewHolder
 import androidx.preference.SwitchPreferenceCompat
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.pdf.PDF
+import com.gitlab.mudlej.MjPdfReader.ui.history.ReadingHistoryActivity
+import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableAction
 import com.gitlab.mudlej.MjPdfReader.core.ui.SegmentedButtonStyler
 import com.google.android.material.button.MaterialButtonToggleGroup
@@ -173,6 +177,89 @@ internal class SettingsPreferenceFactory(
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
                 showShortcutBarButtonsPreferenceDialog(context, appPreferences) {}
+                true
+            }
+        }
+    }
+
+    fun openIncognitoPreference(breadcrumb: String?): Preference {
+        return Preference(context).apply {
+            title = getString(R.string.open_in_incognito)
+            key = "openIncognito"
+            summary = formatSummary(breadcrumb, getString(R.string.open_in_incognito_summary))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                val intent = Intent(context, MainActivity::class.java)
+                intent.putExtra(PDF.incognitoKey, true)
+                context.startActivity(intent)
+                true
+            }
+        }
+    }
+
+    fun readingHistoryPreference(breadcrumb: String?): Preference {
+        return Preference(context).apply {
+            title = getString(R.string.reading_history)
+            key = "readingHistory"
+            summary = formatSummary(breadcrumb, getString(R.string.reading_history_row_summary))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                context.startActivity(Intent(context, ReadingHistoryActivity::class.java))
+                true
+            }
+        }
+    }
+
+    fun clearReadingHistoryPreference(breadcrumb: String?): Preference {
+        return clearActionPreference(
+            "clearReadingHistory",
+            R.string.clear_reading_history_title,
+            R.string.clear_reading_history_summary,
+            breadcrumb,
+        ) { it.startClearReadingHistory() }
+    }
+
+    fun clearSavedPasswordsPreference(breadcrumb: String?): Preference {
+        return clearActionPreference(
+            "clearSavedPasswords",
+            R.string.clear_saved_passwords_title,
+            R.string.clear_saved_passwords_summary,
+            breadcrumb,
+        ) { it.startClearSavedPasswords() }
+    }
+
+    fun clearBookmarksPreference(breadcrumb: String?): Preference {
+        return clearActionPreference(
+            "clearBookmarks",
+            R.string.clear_bookmarks_title,
+            R.string.clear_bookmarks_summary,
+            breadcrumb,
+        ) { it.startClearBookmarks() }
+    }
+
+    fun clearAnnotationJournalsPreference(breadcrumb: String?): Preference {
+        return clearActionPreference(
+            "clearAnnotationJournals",
+            R.string.clear_annotation_journals_title,
+            R.string.clear_annotation_journals_summary,
+            breadcrumb,
+        ) { it.startClearAnnotationJournals() }
+    }
+
+    private fun clearActionPreference(
+        preferenceKey: String,
+        @StringRes titleRes: Int,
+        @StringRes summaryRes: Int,
+        breadcrumb: String?,
+        onClicked: (SettingsFragment) -> Unit,
+    ): Preference {
+        return Preference(context).apply {
+            title = getString(titleRes)
+            key = preferenceKey
+            summary = formatSummary(breadcrumb, getString(summaryRes))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                (fragment as? SettingsFragment)?.let(onClicked)
                 true
             }
         }

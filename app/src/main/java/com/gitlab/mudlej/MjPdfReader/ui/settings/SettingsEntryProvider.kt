@@ -17,6 +17,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             controlEntries(),
             textEntries(),
             highlightingEntries(),
+            privacyEntries(),
             advancedEntries(),
         ).flatten()
     }
@@ -262,6 +263,67 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 summaryRes = R.string.detect_existing_highlights_summary,
                 keywords = listOf("highlight", "annotation", "selection", "detect"),
             ),
+        )
+    }
+
+    private fun privacyEntries(): List<SettingEntry> {
+        return listOf(
+            switchEntry(
+                page = SettingsPage.HISTORY_PRIVACY,
+                titleRes = R.string.history_enabled_title,
+                key = Preferences.historyEnabledKey,
+                defaultValue = Preferences.historyEnabledDefault,
+                summaryRes = R.string.history_enabled_summary,
+                keywords = listOf("history", "privacy", "save", "recent", "remember", "positions"),
+            ),
+            SettingEntry(
+                page = SettingsPage.HISTORY_PRIVACY,
+                titleRes = R.string.open_in_incognito,
+                summaryRes = R.string.open_in_incognito_summary,
+                keywords = listOf("incognito", "private", "privacy", "history"),
+            ) { breadcrumb ->
+                openIncognitoPreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.HISTORY_PRIVACY,
+                titleRes = R.string.reading_history,
+                summaryRes = R.string.reading_history_row_summary,
+                keywords = listOf("history", "recent", "view", "records", "privacy"),
+            ) { breadcrumb ->
+                readingHistoryPreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.HISTORY_PRIVACY,
+                titleRes = R.string.clear_reading_history_title,
+                summaryRes = R.string.clear_reading_history_summary,
+                keywords = listOf("clear", "delete", "history", "recent", "positions", "privacy"),
+            ) { breadcrumb ->
+                clearReadingHistoryPreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.HISTORY_PRIVACY,
+                titleRes = R.string.clear_saved_passwords_title,
+                summaryRes = R.string.clear_saved_passwords_summary,
+                keywords = listOf("clear", "delete", "passwords", "privacy"),
+            ) { breadcrumb ->
+                clearSavedPasswordsPreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.HISTORY_PRIVACY,
+                titleRes = R.string.clear_bookmarks_title,
+                summaryRes = R.string.clear_bookmarks_summary,
+                keywords = listOf("clear", "delete", "bookmarks", "privacy"),
+            ) { breadcrumb ->
+                clearBookmarksPreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.HISTORY_PRIVACY,
+                titleRes = R.string.clear_annotation_journals_title,
+                summaryRes = R.string.clear_annotation_journals_summary,
+                keywords = listOf("clear", "delete", "highlights", "signature", "recovery", "privacy"),
+            ) { breadcrumb ->
+                clearAnnotationJournalsPreference(breadcrumb)
+            },
         )
     }
 

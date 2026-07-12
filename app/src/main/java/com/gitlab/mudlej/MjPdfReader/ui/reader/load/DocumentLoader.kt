@@ -14,6 +14,7 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
+import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderUi
@@ -37,6 +38,7 @@ class DocumentLoader(
     private val vm: ReaderViewModel,
     private val pref: Preferences,
     private val pdfRepository: PdfRepository,
+    private val historyPolicy: HistoryPolicy,
     private val readingDirectionResolver: ReadingDirectionResolver,
     private val scope: CoroutineScope,
     private val ui: ReaderUi,
@@ -327,92 +329,118 @@ class DocumentLoader(
         loadToken: Long,
         documentUri: Uri?,
     ) {
+        scope.launch {
+            persistRecord(savePassword, expectedFileHash, loadToken, documentUri)
+        }
+    }
+
+    fun persistCurrentDocument() {
+        val documentUri = doc.uri ?: return
+        val loadToken = vm.currentLoadToken
+        scope.launch {
+            persistRecord(false, doc.fileHash, loadToken, documentUri)
+            val fileHash = doc.fileHash
+            if (fileHash != null && vm.isCurrent(loadToken, documentUri) && historyPolicy.canRecord()) {
+                pdfRepository.setPageNumber(fileHash, doc.pageNumber)
+            }
+        }
+    }
+
+    private suspend fun persistRecord(
+        savePassword: Boolean,
+        expectedFileHash: String?,
+        loadToken: Long,
+        documentUri: Uri?,
+    ) {
         val password = if (savePassword) doc.password else null
         val documentTitle = runCatching { binding.pdfView.documentMeta?.title }
             .getOrNull()
             ?.takeIf { it.isNotBlank() }
-        scope.launch {
+        if (!vm.isCurrent(loadToken, documentUri)) {
+            return
+        }
+
+        if (doc.fileHash == null && expectedFileHash == null) {
+            val computedHash = computeHash(context, doc.uri)
             if (!vm.isCurrent(loadToken, documentUri)) {
-                return@launch
+                return
             }
+            doc.fileHash = computedHash
+        }
+        if (!vm.isCurrent(loadToken, documentUri)) {
+            return
+        }
 
-            if (doc.fileHash == null && expectedFileHash == null) {
-                val computedHash = computeHash(context, doc.uri)
-                if (!vm.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                doc.fileHash = computedHash
+        val fileHash = expectedFileHash ?: doc.fileHash
+        if (fileHash == null) {
+            Log.e(TAG, "createPdfRecord: Failed to compute fileHash while creating PdfRecord")
+            return
+        }
+        doc.fileHash = fileHash
+
+        if (!historyPolicy.canRecord()) {
+            emit { it.onRecordAvailable(fileHash) }
+            return
+        }
+
+        if (pdfRepository.hasRecord(fileHash)) {
+            if (!vm.isCurrent(loadToken, documentUri)) {
+                return
+            }
+            pdfRepository.setLastOpened(fileHash, LocalDateTime.now())
+            if (!vm.isCurrent(loadToken, documentUri)) {
+                return
+            }
+            updateRecordUri(fileHash)
+            if (!vm.isCurrent(loadToken, documentUri)) {
+                return
+            }
+            if (documentTitle != null) {
+                pdfRepository.setDocumentTitle(fileHash, documentTitle)
             }
             if (!vm.isCurrent(loadToken, documentUri)) {
-                return@launch
+                return
             }
-
-            val fileHash = expectedFileHash ?: doc.fileHash
-            if (fileHash == null) {
-                Log.e(TAG, "createPdfRecord: Failed to compute fileHash while creating PdfRecord")
-                return@launch
+            if (password != null) {
+                pdfRepository.setPassword(fileHash, password)
             }
-            doc.fileHash = fileHash
-
-            if (pdfRepository.hasRecord(fileHash)) {
-                if (!vm.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                pdfRepository.setLastOpened(fileHash, LocalDateTime.now())
-                if (!vm.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                updateRecordUri(fileHash)
-                if (!vm.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                if (documentTitle != null) {
-                    pdfRepository.setDocumentTitle(fileHash, documentTitle)
-                }
-                if (!vm.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                if (password != null) {
-                    pdfRepository.setPassword(fileHash, password)
-                }
-                if (!vm.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                doc.autoScrollSpeed?.let { pdfRepository.setAutoScrollSpeed(fileHash, it) }
-                if (!vm.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                readingDirectionResolver.saveState(fileHash)
-                if (!vm.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                emit { it.onRecordAvailable(fileHash) }
+            if (!vm.isCurrent(loadToken, documentUri)) {
+                return
             }
-            else {
-                if (!vm.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                val record = doc.toPdfRecord(fileHash, password)
-                pdfRepository.saveRecordInBackground(record)
-                if (!vm.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                if (documentTitle != null) {
-                    pdfRepository.setDocumentTitle(fileHash, documentTitle)
-                }
-                if (!vm.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                updateRecordUri(fileHash)
-                if (!vm.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                doc.autoScrollSpeed?.let { pdfRepository.setAutoScrollSpeed(fileHash, it) }
-                if (!vm.isCurrent(loadToken, documentUri)) {
-                    return@launch
-                }
-                emit { it.onRecordAvailable(fileHash) }
+            doc.autoScrollSpeed?.let { pdfRepository.setAutoScrollSpeed(fileHash, it) }
+            if (!vm.isCurrent(loadToken, documentUri)) {
+                return
             }
+            readingDirectionResolver.saveState(fileHash)
+            if (!vm.isCurrent(loadToken, documentUri)) {
+                return
+            }
+            emit { it.onRecordAvailable(fileHash) }
+        }
+        else {
+            if (!vm.isCurrent(loadToken, documentUri)) {
+                return
+            }
+            val record = doc.toPdfRecord(fileHash, password)
+            pdfRepository.saveRecordInBackground(record)
+            if (!vm.isCurrent(loadToken, documentUri)) {
+                return
+            }
+            if (documentTitle != null) {
+                pdfRepository.setDocumentTitle(fileHash, documentTitle)
+            }
+            if (!vm.isCurrent(loadToken, documentUri)) {
+                return
+            }
+            updateRecordUri(fileHash)
+            if (!vm.isCurrent(loadToken, documentUri)) {
+                return
+            }
+            doc.autoScrollSpeed?.let { pdfRepository.setAutoScrollSpeed(fileHash, it) }
+            if (!vm.isCurrent(loadToken, documentUri)) {
+                return
+            }
+            emit { it.onRecordAvailable(fileHash) }
         }
     }
 
@@ -459,7 +487,9 @@ class DocumentLoader(
             if (hash != null) {
                 doc.fileHash = hash
                 emit { it.onFileHashComputed() }
-                pdfRepository.setPageNumber(hash, pageNumber)
+                if (historyPolicy.canRecord()) {
+                    pdfRepository.setPageNumber(hash, pageNumber)
+                }
             }
             else {
                 showFailedToComputeHashError()

@@ -43,6 +43,7 @@ class ReaderMenu(
             action(ConfigurableAction.RELOAD),
             action(ConfigurableAction.OPEN_ONLINE),
             action(ConfigurableAction.FILE_METADATA),
+            action(ConfigurableAction.INCOGNITO),
             ReaderAction(R.string.toggle_shortcuts, R.drawable.ic_awesome, visible = hasFile()) {
                 toggleSecondBar()
             },

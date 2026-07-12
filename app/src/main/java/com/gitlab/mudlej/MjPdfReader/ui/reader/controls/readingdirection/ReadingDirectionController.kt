@@ -6,6 +6,7 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.pdf.ReadingDirection
+import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
@@ -21,6 +22,7 @@ class ReadingDirectionController(
     private val vm: ReaderViewModel,
     private val pref: Preferences,
     private val pdfRepository: PdfRepository,
+    private val historyPolicy: HistoryPolicy,
     private val scope: CoroutineScope,
     private val resolver: ReadingDirectionResolver,
     private val documentLoader: DocumentLoader,
@@ -91,7 +93,9 @@ class ReadingDirectionController(
             }
 
             pdf.fileHash = hash
-            pdfRepository.setReadingDirectionOverride(hash, direction?.id)
+            if (historyPolicy.canRecord()) {
+                pdfRepository.setReadingDirectionOverride(hash, direction?.id)
+            }
             if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
@@ -104,7 +108,9 @@ class ReadingDirectionController(
             if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
-            detectedDirection?.let { pdfRepository.setDetectedReadingDirection(hash, it.id) }
+            if (historyPolicy.canRecord()) {
+                detectedDirection?.let { pdfRepository.setDetectedReadingDirection(hash, it.id) }
+            }
 
             pdf.readingDirectionOverride = direction
             pdf.detectedReadingDirection = detectedDirection

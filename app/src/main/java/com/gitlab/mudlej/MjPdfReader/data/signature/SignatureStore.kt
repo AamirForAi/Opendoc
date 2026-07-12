@@ -23,6 +23,10 @@ class SignatureStore(context: Context) {
         }
     }
 
+    fun delete() {
+        runCatching { file.delete() }
+    }
+
     companion object {
         private const val DIRECTORY = "signature"
         private const val FILE_NAME = "signature.json"

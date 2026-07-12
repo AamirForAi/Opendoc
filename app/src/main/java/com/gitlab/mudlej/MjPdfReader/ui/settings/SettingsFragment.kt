@@ -8,11 +8,17 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceScreen
+import android.widget.Toast
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.data.BackupManager
+import com.gitlab.mudlej.MjPdfReader.data.HistoryCleaner
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
+import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationJournal
+import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
+import com.gitlab.mudlej.MjPdfReader.core.ui.confirmDialog
+import com.gitlab.mudlej.MjPdfReader.ui.home.CoverCache
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
@@ -32,6 +38,15 @@ class SettingsFragment : PreferenceFragmentCompat() {
     private val backupManager by lazy {
         val appContext = requireContext().applicationContext
         BackupManager(appContext, PdfRepository(AppDatabase.getInstance(appContext)))
+    }
+    private val historyCleaner by lazy {
+        val appContext = requireContext().applicationContext
+        HistoryCleaner(
+            PdfRepository(AppDatabase.getInstance(appContext)),
+            AnnotationJournal(appContext),
+            SignatureStore(appContext),
+            CoverCache.getInstance(appContext),
+        )
     }
     private val exportBackupLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
@@ -151,6 +166,65 @@ class SettingsFragment : PreferenceFragmentCompat() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    fun startClearReadingHistory() {
+        confirmDialog(
+            requireContext(),
+            R.string.clear_reading_history_title,
+            getString(R.string.clear_reading_history_message),
+            R.string.delete,
+        ) {
+            runClearAction { historyCleaner.clearReadingHistory() }
+        }
+    }
+
+    fun startClearSavedPasswords() {
+        confirmDialog(
+            requireContext(),
+            R.string.clear_saved_passwords_title,
+            getString(R.string.clear_saved_passwords_message),
+            R.string.delete,
+        ) {
+            runClearAction { historyCleaner.clearSavedPasswords() }
+        }
+    }
+
+    fun startClearBookmarks() {
+        confirmDialog(
+            requireContext(),
+            R.string.clear_bookmarks_title,
+            getString(R.string.clear_bookmarks_message),
+            R.string.delete,
+        ) {
+            runClearAction { historyCleaner.clearBookmarks() }
+        }
+    }
+
+    fun startClearAnnotationJournals() {
+        confirmDialog(
+            requireContext(),
+            R.string.clear_annotation_journals_title,
+            getString(R.string.clear_annotation_journals_message),
+            R.string.delete,
+        ) {
+            runClearAction {
+                historyCleaner.clearAnnotationJournalsAndSignature()
+                null
+            }
+        }
+    }
+
+    private fun runClearAction(action: suspend () -> Int?) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val count = withContext(NonCancellable) { action() }
+            if (!isAdded) {
+                return@launch
+            }
+            val message = count?.let { getString(R.string.cleared_entries, it) }
+                ?: getString(R.string.cleared_done)
+            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun runBackupExport(uri: android.net.Uri) {

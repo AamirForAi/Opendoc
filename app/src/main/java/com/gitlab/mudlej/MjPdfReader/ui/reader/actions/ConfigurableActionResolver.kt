@@ -22,6 +22,7 @@ class ConfigurableActionResolver(
     private val canNavigateBack: () -> Boolean,
     private val canNavigateForward: () -> Boolean,
     private val isCurrentPageBookmarked: () -> Boolean,
+    private val isIncognito: () -> Boolean,
     private val handlers: Handlers,
 ) {
 
@@ -55,6 +56,7 @@ class ConfigurableActionResolver(
         val linksInFile: () -> Unit,
         val print: () -> Unit,
         val addSignature: () -> Unit,
+        val toggleIncognito: () -> Unit,
     )
 
     fun action(actionId: String): ConfiguredAction? {
@@ -234,6 +236,11 @@ class ConfigurableActionResolver(
                 R.drawable.ic_signature,
                 visible = fileAvailable,
                 run = handlers.addSignature,
+            )
+            ConfigurableAction.INCOGNITO -> ConfiguredAction(
+                if (isIncognito()) R.string.incognito_exit else R.string.incognito,
+                R.drawable.ic_incognito,
+                run = handlers.toggleIncognito,
             )
             ConfigurableAction.BRIGHTNESS,
             ConfigurableAction.AUTO_SCROLL,

@@ -20,4 +20,13 @@ interface PdfAnnotationSaveDestinationDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun upsert(destination: PdfAnnotationSaveDestination)
+
+    @Query("DELETE FROM PdfAnnotationSaveDestination WHERE sourceKey = :sourceKey")
+    fun deleteBySourceKey(sourceKey: String): Int
+
+    @Query("DELETE FROM PdfAnnotationSaveDestination WHERE lastSavedHash = :hash")
+    fun deleteByLastSavedHash(hash: String): Int
+
+    @Query("DELETE FROM PdfAnnotationSaveDestination")
+    fun deleteAll(): Int
 }

@@ -41,6 +41,11 @@ enum class SettingsPage(
         R.string.settings_highlighting_summary,
         R.drawable.ic_highlight,
     ),
+    HISTORY_PRIVACY(
+        R.string.settings_history_privacy,
+        R.string.settings_history_privacy_summary,
+        R.drawable.privacy_icon,
+    ),
     ADVANCED(
         R.string.advanced,
         R.string.advanced_summary,

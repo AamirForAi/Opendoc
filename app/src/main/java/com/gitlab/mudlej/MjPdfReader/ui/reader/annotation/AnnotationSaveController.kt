@@ -14,6 +14,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
+import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfAnnotationSaveDestination
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
@@ -36,6 +37,7 @@ class AnnotationSaveController(
     private val pdf: DocumentState,
     private val annotationController: AnnotationController,
     private val pdfRepository: PdfRepository,
+    private val historyPolicy: HistoryPolicy,
     private val vm: ReaderViewModel,
     private val scope: CoroutineScope,
     private val updateDestinationLauncher: ActivityResultLauncher<Intent>,
@@ -222,26 +224,28 @@ class AnnotationSaveController(
                 PdfBytesHolder.set(destinationUri.toString(), saveResult.bytes)
             }
 
-            if (oldHash != null) {
-                pdfRepository.copyOrUpdateRecordIdentity(
-                    oldHash,
-                    newHash,
-                    sourceUri,
-                    destinationUri,
-                    destinationName.removeSuffix(".pdf"),
-                )
-            } else if (isCurrent) {
-                pdfRepository.saveRecordInBackground(pdf.toPdfRecord(newHash, pdf.password))
-            }
-            if (saveDestinationDurably) {
-                pdfRepository.saveAnnotationSaveDestination(
-                    PdfAnnotationSaveDestination(
-                        sourceKey = AnnotationController.sourceKey(sourceUri),
-                        destinationUri = destinationUri.toString(),
-                        lastSavedHash = newHash,
-                        lastSavedAt = LocalDateTime.now(),
+            if (historyPolicy.canRecord()) {
+                if (oldHash != null) {
+                    pdfRepository.copyOrUpdateRecordIdentity(
+                        oldHash,
+                        newHash,
+                        sourceUri,
+                        destinationUri,
+                        destinationName.removeSuffix(".pdf"),
                     )
-                )
+                } else if (isCurrent) {
+                    pdfRepository.saveRecordInBackground(pdf.toPdfRecord(newHash, pdf.password))
+                }
+                if (saveDestinationDurably) {
+                    pdfRepository.saveAnnotationSaveDestination(
+                        PdfAnnotationSaveDestination(
+                            sourceKey = AnnotationController.sourceKey(sourceUri),
+                            destinationUri = destinationUri.toString(),
+                            lastSavedHash = newHash,
+                            lastSavedAt = LocalDateTime.now(),
+                        )
+                    )
+                }
             }
 
             annotationController.clearJournal(sourceUri)

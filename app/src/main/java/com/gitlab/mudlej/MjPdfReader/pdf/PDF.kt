@@ -57,4 +57,5 @@ object PDF {
     const val resultPositionInListKey = "searchResultPositionKey"
     const val filePathKey = "filePathKey"
     const val chosenPageIndexKey = "chosenPageIndexKey"
+    const val incognitoKey = "incognito"
 }

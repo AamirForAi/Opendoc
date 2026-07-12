@@ -43,7 +43,8 @@ enum class ConfigurableAction(
     USER_BOOKMARKS("user_bookmarks", R.string.bookmarks, R.drawable.ic_bookmarks),
     LINKS_IN_FILE("links_in_file", R.string.links_in_file, R.drawable.ic_links_in_file),
     PRINT("print", R.string.print_file, R.drawable.ic_print),
-    ADD_SIGNATURE("add_signature", R.string.add_signature, R.drawable.ic_signature);
+    ADD_SIGNATURE("add_signature", R.string.add_signature, R.drawable.ic_signature),
+    INCOGNITO("incognito", R.string.incognito, R.drawable.ic_incognito);
 
     companion object {
         val toolbarActions = listOf(
@@ -75,6 +76,7 @@ enum class ConfigurableAction(
             LINKS_IN_FILE,
             PRINT,
             ADD_SIGNATURE,
+            INCOGNITO,
         )
 
         val fullScreenOverlayActions = listOf(
@@ -98,6 +100,7 @@ enum class ConfigurableAction(
             TABLE_OF_CONTENTS,
             BOOKMARK_PAGE,
             USER_BOOKMARKS,
+            INCOGNITO,
         )
 
         val shortcutBarActions = listOf(
@@ -129,6 +132,7 @@ enum class ConfigurableAction(
             LINKS_IN_FILE,
             PRINT,
             ADD_SIGNATURE,
+            INCOGNITO,
         )
 
         val defaultShortcutBarSelectedActions = listOf(
@@ -176,6 +180,7 @@ enum class ConfigurableAction(
             TABLE_OF_CONTENTS,
             BOOKMARK_PAGE,
             USER_BOOKMARKS,
+            INCOGNITO,
         )
 
         fun fromId(id: String?): ConfigurableAction {

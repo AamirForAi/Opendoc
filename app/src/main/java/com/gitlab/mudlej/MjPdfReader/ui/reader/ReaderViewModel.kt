@@ -24,6 +24,7 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
 
     var isPortrait = true
     var isFullScreenToggled = false
+    var incognito = false
     var isBrightnessClicked = false
     var isAutoScrollClicked = false
     var isAutoScrolling = false
@@ -108,6 +109,7 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
         out.putString(PDF.effectiveReadingDirectionKey, doc.effectiveReadingDirection.id)
         out.putBoolean(PDF.isPortraitKey, isPortrait)
         out.putBoolean(PDF.isFullScreenToggledKey, isFullScreenToggled)
+        out.putBoolean(PDF.incognitoKey, incognito)
         doc.autoScrollSpeed?.let { out.putInt(PDF.autoScrollSpeedKey, it) }
         out.putBoolean(PDF.cropMarginsEnabledKey, cropMarginsEnabled)
         pendingViewState?.let { viewState ->
@@ -149,6 +151,7 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
         ) ?: ReadingDirection.LEFT_TO_RIGHT
         isPortrait = saved.getBoolean(PDF.isPortraitKey, true)
         isFullScreenToggled = saved.getBoolean(PDF.isFullScreenToggledKey)
+        incognito = saved.getBoolean(PDF.incognitoKey, false)
         doc.autoScrollSpeed = saved.takeIf { it.containsKey(PDF.autoScrollSpeedKey) }
             ?.getInt(PDF.autoScrollSpeedKey)
         cropMarginsEnabled = saved.getBoolean(PDF.cropMarginsEnabledKey, false)

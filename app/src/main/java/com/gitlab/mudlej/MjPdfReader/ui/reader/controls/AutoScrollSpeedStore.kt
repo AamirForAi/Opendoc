@@ -3,6 +3,7 @@
 package com.gitlab.mudlej.MjPdfReader.ui.reader.controls
 
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
+import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
 class AutoScrollSpeedStore(
     private val pdf: DocumentState,
     private val pdfRepository: PdfRepository,
+    private val historyPolicy: HistoryPolicy,
     private val scope: CoroutineScope,
     private val backgroundScope: CoroutineScope,
 ) {
@@ -40,7 +42,9 @@ class AutoScrollSpeedStore(
         saveJob = null
         pendingSave = null
         backgroundScope.launch {
-            pdfRepository.setAutoScrollSpeed(pending.fileHash, pending.speed)
+            if (historyPolicy.canRecord()) {
+                pdfRepository.setAutoScrollSpeed(pending.fileHash, pending.speed)
+            }
         }
     }
 
@@ -49,7 +53,9 @@ class AutoScrollSpeedStore(
             return
         }
 
-        pdfRepository.setAutoScrollSpeed(pending.fileHash, pending.speed)
+        if (historyPolicy.canRecord()) {
+            pdfRepository.setAutoScrollSpeed(pending.fileHash, pending.speed)
+        }
         if (pendingSave == pending) {
             pendingSave = null
         }

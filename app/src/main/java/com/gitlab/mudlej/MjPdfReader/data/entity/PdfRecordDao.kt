@@ -107,4 +107,10 @@ interface PdfRecordDao {
 
     @Query("DELETE FROM PdfRecord WHERE hash IN (:fileHashes)")
     fun deleteByHashes(fileHashes: List<String>): Int
+
+    @Query("DELETE FROM PdfRecord")
+    fun deleteAll(): Int
+
+    @Query("UPDATE PdfRecord SET password = NULL WHERE password IS NOT NULL")
+    fun clearPasswords(): Int
 }

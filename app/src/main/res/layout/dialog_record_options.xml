@@ -183,6 +183,15 @@
             android:text="@string/home_hide_from_library"
             app:icon="@drawable/ic_hide" />
 
+        <Button
+            android:id="@+id/openIncognitoButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/open_in_incognito"
+            app:icon="@drawable/ic_incognito" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

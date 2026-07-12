@@ -25,6 +25,7 @@ import com.github.barteksc.pdfviewer.scroll.DefaultScrollHandle
 import com.github.barteksc.pdfviewer.scroll.ScrollHandle
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
+import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
 import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
@@ -92,7 +93,9 @@ class ReaderComposition(
         val exitOnCancel = pickerOpenedByBackButton
         pickerOpenedByBackButton = false
         if (selectedDocumentUri != null) {
-            PersistedGrantKeeper.takeReadGrant(activity, selectedDocumentUri)
+            if (!vm.incognito) {
+                PersistedGrantKeeper.takeReadGrant(activity, selectedDocumentUri)
+            }
             openSelectedDocument(selectedDocumentUri)
         } else if (exitOnCancel) {
             activity.finish()
@@ -165,7 +168,8 @@ class ReaderComposition(
     }
 
     val pdfRepository: PdfRepository = PdfRepository(AppDatabase.getInstance(activity.applicationContext))
-    val autoScrollSpeedStore = AutoScrollSpeedStore(doc, pdfRepository, scope, backgroundSaveScope)
+    val historyPolicy: HistoryPolicy = HistoryPolicy(pref) { vm.incognito }
+    val autoScrollSpeedStore = AutoScrollSpeedStore(doc, pdfRepository, historyPolicy, scope, backgroundSaveScope)
     val autoScrollManager: AutoScrollManager =
         AutoScrollManager(binding, vm, pref, autoScrollSpeedStore::onSpeedChanged)
     val fullScreenOptionsManager: FullScreenOptionsManager =
@@ -185,7 +189,7 @@ class ReaderComposition(
         { uri -> activity.shareFile(uri, asImage = true) },
     )
 
-    val annotationController: AnnotationController = AnnotationController(activity, binding, vm)
+    val annotationController: AnnotationController = AnnotationController(activity, binding, vm, historyPolicy)
     val formFieldController = FormFieldController(activity, binding, ::onAnnotationEdit)
     val signatureController: SignatureController = SignatureController(
         activity,
@@ -211,6 +215,7 @@ class ReaderComposition(
         doc,
         annotationController,
         pdfRepository,
+        historyPolicy,
         vm,
         scope,
         updateAnnotationDestinationLauncher,
@@ -225,6 +230,7 @@ class ReaderComposition(
         activity,
         binding,
         pdfRepository,
+        historyPolicy,
         doc,
         scope,
         { vm.cropMarginsEnabled },
@@ -250,6 +256,7 @@ class ReaderComposition(
         binding,
         vm,
         pdfRepository,
+        historyPolicy,
         scope,
         ui,
         ::refreshActions,
@@ -278,6 +285,7 @@ class ReaderComposition(
         { readerHistory.canGoBack() },
         { readerHistory.canGoForward() },
         { userBookmarkController.isCurrentPageBookmarked },
+        { vm.incognito },
         createHandlers(),
     )
     val toolbarActionController = ToolbarActionController(
@@ -325,6 +333,7 @@ class ReaderComposition(
         vm,
         pref,
         pdfRepository,
+        historyPolicy,
         readingDirectionResolver,
         scope,
         ui,
@@ -337,6 +346,7 @@ class ReaderComposition(
         vm,
         pref,
         pdfRepository,
+        historyPolicy,
         scope,
         readingDirectionResolver,
         documentLoader,
@@ -566,7 +576,19 @@ class ReaderComposition(
             linksInFile = { readerNavigationController.showLinks() },
             print = ::printFile,
             addSignature = { signatureController.showSignatureDialog() },
+            toggleIncognito = ::toggleIncognito,
         )
+    }
+
+    private fun toggleIncognito() {
+        vm.incognito = !vm.incognito
+        if (vm.incognito) {
+            AppSnackbar.make(binding.root, R.string.incognito_on_message, Snackbar.LENGTH_SHORT).show()
+        } else {
+            documentLoader.persistCurrentDocument()
+            AppSnackbar.make(binding.root, R.string.incognito_off_message, Snackbar.LENGTH_SHORT).show()
+        }
+        refreshActions()
     }
 
     private fun openSelectedDocument(selectedDocumentUri: Uri?) {
@@ -584,6 +606,10 @@ class ReaderComposition(
         } else {
             val intent = Intent(activity, activity.javaClass)
             intent.data = selectedDocumentUri
+            if (vm.incognito) {
+                intent.putExtra(PDF.incognitoKey, true)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+            }
             activity.startActivity(intent)
         }
     }
@@ -660,6 +686,7 @@ class ReaderComposition(
             it.putExtra(PDF.filePathKey, doc.uri.toString())
             it.putExtra(PDF.passwordKey, doc.password)
             it.putExtra(PDF.pageNumberKey, currentPageIndex)
+            it.putExtra(PDF.incognitoKey, vm.incognito)
             doc.fileHash?.let { fileHash -> it.putExtra(PDF.fileHashKey, fileHash) }
             textModeLauncher.launch(it)
         }

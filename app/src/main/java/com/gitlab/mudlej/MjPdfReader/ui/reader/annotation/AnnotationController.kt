@@ -6,6 +6,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.github.barteksc.pdfviewer.PDFView
+import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationJournal
 import com.gitlab.mudlej.MjPdfReader.data.annotation.SourceKey
@@ -18,6 +19,7 @@ class AnnotationController(
     private val context: Context,
     private val binding: ActivityMainBinding,
     private val vm: ReaderViewModel,
+    private val historyPolicy: HistoryPolicy,
 ) {
     private val journal = AnnotationJournal(context)
     private val pdf get() = vm.doc
@@ -50,7 +52,9 @@ class AnnotationController(
 
     fun recordEdit(edit: AnnotationEdit) {
         val uri = pdf.uri ?: return
-        journal.append(uri, edit)
+        if (historyPolicy.canRecord()) {
+            journal.append(uri, edit)
+        }
         vm.sessionOwnedAnnotationKeys.add(SourceKey.of(uri))
         vm.hasUnsavedAnnotations = true
     }

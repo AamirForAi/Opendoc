@@ -11,6 +11,8 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.DialogRecordOptionsBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.DialogRenameRecordBinding
 import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
+import com.gitlab.mudlej.MjPdfReader.data.HistoryCleaner
+import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.ui.reader.showMetaDialog
@@ -32,7 +34,10 @@ class RecordOptionsDialog(
     private val pdfRepository: PdfRepository,
     private val coverCache: CoverCache,
     private val libraryScanner: LibraryScanner,
+    private val historyPolicy: HistoryPolicy,
+    private val historyCleaner: HistoryCleaner,
     private val scope: CoroutineScope,
+    private val onOpenIncognito: (HomeItem) -> Unit,
     private val onChanged: () -> Unit,
 ) {
 
@@ -109,11 +114,20 @@ class RecordOptionsDialog(
             scope.launch {
                 val hash = record?.hash ?: resolveContentHash(item) ?: return@launch
                 if (record == null && !pdfRepository.hasRecord(hash)) {
+                    if (!historyPolicy.canRecord()) {
+                        Toast.makeText(activity, R.string.history_action_blocked, Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
                     pdfRepository.saveRecordInBackground(newRecord(item, hash))
                 }
                 pdfRepository.setHidden(hash, !(record?.hidden ?: false))
                 onChanged()
             }
+        }
+
+        binding.openIncognitoButton.setOnClickListener {
+            dialog.dismiss()
+            onOpenIncognito(item)
         }
 
         binding.optionsInfoButton.setOnClickListener { showFullProperties(item, record) }
@@ -172,6 +186,10 @@ class RecordOptionsDialog(
                 val hash = resolvedHash ?: resolveContentHash(item) ?: return@launch
                 resolvedHash = hash
                 if (!pdfRepository.hasRecord(hash)) {
+                    if (!historyPolicy.canRecord()) {
+                        Toast.makeText(activity, R.string.history_action_blocked, Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
                     pdfRepository.saveRecordInBackground(newRecord(item, hash))
                 }
                 pdfRepository.setReading(hash, status)
@@ -186,6 +204,9 @@ class RecordOptionsDialog(
         }
         val hash = resolveContentHash(item) ?: return null
         if (!pdfRepository.hasRecord(hash)) {
+            if (!historyPolicy.canRecord()) {
+                return null
+            }
             pdfRepository.saveRecordInBackground(newRecord(item, hash))
         }
         return hash
@@ -327,9 +348,7 @@ class RecordOptionsDialog(
                 return@launch
             }
 
-            if (record != null) {
-                pdfRepository.removeRecords(listOf(record.hash))
-            }
+            historyCleaner.deleteDocument(record?.hash ?: item.hash)
             coverCache.invalidate(item.coverKey)
             item.uri.path?.let { libraryScanner.onFileRemoved(it) }
             onChanged()

@@ -5,6 +5,7 @@ package com.gitlab.mudlej.MjPdfReader.ui.home
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -19,7 +20,11 @@ import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityHomeBinding
 import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
+import com.gitlab.mudlej.MjPdfReader.data.HistoryCleaner
+import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
+import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationJournal
+import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
 import com.gitlab.mudlej.MjPdfReader.core.PermissionManager
 import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.ui.reader.showAppFeaturesDialog
@@ -38,6 +43,8 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     private lateinit var binding: ActivityHomeBinding
     private lateinit var pref: Preferences
     private lateinit var pdfRepository: PdfRepository
+    private lateinit var historyPolicy: HistoryPolicy
+    private lateinit var historyCleaner: HistoryCleaner
     private lateinit var permissionManager: PermissionManager
     private lateinit var coverCache: CoverCache
     private lateinit var libraryController: HomeLibraryController
@@ -59,10 +66,16 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         }
     }
 
+    private var pickIncognito = false
+
     private val pdfPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val incognito = pickIncognito
+        pickIncognito = false
         if (uri != null) {
-            PersistedGrantKeeper.takeReadGrant(this, uri)
-            openInReader(uri)
+            if (!incognito) {
+                PersistedGrantKeeper.takeReadGrant(this, uri)
+            }
+            openInReader(uri, incognito = incognito)
         }
     }
 
@@ -88,6 +101,13 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
 
         pdfRepository = PdfRepository(AppDatabase.getInstance(applicationContext))
         coverCache = CoverCache.getInstance(applicationContext)
+        historyPolicy = HistoryPolicy(pref)
+        historyCleaner = HistoryCleaner(
+            pdfRepository,
+            AnnotationJournal(applicationContext),
+            SignatureStore(applicationContext),
+            coverCache,
+        )
         permissionManager = PermissionManager(this) { onStorageAccessChanged() }
         libraryController = HomeLibraryController(pdfRepository, pref)
         libraryScanner = LibraryScanner.getInstance(applicationContext)
@@ -97,7 +117,12 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             pdfRepository,
             coverCache,
             libraryScanner,
+            historyPolicy,
+            historyCleaner,
             lifecycleScope,
+            onOpenIncognito = { item ->
+                openInReader(item.uri, item.hash.takeUnless { item.isScanOnly }, incognito = true)
+            },
             onChanged = ::refresh,
         )
         recentTab = RecentTabController(
@@ -172,6 +197,12 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             }
         }
         binding.openPdfFab.setOnClickListener { pdfPicker.launch(arrayOf(PDF.FILE_TYPE)) }
+        binding.openPdfFab.setOnLongClickListener {
+            pickIncognito = true
+            Toast.makeText(this, R.string.open_in_incognito_hint, Toast.LENGTH_SHORT).show()
+            pdfPicker.launch(arrayOf(PDF.FILE_TYPE))
+            true
+        }
 
         lifecycleScope.launch {
             libraryScanner.index.collect { refresh() }
@@ -295,11 +326,15 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         }
     }
 
-    private fun openInReader(uri: Uri, hash: String? = null) {
+    private fun openInReader(uri: Uri, hash: String? = null, incognito: Boolean = false) {
         Intent(this, MainActivity::class.java).also { intent ->
             intent.data = uri
             intent.putExtra(EXTRA_FROM_HOME, true)
             hash?.let { intent.putExtra(EXTRA_RECORD_HASH, it) }
+            if (incognito) {
+                intent.putExtra(PDF.incognitoKey, true)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+            }
             startActivity(intent)
         }
     }
@@ -347,6 +382,9 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             .setItems(labels) { _, index ->
                 lifecycleScope.launch {
                     val hashes = items.mapNotNull { recordOptionsDialog.ensureRecordHash(it) }
+                    if (hashes.size < items.size && !historyPolicy.canRecord()) {
+                        Toast.makeText(this@HomeActivity, R.string.history_action_blocked, Toast.LENGTH_SHORT).show()
+                    }
                     pdfRepository.setReadingBatch(hashes, ReadingStatus.entries[index])
                     selectionController.finish()
                     refresh()
@@ -361,8 +399,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             .setMessage(R.string.delete_dialog_message)
             .setPositiveButton(R.string.delete) { _, _ ->
                 lifecycleScope.launch {
-                    pdfRepository.removeRecords(items.map { it.hash })
-                    items.forEach { coverCache.invalidate(it.hash) }
+                    historyCleaner.deleteDocuments(items.map { it.hash })
                     selectionController.finish()
                     refresh()
                 }

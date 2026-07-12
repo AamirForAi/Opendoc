@@ -47,12 +47,20 @@ class AnnotationJournal(private val context: Context) {
         executor.execute { fileFor(uri).delete() }
     }
 
+    fun deleteAll() {
+        executor.execute {
+            journalDir().listFiles()?.forEach { it.delete() }
+        }
+    }
+
     private fun <T> onJournalThread(action: () -> T): T {
         return executor.submit(Callable(action)).get()
     }
 
+    private fun journalDir() = File(context.filesDir, "annotations")
+
     private fun fileFor(uri: Uri): File {
-        val dir = File(context.filesDir, "annotations")
+        val dir = journalDir()
         if (!dir.exists()) {
             dir.mkdirs()
         }

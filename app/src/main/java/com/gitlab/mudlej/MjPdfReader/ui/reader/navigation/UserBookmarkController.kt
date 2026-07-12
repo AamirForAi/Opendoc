@@ -4,6 +4,7 @@ package com.gitlab.mudlej.MjPdfReader.ui.reader.navigation
 
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
+import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.entity.UserBookmark
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderUi
@@ -17,6 +18,7 @@ class UserBookmarkController(
     private val binding: ActivityMainBinding,
     private val vm: ReaderViewModel,
     private val pdfRepository: PdfRepository,
+    private val historyPolicy: HistoryPolicy,
     private val scope: CoroutineScope,
     private val ui: ReaderUi,
     private val onBookmarkStateChanged: () -> Unit,
@@ -48,6 +50,10 @@ class UserBookmarkController(
         }
         val pageIndex = doc.pageNumber
         val adding = !vm.bookmarkedPages.contains(pageIndex)
+        if (adding && !historyPolicy.canRecord()) {
+            AppSnackbar.make(binding.root, R.string.history_action_blocked, Snackbar.LENGTH_SHORT).show()
+            return
+        }
         if (adding) {
             vm.bookmarkedPages.add(pageIndex)
         } else {

@@ -104,6 +104,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
             restoreInstanceState(savedInstanceState)
         }
         else {
+            vm.incognito = intent.getBooleanExtra(PDF.incognitoKey, false)
             val intentUri = intent.data
             if (intentUri == null) {
                 if (intent.getBooleanExtra(HomeActivity.EXTRA_OPEN_ONLINE_DIALOG, false)) {

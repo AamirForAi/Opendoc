@@ -14,6 +14,7 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
+import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.shockwave.pdfium.PdfDocument
 import com.shockwave.pdfium.PdfiumCore
@@ -28,6 +29,7 @@ class CropMarginsController(
     private val activity: Activity,
     private val binding: ActivityMainBinding,
     private val pdfRepository: PdfRepository,
+    private val historyPolicy: HistoryPolicy,
     private val pdf: DocumentState,
     private val scope: CoroutineScope,
     private val isCropMarginsEnabled: () -> Boolean,
@@ -143,6 +145,9 @@ class CropMarginsController(
     }
 
     suspend fun onRecordAvailable(fileHash: String) {
+        if (!historyPolicy.canRecord()) {
+            return
+        }
         val pending = pendingCropMargins ?: return
         if (pending.fileHash != fileHash) {
             return
@@ -213,6 +218,9 @@ class CropMarginsController(
     }
 
     private suspend fun save(fileHash: String, cropMargins: CropMargins) {
+        if (!historyPolicy.canRecord()) {
+            return
+        }
         if (pdfRepository.hasRecord(fileHash)) {
             pdfRepository.setCropMargins(
                 fileHash,

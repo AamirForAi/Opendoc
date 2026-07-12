@@ -225,6 +225,48 @@ class PdfRepository(private val database: AppDatabase) {
         }
     }
 
+    suspend fun removeAllRecords(): Int {
+        return withContext(Dispatchers.IO) {
+            database.pdfRecordDao().deleteAll()
+        }
+    }
+
+    suspend fun clearAllPasswords(): Int {
+        return withContext(Dispatchers.IO) {
+            database.pdfRecordDao().clearPasswords()
+        }
+    }
+
+    suspend fun removeUserBookmarksByFileHash(fileHash: String) {
+        withContext(Dispatchers.IO) {
+            database.userBookmarkDao().deleteByFileHash(fileHash)
+        }
+    }
+
+    suspend fun removeAllUserBookmarks(): Int {
+        return withContext(Dispatchers.IO) {
+            database.userBookmarkDao().deleteAll()
+        }
+    }
+
+    suspend fun removeAnnotationSaveDestinationBySourceKey(sourceKey: String) {
+        withContext(Dispatchers.IO) {
+            database.pdfAnnotationSaveDestinationDao().deleteBySourceKey(sourceKey)
+        }
+    }
+
+    suspend fun removeAnnotationSaveDestinationByLastSavedHash(hash: String) {
+        withContext(Dispatchers.IO) {
+            database.pdfAnnotationSaveDestinationDao().deleteByLastSavedHash(hash)
+        }
+    }
+
+    suspend fun removeAllAnnotationSaveDestinations(): Int {
+        return withContext(Dispatchers.IO) {
+            database.pdfAnnotationSaveDestinationDao().deleteAll()
+        }
+    }
+
     suspend fun setFavorite(fileHash: String, favorite: Boolean) {
         withContext(Dispatchers.IO) {
             database.pdfRecordDao().updateFavorite(fileHash, favorite)

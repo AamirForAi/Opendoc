@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
+import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityTextModeBinding
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
@@ -43,10 +44,11 @@ class TextModeActivity : AppCompatActivity() {
     private lateinit var adapter: TextModePageAdapter
     private lateinit var layoutManager: LinearLayoutManager
     private lateinit var pdfRepository: PdfRepository
+    private lateinit var historyPolicy: HistoryPolicy
     private lateinit var contentLoader: TextModeContentLoader
     private lateinit var controlsController: TextModeControlsController
     private lateinit var pdfUri: Uri
-
+// no
     private val typographyController = TextModeTypographyController(
         this,
         { settings },
@@ -119,7 +121,9 @@ class TextModeActivity : AppCompatActivity() {
         pdfRepository = PdfRepository(AppDatabase.getInstance(applicationContext))
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         settings = TextModeSettings.load(sharedPreferences)
-        val hideDelayMillis = Preferences(sharedPreferences).getHideDelay().toLong() + CONTROLS_EXTRA_HIDE_DELAY_MS
+        val preferences = Preferences(sharedPreferences)
+        historyPolicy = HistoryPolicy(preferences) { intent.getBooleanExtra(PDF.incognitoKey, false) }
+        val hideDelayMillis = preferences.getHideDelay().toLong() + CONTROLS_EXTRA_HIDE_DELAY_MS
         contentLoader = TextModeContentLoader(
             this,
             binding.textPagesRecyclerView,
@@ -318,6 +322,7 @@ class TextModeActivity : AppCompatActivity() {
     }
 
     private fun persistReflowOverrides() {
+        if (!historyPolicy.canRecord()) return
         val hash = fileHash ?: return
         val joinParagraphs = joinParagraphsOverride
         val detectHeadings = detectHeadingsOverride
@@ -388,6 +393,7 @@ class TextModeActivity : AppCompatActivity() {
     }
 
     private fun saveCurrentPage() {
+        if (!historyPolicy.canRecord()) return
         val hash = fileHash ?: return
         if (savedPageIndex == currentPageIndex) return
 

@@ -87,6 +87,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val homeGridSizeKey = "homeGridSize"
         const val goToPageGridColumnsKey = "goToPageGridColumns"
         const val homeSortKey = "homeSort"
+        const val historyEnabledKey = "historyEnabled"
 
         // Default values
         const val firstInstallDefault = true
@@ -142,6 +143,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val homeViewModeDefault = "GRID"
         const val homeGridSizeDefault = "MEDIUM"
         const val homeSortDefault = "LAST_OPENED"
+        const val historyEnabledDefault = true
         const val themeSystem = "system"
         const val themeLight = "light"
         const val themeDark = "dark"
@@ -262,6 +264,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getHomeViewMode() = HomeViewMode.valueOf(prefMan.getString(homeViewModeKey, homeViewModeDefault) as String)
     fun getHomeGridSize() = HomeGridSize.valueOf(prefMan.getString(homeGridSizeKey, homeGridSizeDefault) as String)
     fun getHomeSort() = HomeSortOrder.valueOf(prefMan.getString(homeSortKey, homeSortDefault) as String)
+    fun getHistoryEnabled() = prefMan.getBoolean(historyEnabledKey, historyEnabledDefault)
 
     // put values in Shared Preferences
     fun setFirstInstall(value: Boolean) = prefMan.edit().putBoolean(firstInstallKey, value).apply()
@@ -333,5 +336,6 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setHomeViewMode(value: HomeViewMode) = prefMan.edit().putString(homeViewModeKey, value.name).apply()
     fun setHomeGridSize(value: HomeGridSize) = prefMan.edit().putString(homeGridSizeKey, value.name).apply()
     fun setHomeSort(value: HomeSortOrder) = prefMan.edit().putString(homeSortKey, value.name).apply()
+    fun setHistoryEnabled(value: Boolean) = prefMan.edit().putBoolean(historyEnabledKey, value).apply()
 
 }
