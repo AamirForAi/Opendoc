@@ -10,6 +10,7 @@ import com.github.barteksc.pdfviewer.link.DefaultLinkHandler
 import com.github.barteksc.pdfviewer.link.LinkHandler
 import com.github.barteksc.pdfviewer.model.LinkTapEvent
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.pdf.SearchResult
@@ -24,11 +25,13 @@ import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsState
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlin.math.max
 
 class ReaderNavigationController(
     private val activity: Activity,
     private val binding: ActivityMainBinding,
     private val pdf: DocumentState,
+    private val pref: Preferences,
     private val historyManager: ReaderHistoryManager,
     private val onPageDisplayed: (Int) -> Unit,
     private val updateAppTitle: () -> Unit,
@@ -43,7 +46,7 @@ class ReaderNavigationController(
 ) {
 
     private val searchNavigationController =
-        SearchNavigationController(activity, binding, pdf, historyManager, launchSearch)
+        SearchNavigationController(activity, binding, pdf, pref, historyManager, launchSearch)
     private val tableOfContentsSnackbar = JumpBackSnackbar(binding.root)
     private val linkJumpSnackbar = JumpBackSnackbar(binding.root)
     private var tableOfContentsState = TableOfContentsState()
@@ -174,17 +177,34 @@ class ReaderNavigationController(
     }
 
     fun handleUserNotesResult(resultCode: Int, intent: Intent?) {
-        if (resultCode == PDF.TABLE_OF_CONTENTS_RESULT_OK) {
-            val pageIndex = intent?.getIntExtra(PDF.chosenTableOfContentsEntryKey, pdf.pageNumber) ?: return
-            historyManager.recordJump(ReaderHistoryManager.Origin.BOOKMARK, pageIndex)
-            binding.pdfView.jumpTo(pageIndex)
-        }
+        handleAnnotationListResult(resultCode, intent)
     }
 
     fun handleUserHighlightsResult(resultCode: Int, intent: Intent?) {
+        handleAnnotationListResult(resultCode, intent)
+    }
+
+    private fun handleAnnotationListResult(resultCode: Int, intent: Intent?) {
         if (resultCode == PDF.TABLE_OF_CONTENTS_RESULT_OK) {
             val pageIndex = intent?.getIntExtra(PDF.chosenTableOfContentsEntryKey, pdf.pageNumber) ?: return
             historyManager.recordJump(ReaderHistoryManager.Origin.BOOKMARK, pageIndex)
+            focusOnHighlight(
+                pageIndex,
+                intent.getStringExtra(PDF.chosenHighlightGroupKey),
+                intent.getIntExtra(PDF.chosenHighlightAnnotationIndexKey, -1),
+            )
+        }
+    }
+
+    private fun focusOnHighlight(pageIndex: Int, groupKey: String?, annotationIndex: Int) {
+        val bounds = binding.pdfView.findHighlightPdfBounds(pageIndex, groupKey, annotationIndex)
+        if (bounds == null) {
+            binding.pdfView.jumpTo(pageIndex)
+            return
+        }
+        val targetZoom = max(binding.pdfView.zoom, binding.pdfView.midZoom)
+            .coerceAtMost(binding.pdfView.maxZoom)
+        if (binding.pdfView.focusOnPdfRect(pageIndex, bounds, targetZoom) == null) {
             binding.pdfView.jumpTo(pageIndex)
         }
     }

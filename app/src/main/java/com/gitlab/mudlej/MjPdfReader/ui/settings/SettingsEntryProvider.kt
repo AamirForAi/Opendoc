@@ -116,18 +116,18 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             ),
             switchEntry(
                 page = SettingsPage.READING,
-                titleRes = R.string.two_pages_per_row_title,
-                key = Preferences.twoPagesPerRowKey,
-                defaultValue = Preferences.twoPagesPerRowDefault,
-                summaryRes = R.string.two_pages_per_row_summary,
+                titleRes = R.string.dual_page_mode_title,
+                key = Preferences.dualPageModeKey,
+                defaultValue = Preferences.dualPageModeDefault,
+                summaryRes = R.string.dual_page_mode_summary,
                 keywords = listOf("two pages", "double", "spread", "facing", "side by side"),
             ),
             switchEntry(
                 page = SettingsPage.READING,
-                titleRes = R.string.two_pages_first_page_alone_title,
-                key = Preferences.twoPagesFirstPageAloneKey,
-                defaultValue = Preferences.twoPagesFirstPageAloneDefault,
-                summaryRes = R.string.two_pages_first_page_alone_summary,
+                titleRes = R.string.dual_page_first_page_alone_title,
+                key = Preferences.dualPageFirstPageAloneKey,
+                defaultValue = Preferences.dualPageFirstPageAloneDefault,
+                summaryRes = R.string.dual_page_first_page_alone_summary,
                 keywords = listOf("cover", "first page", "spread", "book"),
             ),
             switchEntry(
@@ -259,6 +259,14 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 summaryRes = R.string.search_ignore_accents_summary,
                 keywords = listOf("search", "accents", "diacritics"),
             ),
+            switchEntry(
+                page = SettingsPage.TEXT,
+                titleRes = R.string.search_zoom_to_result_title,
+                key = Preferences.searchZoomToResultKey,
+                defaultValue = Preferences.searchZoomToResultDefault,
+                summaryRes = R.string.search_zoom_to_result_summary,
+                keywords = listOf("search", "zoom", "result", "navigate"),
+            ),
         )
     }
 
@@ -309,6 +317,21 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 keywords = listOf("translate", "translation", "language", "target"),
             ) { breadcrumb ->
                 translationTargetLanguagePreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.TRANSLATION,
+                titleRes = R.string.dictionary_title,
+                keywords = listOf("dictionary", "define", "definition", "offline", "wordnet", "download", "english"),
+            ) { breadcrumb ->
+                dictionaryPreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.TRANSLATION,
+                titleRes = R.string.dictionary_define_words_title,
+                summaryRes = R.string.dictionary_define_words_summary,
+                keywords = listOf("dictionary", "define", "definition", "word", "lookup"),
+            ) { breadcrumb ->
+                dictionaryDefineWordsPreference(breadcrumb)
             },
         )
     }

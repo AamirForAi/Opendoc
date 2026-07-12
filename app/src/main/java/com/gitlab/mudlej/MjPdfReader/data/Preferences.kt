@@ -37,8 +37,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val highQualityKey = "highQuality"
         const val antiAliasingKey = "antiAliasing"
         const val horizontalScrollKey = "horizontalScroll"
-        const val twoPagesPerRowKey = "twoPagesPerRow"
-        const val twoPagesFirstPageAloneKey = "twoPagesFirstPageAlone"
+        const val dualPageModeKey = "dualPageMode"
+        const val dualPageFirstPageAloneKey = "dualPageFirstPageAlone"
         const val pageSnapKey = "pageSnap"
         const val pageFlingKey = "pageFling"
         const val browserScrollModeKey = "browserScrollMode"
@@ -65,6 +65,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val detectExistingHighlightsKey = "detectExistingHighlights"
         const val highlightColorsKey = "highlightColors"
         const val searchIgnoreAccentsKey = "searchIgnoreAccents"
+        const val searchZoomToResultKey = "searchZoomToResult"
         const val defaultTextModeKey = "defaultTextMode"
         const val turnPageByVolumeButtonsKey = "turnPageByVolumeButtons"
         const val showScrollHandlePageCountKey = "showScrollHandlePageCount"
@@ -103,6 +104,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val translationEngineKey = "translationEngine"
         const val translationTargetLanguageKey = "translationTargetLanguage"
         const val translationCustomUrlKey = "translationCustomUrl"
+        const val dictionaryDefineWordsKey = "dictionaryDefineWords"
 
         // Default values
         const val firstInstallDefault = true
@@ -110,8 +112,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val highQualityDefault = false
         const val antiAliasingDefault = true
         const val horizontalScrollDefault = false
-        const val twoPagesPerRowDefault = false
-        const val twoPagesFirstPageAloneDefault = false
+        const val dualPageModeDefault = false
+        const val dualPageFirstPageAloneDefault = false
         const val pageSnapDefault = false
         const val pageFlingDefault = false
         const val browserScrollModeDefault = false
@@ -139,6 +141,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val inlineTextSelectionDefault = true
         const val detectExistingHighlightsDefault = true
         const val searchIgnoreAccentsDefault = false
+        const val searchZoomToResultDefault = false
         const val defaultTextModeDefault = false
         const val turnPageByVolumeButtonsDefault = false
         const val showScrollHandlePageCountDefault = false
@@ -175,6 +178,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val translationEngineDefault = "google"
         const val translationTargetLanguageDefault = ""
         const val translationCustomUrlDefault = ""
+        const val dictionaryDefineWordsDefault = true
         val fullScreenOverlayActionsDefault = ConfigurableAction.defaultFullScreenOverlayActionIds
         val shortcutBarActionsDefault = ConfigurableAction.defaultShortcutBarActionIds
 
@@ -197,8 +201,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getHighQuality() = prefMan.getBoolean(highQualityKey, highQualityDefault)
     fun getAntiAliasing() = prefMan.getBoolean(antiAliasingKey, antiAliasingDefault)
     fun getHorizontalScroll() = prefMan.getBoolean(horizontalScrollKey, horizontalScrollDefault)
-    fun getTwoPagesPerRow() = prefMan.getBoolean(twoPagesPerRowKey, twoPagesPerRowDefault)
-    fun getTwoPagesFirstPageAlone() = prefMan.getBoolean(twoPagesFirstPageAloneKey, twoPagesFirstPageAloneDefault)
+    fun getDualPageMode() = prefMan.getBoolean(dualPageModeKey, dualPageModeDefault)
+    fun getDualPageFirstPageAlone() = prefMan.getBoolean(dualPageFirstPageAloneKey, dualPageFirstPageAloneDefault)
     fun getPageSnap() = prefMan.getBoolean(pageSnapKey, pageSnapDefault)
     fun getPageFling() = prefMan.getBoolean(pageFlingKey, pageFlingDefault)
     fun getBrowserScrollMode() = prefMan.getBoolean(browserScrollModeKey, browserScrollModeDefault)
@@ -243,6 +247,8 @@ class Preferences(private val prefMan: SharedPreferences) {
 
     fun getTranslationCustomUrl() = prefMan.getString(translationCustomUrlKey, translationCustomUrlDefault)
         ?: translationCustomUrlDefault
+
+    fun getDictionaryDefineWords() = prefMan.getBoolean(dictionaryDefineWordsKey, dictionaryDefineWordsDefault)
     fun getMaxZoom() = prefMan.getFloat(maxZoomKey, maxZoomDefault)
     fun getInlineTextSelection() = prefMan.getBoolean(inlineTextSelectionKey, inlineTextSelectionDefault)
     fun getDetectExistingHighlights() = prefMan.getBoolean(detectExistingHighlightsKey, detectExistingHighlightsDefault)
@@ -258,6 +264,7 @@ class Preferences(private val prefMan: SharedPreferences) {
             .map { it.colorValue }
     }
     fun getSearchIgnoreAccents() = prefMan.getBoolean(searchIgnoreAccentsKey, searchIgnoreAccentsDefault)
+    fun getSearchZoomToResult() = prefMan.getBoolean(searchZoomToResultKey, searchZoomToResultDefault)
     fun getDefaultTextMode() = prefMan.getBoolean(defaultTextModeKey, defaultTextModeDefault)
     fun getTurnPageByVolumeButtons() = prefMan.getBoolean(turnPageByVolumeButtonsKey, turnPageByVolumeButtonsDefault)
     fun getShowScrollHandlePageCount() = prefMan.getBoolean(showScrollHandlePageCountKey, showScrollHandlePageCountDefault)
@@ -327,8 +334,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setHighQuality(value: Boolean) = prefMan.edit().putBoolean(highQualityKey, value).apply()
     fun setAntiAliasing(value: Boolean) = prefMan.edit().putBoolean(antiAliasingKey, value).apply()
     fun setHorizontalScroll(value: Boolean) = prefMan.edit().putBoolean(horizontalScrollKey, value).apply()
-    fun setTwoPagesPerRow(value: Boolean) = prefMan.edit().putBoolean(twoPagesPerRowKey, value).apply()
-    fun setTwoPagesFirstPageAlone(value: Boolean) = prefMan.edit().putBoolean(twoPagesFirstPageAloneKey, value).apply()
+    fun setDualPageMode(value: Boolean) = prefMan.edit().putBoolean(dualPageModeKey, value).apply()
+    fun setDualPageFirstPageAlone(value: Boolean) = prefMan.edit().putBoolean(dualPageFirstPageAloneKey, value).apply()
     fun setPageSnap(value: Boolean) = prefMan.edit().putBoolean(pageSnapKey, value).apply()
     fun setPageFling(value: Boolean) = prefMan.edit().putBoolean(pageFlingKey, value).apply()
     fun setBrowserScrollMode(value: Boolean) = prefMan.edit().putBoolean(browserScrollModeKey, value).apply()

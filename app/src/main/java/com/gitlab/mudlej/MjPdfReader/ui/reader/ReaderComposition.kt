@@ -212,6 +212,10 @@ class ReaderComposition(
         ::onAnnotationEdit,
         ui::updateDirtyUi,
     )
+    val dictionaryDefinitionController: DictionaryDefinitionController = DictionaryDefinitionController(
+        activity,
+        scope,
+    ) { pref.getDictionaryDefineWords() }
     val inlineAnnotationActionController: InlineAnnotationActionController = InlineAnnotationActionController(
         activity,
         binding,
@@ -229,6 +233,7 @@ class ReaderComposition(
                 pref.getTranslationTargetLanguage(),
             )
         },
+        dictionaryDefinitionController::defineWord,
     ) { fullScreenOptionsManager.showAllTemporarilyOrHide() }
     val annotationSaveController: AnnotationSaveController = AnnotationSaveController(
         activity,
@@ -286,6 +291,7 @@ class ReaderComposition(
         activity,
         binding,
         doc,
+        pref,
         readerHistory,
         userBookmarkController::onPageDisplayed,
         ui::updateTitle,
@@ -303,7 +309,7 @@ class ReaderComposition(
         doc::hasFile,
         pref::getHorizontalScroll,
         { vm.cropMarginsEnabled },
-        pref::getTwoPagesPerRow,
+        pref::getDualPageMode,
         { pdfThemeController.effectivePdfDarkTheme() },
         { pref.getPdfPagesTheme() == Preferences.themeSystem },
         { readerHistory.canGoBack() },
@@ -578,7 +584,7 @@ class ReaderComposition(
             readingDirection = ::showReadingDirectionDialog,
             toggleZoomLock = { zoomSwipeLockController.toggleZoomLock() },
             toggleCropMargins = activity::toggleCropMargins,
-            toggleTwoPages = ::toggleTwoPagesPerRow,
+            toggleDualPage = ::toggleDualPageMode,
             screenshot = { screenshotController.takeScreenshot() },
             switchTheme = ::switchPdfTheme,
             navigateBack = { readerHistory.goBack() },
@@ -607,11 +613,11 @@ class ReaderComposition(
         )
     }
 
-    private fun toggleTwoPagesPerRow() {
+    private fun toggleDualPageMode() {
         if (!doc.hasFile()) {
             return
         }
-        pref.setTwoPagesPerRow(!pref.getTwoPagesPerRow())
+        pref.setDualPageMode(!pref.getDualPageMode())
         vm.captureViewStateForSave(binding.pdfView.captureViewState())
         refreshActions()
         activity.displayFromUri(doc.uri)

@@ -267,6 +267,8 @@ class UserHighlightsActivity : AppCompatActivity() {
     private fun onHighlightClicked(item: SweptHighlight) {
         val resultIntent = Intent()
         resultIntent.putExtra(PDF.chosenTableOfContentsEntryKey, item.pageIndex)
+        resultIntent.putExtra(PDF.chosenHighlightGroupKey, item.groupKey)
+        resultIntent.putExtra(PDF.chosenHighlightAnnotationIndexKey, item.annotationIndex)
         setResult(PDF.TABLE_OF_CONTENTS_RESULT_OK, resultIntent)
         finish()
     }

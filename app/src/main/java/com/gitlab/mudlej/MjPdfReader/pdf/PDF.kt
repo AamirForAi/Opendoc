@@ -45,6 +45,8 @@ object PDF {
     const val hasUnsavedAnnotationsKey = "hasUnsavedAnnotations"
     const val sessionOwnedAnnotationKeysKey = "sessionOwnedAnnotationKeys"
     const val chosenTableOfContentsEntryKey = "chosenTableOfContentsEntryKey"
+    const val chosenHighlightGroupKey = "chosenHighlightGroupKey"
+    const val chosenHighlightAnnotationIndexKey = "chosenHighlightAnnotationIndexKey"
     const val tableOfContentsExpandedPathsKey = "tableOfContentsExpandedPathsKey"
     const val tableOfContentsScrollPositionKey = "tableOfContentsScrollPositionKey"
     const val tableOfContentsScrollOffsetKey = "tableOfContentsScrollOffsetKey"

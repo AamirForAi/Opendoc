@@ -38,12 +38,12 @@ enum class FeatureTopic(
         ),
     ),
     READING(
-        R.drawable.ic_two_pages,
+        R.drawable.ic_book_bookmark,
         R.string.features_topic_reading,
         R.string.features_topic_reading_subtitle,
         listOf(
             FeatureEntry(R.string.features_reading_modes_title, R.string.features_reading_modes_body),
-            FeatureEntry(R.string.features_reading_two_pages_title, R.string.features_reading_two_pages_body),
+            FeatureEntry(R.string.features_reading_dual_page_title, R.string.features_reading_dual_page_body),
             FeatureEntry(R.string.features_reading_snap_title, R.string.features_reading_snap_body),
             FeatureEntry(R.string.features_reading_browser_title, R.string.features_reading_browser_body),
             FeatureEntry(R.string.features_reading_auto_scroll_title, R.string.features_reading_auto_scroll_body),
@@ -130,7 +130,6 @@ enum class FeatureTopic(
             FeatureEntry(R.string.features_custom_shortcut_title, R.string.features_custom_shortcut_body),
             FeatureEntry(R.string.features_custom_fullscreen_title, R.string.features_custom_fullscreen_body),
             FeatureEntry(R.string.features_custom_per_document_title, R.string.features_custom_per_document_body),
-            FeatureEntry(R.string.features_custom_settings_title, R.string.features_custom_settings_body),
             FeatureEntry(R.string.features_custom_languages_title, R.string.features_custom_languages_body),
         ),
     ),

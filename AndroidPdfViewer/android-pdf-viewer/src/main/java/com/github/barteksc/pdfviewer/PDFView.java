@@ -2132,6 +2132,35 @@ public class PDFView extends RelativeLayout {
         );
     }
 
+    public RectF findHighlightPdfBounds(int pageIndex, String groupKey, int annotationIndex) {
+        if (pdfFile == null || pageIndex < 0 || pageIndex >= pdfFile.getPagesCount()) {
+            return null;
+        }
+        List<PdfDocument.HighlightAnnotation> annotations;
+        try {
+            annotations = pdfFile.getHighlightAnnotations(pageIndex);
+        } catch (Throwable throwable) {
+            Log.e(TAG, "findHighlightPdfBounds: failed to read highlights", throwable);
+            return null;
+        }
+        if (annotations == null || annotations.isEmpty()) {
+            return null;
+        }
+        if (groupKey != null && !groupKey.isEmpty()) {
+            for (PdfDocument.HighlightAnnotation candidate : annotations) {
+                if (groupKey.equals(candidate.getGroupKey())) {
+                    return unionGroupBounds(annotations, groupKey, candidate.getBounds());
+                }
+            }
+        }
+        for (PdfDocument.HighlightAnnotation candidate : annotations) {
+            if (candidate.getAnnotationIndex() == annotationIndex) {
+                return candidate.getBounds();
+            }
+        }
+        return null;
+    }
+
     public HighlightAnnotation findHighlightAnnotationMatching(HighlightRequest request) {
         if (pdfFile == null || request == null || request.pdfRects.isEmpty()) {
             return null;

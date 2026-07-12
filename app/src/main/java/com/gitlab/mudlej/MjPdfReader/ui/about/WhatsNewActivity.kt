@@ -67,7 +67,7 @@ class WhatsNewActivity : AppCompatActivity() {
         Section(
             R.string.whats_new_section_reading,
             listOf(
-                Change(R.drawable.ic_two_pages, R.string.whats_new_two_pages_title, R.string.whats_new_two_pages_body),
+                Change(R.drawable.ic_dual_page, R.string.whats_new_dual_page_title, R.string.whats_new_dual_page_body),
                 Change(R.drawable.ic_reverse_direction, R.string.whats_new_rtl_title, R.string.whats_new_rtl_body),
                 Change(R.drawable.ic_auto_scroll, R.string.whats_new_auto_scroll_title, R.string.whats_new_auto_scroll_body),
                 Change(R.drawable.ic_text, R.string.whats_new_text_mode_title, R.string.whats_new_text_mode_body),

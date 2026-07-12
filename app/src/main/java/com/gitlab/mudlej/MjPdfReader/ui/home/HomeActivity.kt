@@ -181,8 +181,6 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             this,
             onGrantAccessClicked = { permissionManager.requestFullAccess() },
             hasFullAccess = { permissionManager.hasFullAccess() },
-            showScanSetup = ::shouldShowScanSetup,
-            onScanSetupClicked = { scanSetupDialog.show() },
             libraryController = libraryController,
             onNavigationChanged = ::updateFoldersBackState,
         )

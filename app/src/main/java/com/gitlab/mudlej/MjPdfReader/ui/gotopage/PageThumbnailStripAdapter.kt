@@ -13,6 +13,7 @@ class PageThumbnailStripAdapter(
     private val pageCount: Int,
     private val currentPageIndex: Int,
     private val cache: PageThumbnailCache,
+    private val pdfDarkTheme: Boolean,
     private val onPageClicked: (Int) -> Unit,
 ) : RecyclerView.Adapter<PageThumbnailStripAdapter.ViewHolder>() {
 
@@ -22,6 +23,7 @@ class PageThumbnailStripAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemPageThumbnailStripBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        applyPdfThemeToThumbnail(binding.pageImage, pdfDarkTheme)
         return ViewHolder(binding)
     }
 

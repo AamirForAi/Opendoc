@@ -3,6 +3,9 @@
 package com.gitlab.mudlej.MjPdfReader.ui.about
 
 import android.os.Bundle
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.style.BulletSpan
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
@@ -33,8 +36,34 @@ class FeatureTopicActivity : AppCompatActivity() {
         for (entry in topic.entries) {
             val row = FeatureRowItemBinding.inflate(layoutInflater, binding.entriesContainer, true)
             row.rowTitle.setText(entry.titleRes)
-            row.rowBody.setText(entry.bodyRes)
+            row.rowBody.text = formatBody(getString(entry.bodyRes))
         }
+    }
+
+    private fun formatBody(body: String): CharSequence {
+        if (!body.contains('\n')) {
+            return body
+        }
+        val gapWidth = (8 * resources.displayMetrics.density).toInt()
+        val builder = SpannableStringBuilder()
+        val lines = body.split('\n')
+        for ((index, line) in lines.withIndex()) {
+            val start = builder.length
+            builder.append(line)
+            val isLead = index == 0 && line.endsWith(":")
+            if (!isLead) {
+                builder.setSpan(
+                    BulletSpan(gapWidth),
+                    start,
+                    builder.length,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+                )
+            }
+            if (index != lines.lastIndex) {
+                builder.append('\n')
+            }
+        }
+        return builder
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

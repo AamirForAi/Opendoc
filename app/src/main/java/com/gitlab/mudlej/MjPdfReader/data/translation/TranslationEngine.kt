@@ -10,6 +10,7 @@ enum class TranslationEngine(
     @StringRes val titleRes: Int,
     val urlTemplate: String?,
     val langOverrides: Map<String, String> = emptyMap(),
+    val unstable: Boolean = false,
 ) {
     GOOGLE(
         "google",
@@ -20,8 +21,9 @@ enum class TranslationEngine(
     DEEPL(
         "deepl",
         R.string.translation_engine_deepl,
-        "https://www.deepl.com/translator#auto/{lang}/{text}",
+        "https://www.deepl.com/en/translator?share=generic#auto/{lang}/{text}",
         mapOf("no" to "nb", "pt" to "pt-BR"),
+        unstable = true,
     ),
     BING(
         "bing",
@@ -33,11 +35,13 @@ enum class TranslationEngine(
         "lingva",
         R.string.translation_engine_lingva,
         "https://lingva.ml/auto/{lang}/{text}",
+        unstable = true,
     ),
     LIBRE_TRANSLATE(
         "libretranslate",
         R.string.translation_engine_libretranslate,
         "https://libretranslate.com/?q={text}&source=auto&target={lang}",
+        unstable = true,
     ),
     CUSTOM(
         "custom",

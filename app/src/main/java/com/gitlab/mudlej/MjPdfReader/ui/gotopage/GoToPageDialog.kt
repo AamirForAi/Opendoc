@@ -7,12 +7,15 @@ import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import androidx.core.widget.doAfterTextChanged
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
+import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.DialogGoToPageBinding
 import com.gitlab.mudlej.MjPdfReader.pdf.PageThumbnailCache
+import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.PdfThemeController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 
@@ -63,8 +66,10 @@ fun showGoToPageDialog(
 
     if (cache != null) {
         val strip = binding.thumbnailStrip
+        val pref = Preferences(PreferenceManager.getDefaultSharedPreferences(activity))
+        val pdfDarkTheme = PdfThemeController.effectivePdfDarkTheme(activity, pref)
         strip.layoutManager = LinearLayoutManager(activity, LinearLayoutManager.HORIZONTAL, false)
-        strip.adapter = PageThumbnailStripAdapter(pdfLength, pageIndex, cache) { chosenIndex ->
+        strip.adapter = PageThumbnailStripAdapter(pdfLength, pageIndex, cache, pdfDarkTheme) { chosenIndex ->
             goToPageFunc(chosenIndex)
             dialog.dismiss()
         }

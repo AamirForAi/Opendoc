@@ -17,7 +17,7 @@ class ConfigurableActionResolver(
     private val hasFile: () -> Boolean,
     private val horizontalScrollEnabled: () -> Boolean,
     private val cropMarginsEnabled: () -> Boolean,
-    private val twoPagesEnabled: () -> Boolean,
+    private val dualPageEnabled: () -> Boolean,
     private val isPdfDarkTheme: () -> Boolean,
     private val isPdfThemeSystem: () -> Boolean,
     private val canNavigateBack: () -> Boolean,
@@ -35,7 +35,7 @@ class ConfigurableActionResolver(
         val readingDirection: () -> Unit,
         val toggleZoomLock: () -> Unit,
         val toggleCropMargins: () -> Unit,
-        val toggleTwoPages: () -> Unit,
+        val toggleDualPage: () -> Unit,
         val screenshot: () -> Unit,
         val switchTheme: () -> Unit,
         val navigateBack: () -> Unit,
@@ -113,11 +113,11 @@ class ConfigurableActionResolver(
                 visible = fileAvailable,
                 run = handlers.toggleCropMargins,
             )
-            ConfigurableAction.TWO_PAGES -> ConfiguredAction(
-                if (twoPagesEnabled()) R.string.single_page_per_row else R.string.two_pages_per_row_title,
-                R.drawable.ic_two_pages,
+            ConfigurableAction.DUAL_PAGE -> ConfiguredAction(
+                if (dualPageEnabled()) R.string.single_page_mode else R.string.dual_page_mode_title,
+                R.drawable.ic_dual_page,
                 visible = fileAvailable && !horizontalScrollEnabled(),
-                run = handlers.toggleTwoPages,
+                run = handlers.toggleDualPage,
             )
             ConfigurableAction.SCREENSHOT -> ConfiguredAction(
                 R.string.screenshot,

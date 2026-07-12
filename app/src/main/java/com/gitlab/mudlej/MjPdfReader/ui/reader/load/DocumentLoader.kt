@@ -284,7 +284,7 @@ class DocumentLoader(
         pdfView.maxZoom = pref.getMaxZoom()
         val spacing = if (pref.getSpaceBetweenPages()) Preferences.spacingDefault else 0
         val browserScrollMode = pref.getBrowserScrollMode() && !pref.getHorizontalScroll()
-        val twoPagesPerRow = pref.getTwoPagesPerRow() && !pref.getHorizontalScroll()
+        val dualPageMode = pref.getDualPageMode() && !pref.getHorizontalScroll()
 
         val configurator = viewConfigurator
             .defaultPage(pageNumber)
@@ -307,8 +307,8 @@ class DocumentLoader(
             .disableHorizontalSwipe(horizontalSwipeDisabled)
             .zoomDisabled(zoomDisabled)
             .autoSpacing(pref.getHorizontalScroll())
-            .pagesPerRow(if (twoPagesPerRow) 2 else 1)
-            .firstPageAlone(pref.getTwoPagesFirstPageAlone())
+            .pagesPerRow(if (dualPageMode) 2 else 1)
+            .firstPageAlone(pref.getDualPageFirstPageAlone())
             .pageSnap(pref.getPageSnap() && !browserScrollMode)
             .pageFling(pref.getPageFling() && !browserScrollMode)
             .freeScrollMode(browserScrollMode)

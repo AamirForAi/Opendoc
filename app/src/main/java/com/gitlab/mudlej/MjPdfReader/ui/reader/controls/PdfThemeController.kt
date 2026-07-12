@@ -2,6 +2,7 @@
 
 package com.gitlab.mudlej.MjPdfReader.ui.reader.controls
 
+import android.content.Context
 import android.content.res.Configuration
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -35,13 +36,7 @@ class PdfThemeController(
         }
     }
 
-    fun effectivePdfDarkTheme(): Boolean {
-        return when (pref.getPdfPagesTheme()) {
-            Preferences.themeSystem -> isSystemDarkTheme()
-            Preferences.themeDark -> true
-            else -> false
-        }
-    }
+    fun effectivePdfDarkTheme(): Boolean = effectivePdfDarkTheme(activity, pref)
 
     fun switchPdfTheme(hasFile: () -> Boolean) {
         if (pref.getPdfPagesTheme() == Preferences.themeSystem) {
@@ -76,10 +71,20 @@ class PdfThemeController(
         }
     }
 
-    private fun isSystemDarkTheme(): Boolean {
-        return when (activity.applicationContext.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) {
-            Configuration.UI_MODE_NIGHT_YES -> true
-            else -> false
+    companion object {
+        fun effectivePdfDarkTheme(context: Context, pref: Preferences): Boolean {
+            return when (pref.getPdfPagesTheme()) {
+                Preferences.themeSystem -> isSystemDarkTheme(context)
+                Preferences.themeDark -> true
+                else -> false
+            }
+        }
+
+        private fun isSystemDarkTheme(context: Context): Boolean {
+            return when (context.applicationContext.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) {
+                Configuration.UI_MODE_NIGHT_YES -> true
+                else -> false
+            }
         }
     }
 }

@@ -18,6 +18,7 @@ import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityGoToPageBinding
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.pdf.PageThumbnailCache
+import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.PdfThemeController
 import com.google.android.material.slider.Slider
 import kotlinx.coroutines.launch
 
@@ -71,6 +72,7 @@ class GoToPageActivity : AppCompatActivity() {
             pageCount,
             currentPageIndex.coerceIn(0, pageCount - 1),
             cache,
+            PdfThemeController.effectivePdfDarkTheme(this, pref),
             cellWidthFor(spanCount),
         ) { pageIndex -> onPageChosen(pageIndex) }
         adapter = gridAdapter

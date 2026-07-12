@@ -6,6 +6,7 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.net.Uri
 import android.text.InputType
+import android.text.format.Formatter
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.SeekBar
@@ -22,6 +23,8 @@ import androidx.preference.SwitchPreferenceCompat
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.BackupFolder
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.data.translation.DictionaryInstaller
+import com.gitlab.mudlej.MjPdfReader.data.translation.DictionaryStore
 import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationEngine
 import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationLanguages
 import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationUrlBuilder
@@ -416,12 +419,20 @@ internal class SettingsPreferenceFactory(
         }
     }
 
+    private fun engineLabel(engine: TranslationEngine): String {
+        return if (engine.unstable) {
+            fragment.getString(R.string.translation_engine_unstable, getString(engine.titleRes))
+        } else {
+            getString(engine.titleRes)
+        }
+    }
+
     fun translationEnginePreference(breadcrumb: String?): Preference {
         val host = fragment as? SettingsFragment
         val engines = TranslationEngine.entries
         val currentEngine = TranslationEngine.fromId(appPreferences.getTranslationEngine())
         val detail = buildString {
-            append(getString(currentEngine.titleRes))
+            append(engineLabel(currentEngine))
             if (currentEngine == TranslationEngine.CUSTOM) {
                 val templateHost = Uri.parse(appPreferences.getTranslationCustomUrl()).host
                 if (!templateHost.isNullOrBlank()) {
@@ -438,7 +449,7 @@ internal class SettingsPreferenceFactory(
             setOnPreferenceClickListener {
                 showTranslationChoiceDialog(
                     title = getString(R.string.translation_engine_title),
-                    items = engines.map { getString(it.titleRes) },
+                    items = engines.map { engineLabel(it) },
                     checkedIndex = engines.indexOf(TranslationEngine.fromId(appPreferences.getTranslationEngine())),
                     onReset = {
                         appPreferences.setTranslationEngine(Preferences.translationEngineDefault)
@@ -489,6 +500,47 @@ internal class SettingsPreferenceFactory(
                 }
                 true
             }
+        }
+    }
+
+    fun dictionaryPreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val installed = DictionaryStore.isInstalled(context)
+        val detail = if (installed) {
+            fragment.getString(
+                R.string.dictionary_summary_installed,
+                Formatter.formatShortFileSize(context, DictionaryStore.installedSize(context)),
+            )
+        } else {
+            fragment.getString(
+                R.string.dictionary_summary_not_installed,
+                Formatter.formatShortFileSize(context, DictionaryInstaller.downloadSizeBytes),
+            )
+        }
+        return Preference(context).apply {
+            title = getString(R.string.dictionary_title)
+            key = "offlineDictionary"
+            summary = formatSummary(breadcrumb, detail)
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                if (DictionaryStore.isInstalled(context)) {
+                    host?.startDictionaryDelete()
+                } else {
+                    host?.startDictionaryInstall()
+                }
+                true
+            }
+        }
+    }
+
+    fun dictionaryDefineWordsPreference(breadcrumb: String?): Preference {
+        return SwitchPreferenceCompat(context).apply {
+            title = getString(R.string.dictionary_define_words_title)
+            key = Preferences.dictionaryDefineWordsKey
+            setDefaultValue(Preferences.dictionaryDefineWordsDefault)
+            summary = formatSummary(breadcrumb, getString(R.string.dictionary_define_words_summary))
+            isEnabled = DictionaryStore.isInstalled(context)
+            isIconSpaceReserved = false
         }
     }
 

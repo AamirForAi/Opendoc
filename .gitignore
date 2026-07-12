@@ -43,3 +43,4 @@ AndroidPdfViewer/android-pdf-viewer/build/intermediates/**
 build_dependencies/libpng_build/**
 build_dependencies/freetype_build/**
 problems-report.html
+dist/

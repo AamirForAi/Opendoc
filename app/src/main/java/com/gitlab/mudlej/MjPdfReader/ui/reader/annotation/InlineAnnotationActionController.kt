@@ -47,6 +47,7 @@ class InlineAnnotationActionController(
     private val getHighlightColors: () -> List<Int>,
     private val getDocumentName: () -> String,
     private val getTranslationSettings: () -> TranslationSettings,
+    private val onDefineWord: (String, () -> Unit) -> Boolean,
     private val toggleReaderChrome: () -> Unit,
 ) {
     private var activeHighlightAnnotation: PDFView.HighlightAnnotation? = null
@@ -404,6 +405,25 @@ class InlineAnnotationActionController(
             return false
         }
         val settings = getTranslationSettings()
+        val word = dictionaryCandidate(text)
+        if (word != null && onDefineWord(word) { launchTranslator(text, settings) }) {
+            return true
+        }
+        return launchTranslator(text, settings)
+    }
+
+    private fun dictionaryCandidate(text: String): String? {
+        val word = text.trim { !it.isLetterOrDigit() }
+        if (word.isBlank() || word.length > 48) {
+            return null
+        }
+        if (word.any { it.isWhitespace() } || word.none { it.isLetter() }) {
+            return null
+        }
+        return word
+    }
+
+    private fun launchTranslator(text: String, settings: TranslationSettings): Boolean {
         if (settings.mode == Preferences.translationModeApps) {
             return launchProcessTextTranslator(text)
         }

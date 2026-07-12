@@ -8,6 +8,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.provider.DocumentsContract
+import android.text.format.Formatter
+import android.widget.FrameLayout
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceFragmentCompat
@@ -26,14 +28,18 @@ import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationJournal
 import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
+import com.gitlab.mudlej.MjPdfReader.data.translation.DictionaryInstaller
+import com.gitlab.mudlej.MjPdfReader.data.translation.DictionaryStore
 import com.gitlab.mudlej.MjPdfReader.core.ui.confirmDialog
 import com.gitlab.mudlej.MjPdfReader.ui.home.CoverCache
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -298,6 +304,84 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 historyCleaner.clearAnnotationJournalsAndSignature()
                 null
             }
+        }
+    }
+
+    fun startDictionaryInstall() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dictionary_download_title)
+            .setMessage(
+                getString(
+                    R.string.dictionary_download_message,
+                    Formatter.formatShortFileSize(requireContext(), DictionaryInstaller.downloadSizeBytes),
+                    Formatter.formatShortFileSize(requireContext(), DictionaryInstaller.installedSizeBytes),
+                )
+            )
+            .setPositiveButton(R.string.dictionary_download_action) { _, _ -> runDictionaryDownload() }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    fun startDictionaryDelete() {
+        confirmDialog(
+            requireContext(),
+            R.string.dictionary_delete_title,
+            getString(R.string.dictionary_delete_message),
+            R.string.delete,
+        ) {
+            val appContext = requireContext().applicationContext
+            viewLifecycleOwner.lifecycleScope.launch {
+                withContext(Dispatchers.IO) { DictionaryStore.delete(appContext) }
+                if (isAdded) {
+                    rebuildPreferences()
+                }
+            }
+        }
+    }
+
+    private fun runDictionaryDownload() {
+        val density = resources.displayMetrics.density
+        val progressIndicator = LinearProgressIndicator(requireContext()).apply {
+            isIndeterminate = true
+        }
+        val container = FrameLayout(requireContext()).apply {
+            setPadding((24 * density).toInt(), (24 * density).toInt(), (24 * density).toInt(), 0)
+            addView(
+                progressIndicator,
+                FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT),
+            )
+        }
+        var job: Job? = null
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dictionary_downloading)
+            .setView(container)
+            .setNegativeButton(R.string.cancel, null)
+            .setCancelable(false)
+            .create()
+        dialog.setOnDismissListener { job?.cancel() }
+        dialog.show()
+        val appContext = requireContext().applicationContext
+        job = viewLifecycleOwner.lifecycleScope.launch {
+            val result = DictionaryInstaller.install(appContext) { percent ->
+                progressIndicator.post {
+                    progressIndicator.isIndeterminate = false
+                    progressIndicator.progress = percent
+                }
+            }
+            dialog.dismiss()
+            if (!isAdded) {
+                return@launch
+            }
+            result.fold(
+                onSuccess = { rebuildPreferences() },
+                onFailure = { error ->
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setTitle(R.string.dictionary_download_failed)
+                        .setMessage(error.localizedMessage ?: error.toString())
+                        .setPositiveButton(R.string.ok, null)
+                        .show()
+                },
+            )
         }
     }
 

@@ -16,6 +16,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.pdf.SearchResult
@@ -35,6 +36,7 @@ class SearchNavigationController(
     private val activity: Activity,
     private val binding: ActivityMainBinding,
     private val pdf: DocumentState,
+    private val pref: Preferences,
     private val historyManager: ReaderHistoryManager,
     private val launchSearch: (Intent) -> Unit,
 ) {
@@ -260,8 +262,11 @@ class SearchNavigationController(
         else {
             activeHighlightPageNumber = hit.pageNumber
             binding.pdfView.reloadPages()
-            val targetZoom = max(binding.pdfView.zoom, binding.pdfView.midZoom)
-                .coerceAtMost(binding.pdfView.maxZoom)
+            val targetZoom = if (pref.getSearchZoomToResult()) {
+                max(binding.pdfView.zoom, binding.pdfView.midZoom).coerceAtMost(binding.pdfView.maxZoom)
+            } else {
+                binding.pdfView.zoom
+            }
             val screenRect =
                 binding.pdfView.focusOnPdfRect(hit.pageNumber - 1, unionPdfRect(textBounds), targetZoom)
             if (screenRect == null) {
