@@ -105,10 +105,16 @@
     </style>
 
     <style name="FullScreenOverlayButton" parent="@style/CustomMaterialButton">
-        <item name="strokeColor">?attr/colorOutline</item>
-        <item name="elevation">3dp</item>
-        <item name="android:elevation">3dp</item>
-        <item name="strokeWidth">1dp</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="elevation">0dp</item>
+        <item name="android:elevation">0dp</item>
+        <item name="backgroundTint">@color/fullscreen_button_background_tint</item>
+        <item name="android:backgroundTint">@color/fullscreen_button_background_tint</item>
+        <item name="android:textColor">@color/fullscreen_button_content_tint</item>
+        <item name="iconTint">@color/fullscreen_button_content_tint</item>
+        <item name="rippleColor">@color/fullscreen_button_ripple</item>
+        <item name="android:textSize">@dimen/fs_button_text_size</item>
+        <item name="iconPadding">@dimen/fs_button_icon_padding</item>
     </style>
 
     <style name="ThemeOverlay.FullScreenOverlayButton" parent="">

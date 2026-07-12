@@ -123,7 +123,6 @@
     <string name="dracula_theme">ड्रैकुला थीम</string>
     <string name="delete">हटाएं</string>
     <string name="delete_dialog_title">क्या आप सुनिश्चित हैं?</string>
-    <string name="delete_dialog_message">सेव रिकॉर्ड को हटाने से ऐप पीडीएफ के बारे में जो कुछ भी जानता है उसे भूल जाएगा।</string>
     <string name="list_mode">सूची मोड</string>
     <string name="status">स्थिति</string>
 

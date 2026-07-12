@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeHeroBookBinding
-import com.gitlab.mudlej.MjPdfReader.core.io.appDateFormatter
+import com.gitlab.mudlej.MjPdfReader.core.io.formatRelativeDate
 import kotlinx.coroutines.CoroutineScope
 
 class HeroCarouselAdapter(
@@ -47,10 +47,11 @@ class HeroCarouselAdapter(
             binding.progress.progress = item.progressPercent
 
             if (item.hasBeenOpened) {
-                binding.lastReadLabel.visibility = View.VISIBLE
-                binding.lastReadLabel.text = item.lastOpened.format(appDateFormatter)
+                binding.lastOpenedLabel.visibility = View.VISIBLE
+                binding.lastOpenedLabel.text =
+                    formatRelativeDate(binding.root.context, item.lastOpened)
             } else {
-                binding.lastReadLabel.visibility = View.GONE
+                binding.lastOpenedLabel.visibility = View.GONE
             }
 
             val coverWidthPx = (COVER_WIDTH_DP * binding.root.resources.displayMetrics.density).toInt()

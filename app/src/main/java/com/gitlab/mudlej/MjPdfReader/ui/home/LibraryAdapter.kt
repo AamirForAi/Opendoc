@@ -6,6 +6,7 @@ import android.text.format.Formatter
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -13,8 +14,11 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeGridCellBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeListRowBinding
 import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
+import com.gitlab.mudlej.MjPdfReader.core.io.formatRelativeDate
 import com.gitlab.mudlej.MjPdfReader.core.text.StringUtil.formatEnumToTitle
 import kotlinx.coroutines.CoroutineScope
+
+enum class ListMetaStyle { FOLDERS, LIBRARY, RECENT }
 
 class LibraryAdapter(
     private val coverCache: CoverCache,
@@ -25,7 +29,7 @@ class LibraryAdapter(
 
     var viewMode: HomeViewMode = HomeViewMode.GRID
     var coverWidthPx: Int = DEFAULT_COVER_WIDTH_PX
-    var showFileSize: Boolean = false
+    var metaStyle: ListMetaStyle = ListMetaStyle.LIBRARY
 
     override fun getItemViewType(position: Int): Int {
         return if (viewMode == HomeViewMode.GRID) TYPE_GRID else TYPE_LIST
@@ -77,6 +81,14 @@ class LibraryAdapter(
         fun bind(item: HomeItem) {
             binding.title.text = item.title
 
+            if (item.hasBeenOpened) {
+                binding.lastOpenedLabel.visibility = View.VISIBLE
+                binding.lastOpenedLabel.text =
+                    formatRelativeDate(binding.root.context, item.lastOpened)
+            } else {
+                binding.lastOpenedLabel.visibility = View.GONE
+            }
+
             if (item.progressPercent > 0) {
                 binding.progress.visibility = View.VISIBLE
                 binding.progress.progress = item.progressPercent
@@ -107,7 +119,7 @@ class LibraryAdapter(
 
         fun bind(item: HomeItem) {
             binding.title.text = item.title
-            binding.meta.text = buildMeta(item)
+            bindMetaBadges(item)
 
             applySelection(item)
             coverCache.bind(binding.cover, item.coverKey, item.uri, LIST_COVER_WIDTH_PX, scope)
@@ -121,28 +133,56 @@ class LibraryAdapter(
             binding.listCard.isChecked = isSelected(item)
         }
 
-        private fun buildMeta(item: HomeItem): String {
-            val resources = binding.root.resources
-            val parts = mutableListOf<String>()
-            if (item.readingStatus != ReadingStatus.UNSET) {
-                parts.add(item.readingStatus.name.formatEnumToTitle())
+        private fun bindMetaBadges(item: HomeItem) {
+            val container = binding.metaBadges
+            container.removeAllViews()
+
+            val parts = buildMetaParts(item)
+            if (parts.isEmpty()) {
+                container.visibility = View.GONE
+                return
             }
+            container.visibility = View.VISIBLE
+
+            val inflater = LayoutInflater.from(container.context)
+            parts.forEach { (text, accent) ->
+                val layout = if (accent) R.layout.home_meta_badge_accent else R.layout.home_meta_badge
+                val badge = inflater.inflate(layout, container, false) as TextView
+                badge.text = text
+                container.addView(badge)
+            }
+        }
+
+        private fun buildMetaParts(item: HomeItem): List<Pair<String, Boolean>> {
+            val context = binding.root.context
+            val parts = mutableListOf<Pair<String, Boolean>>()
             if (item.length > 0) {
                 if (item.pageNumber > 0) {
-                    parts.add("${item.pageNumber + 1}/${item.length}")
+                    parts.add("${item.pageNumber + 1}/${item.length}" to false)
                 } else {
                     parts.add(
-                        resources.getQuantityString(R.plurals.home_pages, item.length, item.length)
+                        context.resources.getQuantityString(
+                            R.plurals.home_pages, item.length, item.length
+                        ) to false
                     )
                 }
             }
-            if (item.progressPercent > 0) {
-                parts.add("${item.progressPercent}%")
+            if (metaStyle == ListMetaStyle.FOLDERS) {
+                if (item.sizeBytes > 0) {
+                    parts.add(Formatter.formatShortFileSize(context, item.sizeBytes) to false)
+                }
+            } else {
+                if (item.progressPercent > 0) {
+                    parts.add("${item.progressPercent}%" to false)
+                }
+                if (item.hasBeenOpened) {
+                    parts.add(formatRelativeDate(context, item.lastOpened) to false)
+                }
             }
-            if (showFileSize && item.sizeBytes > 0) {
-                parts.add(Formatter.formatShortFileSize(binding.root.context, item.sizeBytes))
+            if (metaStyle == ListMetaStyle.RECENT && item.readingStatus != ReadingStatus.UNSET) {
+                parts.add(item.readingStatus.name.formatEnumToTitle() to true)
             }
-            return parts.joinToString(" · ")
+            return parts
         }
     }
 
@@ -150,7 +190,7 @@ class LibraryAdapter(
         private const val TYPE_GRID = 0
         private const val TYPE_LIST = 1
         private const val DEFAULT_COVER_WIDTH_PX = 320
-        private const val LIST_COVER_WIDTH_PX = 160
+        private const val LIST_COVER_WIDTH_PX = 192
         private const val SELECTION_PAYLOAD = "selection"
     }
 }

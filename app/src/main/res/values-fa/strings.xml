@@ -122,7 +122,6 @@
     <string name="dracula_theme">پوسته دراکولا</string>
     <string name="delete">حذف</string>
     <string name="delete_dialog_title">آیا مطمئن هستید؟</string>
-    <string name="delete_dialog_message">حذف رکورد ذخیره‌شده باعث می‌شود برنامه همه داده‌هایی را که درباره PDF دارد فراموش کند.</string>
     <string name="list_mode">حالت فهرست</string>
     <string name="status">وضعیت</string>
     <string name="favorite_icon">نماد دلخواه</string>

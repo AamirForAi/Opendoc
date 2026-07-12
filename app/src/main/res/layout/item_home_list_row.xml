@@ -12,7 +12,7 @@
     android:clickable="true"
     android:focusable="true"
     app:checkedIconGravity="TOP_START"
-    app:cardBackgroundColor="@android:color/transparent"
+    app:cardBackgroundColor="@color/home_list_row_background"
     app:cardCornerRadius="12dp"
     app:cardElevation="0dp"
     app:strokeWidth="0dp">
@@ -22,11 +22,12 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="8dp">
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="10dp">
 
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="48dp"
-            android:layout_height="64dp"
+            android:layout_width="56dp"
+            android:layout_height="76dp"
             app:cardCornerRadius="8dp"
             app:cardElevation="0dp"
             app:strokeColor="?attr/colorOutlineVariant"
@@ -44,7 +45,7 @@
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="14dp"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -58,15 +59,15 @@
                 android:textColor="?attr/colorOnSurface"
                 tools:text="Title of the PDF File" />
 
-            <TextView
-                android:id="@+id/meta"
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/metaBadges"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:maxLines="1"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                tools:text="Reading · 42/120 · 35%" />
+                android:visibility="gone"
+                app:chipSpacingHorizontal="6dp"
+                app:chipSpacingVertical="4dp"
+                tools:visibility="visible" />
         </LinearLayout>
 
         <ImageButton

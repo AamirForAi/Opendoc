@@ -129,7 +129,6 @@
     <string name="dracula_theme">Motyw Dracula</string>
     <string name="delete">Usuń</string>
     <string name="delete_dialog_title">Czy na pewno?</string>
-    <string name="delete_dialog_message">Usunięcie zapisu spowoduje, że aplikacja zapomni wszystko, co wie o tym pliku PDF.</string>
     <string name="list_mode">Tryb listy</string>
     <string name="status">Status</string>
     <string name="favorite_icon">ikona ulubionych</string>

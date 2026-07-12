@@ -127,7 +127,6 @@
     <string name="dracula_theme">Tema Dracula</string>
     <string name="delete">Elimina</string>
     <string name="delete_dialog_title">Sei sicuro?</string>
-    <string name="delete_dialog_message">L\'eliminazione del record di salvataggio fa sì che l\'app dimentichi tutto ciò che sa del PDF.</string>
     <string name="list_mode">Modalità lista</string>
     <string name="status">Stato</string>
     <string name="favorite_icon">icona del preferito</string>

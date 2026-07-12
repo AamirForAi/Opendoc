@@ -127,7 +127,6 @@
     <string name="dracula_theme">Tema Drácula</string>
     <string name="delete">Excluir</string>
     <string name="delete_dialog_title">Tem certeza?</string>
-    <string name="delete_dialog_message">Excluir o registro salvo fará com que o aplicativo esqueça tudo o que sabe sobre o PDF.</string>
     <string name="list_mode">Modo Lista</string>
     <string name="status">Status</string>
 

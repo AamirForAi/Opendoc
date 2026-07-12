@@ -2,17 +2,44 @@
 
 package com.gitlab.mudlej.MjPdfReader.core.io
 
+import android.content.Context
+import com.gitlab.mudlej.MjPdfReader.R
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 val appDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 val appDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 private val pdfDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("'D:'yyyyMMddHHmmss")
 
 fun pdfDateNow(): String = LocalDateTime.now().format(pdfDateFormatter)
+
+fun formatRelativeDate(context: Context, dateTime: LocalDateTime): String {
+    val date = dateTime.toLocalDate()
+    val today = LocalDate.now()
+    val days = ChronoUnit.DAYS.between(date, today)
+    return when {
+        days <= 0L -> context.getString(R.string.home_relative_today)
+        days == 1L -> context.getString(R.string.home_relative_yesterday)
+        days < 7L -> context.getString(R.string.home_relative_days_ago, days)
+        days < 30L -> {
+            val weeks = (days / 7L).toInt()
+            context.resources.getQuantityString(R.plurals.home_relative_weeks_ago, weeks, weeks)
+        }
+        days < 365L -> {
+            val months = ChronoUnit.MONTHS.between(date, today).toInt().coerceAtLeast(1)
+            context.resources.getQuantityString(R.plurals.home_relative_months_ago, months, months)
+        }
+        else -> {
+            val years = ChronoUnit.YEARS.between(date, today).toInt().coerceAtLeast(1)
+            context.resources.getQuantityString(R.plurals.home_relative_years_ago, years, years)
+        }
+    }
+}
 
 fun convertDateString(input: String?): String? {
     if (input.isNullOrBlank()) return null

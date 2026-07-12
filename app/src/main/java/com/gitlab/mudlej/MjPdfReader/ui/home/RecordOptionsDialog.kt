@@ -81,9 +81,9 @@ class RecordOptionsDialog(
         }
 
         if (item.hasBeenOpened) {
-            binding.optionsLastRead.visibility = View.VISIBLE
-            binding.optionsLastRead.text = activity.getString(
-                R.string.home_last_read, item.lastOpened.format(appDateFormatter)
+            binding.optionsLastOpened.visibility = View.VISIBLE
+            binding.optionsLastOpened.text = activity.getString(
+                R.string.home_last_opened, item.lastOpened.format(appDateFormatter)
             )
         }
 
@@ -162,26 +162,26 @@ class RecordOptionsDialog(
     }
 
     private fun bindStatus(binding: DialogRecordOptionsBinding, item: HomeItem, record: PdfRecord?) {
-        binding.statusGroup.check(
-            when (record?.reading ?: ReadingStatus.UNSET) {
-                ReadingStatus.TO_READ -> R.id.statusToRead
-                ReadingStatus.READING -> R.id.statusReading
-                ReadingStatus.ON_HOLD -> R.id.statusOnHold
-                ReadingStatus.COMPLETED -> R.id.statusCompleted
-                ReadingStatus.ABANDONED -> R.id.statusAbandoned
-                ReadingStatus.UNSET -> R.id.statusUnset
-            }
+        val statuses = listOf(
+            ReadingStatus.UNSET to activity.getString(R.string.none),
+            ReadingStatus.TO_READ to activity.getString(R.string.home_chip_to_read),
+            ReadingStatus.READING to activity.getString(R.string.home_chip_reading),
+            ReadingStatus.ON_HOLD to activity.getString(R.string.home_chip_on_hold),
+            ReadingStatus.COMPLETED to activity.getString(R.string.home_chip_completed),
+            ReadingStatus.ABANDONED to activity.getString(R.string.home_chip_abandoned),
         )
+        binding.statusDropdown.setSimpleItems(statuses.map { it.second }.toTypedArray())
+
+        var currentStatus = record?.reading ?: ReadingStatus.UNSET
+        binding.statusDropdown.setText(statuses.first { it.first == currentStatus }.second, false)
+
         var resolvedHash = record?.hash
-        binding.statusGroup.setOnCheckedChangeListener { _, checkedId ->
-            val status = when (checkedId) {
-                R.id.statusToRead -> ReadingStatus.TO_READ
-                R.id.statusReading -> ReadingStatus.READING
-                R.id.statusOnHold -> ReadingStatus.ON_HOLD
-                R.id.statusCompleted -> ReadingStatus.COMPLETED
-                R.id.statusAbandoned -> ReadingStatus.ABANDONED
-                else -> ReadingStatus.UNSET
+        binding.statusDropdown.setOnItemClickListener { _, _, position, _ ->
+            val status = statuses[position].first
+            if (status == currentStatus) {
+                return@setOnItemClickListener
             }
+            currentStatus = status
             scope.launch {
                 val hash = resolvedHash ?: resolveContentHash(item) ?: return@launch
                 resolvedHash = hash
@@ -356,6 +356,6 @@ class RecordOptionsDialog(
     }
 
     companion object {
-        private const val COVER_WIDTH_PX = 160
+        private const val COVER_WIDTH_PX = 256
     }
 }

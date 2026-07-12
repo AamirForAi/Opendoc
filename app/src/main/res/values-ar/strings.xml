@@ -126,7 +126,6 @@
     <string name="dracula_theme">ثيم دراكولا</string>
     <string name="delete">حذف</string>
     <string name="delete_dialog_title">هل أنت متأكد؟</string>
-    <string name="delete_dialog_message">حذف سجل الحفظ سيجعل التطبيق ينسى كل ما يعرفه عن هذا الملف.</string>
     <string name="list_mode">العرض كقائمة</string>
     <string name="status">الحالة</string>
     <string name="favorite_icon">أيقونة المفضلة</string>

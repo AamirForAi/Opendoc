@@ -67,7 +67,7 @@
                 tools:progress="42" />
 
             <TextView
-                android:id="@+id/lastReadLabel"
+                android:id="@+id/lastOpenedLabel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"

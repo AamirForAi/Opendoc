@@ -573,7 +573,7 @@ class ReaderComposition(
 
     fun configureButtonsLabels() {
         if (pref.getHideButtonsLabels() == fullScreenOptionsManager.isLabelsVisible()) {
-            fullScreenOptionsManager.toggleLabelVisibility(activity, ::drawableOf, activity::getString)
+            fullScreenOptionsManager.toggleLabelVisibility(::drawableOf, activity::getString)
         }
     }
 
@@ -783,7 +783,7 @@ class ReaderComposition(
     }
 
     private fun toggleLabels() {
-        fullScreenOptionsManager.toggleLabelVisibility(activity, ::drawableOf, activity::getString)
+        fullScreenOptionsManager.toggleLabelVisibility(::drawableOf, activity::getString)
         pref.setHideButtonsLabels(!pref.getHideButtonsLabels())
     }
 

@@ -4,6 +4,7 @@ package com.gitlab.mudlej.MjPdfReader.ui.reader.controls
 
 import android.app.Activity
 import android.provider.Settings
+import android.view.HapticFeedbackConstants
 import android.view.View
 import android.widget.SeekBar
 import androidx.core.view.isVisible
@@ -22,16 +23,19 @@ class BrightnessController(
 ) {
 
     fun toggleControlVisibility() {
+        binding.brightnessButton.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
         if (binding.brightnessLayout.isVisible) hideControl() else showControl()
     }
 
     fun hideControl() {
         binding.brightnessLayout.visibility = View.GONE
+        binding.brightnessButton.isChecked = false
         vm.isBrightnessClicked = false
     }
 
     fun showControl() {
         binding.brightnessLayout.visibility = View.VISIBLE
+        binding.brightnessButton.isChecked = true
         vm.isBrightnessClicked = true
         syncSliderWithCurrentBrightness()
     }

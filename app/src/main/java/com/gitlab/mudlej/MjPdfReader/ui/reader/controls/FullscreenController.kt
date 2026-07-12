@@ -4,9 +4,12 @@ package com.gitlab.mudlej.MjPdfReader.ui.reader.controls
 
 import android.content.pm.ActivityInfo
 import android.view.View
+import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
@@ -25,6 +28,13 @@ class FullscreenController(
     private val topBarColor: () -> Int?,
     private val updateShortcutBarVisibility: () -> Unit,
 ) {
+
+    init {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.fullScreenButtonsLayout) { _, insets ->
+            applyOverlayColumnInsets()
+            insets
+        }
+    }
 
     fun toggleFullscreen() {
         if (!vm.isFullScreenToggled) {
@@ -88,6 +98,7 @@ class FullscreenController(
             updateShortcutBarVisibility()
         }
         binding.pdfView.scrollHandle?.setTopReachLimit(0)
+        applyOverlayColumnInsets()
     }
 
     private fun hideSystemUi() {
@@ -96,11 +107,31 @@ class FullscreenController(
         binding.secondBarScrollView.visibility = View.GONE
         ColorUtil.enterFullscreen(activity.window)
         binding.pdfView.scrollHandle?.setTopReachLimit(statusBarInset())
+        applyOverlayColumnInsets()
     }
 
     private fun statusBarInset(): Int {
         val insets = ViewCompat.getRootWindowInsets(binding.root) ?: return 0
         return insets.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.statusBars()).top
+    }
+
+    private fun overlayCutoutInsets(): Insets {
+        val insets = ViewCompat.getRootWindowInsets(binding.root) ?: return Insets.NONE
+        return insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+    }
+
+    private fun applyOverlayColumnInsets() {
+        val base = activity.resources.getDimensionPixelSize(R.dimen.fs_panel_margin)
+        val cutout = if (vm.isFullScreenToggled) overlayCutoutInsets() else Insets.NONE
+        val isRtl = binding.root.layoutDirection == View.LAYOUT_DIRECTION_RTL
+        val startInset = if (isRtl) cutout.right else cutout.left
+        val params = binding.fullScreenButtonsLayout.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        if (params.marginStart == base + startInset && params.topMargin == base + cutout.top) {
+            return
+        }
+        params.marginStart = base + startInset
+        params.topMargin = base + cutout.top
+        binding.fullScreenButtonsLayout.requestLayout()
     }
 
     private fun unlockScreenOrientation() {

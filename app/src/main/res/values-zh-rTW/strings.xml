@@ -119,7 +119,6 @@
     <string name="dracula_theme">Dracula 主題</string>
     <string name="delete">刪除</string>
     <string name="delete_dialog_title">您確定嗎？</string>
-    <string name="delete_dialog_message">刪除儲存紀錄將會使應用程式忘記所有關於該 PDF 的資訊。</string>
     <string name="list_mode">列表模式</string>
     <string name="status">狀態</string>
     <string name="favorite_icon">最愛圖示</string>

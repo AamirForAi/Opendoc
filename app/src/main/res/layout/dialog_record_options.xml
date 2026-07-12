@@ -22,13 +22,12 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <com.google.android.material.card.MaterialCardView
-                    android:layout_width="48dp"
-                    android:layout_height="64dp"
-                    app:cardCornerRadius="8dp"
+                    android:layout_width="72dp"
+                    android:layout_height="96dp"
+                    app:cardCornerRadius="12dp"
                     app:cardElevation="0dp"
                     app:strokeColor="?attr/colorOutlineVariant"
                     app:strokeWidth="1dp">
@@ -45,7 +44,7 @@
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="16dp"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
@@ -63,11 +62,23 @@
                         android:id="@+id/optionsInfo"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="4dp"
                         android:maxLines="1"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         tools:text="120 pages · 4.20 MB" />
+
+                    <TextView
+                        android:id="@+id/optionsLastOpened"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:maxLines="1"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone"
+                        tools:text="Last read: 2026-07-08"
+                        tools:visibility="visible" />
                 </LinearLayout>
 
                 <ImageButton
@@ -86,12 +97,12 @@
                 android:id="@+id/optionsProgress"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="20dp"
                 android:visibility="gone"
                 app:indicatorTrackGapSize="0dp"
                 app:trackCornerRadius="2dp"
                 app:trackStopIndicatorSize="0dp"
-                app:trackThickness="4dp"
+                app:trackThickness="6dp"
                 tools:progress="42"
                 tools:visibility="visible" />
 
@@ -99,75 +110,27 @@
                 android:id="@+id/optionsPercent"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:layout_marginTop="6dp"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:visibility="gone"
                 tools:text="42% · 50/120"
                 tools:visibility="visible" />
 
-            <TextView
-                android:id="@+id/optionsLastRead"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textAppearance="?attr/textAppearanceBodySmall"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:visibility="gone"
-                tools:text="Last read: 2026-07-08"
-                tools:visibility="visible" />
-
-            <TextView
-                android:id="@+id/statusLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/home_set_status"
-                android:textAppearance="?attr/textAppearanceLabelLarge"
-                android:textColor="?attr/colorOnSurfaceVariant" />
-
-            <RadioGroup
-                android:id="@+id/statusGroup"
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp">
+                android:layout_marginTop="20dp"
+                android:hint="@string/home_set_status">
 
-                <com.google.android.material.radiobutton.MaterialRadioButton
-                    android:id="@+id/statusUnset"
+                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                    android:id="@+id/statusDropdown"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/none" />
-
-                <com.google.android.material.radiobutton.MaterialRadioButton
-                    android:id="@+id/statusToRead"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/home_chip_to_read" />
-
-                <com.google.android.material.radiobutton.MaterialRadioButton
-                    android:id="@+id/statusReading"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/home_chip_reading" />
-
-                <com.google.android.material.radiobutton.MaterialRadioButton
-                    android:id="@+id/statusOnHold"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/home_chip_on_hold" />
-
-                <com.google.android.material.radiobutton.MaterialRadioButton
-                    android:id="@+id/statusCompleted"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/home_chip_completed" />
-
-                <com.google.android.material.radiobutton.MaterialRadioButton
-                    android:id="@+id/statusAbandoned"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/home_chip_abandoned" />
-            </RadioGroup>
+                    android:inputType="none"
+                    tools:text="@string/home_chip_reading" />
+            </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
 
         <com.google.android.material.divider.MaterialDivider

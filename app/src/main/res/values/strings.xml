@@ -236,7 +236,7 @@
     <string name="features_privacy_history_switch_title">Save Reading History</string>
     <string name="features_privacy_history_switch_body">One switch in History and Privacy stops all history saving everywhere, including Text Mode.</string>
     <string name="features_privacy_history_screen_title">Reading History</string>
-    <string name="features_privacy_history_screen_body">Lists every remembered document, including hidden ones, with last read date and progress.\nDelete entries one by one or clear everything.</string>
+    <string name="features_privacy_history_screen_body">Lists every remembered document, including hidden ones, with last opened date and progress.\nDelete entries one by one or clear everything.</string>
     <string name="features_privacy_clear_title">Clear data</string>
     <string name="features_privacy_clear_body">Separate, confirmed actions clear:\nReading history and positions.\nSaved passwords.\nAll bookmarks.\nCrash recovery data and the stored signature.</string>
     <string name="features_privacy_passwords_title">Saved passwords</string>
@@ -666,7 +666,6 @@
     <string name="dracula_theme">Dracula Theme</string>
     <string name="delete">Delete</string>
     <string name="delete_dialog_title">Are you sure?</string>
-    <string name="delete_dialog_message">Deleting the save record will make the app forget everything it knows about the PDF.</string>
     <string name="list_mode">List Mode</string>
     <string name="status">Status</string>
     <string name="favorite_icon">favorite icon</string>
@@ -803,13 +802,32 @@
     <string name="home_rename_failed">Could not rename the file.</string>
     <string name="home_delete_failed">Could not delete the file.</string>
     <string name="home_delete_confirm_message">"%1$s" will be permanently deleted from this device.</string>
+    <plurals name="home_delete_batch_confirm_message">
+        <item quantity="one">This file will be permanently deleted from this device.</item>
+        <item quantity="other">%d files will be permanently deleted from this device.</item>
+    </plurals>
     <string name="home_pages_size_template">%1$d pages · %2$s</string>
     <plurals name="home_pages">
         <item quantity="one">%d page</item>
         <item quantity="other">%d pages</item>
     </plurals>
     <string name="home_percent_position_template">%1$d%% · %2$d/%3$d</string>
-    <string name="home_last_read">Last read: %1$s</string>
+    <string name="home_last_opened">Last opened: %1$s</string>
+    <string name="home_relative_today">Today</string>
+    <string name="home_relative_yesterday">Yesterday</string>
+    <string name="home_relative_days_ago">%d days ago</string>
+    <plurals name="home_relative_weeks_ago">
+        <item quantity="one">%d week ago</item>
+        <item quantity="other">%d weeks ago</item>
+    </plurals>
+    <plurals name="home_relative_months_ago">
+        <item quantity="one">%d month ago</item>
+        <item quantity="other">%d months ago</item>
+    </plurals>
+    <plurals name="home_relative_years_ago">
+        <item quantity="one">%d year ago</item>
+        <item quantity="other">%d years ago</item>
+    </plurals>
     <string name="home_remove_from_recent">Remove from Recents</string>
     <string name="home_hide_from_library">Hide from Library</string>
     <string name="home_show_in_library">Show in Library</string>

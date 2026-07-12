@@ -130,7 +130,6 @@
     <string name="dracula_theme">Dracula Teması</string>
     <string name="delete">Sil</string>
     <string name="delete_dialog_title">Emin misiniz?</string>
-    <string name="delete_dialog_message">Kayıt silindiğinde, uygulama PDF hakkında bildiği her şeyi unutacaktır.</string>
     <string name="list_mode">Liste Modu</string>
     <string name="status">Durum</string>
 

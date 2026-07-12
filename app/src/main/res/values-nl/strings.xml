@@ -129,7 +129,6 @@
     <string name="dracula_theme">Dracula-thema</string>
     <string name="delete">Verwijderen</string>
     <string name="delete_dialog_title">Zeker weten?</string>
-    <string name="delete_dialog_message">Als je het opslagrecord verwijdert, vergeet de app alles wat hij over de PDF weet.</string>
     <string name="list_mode">Lijst-modus</string>
     <string name="status">Status</string>
     <string name="favorite_icon">favoriet-pictogram</string>

@@ -4,6 +4,7 @@ package com.gitlab.mudlej.MjPdfReader.ui.reader.controls
 
 import android.os.Handler
 import android.os.Looper
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import com.gitlab.mudlej.MjPdfReader.R
@@ -75,6 +76,7 @@ class AutoScrollManager(
     fun hideControls() {
         binding.autoScrollLayout.visibility = View.GONE
         binding.autoScrollSpeedText.visibility = View.GONE
+        binding.autoScrollButton.isChecked = false
         vm.isAutoScrollClicked = false
     }
 
@@ -90,6 +92,7 @@ class AutoScrollManager(
     }
 
     private fun toggleControls() {
+        binding.autoScrollButton.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
         if (binding.autoScrollLayout.visibility == View.VISIBLE) {
             hideControls()
         }
@@ -101,6 +104,7 @@ class AutoScrollManager(
     private fun showControls() {
         binding.autoScrollLayout.visibility = View.VISIBLE
         binding.autoScrollSpeedText.visibility = View.VISIBLE
+        binding.autoScrollButton.isChecked = true
         vm.isAutoScrollClicked = true
     }
 

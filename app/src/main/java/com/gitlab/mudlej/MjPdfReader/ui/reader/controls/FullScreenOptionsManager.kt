@@ -10,7 +10,13 @@ import android.os.Looper
 import android.text.format.DateFormat
 import android.view.MotionEvent
 import android.view.View
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import android.widget.LinearLayout
+import androidx.appcompat.widget.TooltipCompat
+import androidx.core.view.children
+import androidx.transition.ChangeBounds
+import androidx.transition.TransitionManager
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
@@ -35,6 +41,8 @@ class FullScreenOptionsManager(
     private var visibility: VisibilityState = VisibilityState.INVISIBLE
     private var labelVisibility: VisibilityState = VisibilityState.VISIBLE
     private var isHandleDragged = false
+    private var buttonsVisible = false
+    private var infoVisible = false
 
     private val viewsList: MutableList<View> = mutableListOf(
         binding.fullScreenButtonsLayout,
@@ -63,6 +71,24 @@ class FullScreenOptionsManager(
 
     init {
         setOnTouchListenerForAll()
+        binding.fullScreenButtonsLayout.background?.mutate()?.alpha = PANEL_BACKGROUND_ALPHA
+        binding.fullScreenButtonsLayout.clipToOutline = true
+        fixedButtonLabelRes().forEach { (button, labelRes) ->
+            TooltipCompat.setTooltipText(button, button.context.getString(labelRes))
+        }
+    }
+
+    private fun fixedButtonLabelRes(): Map<MaterialButton, Int> = binding.run {
+        linkedMapOf(
+            exitFullScreenButton to R.string.exit,
+            rotateScreenButton to R.string.rotate,
+            brightnessButton to R.string.brightness,
+            autoScrollButton to R.string.auto_scroll,
+            toggleHorizontalSwipeButton to R.string.horizontal_lock,
+            toggleZoomLockButton to R.string.zoom_lock,
+            screenshotButton to R.string.screenshot,
+            toggleLabelButton to R.string.hide_labels,
+        )
     }
 
     fun isVisible() = visibility == VisibilityState.VISIBLE
@@ -128,9 +154,39 @@ class FullScreenOptionsManager(
 
     fun refreshInfo() {
         val shouldShowInfo = updateInfoContent()
-            && (isHandleDragged || binding.fullScreenButtonsLayout.visibility == View.VISIBLE)
+            && (isHandleDragged || buttonsVisible)
 
-        binding.fullScreenInfoLayout.visibility = if (shouldShowInfo) View.VISIBLE else View.GONE
+        setInfoVisibility(shouldShowInfo)
+    }
+
+    private fun setInfoVisibility(show: Boolean) {
+        if (infoVisible == show) {
+            return
+        }
+        infoVisible = show
+        val info = binding.fullScreenInfoLayout
+        info.animate().cancel()
+        if (show) {
+            if (info.visibility != View.VISIBLE) {
+                info.alpha = 0f
+            }
+            info.visibility = View.VISIBLE
+            info.animate()
+                .alpha(1f)
+                .setDuration(SHOW_ANIMATION_MILLIS)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        } else if (info.visibility == View.VISIBLE) {
+            info.animate()
+                .alpha(0f)
+                .setDuration(HIDE_ANIMATION_MILLIS)
+                .setInterpolator(LinearInterpolator())
+                .withEndAction {
+                    info.visibility = View.GONE
+                    info.alpha = 1f
+                }
+                .start()
+        }
     }
 
     fun onHandleDragStarted() {
@@ -148,10 +204,11 @@ class FullScreenOptionsManager(
             viewsList.add(button)
         }
         registeredButtonLabels[button] = label
+        TooltipCompat.setTooltipText(button, label)
         button.setOnTouchListener(getOnTouchListener())
         if (labelVisibility == VisibilityState.INVISIBLE) {
             button.text = ""
-            makeButtonCircular(button.context, button)
+            makeButtonCircular(button)
         }
     }
 
@@ -227,23 +284,22 @@ class FullScreenOptionsManager(
         return labelVisibility == VisibilityState.VISIBLE
     }
 
-    fun toggleLabelVisibility(context: Context, drawableOf: KFunction1<Int, Drawable?>, getLabel: KFunction1<Int, String?>) {
+    fun toggleLabelVisibility(drawableOf: KFunction1<Int, Drawable?>, getLabel: KFunction1<Int, String?>) {
+        if (binding.fullScreenButtonsLayout.visibility == View.VISIBLE) {
+            val transition = ChangeBounds().apply {
+                duration = LABEL_ANIMATION_MILLIS
+                interpolator = DecelerateInterpolator()
+            }
+            TransitionManager.beginDelayedTransition(binding.viewActionsLayout, transition)
+        }
         binding.apply {
-            val buttons = linkedMapOf(
-                exitFullScreenButton to getLabel(R.string.exit),
-                rotateScreenButton to getLabel(R.string.rotate),
-                brightnessButton to getLabel(R.string.brightness),
-                autoScrollButton to getLabel(R.string.auto_scroll),
-                toggleHorizontalSwipeButton to getLabel(R.string.horizontal_lock),
-                toggleZoomLockButton to getLabel(R.string.zoom_lock),
-                screenshotButton to getLabel(R.string.screenshot),
-                toggleLabelButton to getLabel(R.string.hide_labels)
-            )
+            val buttons = LinkedHashMap<MaterialButton, String?>()
+            fixedButtonLabelRes().forEach { (button, labelRes) -> buttons[button] = getLabel(labelRes) }
             buttons.putAll(registeredButtonLabels)
             if (labelVisibility == VisibilityState.VISIBLE) {
                 buttons.keys.forEach { button ->
                     button.text = ""
-                    makeButtonCircular(context, button)
+                    makeButtonCircular(button)
                 }
                 toggleLabelButton.icon = drawableOf(R.drawable.ic_double_arrow_right)
             }
@@ -258,21 +314,24 @@ class FullScreenOptionsManager(
         labelVisibility = inverseVisibility(labelVisibility)
     }
 
-    private fun makeButtonCircular(context: Context, button: MaterialButton) {
-        val scale = context.resources.displayMetrics.density
-        val iconSizeDp = 24
-        val iconSizePx = (iconSizeDp * scale).toInt()
-
-        val circleFactor = 1.9
-        val buttonWidthPx = iconSizePx * circleFactor
-
-        val params = button.layoutParams
-        params.width = buttonWidthPx.toInt()
-        button.layoutParams = params
+    private fun makeButtonCircular(button: MaterialButton) {
+        val padding = button.resources.getDimensionPixelSize(R.dimen.fs_button_padding)
+        val iconSize = button.resources.getDimensionPixelSize(R.dimen.fs_button_size)
+        button.iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
+        button.iconPadding = 0
+        button.setPaddingRelative(padding, button.paddingTop, padding, button.paddingBottom)
+        button.layoutParams.width = iconSize + 2 * padding
+        button.requestLayout()
     }
 
     private fun resetButtonShape(button: MaterialButton) {
+        val padding = button.resources.getDimensionPixelSize(R.dimen.fs_button_padding)
+        val paddingEnd = button.resources.getDimensionPixelSize(R.dimen.fs_button_padding_end)
+        button.iconGravity = MaterialButton.ICON_GRAVITY_START
+        button.iconPadding = button.resources.getDimensionPixelSize(R.dimen.fs_button_icon_padding)
+        button.setPaddingRelative(padding, button.paddingTop, paddingEnd, button.paddingBottom)
         button.layoutParams.width = LinearLayout.LayoutParams.WRAP_CONTENT
+        button.requestLayout()
     }
 
     // -------------
@@ -292,8 +351,44 @@ class FullScreenOptionsManager(
     private fun hideFullScreenButtons() = changeFullScreenButtonsVisibility(false)
 
     private fun changeFullScreenButtonsVisibility(isVisible: Boolean) {
-        binding.fullScreenButtonsLayout.visibility = if (isVisible) View.VISIBLE else View.GONE
+        buttonsVisible = isVisible && hasVisibleButtons()
+        val panel = binding.fullScreenButtonsLayout
+        panel.animate().cancel()
+        if (buttonsVisible) {
+            if (panel.visibility != View.VISIBLE) {
+                panel.alpha = 0f
+                panel.translationX = slideOffset()
+            }
+            panel.visibility = View.VISIBLE
+            panel.animate()
+                .alpha(1f)
+                .translationX(0f)
+                .setDuration(SHOW_ANIMATION_MILLIS)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        } else if (panel.visibility == View.VISIBLE) {
+            panel.animate()
+                .alpha(0f)
+                .translationX(slideOffset())
+                .setDuration(HIDE_ANIMATION_MILLIS)
+                .setInterpolator(LinearInterpolator())
+                .withEndAction {
+                    panel.visibility = View.GONE
+                    panel.alpha = 1f
+                    panel.translationX = 0f
+                }
+                .start()
+        }
         refreshInfo()
+    }
+
+    private fun slideOffset(): Float {
+        val offset = SLIDE_OFFSET_DP * binding.root.resources.displayMetrics.density
+        return if (binding.root.layoutDirection == View.LAYOUT_DIRECTION_RTL) offset else -offset
+    }
+
+    private fun hasVisibleButtons(): Boolean {
+        return binding.fullScreenButtonsList.children.any { it.visibility == View.VISIBLE }
     }
 
     private fun showPageHandle() {
@@ -342,6 +437,14 @@ class FullScreenOptionsManager(
     private fun inverseVisibility(visibility: VisibilityState): VisibilityState {
         return if (visibility == VisibilityState.VISIBLE) VisibilityState.INVISIBLE
         else VisibilityState.VISIBLE
+    }
+
+    companion object {
+        private const val PANEL_BACKGROUND_ALPHA = 240
+        private const val SHOW_ANIMATION_MILLIS = 180L
+        private const val HIDE_ANIMATION_MILLIS = 150L
+        private const val LABEL_ANIMATION_MILLIS = 150L
+        private const val SLIDE_OFFSET_DP = 16f
     }
 
     private data class FullScreenInfoSettings(

@@ -126,7 +126,6 @@
     <string name="dracula_theme">Dracula-Theme</string>
     <string name="delete">Löschen</string>
     <string name="delete_dialog_title">Sind Sie sicher?</string>
-    <string name="delete_dialog_message">Das Löschen des Speicherdatensatzes wird bewirken, dass die App alles vergisst, was sie über das PDF weiß.</string>
     <string name="list_mode">Listenmodus</string>
     <string name="status">Status</string>
 

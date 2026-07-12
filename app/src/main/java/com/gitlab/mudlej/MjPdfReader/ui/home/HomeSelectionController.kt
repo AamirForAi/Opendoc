@@ -8,14 +8,20 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.view.ActionMode
 import com.gitlab.mudlej.MjPdfReader.R
 
+enum class SelectionContext { RECENT, LIBRARY, FOLDERS, SEARCH }
+
 class HomeSelectionController(
     private val activity: AppCompatActivity,
     private val currentItems: () -> List<HomeItem>,
+    private val currentContext: () -> SelectionContext,
     private val onSelectionChanged: () -> Unit,
     private val onStatusBatch: (List<HomeItem>) -> Unit,
+    private val onRemoveRecentBatch: (List<HomeItem>) -> Unit,
+    private val onHideBatch: (List<HomeItem>) -> Unit,
     private val onDeleteBatch: (List<HomeItem>) -> Unit,
 ) {
     private var actionMode: ActionMode? = null
+    private var context = SelectionContext.LIBRARY
 
     val selectedHashes = mutableSetOf<String>()
 
@@ -28,6 +34,7 @@ class HomeSelectionController(
             return true
         }
         selectedHashes.add(item.hash)
+        context = currentContext()
         actionMode = activity.startSupportActionMode(callback)
         updateTitle()
         onSelectionChanged()
@@ -62,6 +69,9 @@ class HomeSelectionController(
 
         override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
             mode.menuInflater.inflate(R.menu.home_action_mode, menu)
+            menu.findItem(R.id.removeRecentBatchOption).isVisible = context == SelectionContext.RECENT
+            menu.findItem(R.id.hideBatchOption).isVisible = context == SelectionContext.LIBRARY
+            menu.findItem(R.id.deleteBatchOption).isVisible = context == SelectionContext.FOLDERS
             return true
         }
 
@@ -74,6 +84,8 @@ class HomeSelectionController(
             }
             when (item.itemId) {
                 R.id.statusBatchOption -> onStatusBatch(items)
+                R.id.removeRecentBatchOption -> onRemoveRecentBatch(items)
+                R.id.hideBatchOption -> onHideBatch(items)
                 R.id.deleteBatchOption -> onDeleteBatch(items)
                 else -> return false
             }

@@ -37,7 +37,7 @@ class ReadingHistoryAdapter(
             val lastOpenedText = if (record.lastOpened == unsetDate) {
                 context.getString(R.string.reading_history_never_opened)
             } else {
-                context.getString(R.string.home_last_read, record.lastOpened.format(appDateFormatter))
+                context.getString(R.string.home_last_opened, record.lastOpened.format(appDateFormatter))
             }
             binding.readingHistorySubtitle.text = if (record.length > 0) {
                 val pageText = context.getString(R.string.page_x_of_y, record.pageNumber + 1, record.length)

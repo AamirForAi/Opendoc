@@ -129,7 +129,6 @@
     <string name="dracula_theme">Тема Дракула</string>
     <string name="delete">Удалить</string>
     <string name="delete_dialog_title">Вы уверены?</string>
-    <string name="delete_dialog_message">Удаление записи сохранения заставит приложение забыть все, что оно знает о PDF.</string>
     <string name="list_mode">Режим списка</string>
     <string name="status">Статус</string>
 

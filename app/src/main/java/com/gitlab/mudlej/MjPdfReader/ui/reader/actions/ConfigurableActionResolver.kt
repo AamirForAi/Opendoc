@@ -10,6 +10,7 @@ data class ConfiguredAction(
     @StringRes val titleRes: Int,
     @DrawableRes val iconRes: Int,
     val visible: Boolean = true,
+    val checked: Boolean? = null,
     val run: () -> Unit,
 )
 
@@ -111,12 +112,14 @@ class ConfigurableActionResolver(
                 if (cropMarginsEnabled()) R.string.show_margins else R.string.crop_margins,
                 if (cropMarginsEnabled()) R.drawable.ic_show_margins else R.drawable.ic_crop_margins,
                 visible = fileAvailable,
+                checked = cropMarginsEnabled(),
                 run = handlers.toggleCropMargins,
             )
             ConfigurableAction.DUAL_PAGE -> ConfiguredAction(
                 if (dualPageEnabled()) R.string.single_page_mode else R.string.dual_page_mode_title,
                 R.drawable.ic_dual_page,
                 visible = fileAvailable && !horizontalScrollEnabled(),
+                checked = dualPageEnabled(),
                 run = handlers.toggleDualPage,
             )
             ConfigurableAction.SCREENSHOT -> ConfiguredAction(
@@ -129,6 +132,7 @@ class ConfigurableActionResolver(
                 if (isPdfDarkTheme()) R.string.switch_to_light_mode else R.string.switch_to_dark_mode,
                 if (isPdfDarkTheme()) R.drawable.ic_light_mode else R.drawable.ic_dark_mode,
                 visible = fileAvailable && !isPdfThemeSystem(),
+                checked = isPdfDarkTheme(),
                 run = handlers.switchTheme,
             )
             ConfigurableAction.NAV_BACK -> ConfiguredAction(
@@ -221,6 +225,7 @@ class ConfigurableActionResolver(
                 if (isCurrentPageBookmarked()) R.string.remove_bookmark else R.string.add_bookmark,
                 if (isCurrentPageBookmarked()) R.drawable.ic_bookmark_filled else R.drawable.ic_bookmark_outline,
                 visible = fileAvailable,
+                checked = isCurrentPageBookmarked(),
                 run = handlers.toggleBookmark,
             )
             ConfigurableAction.USER_BOOKMARKS -> ConfiguredAction(
@@ -262,6 +267,7 @@ class ConfigurableActionResolver(
             ConfigurableAction.INCOGNITO -> ConfiguredAction(
                 if (isIncognito()) R.string.incognito_exit else R.string.incognito,
                 R.drawable.ic_incognito,
+                checked = isIncognito(),
                 run = handlers.toggleIncognito,
             )
             ConfigurableAction.BRIGHTNESS,

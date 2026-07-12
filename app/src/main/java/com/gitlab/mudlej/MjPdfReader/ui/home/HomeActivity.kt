@@ -5,6 +5,7 @@ package com.gitlab.mudlej.MjPdfReader.ui.home
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,6 +20,7 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityHomeBinding
+import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.data.HistoryCleaner
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
@@ -33,10 +35,14 @@ import com.gitlab.mudlej.MjPdfReader.ui.intro.MainIntroActivity
 import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
 import com.gitlab.mudlej.MjPdfReader.core.text.StringUtil.formatEnumToTitle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.search.SearchView
 import com.google.android.material.tabs.TabLayoutMediator
 import java.io.File
+import java.time.LocalDateTime
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class HomeActivity : AppCompatActivity(), HomeItemFunctions {
 
@@ -157,6 +163,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             lifecycleScope,
             this,
             libraryController,
+            selection = { selectionController.selectedHashes },
         )
         libraryTab = LibraryTabController(
             this,
@@ -183,13 +190,17 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             hasFullAccess = { permissionManager.hasFullAccess() },
             libraryController = libraryController,
             onNavigationChanged = ::updateFoldersBackState,
+            selection = { selectionController.selectedHashes },
         )
 
         selectionController = HomeSelectionController(
             this,
-            currentItems = { libraryTab.currentGridItems() },
-            onSelectionChanged = { libraryTab.notifySelectionChanged() },
+            currentItems = ::selectableItems,
+            currentContext = ::selectionContext,
+            onSelectionChanged = ::notifySelectionChanged,
             onStatusBatch = ::statusBatch,
+            onRemoveRecentBatch = ::removeRecentBatch,
+            onHideBatch = ::hideBatch,
             onDeleteBatch = ::deleteBatch,
         )
         relocateController = RelocateController(
@@ -269,9 +280,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         binding.homePager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 pref.setHomeTab(HomeTab.entries[position])
-                if (HomeTab.entries[position] != HomeTab.LIBRARY) {
-                    selectionController.finish()
-                }
+                selectionController.finish()
                 updateFoldersBackState()
             }
         })
@@ -327,10 +336,17 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     private fun setupSearch() {
         binding.searchView.setupWithSearchBar(binding.searchBar)
 
-        searchResultsAdapter = LibraryAdapter(coverCache, lifecycleScope, this)
+        searchResultsAdapter =
+            LibraryAdapter(coverCache, lifecycleScope, this) { selectionController.selectedHashes }
         searchResultsAdapter.viewMode = HomeViewMode.LIST
         binding.searchResultsRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.searchResultsRecyclerView.adapter = searchResultsAdapter
+
+        binding.searchView.addTransitionListener { _, _, newState ->
+            if (newState == SearchView.TransitionState.HIDING) {
+                selectionController.finish()
+            }
+        }
 
         binding.searchView.editText.doOnTextChanged { text, _, _, _ ->
             val query = text?.toString().orEmpty()
@@ -379,7 +395,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     }
 
     override fun onItemClicked(item: HomeItem) {
-        if (selectionController.active && currentTab() == HomeTab.LIBRARY) {
+        if (selectionController.active) {
             selectionController.toggle(item)
             return
         }
@@ -402,10 +418,36 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     }
 
     override fun onItemLongClicked(item: HomeItem): Boolean {
-        if (binding.searchView.isShowing || currentTab() != HomeTab.LIBRARY) {
-            return false
-        }
         return selectionController.begin(item)
+    }
+
+    private fun selectableItems(): List<HomeItem> {
+        if (binding.searchView.isShowing) {
+            return searchResultsAdapter.currentList
+        }
+        return when (currentTab()) {
+            HomeTab.RECENT -> recentTab.currentItems()
+            HomeTab.LIBRARY -> libraryTab.currentGridItems()
+            HomeTab.FOLDERS -> foldersTab.currentItems()
+        }
+    }
+
+    private fun selectionContext(): SelectionContext {
+        if (binding.searchView.isShowing) {
+            return SelectionContext.SEARCH
+        }
+        return when (currentTab()) {
+            HomeTab.RECENT -> SelectionContext.RECENT
+            HomeTab.LIBRARY -> SelectionContext.LIBRARY
+            HomeTab.FOLDERS -> SelectionContext.FOLDERS
+        }
+    }
+
+    private fun notifySelectionChanged() {
+        recentTab.notifySelectionChanged()
+        libraryTab.notifySelectionChanged()
+        foldersTab.notifySelectionChanged()
+        searchResultsAdapter.notifySelectionChanged()
     }
 
     override fun onItemOptionsClicked(item: HomeItem) {
@@ -432,13 +474,58 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             .show()
     }
 
+    private fun removeRecentBatch(items: List<HomeItem>) {
+        lifecycleScope.launch {
+            val unset = LocalDateTime.parse(PdfRecord.UNSET_DATE)
+            items.filter { !it.isScanOnly && it.hasBeenOpened }.forEach {
+                pdfRepository.setLastOpened(it.hash, unset)
+            }
+            selectionController.finish()
+            refresh()
+        }
+    }
+
+    private fun hideBatch(items: List<HomeItem>) {
+        lifecycleScope.launch {
+            val hashes = items.mapNotNull { recordOptionsDialog.ensureRecordHash(it) }
+            if (hashes.size < items.size && !historyPolicy.canRecord()) {
+                Toast.makeText(this@HomeActivity, R.string.history_action_blocked, Toast.LENGTH_SHORT).show()
+            }
+            hashes.forEach { pdfRepository.setHidden(it, true) }
+            selectionController.finish()
+            refresh()
+        }
+    }
+
     private fun deleteBatch(items: List<HomeItem>) {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.delete_dialog_title)
-            .setMessage(R.string.delete_dialog_message)
+            .setMessage(
+                resources.getQuantityString(
+                    R.plurals.home_delete_batch_confirm_message, items.size, items.size
+                )
+            )
             .setPositiveButton(R.string.delete) { _, _ ->
                 lifecycleScope.launch {
-                    historyCleaner.deleteDocuments(items.map { it.hash })
+                    val deleted = withContext(Dispatchers.IO) {
+                        items.filter { item ->
+                            if (item.uri.scheme == "file") {
+                                item.uri.path?.let { File(it).delete() } ?: false
+                            } else {
+                                runCatching {
+                                    DocumentsContract.deleteDocument(contentResolver, item.uri)
+                                }.getOrDefault(false)
+                            }
+                        }
+                    }
+                    deleted.forEach { item ->
+                        historyCleaner.deleteDocument(item.hash)
+                        coverCache.invalidate(item.coverKey)
+                        item.uri.path?.let { libraryScanner.onFileRemoved(it) }
+                    }
+                    if (deleted.size < items.size) {
+                        Toast.makeText(this@HomeActivity, R.string.home_delete_failed, Toast.LENGTH_SHORT).show()
+                    }
                     selectionController.finish()
                     refresh()
                 }

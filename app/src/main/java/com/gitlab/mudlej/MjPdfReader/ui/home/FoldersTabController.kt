@@ -21,6 +21,7 @@ class FoldersTabController(
     private val hasFullAccess: () -> Boolean,
     private val libraryController: HomeLibraryController,
     private val onNavigationChanged: () -> Unit,
+    selection: () -> Set<String> = { emptySet() },
 ) {
 
     private val topSections = HomeSectionsAdapter(
@@ -31,9 +32,9 @@ class FoldersTabController(
     )
     private val breadcrumbAdapter = BreadcrumbAdapter { path -> navigateTo(path) }
     private val folderAdapter = FolderAdapter { node -> navigateTo(node.path) }
-    private val filesAdapter = LibraryAdapter(coverCache, scope, functions).apply {
+    private val filesAdapter = LibraryAdapter(coverCache, scope, functions, selection).apply {
         viewMode = HomeViewMode.LIST
-        showFileSize = true
+        metaStyle = ListMetaStyle.FOLDERS
     }
     private val bottomSections = HomeSectionsAdapter(coverCache, scope, functions)
 
@@ -64,6 +65,10 @@ class FoldersTabController(
     }
 
     fun canGoBack(): Boolean = currentDir != null
+
+    fun currentItems(): List<HomeItem> = filesAdapter.currentList
+
+    fun notifySelectionChanged() = filesAdapter.notifySelectionChanged()
 
     fun goBack(): Boolean {
         val dir = currentDir ?: return false

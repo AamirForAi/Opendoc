@@ -105,6 +105,7 @@ class FullScreenButtonController(
             }
             iconGravity = MaterialButton.ICON_GRAVITY_START
             iconSize = resources.getDimensionPixelSize(R.dimen.fs_button_size)
+            isToggleCheckedStateOnClick = false
             setPaddingRelative(padding, padding, paddingEnd, padding)
             setOnClickListener { actionResolver.perform(action.id) }
         }
@@ -118,6 +119,11 @@ class FullScreenButtonController(
         button.text = title
         button.contentDescription = title
         button.setIconResource(configuredAction.iconRes)
+        val checked = configuredAction.checked
+        button.isCheckable = checked != null
+        if (checked != null) {
+            button.isChecked = checked
+        }
         fullScreenOptionsManager.registerFullScreenButton(button, title)
     }
 }

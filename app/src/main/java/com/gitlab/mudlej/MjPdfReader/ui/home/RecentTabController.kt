@@ -13,11 +13,13 @@ class RecentTabController(
     scope: CoroutineScope,
     functions: HomeItemFunctions,
     private val libraryController: HomeLibraryController,
+    selection: () -> Set<String> = { emptySet() },
 ) {
 
     private val sectionsAdapter = HomeSectionsAdapter(coverCache, scope, functions)
-    private val rowsAdapter = LibraryAdapter(coverCache, scope, functions).apply {
+    private val rowsAdapter = LibraryAdapter(coverCache, scope, functions, selection).apply {
         viewMode = HomeViewMode.LIST
+        metaStyle = ListMetaStyle.RECENT
     }
 
     fun attach(recyclerView: RecyclerView) {
@@ -46,6 +48,10 @@ class RecentTabController(
             }
         })
     }
+
+    fun currentItems(): List<HomeItem> = rowsAdapter.currentList
+
+    fun notifySelectionChanged() = rowsAdapter.notifySelectionChanged()
 
     fun onCoversChanged() {
         sectionsAdapter.rebindCovers()

@@ -10,6 +10,18 @@
         app:showAsAction="always" />
 
     <item
+        android:id="@+id/removeRecentBatchOption"
+        android:icon="@drawable/close_icon"
+        android:title="@string/home_remove_from_recent"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/hideBatchOption"
+        android:icon="@drawable/ic_hide"
+        android:title="@string/home_hide_from_library"
+        app:showAsAction="always" />
+
+    <item
         android:id="@+id/deleteBatchOption"
         android:icon="@drawable/ic_delete"
         android:title="@string/delete"
