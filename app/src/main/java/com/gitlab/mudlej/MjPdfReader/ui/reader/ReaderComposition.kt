@@ -29,6 +29,8 @@ import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
 import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
+import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationEngine
+import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationSettings
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
@@ -219,6 +221,14 @@ class ReaderComposition(
         { pref.getDetectExistingHighlights() },
         { pref.getHighlightColors() },
         { doc.getTitle() },
+        {
+            TranslationSettings(
+                pref.getTranslationMode(),
+                TranslationEngine.fromId(pref.getTranslationEngine()),
+                pref.getTranslationCustomUrl(),
+                pref.getTranslationTargetLanguage(),
+            )
+        },
     ) { fullScreenOptionsManager.showAllTemporarilyOrHide() }
     val annotationSaveController: AnnotationSaveController = AnnotationSaveController(
         activity,

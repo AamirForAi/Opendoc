@@ -138,6 +138,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
     }
 
+    fun refreshPreferences() = rebuildPreferences()
+
     private fun rebuildPreferences() {
         val screen = preferenceManager.createPreferenceScreen(requireContext())
         val currentPage = page

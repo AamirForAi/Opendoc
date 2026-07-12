@@ -49,6 +49,9 @@ class AboutActivity : AppCompatActivity() {
         bindRow(binding.whatsNewRow, R.drawable.log_icon, R.string.whats_new_title) {
             startActivity(navIntent(applicationContext, WhatsNewActivity::class.java))
         }
+        bindRow(binding.appFeaturesRow, R.drawable.ic_awesome, R.string.features_title) {
+            startActivity(navIntent(applicationContext, AppFeaturesActivity::class.java))
+        }
         bindRow(binding.replayIntroRow, R.drawable.replay_icon, R.string.intro) {
             startActivity(navIntent(applicationContext, MainIntroActivity::class.java))
         }

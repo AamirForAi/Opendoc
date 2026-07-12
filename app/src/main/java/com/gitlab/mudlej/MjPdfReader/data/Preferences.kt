@@ -99,6 +99,10 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val historyEnabledKey = "historyEnabled"
         const val scanModeKey = "scanMode"
         const val scanLocationsKey = "scanLocations"
+        const val translationModeKey = "translationMode"
+        const val translationEngineKey = "translationEngine"
+        const val translationTargetLanguageKey = "translationTargetLanguage"
+        const val translationCustomUrlKey = "translationCustomUrl"
 
         // Default values
         const val firstInstallDefault = true
@@ -165,6 +169,12 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val themeSystem = "system"
         const val themeLight = "light"
         const val themeDark = "dark"
+        const val translationModeApps = "apps"
+        const val translationModeWeb = "web"
+        const val translationModeDefault = translationModeApps
+        const val translationEngineDefault = "google"
+        const val translationTargetLanguageDefault = ""
+        const val translationCustomUrlDefault = ""
         val fullScreenOverlayActionsDefault = ConfigurableAction.defaultFullScreenOverlayActionIds
         val shortcutBarActionsDefault = ConfigurableAction.defaultShortcutBarActionIds
 
@@ -223,6 +233,16 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getAutoBackupLastRun() = prefMan.getLong(autoBackupLastRunKey, 0L)
 
     fun getAutoBackupLastError(): String? = prefMan.getString(autoBackupLastErrorKey, null)
+
+    fun getTranslationMode() = prefMan.getString(translationModeKey, translationModeDefault) ?: translationModeDefault
+
+    fun getTranslationEngine() = prefMan.getString(translationEngineKey, translationEngineDefault) ?: translationEngineDefault
+
+    fun getTranslationTargetLanguage() = prefMan.getString(translationTargetLanguageKey, translationTargetLanguageDefault)
+        ?: translationTargetLanguageDefault
+
+    fun getTranslationCustomUrl() = prefMan.getString(translationCustomUrlKey, translationCustomUrlDefault)
+        ?: translationCustomUrlDefault
     fun getMaxZoom() = prefMan.getFloat(maxZoomKey, maxZoomDefault)
     fun getInlineTextSelection() = prefMan.getBoolean(inlineTextSelectionKey, inlineTextSelectionDefault)
     fun getDetectExistingHighlights() = prefMan.getBoolean(detectExistingHighlightsKey, detectExistingHighlightsDefault)
@@ -346,6 +366,15 @@ class Preferences(private val prefMan: SharedPreferences) {
         .putLong(autoBackupLastRunKey, runAt)
         .putString(autoBackupLastErrorKey, error)
         .apply()
+
+    fun setTranslationMode(value: String) = prefMan.edit().putString(translationModeKey, value).apply()
+
+    fun setTranslationEngine(value: String) = prefMan.edit().putString(translationEngineKey, value).apply()
+
+    fun setTranslationTargetLanguage(value: String) = prefMan.edit().putString(translationTargetLanguageKey, value).apply()
+
+    fun setTranslationCustomUrl(value: String) = prefMan.edit().putString(translationCustomUrlKey, value).apply()
+
     fun setMaxZoom(value: Float) = prefMan.edit().putFloat(maxZoomKey, value).apply()
     fun setInlineTextSelection(value: Boolean) = prefMan.edit().putBoolean(inlineTextSelectionKey, value).apply()
     fun setDetectExistingHighlights(value: Boolean) = prefMan.edit().putBoolean(detectExistingHighlightsKey, value).apply()

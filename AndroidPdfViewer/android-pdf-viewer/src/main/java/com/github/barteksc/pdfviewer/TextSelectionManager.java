@@ -2,48 +2,67 @@ package com.github.barteksc.pdfviewer;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.PointF;
 import android.graphics.RectF;
+import android.os.Build;
 import android.view.MotionEvent;
+import android.widget.Magnifier;
 
 import com.github.barteksc.pdfviewer.util.TextDirectionUtil;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 final class TextSelectionManager {
 
     private static final int DEFAULT_SELECTION_COLOR = 0x663F51B5;
-    private static final float INITIAL_HIT_TOLERANCE_PT = 2f;
-    private static final float HANDLE_HIT_TOLERANCE_PT = 20f;
+    private static final float INITIAL_HIT_TOLERANCE_DP = 8f;
+    private static final float HANDLE_HIT_TOLERANCE_DP = 12f;
+    private static final float SCALE_PROBE_PX = 100f;
+    private static final float LINE_OVERLAP_THRESHOLD = 0.6f;
+    private static final float LINE_MERGE_GAP_FACTOR = 0.5f;
+    private static final float LOOSE_HEIGHT_LIMIT_FACTOR = 2.5f;
+    private static final float FALLBACK_LINE_PAD_FACTOR = 0.15f;
 
     private enum Handle { NONE, START, END }
 
     private final PDFView pdfView;
     private final Paint selectionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint handlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Path selectionPath = new Path();
+    private final Path handlePath = new Path();
     private final float[] boxScratch = new float[4];
     private final List<RectF> pdfRunRects = new ArrayList<>();
-    private final float handleRadius;
     private final float handleTouchRadius;
-    private final float handleStemLength;
+    private final float minHandleRadius;
+    private final float maxHandleRadius;
+    private final float initialHitTolerancePx;
+    private final float handleHitTolerancePx;
 
     private boolean enabled;
     private TextSelection selection;
     private int activePage = -1;
     private Handle dragging = Handle.NONE;
+    private float dragOffsetX;
+    private float dragOffsetY;
+    private Object magnifier;
+    private boolean magnifierCreated;
 
     TextSelectionManager(PDFView pdfView) {
         this.pdfView = pdfView;
         float density = pdfView.getResources().getDisplayMetrics().density;
-        handleRadius = 9f * density;
         handleTouchRadius = 28f * density;
-        handleStemLength = 20f * density;
+        minHandleRadius = 10f * density;
+        maxHandleRadius = 20f * density;
+        initialHitTolerancePx = INITIAL_HIT_TOLERANCE_DP * density;
+        handleHitTolerancePx = HANDLE_HIT_TOLERANCE_DP * density;
         selectionPaint.setStyle(Paint.Style.FILL);
         selectionPaint.setColor(DEFAULT_SELECTION_COLOR);
         handlePaint.setStyle(Paint.Style.FILL);
-        handlePaint.setStrokeWidth(3f * density);
         handlePaint.setColor(0xFF3F51B5);
     }
 
@@ -130,7 +149,8 @@ final class TextSelectionManager {
         }
 
         PointF point = pdfFile.documentToPdf(page, pdfView.getZoom(), docX, docY);
-        int glyph = pdfFile.charIndexAtPagePoint(page, point.x, point.y, INITIAL_HIT_TOLERANCE_PT);
+        float tolerance = viewDistanceToPdf(page, initialHitTolerancePx);
+        int glyph = pdfFile.charIndexAtPagePoint(page, point.x, point.y, tolerance);
         if (glyph < 0) {
             clear();
             return false;
@@ -210,6 +230,7 @@ final class TextSelectionManager {
         selection = null;
         dragging = Handle.NONE;
         pdfRunRects.clear();
+        dismissMagnifier();
         if (hadSelection) {
             pdfView.callbacks.callOnTextSelectionCleared();
         }
@@ -222,6 +243,7 @@ final class TextSelectionManager {
         activePage = -1;
         dragging = Handle.NONE;
         pdfRunRects.clear();
+        dismissMagnifier();
         if (hadSelection) {
             pdfView.callbacks.callOnTextSelectionCleared();
         }
@@ -236,6 +258,8 @@ final class TextSelectionManager {
         }
 
         float zoom = pdfView.getZoom();
+        selectionPath.rewind();
+        boolean hasRect = false;
         for (RectF pdfRect : pdfRunRects) {
             RectF docRect = pdfView.pdfFile.pdfRectToDocument(
                     selection.pageIndex,
@@ -246,8 +270,12 @@ final class TextSelectionManager {
                     pdfRect.top
             );
             if (docRect != null) {
-                canvas.drawRect(docRect, selectionPaint);
+                selectionPath.addRect(docRect, Path.Direction.CW);
+                hasRect = true;
             }
+        }
+        if (hasRect) {
+            canvas.drawPath(selectionPath, selectionPaint);
         }
         drawHandles(canvas, zoom);
     }
@@ -263,12 +291,24 @@ final class TextSelectionManager {
             return;
         }
 
-        float x = handleAnchorX(handle, docRect);
-        float stemTop = docRect.bottom;
-        float stemBottom = stemTop + handleStemLength;
-        float circleY = stemBottom + handleRadius;
-        canvas.drawLine(x, stemTop, x, stemBottom, handlePaint);
-        canvas.drawCircle(x, circleY, handleRadius, handlePaint);
+        float radius = handleRadiusFor(docRect);
+        float anchorX = handleAnchorX(handle, docRect);
+        float anchorY = docRect.bottom;
+        float centerX = handle == Handle.START ? anchorX - radius : anchorX + radius;
+        float centerY = anchorY + radius;
+        handlePath.rewind();
+        handlePath.addCircle(centerX, centerY, radius, Path.Direction.CW);
+        if (handle == Handle.START) {
+            handlePath.addRect(centerX, anchorY, anchorX, centerY, Path.Direction.CW);
+        } else {
+            handlePath.addRect(anchorX, anchorY, centerX, centerY, Path.Direction.CW);
+        }
+        canvas.drawPath(handlePath, handlePaint);
+    }
+
+    private float handleRadiusFor(RectF docRect) {
+        float radius = docRect.height() * 0.5f;
+        return Math.max(minHandleRadius, Math.min(radius, maxHandleRadius));
     }
 
     private int caretAt(int page, float pdfX, float pdfY, float tolerance) {
@@ -278,6 +318,12 @@ final class TextSelectionManager {
         }
 
         int glyph = pdfFile.charIndexAtPagePoint(page, pdfX, pdfY, tolerance);
+        if (glyph < 0) {
+            glyph = pdfFile.charIndexAtPagePoint(page, pdfX, pdfY, tolerance * 3f);
+        }
+        if (glyph < 0) {
+            glyph = pdfFile.charIndexAtPagePoint(page, pdfX, pdfY, tolerance * 8f);
+        }
         if (glyph < 0) {
             return -1;
         }
@@ -300,12 +346,23 @@ final class TextSelectionManager {
         }
 
         dragging = handle;
+        PointF anchor = handleTextAnchorView(handle);
+        if (anchor != null) {
+            dragOffsetX = viewX - anchor.x;
+            dragOffsetY = viewY - anchor.y;
+        } else {
+            dragOffsetX = 0f;
+            dragOffsetY = 0f;
+        }
         if (handle == Handle.START) {
             selection.baseChar = selection.endChar();
             selection.extentChar = selection.startChar();
         } else {
             selection.baseChar = selection.startChar();
             selection.extentChar = selection.endChar();
+        }
+        if (anchor != null) {
+            showMagnifier(anchor.x, anchor.y);
         }
         return true;
     }
@@ -316,10 +373,14 @@ final class TextSelectionManager {
             return;
         }
 
-        float docX = -pdfView.getCurrentXOffset() + viewX;
-        float docY = -pdfView.getCurrentYOffset() + viewY;
+        float lookupX = viewX - dragOffsetX;
+        float lookupY = viewY - dragOffsetY;
+        showMagnifier(lookupX, lookupY);
+        float docX = -pdfView.getCurrentXOffset() + lookupX;
+        float docY = -pdfView.getCurrentYOffset() + lookupY;
         PointF point = pdfFile.documentToPdf(selection.pageIndex, pdfView.getZoom(), docX, docY);
-        int caret = caretAt(selection.pageIndex, point.x, point.y, HANDLE_HIT_TOLERANCE_PT);
+        float tolerance = viewDistanceToPdf(selection.pageIndex, handleHitTolerancePx);
+        int caret = caretAt(selection.pageIndex, point.x, point.y, tolerance);
         if (caret < 0) {
             return;
         }
@@ -359,6 +420,42 @@ final class TextSelectionManager {
 
     private void endHandleDrag() {
         dragging = Handle.NONE;
+        dismissMagnifier();
+    }
+
+    private void showMagnifier(float viewX, float viewY) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            return;
+        }
+        if (!magnifierCreated) {
+            magnifierCreated = true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                magnifier = new Magnifier.Builder(pdfView).build();
+            } else {
+                magnifier = new Magnifier(pdfView);
+            }
+        }
+        if (magnifier != null) {
+            ((Magnifier) magnifier).show(viewX, viewY);
+        }
+    }
+
+    private void dismissMagnifier() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && magnifier != null) {
+            ((Magnifier) magnifier).dismiss();
+        }
+    }
+
+    private float viewDistanceToPdf(int page, float distancePx) {
+        PdfFile pdfFile = pdfView.pdfFile;
+        if (pdfFile == null || distancePx <= 0f) {
+            return distancePx;
+        }
+        float zoom = pdfView.getZoom();
+        PointF origin = pdfFile.documentToPdf(page, zoom, 0f, 0f);
+        PointF shifted = pdfFile.documentToPdf(page, zoom, SCALE_PROBE_PX, 0f);
+        float scale = Math.abs(shifted.x - origin.x) / SCALE_PROBE_PX;
+        return scale > 0f ? distancePx * scale : distancePx;
     }
 
     private Handle handleHitTest(float viewX, float viewY) {
@@ -388,9 +485,21 @@ final class TextSelectionManager {
         if (docRect == null) {
             return null;
         }
-        float x = handleAnchorX(handle, docRect);
-        float y = docRect.bottom + handleStemLength + handleRadius;
+        float radius = handleRadiusFor(docRect);
+        float anchorX = handleAnchorX(handle, docRect);
+        float x = handle == Handle.START ? anchorX - radius : anchorX + radius;
+        float y = docRect.bottom + radius;
         return new PointF(x + pdfView.getCurrentXOffset(), y + pdfView.getCurrentYOffset());
+    }
+
+    private PointF handleTextAnchorView(Handle handle) {
+        RectF docRect = handleRunDocumentRect(handle, pdfView.getZoom());
+        if (docRect == null) {
+            return null;
+        }
+        float x = handleAnchorX(handle, docRect) + pdfView.getCurrentXOffset();
+        float y = docRect.centerY() + pdfView.getCurrentYOffset();
+        return new PointF(x, y);
     }
 
     private float handleAnchorX(Handle handle, RectF docRect) {
@@ -505,14 +614,83 @@ final class TextSelectionManager {
             return;
         }
 
-        float[] rects = pdfFile.textRects(page, start, end - start);
-        for (int i = 0; i + 3 < rects.length; i += 4) {
-            float left = Math.min(rects[i], rects[i + 2]);
-            float right = Math.max(rects[i], rects[i + 2]);
-            float bottom = Math.min(rects[i + 1], rects[i + 3]);
-            float top = Math.max(rects[i + 1], rects[i + 3]);
+        float[] values = pdfFile.textRects(page, start, end - start);
+        List<RectF> runs = new ArrayList<>();
+        for (int i = 0; i + 3 < values.length; i += 4) {
+            float left = Math.min(values[i], values[i + 2]);
+            float right = Math.max(values[i], values[i + 2]);
+            float bottom = Math.min(values[i + 1], values[i + 3]);
+            float top = Math.max(values[i + 1], values[i + 3]);
             if (right > left && top > bottom) {
-                pdfRunRects.add(pdfRect(left, bottom, right, top));
+                runs.add(pdfRect(left, bottom, right, top));
+            }
+        }
+
+        int index = 0;
+        while (index < runs.size()) {
+            float lineTop = runs.get(index).top;
+            float lineBottom = runs.get(index).bottom;
+            int lineEnd = index + 1;
+            while (lineEnd < runs.size() && isSameLine(lineTop, lineBottom, runs.get(lineEnd))) {
+                lineTop = Math.max(lineTop, runs.get(lineEnd).top);
+                lineBottom = Math.min(lineBottom, runs.get(lineEnd).bottom);
+                lineEnd++;
+            }
+            appendLineRects(pdfFile, page, runs.subList(index, lineEnd), lineTop, lineBottom);
+            index = lineEnd;
+        }
+    }
+
+    private boolean isSameLine(float lineTop, float lineBottom, RectF run) {
+        float overlap = Math.min(lineTop, run.top) - Math.max(lineBottom, run.bottom);
+        float smaller = Math.min(lineTop - lineBottom, run.top - run.bottom);
+        return smaller > 0f && overlap / smaller >= LINE_OVERLAP_THRESHOLD;
+    }
+
+    private void appendLineRects(PdfFile pdfFile, int page, List<RectF> lineRuns,
+                                 float tightTop, float tightBottom) {
+        float tightHeight = tightTop - tightBottom;
+        if (tightHeight <= 0f || lineRuns.isEmpty()) {
+            return;
+        }
+
+        float top = tightTop;
+        float bottom = tightBottom;
+        boolean loosened = false;
+        RectF firstRun = lineRuns.get(0);
+        int glyph = pdfFile.charIndexAtPagePoint(page, (firstRun.left + firstRun.right) * 0.5f,
+                (tightTop + tightBottom) * 0.5f, tightHeight * 0.5f);
+        if (glyph >= 0 && pdfFile.looseCharBox(page, glyph, boxScratch)) {
+            float looseBottom = Math.min(boxScratch[1], boxScratch[3]);
+            float looseTop = Math.max(boxScratch[1], boxScratch[3]);
+            float looseHeight = looseTop - looseBottom;
+            if (looseHeight > 0f && looseHeight <= LOOSE_HEIGHT_LIMIT_FACTOR * tightHeight) {
+                top = Math.max(top, looseTop);
+                bottom = Math.min(bottom, looseBottom);
+                loosened = true;
+            }
+        }
+        if (!loosened) {
+            float pad = FALLBACK_LINE_PAD_FACTOR * tightHeight;
+            top += pad;
+            bottom -= pad;
+        }
+
+        List<RectF> sorted = new ArrayList<>(lineRuns);
+        Collections.sort(sorted, new Comparator<RectF>() {
+            @Override
+            public int compare(RectF a, RectF b) {
+                return Float.compare(a.left, b.left);
+            }
+        });
+        float maxGap = LINE_MERGE_GAP_FACTOR * (top - bottom);
+        RectF current = null;
+        for (RectF run : sorted) {
+            if (current != null && run.left - current.right <= maxGap) {
+                current.right = Math.max(current.right, run.right);
+            } else {
+                current = pdfRect(run.left, bottom, run.right, top);
+                pdfRunRects.add(current);
             }
         }
     }

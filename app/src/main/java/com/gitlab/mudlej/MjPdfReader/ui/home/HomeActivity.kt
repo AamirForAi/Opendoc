@@ -77,6 +77,11 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             }
         }
 
+    private val introLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            showWhatsNewOnFirstRun()
+        }
+
     private val pdfPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         val incognito = pickIncognito
         pickIncognito = false
@@ -92,10 +97,11 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         super.onCreate(savedInstanceState)
         pref = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
 
-        if (pref.getFirstInstall()) {
+        val launchIntro = pref.getFirstInstall()
+        if (launchIntro) {
             pref.setFirstInstall(false)
             pref.setShowFeaturesDialog(true)
-            startActivity(Intent(this, MainIntroActivity::class.java))
+            introLauncher.launch(Intent(this, MainIntroActivity::class.java))
         }
 
         if (pref.getHomeDisabled()) {
@@ -235,7 +241,9 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             libraryScanner.index.collect { refresh() }
         }
 
-        showWhatsNewOnFirstRun()
+        if (!launchIntro) {
+            showWhatsNewOnFirstRun()
+        }
         handleRelocateIntent(intent)
     }
 

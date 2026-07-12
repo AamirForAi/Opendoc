@@ -4,6 +4,8 @@ package com.gitlab.mudlej.MjPdfReader.ui.settings
 
 import android.content.DialogInterface
 import android.content.Intent
+import android.net.Uri
+import android.text.InputType
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.SeekBar
@@ -20,6 +22,9 @@ import androidx.preference.SwitchPreferenceCompat
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.BackupFolder
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationEngine
+import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationLanguages
+import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationUrlBuilder
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.ui.history.ReadingHistoryActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
@@ -27,6 +32,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableAction
 import com.gitlab.mudlej.MjPdfReader.core.ui.SegmentedButtonStyler
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputLayout
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -376,6 +382,176 @@ internal class SettingsPreferenceFactory(
                 true
             }
         }
+    }
+
+    fun translationModePreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val modes = listOf(
+            Preferences.translationModeApps to R.string.translation_mode_installed_apps,
+            Preferences.translationModeWeb to R.string.translation_mode_web_translator,
+        )
+        val currentMode = appPreferences.getTranslationMode()
+        val detailRes = modes.firstOrNull { it.first == currentMode }?.second
+            ?: R.string.translation_mode_installed_apps
+        return Preference(context).apply {
+            title = getString(R.string.translate_with_title)
+            key = Preferences.translationModeKey
+            summary = formatSummary(breadcrumb, getString(detailRes))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showTranslationChoiceDialog(
+                    title = getString(R.string.translate_with_title),
+                    items = modes.map { getString(it.second) },
+                    checkedIndex = modes.indexOfFirst { it.first == appPreferences.getTranslationMode() },
+                    onReset = {
+                        appPreferences.setTranslationMode(Preferences.translationModeDefault)
+                        host?.refreshPreferences()
+                    },
+                ) { index ->
+                    appPreferences.setTranslationMode(modes[index].first)
+                    host?.refreshPreferences()
+                }
+                true
+            }
+        }
+    }
+
+    fun translationEnginePreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val engines = TranslationEngine.entries
+        val currentEngine = TranslationEngine.fromId(appPreferences.getTranslationEngine())
+        val detail = buildString {
+            append(getString(currentEngine.titleRes))
+            if (currentEngine == TranslationEngine.CUSTOM) {
+                val templateHost = Uri.parse(appPreferences.getTranslationCustomUrl()).host
+                if (!templateHost.isNullOrBlank()) {
+                    append(" (").append(templateHost).append(")")
+                }
+            }
+        }
+        return Preference(context).apply {
+            title = getString(R.string.translation_engine_title)
+            key = Preferences.translationEngineKey
+            summary = formatSummary(breadcrumb, detail)
+            isEnabled = appPreferences.getTranslationMode() == Preferences.translationModeWeb
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showTranslationChoiceDialog(
+                    title = getString(R.string.translation_engine_title),
+                    items = engines.map { getString(it.titleRes) },
+                    checkedIndex = engines.indexOf(TranslationEngine.fromId(appPreferences.getTranslationEngine())),
+                    onReset = {
+                        appPreferences.setTranslationEngine(Preferences.translationEngineDefault)
+                        host?.refreshPreferences()
+                    },
+                ) { index ->
+                    val engine = engines[index]
+                    if (engine == TranslationEngine.CUSTOM) {
+                        showCustomTranslationUrlDialog(host)
+                    } else {
+                        appPreferences.setTranslationEngine(engine.id)
+                        host?.refreshPreferences()
+                    }
+                }
+                true
+            }
+        }
+    }
+
+    fun translationTargetLanguagePreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val codes = TranslationLanguages.codes.sortedBy { TranslationLanguages.displayName(it) }
+        val stored = appPreferences.getTranslationTargetLanguage()
+        val deviceLabel = fragment.getString(
+            R.string.translation_device_language,
+            TranslationLanguages.displayName(TranslationLanguages.deviceLanguage()),
+        )
+        val detail = if (stored.isBlank()) deviceLabel else TranslationLanguages.displayName(stored)
+        return Preference(context).apply {
+            title = getString(R.string.translation_target_language_title)
+            key = Preferences.translationTargetLanguageKey
+            summary = formatSummary(breadcrumb, detail)
+            isEnabled = appPreferences.getTranslationMode() == Preferences.translationModeWeb
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                val current = appPreferences.getTranslationTargetLanguage()
+                showTranslationChoiceDialog(
+                    title = getString(R.string.translation_target_language_title),
+                    items = listOf(deviceLabel) + codes.map { TranslationLanguages.displayName(it) },
+                    checkedIndex = if (current.isBlank()) 0 else codes.indexOf(current) + 1,
+                    onReset = {
+                        appPreferences.setTranslationTargetLanguage(Preferences.translationTargetLanguageDefault)
+                        host?.refreshPreferences()
+                    },
+                ) { index ->
+                    appPreferences.setTranslationTargetLanguage(if (index == 0) "" else codes[index - 1])
+                    host?.refreshPreferences()
+                }
+                true
+            }
+        }
+    }
+
+    private fun showTranslationChoiceDialog(
+        title: String,
+        items: List<String>,
+        checkedIndex: Int,
+        onReset: () -> Unit,
+        onSelected: (Int) -> Unit,
+    ) {
+        val dialog = MaterialAlertDialogBuilder(context)
+            .setTitle(title)
+            .setSingleChoiceItems(items.toTypedArray(), checkedIndex) { dialog, which ->
+                onSelected(which)
+                dialog.dismiss()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .setNeutralButton(R.string.reset, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(DialogInterface.BUTTON_NEUTRAL).setOnClickListener {
+                onReset()
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
+    }
+
+    private fun showCustomTranslationUrlDialog(host: SettingsFragment?) {
+        val inputLayout = fragment.layoutInflater.inflate(R.layout.input_layout, null) as TextInputLayout
+        inputLayout.hint = getString(R.string.translation_custom_url_hint)
+        inputLayout.setStartIconDrawable(R.drawable.ic_link)
+        inputLayout.editText?.apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            setSingleLine(true)
+            setText(appPreferences.getTranslationCustomUrl())
+            setSelection(text?.length ?: 0)
+        }
+
+        val dialog = MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.translation_engine_custom)
+            .setView(inputLayout)
+            .setPositiveButton(R.string.save, null)
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
+                val value = inputLayout.editText?.text?.toString()?.trim().orEmpty()
+                val hasScheme = value.startsWith("http://", ignoreCase = true) ||
+                    value.startsWith("https://", ignoreCase = true)
+                if (!hasScheme || !value.contains(TranslationUrlBuilder.textPlaceholder)) {
+                    inputLayout.error = getString(R.string.translation_custom_url_invalid)
+                    return@setOnClickListener
+                }
+                appPreferences.setTranslationCustomUrl(value)
+                appPreferences.setTranslationEngine(TranslationEngine.CUSTOM.id)
+                dialog.dismiss()
+                host?.refreshPreferences()
+            }
+        }
+        dialog.show()
     }
 
     fun floatPreference(

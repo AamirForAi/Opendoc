@@ -6,6 +6,7 @@ import android.app.Activity
 import android.app.SearchManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.RectF
 import android.net.Uri
 import android.text.InputType
@@ -19,8 +20,12 @@ import android.widget.FrameLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.github.barteksc.pdfviewer.PDFView
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.core.io.linkIntent
 import com.gitlab.mudlej.MjPdfReader.core.io.pdfDateNow
+import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
+import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationSettings
+import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationUrlBuilder
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.ui.confirmDialog
@@ -41,9 +46,11 @@ class InlineAnnotationActionController(
     private val isDetectExistingHighlightsEnabled: () -> Boolean,
     private val getHighlightColors: () -> List<Int>,
     private val getDocumentName: () -> String,
+    private val getTranslationSettings: () -> TranslationSettings,
     private val toggleReaderChrome: () -> Unit,
 ) {
     private var activeHighlightAnnotation: PDFView.HighlightAnnotation? = null
+    private val whitespaceRegex = Regex("\\s+")
 
     fun configure(onSaveClicked: () -> Unit) {
         binding.textSelectionCopyButton.setOnClickListener {
@@ -58,7 +65,11 @@ class InlineAnnotationActionController(
         }
         binding.textSelectionShareButton.setOnClickListener { shareSelectedQuote() }
         binding.textSelectionNoteButton.setOnClickListener { handleNoteClicked() }
-        binding.textSelectionTranslateButton.setOnClickListener { showNotImplemented() }
+        binding.textSelectionTranslateButton.setOnClickListener {
+            if (translateSelectedText()) {
+                dismissCard()
+            }
+        }
         binding.textSelectionDiscardButton.setOnClickListener { dismissCard() }
         rebuildHighlightSwatches()
         binding.textSelectionDeleteHighlightButton.setOnClickListener { deleteActiveHighlightAnnotation() }
@@ -387,8 +398,57 @@ class InlineAnnotationActionController(
         showShareQuoteDialog(activity, text, bookName, meta?.author.orEmpty())
     }
 
-    private fun showNotImplemented() {
-        AppSnackbar.make(binding.root, R.string.not_implemented_yet, Snackbar.LENGTH_SHORT).show()
+    private fun translateSelectedText(): Boolean {
+        val text = selectedText().replace(whitespaceRegex, " ").trim()
+        if (text.isBlank()) {
+            return false
+        }
+        val settings = getTranslationSettings()
+        if (settings.mode == Preferences.translationModeApps) {
+            return launchProcessTextTranslator(text)
+        }
+        val url = TranslationUrlBuilder.build(settings, text)
+        if (url == null) {
+            AppSnackbar.make(binding.root, R.string.translation_custom_url_invalid, Snackbar.LENGTH_LONG).show()
+            return false
+        }
+        return try {
+            activity.startActivity(linkIntent(url))
+            true
+        } catch (e: ActivityNotFoundException) {
+            AppSnackbar.make(binding.root, activity.getString(R.string.no_app_to_open_link), Snackbar.LENGTH_LONG).show()
+            false
+        }
+    }
+
+    private fun launchProcessTextTranslator(text: String): Boolean {
+        val intent = Intent(Intent.ACTION_PROCESS_TEXT)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_PROCESS_TEXT, text)
+            .putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true)
+        val handlers = activity.packageManager
+            .queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+            .filter { it.activityInfo.packageName != activity.packageName }
+        return when {
+            handlers.isEmpty() -> {
+                AppSnackbar.make(binding.root, R.string.no_translate_app_found, Snackbar.LENGTH_LONG).show()
+                false
+            }
+            handlers.size == 1 -> {
+                val info = handlers.first().activityInfo
+                try {
+                    activity.startActivity(intent.setClassName(info.packageName, info.name))
+                    true
+                } catch (e: ActivityNotFoundException) {
+                    AppSnackbar.make(binding.root, R.string.no_translate_app_found, Snackbar.LENGTH_LONG).show()
+                    false
+                }
+            }
+            else -> {
+                activity.startActivity(Intent.createChooser(intent, activity.getString(R.string.translate)))
+                true
+            }
+        }
     }
 
     private fun refreshCardRendering() {

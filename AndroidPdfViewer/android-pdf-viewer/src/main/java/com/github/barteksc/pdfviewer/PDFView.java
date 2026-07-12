@@ -27,6 +27,7 @@ import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
 import android.graphics.PaintFlagsDrawFilter;
+import android.graphics.Path;
 import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
@@ -86,6 +87,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -350,6 +352,8 @@ public class PDFView extends RelativeLayout {
     private Paint highlightAnnotationOverlayPaint;
 
     private Paint highlightAnnotationMultiplyPaint;
+
+    private final Path highlightAnnotationGroupPath = new Path();
 
     private Paint formFieldFillPaint;
 
@@ -1129,24 +1133,48 @@ public class PDFView extends RelativeLayout {
                 Log.e(TAG, "drawHighlightAnnotationOverlays: failed to read highlights", throwable);
                 return;
             }
+            Map<String, List<PdfDocument.HighlightAnnotation>> groups = new LinkedHashMap<>();
             for (PdfDocument.HighlightAnnotation annotation : annotations) {
-                Paint overlayPaint = highlightOverlayPaint(annotation);
-                RectF bounds = annotation.getBounds();
-                if (overlayPaint == null || bounds == null) {
+                if (annotation.getBounds() == null) {
                     continue;
                 }
-                RectF docRect = pdfFile.pdfRectToDocument(
-                        page,
-                        zoom,
-                        bounds.left,
-                        bounds.bottom,
-                        bounds.right,
-                        bounds.top
-                );
-                if (docRect == null) {
+                String groupKey = annotation.getGroupKey();
+                String key = groupKey == null || groupKey.isEmpty()
+                        ? "i" + annotation.getAnnotationIndex()
+                        : "g" + groupKey + "#" + annotation.getColor() + "#" + annotation.isAppOwned();
+                List<PdfDocument.HighlightAnnotation> members = groups.get(key);
+                if (members == null) {
+                    members = new ArrayList<>();
+                    groups.put(key, members);
+                }
+                members.add(annotation);
+            }
+            for (List<PdfDocument.HighlightAnnotation> members : groups.values()) {
+                Paint overlayPaint = highlightOverlayPaint(members.get(0));
+                if (overlayPaint == null) {
                     continue;
                 }
-                canvas.drawRect(docRect, overlayPaint);
+                highlightAnnotationGroupPath.rewind();
+                boolean hasRect = false;
+                for (PdfDocument.HighlightAnnotation annotation : members) {
+                    RectF bounds = annotation.getBounds();
+                    RectF docRect = pdfFile.pdfRectToDocument(
+                            page,
+                            zoom,
+                            bounds.left,
+                            bounds.bottom,
+                            bounds.right,
+                            bounds.top
+                    );
+                    if (docRect == null) {
+                        continue;
+                    }
+                    highlightAnnotationGroupPath.addRect(docRect, Path.Direction.CW);
+                    hasRect = true;
+                }
+                if (hasRect) {
+                    canvas.drawPath(highlightAnnotationGroupPath, overlayPaint);
+                }
             }
         }
     }

@@ -17,6 +17,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             controlEntries(),
             textEntries(),
             highlightingEntries(),
+            translationEntries(),
             privacyEntries(),
             advancedEntries(),
         ).flatten()
@@ -279,6 +280,36 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 summaryRes = R.string.detect_existing_highlights_summary,
                 keywords = listOf("highlight", "annotation", "selection", "detect"),
             ),
+        )
+    }
+
+    private fun translationEntries(): List<SettingEntry> {
+        return listOf(
+            SettingEntry(
+                page = SettingsPage.TRANSLATION,
+                titleRes = R.string.translate_with_title,
+                summaryRes = R.string.translate_with_summary,
+                keywords = listOf("translate", "translation", "dictionary", "language", "apps", "web"),
+            ) { breadcrumb ->
+                translationModePreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.TRANSLATION,
+                titleRes = R.string.translation_engine_title,
+                keywords = listOf(
+                    "translate", "translation", "engine", "google", "deepl", "bing",
+                    "lingva", "libretranslate", "custom", "url",
+                ),
+            ) { breadcrumb ->
+                translationEnginePreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.TRANSLATION,
+                titleRes = R.string.translation_target_language_title,
+                keywords = listOf("translate", "translation", "language", "target"),
+            ) { breadcrumb ->
+                translationTargetLanguagePreference(breadcrumb)
+            },
         )
     }
 
