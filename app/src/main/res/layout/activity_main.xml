@@ -129,27 +129,6 @@
             android:padding="12dp">
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/textSelectionDeleteHighlightButton"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:backgroundTint="?attr/colorSurfaceContainerHigh"
-                android:contentDescription="@string/delete"
-                android:insetLeft="0dp"
-                android:insetTop="0dp"
-                android:insetRight="0dp"
-                android:insetBottom="0dp"
-                android:minWidth="40dp"
-                android:minHeight="40dp"
-                android:padding="8dp"
-                android:text=""
-                android:visibility="gone"
-                app:icon="@drawable/ic_delete"
-                app:iconGravity="textStart"
-                app:iconPadding="0dp"
-                app:iconSize="22dp"
-                app:iconTint="?attr/colorError" />
-
-            <com.google.android.material.button.MaterialButton
                 android:id="@+id/textSelectionCopyButton"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
@@ -164,6 +143,26 @@
                 android:padding="8dp"
                 android:text=""
                 app:icon="@drawable/ic_copy"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="22dp"
+                app:iconTint="?attr/colorOnSurface" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/textSelectionShareButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:backgroundTint="?attr/colorSurfaceContainerHigh"
+                android:contentDescription="@string/share"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="40dp"
+                android:minHeight="40dp"
+                android:padding="8dp"
+                android:text=""
+                app:icon="@drawable/ic_share"
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
                 app:iconSize="22dp"
@@ -189,20 +188,116 @@
                 app:iconSize="22dp"
                 app:iconTint="?attr/colorOnSurface" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/textSelectionNoteButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:backgroundTint="?attr/colorSurfaceContainerHigh"
+                android:contentDescription="@string/add_note"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="40dp"
+                android:minHeight="40dp"
+                android:padding="8dp"
+                android:text=""
+                app:icon="@drawable/ic_comment_add"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="22dp"
+                app:iconTint="?attr/colorOnSurface" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/textSelectionTranslateButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:backgroundTint="?attr/colorSurfaceContainerHigh"
+                android:contentDescription="@string/translate"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="40dp"
+                android:minHeight="40dp"
+                android:padding="8dp"
+                android:text=""
+                app:icon="@drawable/ic_translate"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="22dp"
+                app:iconTint="?attr/colorOnSurface" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/textSelectionDeleteHighlightButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:backgroundTint="?attr/colorSurfaceContainerHigh"
+                android:contentDescription="@string/delete"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="40dp"
+                android:minHeight="40dp"
+                android:padding="8dp"
+                android:text=""
+                android:visibility="gone"
+                app:icon="@drawable/ic_delete"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="22dp"
+                app:iconTint="?attr/colorError" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/textSelectionDiscardButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:backgroundTint="?attr/colorSurfaceContainerHigh"
+                android:contentDescription="@string/discard"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="40dp"
+                android:minHeight="40dp"
+                android:padding="8dp"
+                android:text=""
+                android:visibility="gone"
+                app:icon="@drawable/close_icon"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="22dp"
+                app:iconTint="?attr/colorOnSurface" />
+
+            <androidx.constraintlayout.helper.widget.Flow
+                android:id="@+id/textSelectionSwatchFlow"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:flow_horizontalAlign="center"
+                app:flow_horizontalGap="12dp"
+                app:flow_horizontalStyle="packed"
+                app:flow_verticalGap="12dp"
+                app:flow_wrapMode="chain"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
             <androidx.constraintlayout.helper.widget.Flow
                 android:id="@+id/textSelectionActionFlow"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                app:constraint_referenced_ids="textSelectionDeleteHighlightButton,textSelectionCopyButton,textSelectionSearchWebButton"
+                android:layout_marginTop="12dp"
+                app:constraint_referenced_ids="textSelectionCopyButton,textSelectionShareButton,textSelectionSearchWebButton,textSelectionNoteButton,textSelectionTranslateButton,textSelectionDeleteHighlightButton,textSelectionDiscardButton"
                 app:flow_horizontalAlign="center"
-                app:flow_horizontalGap="16dp"
+                app:flow_horizontalGap="12dp"
                 app:flow_horizontalStyle="packed"
-                app:flow_verticalGap="16dp"
+                app:flow_verticalGap="12dp"
                 app:flow_wrapMode="chain"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toBottomOf="@id/textSelectionSwatchFlow" />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>
 

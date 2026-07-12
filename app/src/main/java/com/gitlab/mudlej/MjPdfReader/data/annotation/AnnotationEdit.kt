@@ -17,12 +17,20 @@ sealed class AnnotationEdit {
         val rects: List<RectF>,
         val color: Int,
         val contents: String,
+        val createdDate: String? = null,
     ) : AnnotationEdit()
 
     data class Recolor(
         override val page: Int,
         val group: String,
         val color: Int,
+    ) : AnnotationEdit()
+
+    data class SetNote(
+        override val page: Int,
+        val group: String,
+        val note: String,
+        val modifiedDate: String? = null,
     ) : AnnotationEdit()
 
     data class Delete(
@@ -62,10 +70,16 @@ sealed class AnnotationEdit {
                 json.addProperty(KEY_COLOR, color)
                 json.addProperty(KEY_CONTENTS, contents)
                 json.add(KEY_RECTS, rectsToJson(rects))
+                createdDate?.let { json.addProperty(KEY_CREATED, it) }
             }
             is Recolor -> {
                 json.addProperty(KEY_GROUP, group)
                 json.addProperty(KEY_COLOR, color)
+            }
+            is SetNote -> {
+                json.addProperty(KEY_GROUP, group)
+                json.addProperty(KEY_NOTE, note)
+                modifiedDate?.let { json.addProperty(KEY_MODIFIED, it) }
             }
             is Delete -> json.addProperty(KEY_GROUP, group)
             is SetFieldText -> {
@@ -91,6 +105,7 @@ sealed class AnnotationEdit {
     private fun opName(): String = when (this) {
         is Add -> OP_ADD
         is Recolor -> OP_RECOLOR
+        is SetNote -> OP_SET_NOTE
         is Delete -> OP_DELETE
         is SetFieldText -> OP_SET_FIELD_TEXT
         is SetFieldChecked -> OP_SET_FIELD_CHECKED
@@ -104,12 +119,16 @@ sealed class AnnotationEdit {
         private const val KEY_COLOR = "color"
         private const val KEY_CONTENTS = "contents"
         private const val KEY_RECTS = "rects"
+        private const val KEY_CREATED = "created"
+        private const val KEY_NOTE = "note"
+        private const val KEY_MODIFIED = "modified"
         private const val KEY_FIELD_INDEX = "fieldIndex"
         private const val KEY_FIELD_NAME = "fieldName"
         private const val KEY_TEXT = "text"
         private const val KEY_CHECKED = "checked"
         private const val OP_ADD = "add"
         private const val OP_RECOLOR = "recolor"
+        private const val OP_SET_NOTE = "setNote"
         private const val OP_DELETE = "delete"
         private const val KEY_RECT = "rect"
         private const val KEY_STROKES = "strokes"
@@ -128,11 +147,18 @@ sealed class AnnotationEdit {
                     rects = rectsFromJson(json.getAsJsonArray(KEY_RECTS)),
                     color = json.get(KEY_COLOR).asInt,
                     contents = json.get(KEY_CONTENTS).asString,
+                    createdDate = optionalString(json, KEY_CREATED),
                 )
                 OP_RECOLOR -> Recolor(
                     page = page,
                     group = json.get(KEY_GROUP).asString,
                     color = json.get(KEY_COLOR).asInt,
+                )
+                OP_SET_NOTE -> SetNote(
+                    page = page,
+                    group = json.get(KEY_GROUP).asString,
+                    note = json.get(KEY_NOTE).asString,
+                    modifiedDate = optionalString(json, KEY_MODIFIED),
                 )
                 OP_DELETE -> Delete(page = page, group = json.get(KEY_GROUP).asString)
                 OP_SET_FIELD_TEXT -> SetFieldText(
@@ -157,6 +183,11 @@ sealed class AnnotationEdit {
                 else -> null
             }
         }.getOrNull()
+
+        private fun optionalString(json: JsonObject, key: String): String? {
+            val element = json.get(key) ?: return null
+            return if (element.isJsonNull) null else element.asString
+        }
 
         private fun rectsToJson(rects: List<RectF>): JsonArray {
             val array = JsonArray()

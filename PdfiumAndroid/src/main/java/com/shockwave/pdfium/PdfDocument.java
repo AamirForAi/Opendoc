@@ -116,6 +116,8 @@ public class PdfDocument {
         private String contents;
         private int color;
         private boolean appOwned;
+        private String note;
+        private String creationDate;
 
         public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String contents) {
             this(annotationIndex, groupKey, bounds, contents, 0xFFFFFF00, false);
@@ -127,12 +129,19 @@ public class PdfDocument {
 
         public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String contents,
                                    int color, boolean appOwned) {
+            this(annotationIndex, groupKey, bounds, contents, color, appOwned, null, null);
+        }
+
+        public HighlightAnnotation(int annotationIndex, String groupKey, RectF bounds, String contents,
+                                   int color, boolean appOwned, String note, String creationDate) {
             this.annotationIndex = annotationIndex;
             this.groupKey = groupKey == null ? "" : groupKey;
             this.bounds = bounds;
             this.contents = contents == null ? "" : contents;
             this.color = color;
             this.appOwned = appOwned;
+            this.note = note == null ? "" : note;
+            this.creationDate = creationDate == null ? "" : creationDate;
         }
 
         public int getAnnotationIndex() {
@@ -157,6 +166,14 @@ public class PdfDocument {
 
         public boolean isAppOwned() {
             return appOwned;
+        }
+
+        public String getNote() {
+            return note;
+        }
+
+        public String getCreationDate() {
+            return creationDate;
         }
     }
 

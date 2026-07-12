@@ -20,6 +20,14 @@ object ScanScope {
         return kept
     }
 
+    fun displayRoots(mode: ScanMode, locations: Set<String>): List<String>? {
+        return when (mode) {
+            ScanMode.WHOLE_DEVICE -> null
+            ScanMode.SELECTED_LOCATIONS -> normalize(locations)
+            ScanMode.NOT_CONFIGURED -> emptyList()
+        }
+    }
+
     fun contains(roots: List<String>?, path: String): Boolean {
         if (roots == null) {
             return true

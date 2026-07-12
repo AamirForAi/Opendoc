@@ -142,6 +142,16 @@ class ReaderComposition(
         readerNavigationController.handleUserBookmarksResult(result.resultCode, result.data)
     }
 
+    private val userNotesLauncher: ActivityResultLauncher<Intent> = activity.registerForActivityResult(StartActivityForResult()) { result ->
+        ui.hideProgress()
+        readerNavigationController.handleUserNotesResult(result.resultCode, result.data)
+    }
+
+    private val userHighlightsLauncher: ActivityResultLauncher<Intent> = activity.registerForActivityResult(StartActivityForResult()) { result ->
+        ui.hideProgress()
+        readerNavigationController.handleUserHighlightsResult(result.resultCode, result.data)
+    }
+
     private val navigationHistoryLauncher: ActivityResultLauncher<Intent> = activity.registerForActivityResult(StartActivityForResult()) { result ->
         ui.hideProgress()
         readerNavigationController.handleNavigationHistoryResult(result.resultCode, result.data)
@@ -208,6 +218,7 @@ class ReaderComposition(
         ui::updateDirtyUiPosition,
         { pref.getDetectExistingHighlights() },
         { pref.getHighlightColors() },
+        { doc.name },
     ) { fullScreenOptionsManager.showAllTemporarilyOrHide() }
     val annotationSaveController: AnnotationSaveController = AnnotationSaveController(
         activity,
@@ -270,6 +281,8 @@ class ReaderComposition(
         ui::updateTitle,
         { intent -> tableOfContentsLauncher.launch(intent) },
         { intent -> userBookmarksLauncher.launch(intent) },
+        { intent -> userNotesLauncher.launch(intent) },
+        { intent -> userHighlightsLauncher.launch(intent) },
         { intent -> navigationHistoryLauncher.launch(intent) },
         { intent -> linksLauncher.launch(intent) },
         { intent -> searchLauncher.launch(intent) },
@@ -575,6 +588,8 @@ class ReaderComposition(
             tableOfContents = { readerNavigationController.showTableOfContents() },
             toggleBookmark = { userBookmarkController.toggleCurrentPageBookmark() },
             userBookmarks = ::showUserBookmarks,
+            userNotes = ::showUserNotes,
+            userHighlights = ::showUserHighlights,
             linksInFile = { readerNavigationController.showLinks() },
             print = ::printFile,
             addSignature = { signatureController.showSignatureDialog() },
@@ -680,6 +695,24 @@ class ReaderComposition(
             return
         }
         readerNavigationController.showNavigationHistory()
+    }
+
+    private fun showUserNotes() {
+        if (!ui.checkHasFile()) {
+            return
+        }
+        activity.runAfterAnnotationSaveGate {
+            readerNavigationController.showUserNotes()
+        }
+    }
+
+    private fun showUserHighlights() {
+        if (!ui.checkHasFile()) {
+            return
+        }
+        activity.runAfterAnnotationSaveGate {
+            readerNavigationController.showUserHighlights()
+        }
     }
 
     private fun printFile() {

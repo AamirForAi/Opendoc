@@ -94,9 +94,11 @@ class AnnotationController(
         val pdfView = binding.pdfView
         val applied = when (edit) {
             is AnnotationEdit.Add ->
-                pdfView.addHighlightAnnotation(edit.page, edit.rects, edit.color, edit.contents, edit.group)
+                pdfView.addHighlightAnnotation(edit.page, edit.rects, edit.color, edit.contents, edit.group, edit.createdDate)
             is AnnotationEdit.Recolor ->
                 pdfView.setHighlightAnnotationColor(highlightReference(edit.page, edit.group), edit.color)
+            is AnnotationEdit.SetNote ->
+                pdfView.setHighlightAnnotationNote(highlightReference(edit.page, edit.group), edit.note, edit.modifiedDate)
             is AnnotationEdit.Delete ->
                 pdfView.removeHighlightAnnotation(highlightReference(edit.page, edit.group))
             is AnnotationEdit.SetFieldText ->

@@ -379,6 +379,30 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             ),
             SettingEntry(
                 page = SettingsPage.ADVANCED,
+                titleRes = R.string.backup_folder_title,
+                summaryRes = R.string.backup_folder_summary_unset,
+                keywords = listOf("backup", "folder", "location", "directory", "save"),
+            ) { breadcrumb ->
+                backupFolderPreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.ADVANCED,
+                titleRes = R.string.auto_backup_title,
+                summaryRes = R.string.auto_backup_summary,
+                keywords = listOf("backup", "automatic", "daily", "schedule", "auto"),
+            ) { breadcrumb ->
+                autoBackupSwitchPreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.ADVANCED,
+                titleRes = R.string.auto_backup_time_title,
+                summaryRes = R.string.auto_backup_time_summary,
+                keywords = listOf("backup", "time", "schedule", "daily", "hour"),
+            ) { breadcrumb ->
+                autoBackupTimePreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.ADVANCED,
                 titleRes = R.string.backup_export_title,
                 summaryRes = R.string.backup_export_summary,
                 keywords = listOf("backup", "export", "save", "data", "transfer", "progress"),

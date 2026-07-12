@@ -27,7 +27,7 @@ class ScanLocationsActivity : AppCompatActivity() {
     private val pref by lazy { Preferences(PreferenceManager.getDefaultSharedPreferences(this)) }
     private val breadcrumbAdapter = BreadcrumbAdapter { path -> navigateTo(path?.let(::File)) }
     private val locationsAdapter = ScanLocationsAdapter(
-        onRowClicked = { row -> navigateTo(File(row.path)) },
+        onRowClicked = { row -> if (row.isUp) goBack() else navigateTo(File(row.path)) },
         onCheckToggled = { row -> toggle(row.path) },
     )
 
@@ -118,14 +118,27 @@ class ScanLocationsActivity : AppCompatActivity() {
     }
 
     private fun renderRows() {
-        locationsAdapter.submitList(currentChildren.map { (path, name) ->
+        val rows = mutableListOf<ScanLocationRow>()
+        if (canGoUp()) {
+            rows.add(
+                ScanLocationRow(
+                    path = UP_ROW_PATH,
+                    name = getString(R.string.home_scan_locations_up),
+                    checkedState = MaterialCheckBox.STATE_UNCHECKED,
+                    checkboxEnabled = false,
+                    isUp = true,
+                )
+            )
+        }
+        currentChildren.mapTo(rows) { (path, name) ->
             ScanLocationRow(
                 path = path,
                 name = name,
                 checkedState = stateOf(path),
                 checkboxEnabled = selected.none { it != path && path.startsWith("$it${File.separatorChar}") },
             )
-        })
+        }
+        locationsAdapter.submitList(rows)
     }
 
     private fun listChildren(dir: File): List<File> {
@@ -205,5 +218,6 @@ class ScanLocationsActivity : AppCompatActivity() {
     companion object {
         private const val STATE_SELECTED = "scanLocationsSelected"
         private const val STATE_CURRENT_DIR = "scanLocationsCurrentDir"
+        private const val UP_ROW_PATH = ".."
     }
 }

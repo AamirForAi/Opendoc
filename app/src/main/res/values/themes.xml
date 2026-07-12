@@ -70,6 +70,16 @@
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>
         <item name="windowActionModeOverlay">true</item>
+        <item name="actionModeStyle">@style/HomeActionMode</item>
+        <item name="actionModeCloseButtonStyle">@style/HomeActionModeCloseButton</item>
+    </style>
+
+    <style name="HomeActionMode" parent="Widget.Material3.ActionMode">
+        <item name="background">?attr/colorSurfaceContainerHigh</item>
+    </style>
+
+    <style name="HomeActionModeCloseButton" parent="Widget.AppCompat.ActionButton.CloseMode">
+        <item name="android:tint">?attr/colorOnSurface</item>
     </style>
 
     <style name="ShapeAppearanceOverlay.App.roundedImage" parent="">

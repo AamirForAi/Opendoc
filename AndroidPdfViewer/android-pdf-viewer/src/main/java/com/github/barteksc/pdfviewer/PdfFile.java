@@ -891,7 +891,8 @@ class PdfFile {
     }
 
     public boolean createHighlightAnnotation(int pageIndex, List<RectF> pdfRects,
-                                              int color, String contents, String groupKey) {
+                                              int color, String contents, String groupKey,
+                                              String creationDate) {
         int docPage = documentPage(pageIndex);
         if (docPage < 0 || pdfRects == null || pdfRects.isEmpty()) {
             return false;
@@ -901,7 +902,8 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return false;
         }
-        boolean created = pdfiumCore.createHighlightAnnotation(pdfDocument, docPage, pdfRects, color, contents, groupKey);
+        boolean created = pdfiumCore.createHighlightAnnotation(pdfDocument, docPage, pdfRects, color,
+                contents, groupKey, creationDate);
         if (created) {
             invalidateHighlightAnnotationCache(pageIndex);
         }
@@ -992,6 +994,25 @@ class PdfFile {
             return false;
         }
         boolean updated = pdfiumCore.setHighlightAnnotationColor(pdfDocument, docPage, annotationIndex, groupKey, color);
+        if (updated) {
+            invalidateHighlightAnnotationCache(pageIndex);
+        }
+        return updated;
+    }
+
+    public boolean setHighlightAnnotationNote(int pageIndex, int annotationIndex,
+                                              String groupKey, String note, String modifiedDate) {
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return false;
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return false;
+        }
+        boolean updated = pdfiumCore.setHighlightAnnotationNote(pdfDocument, docPage, annotationIndex,
+                groupKey, note, modifiedDate);
         if (updated) {
             invalidateHighlightAnnotationCache(pageIndex);
         }

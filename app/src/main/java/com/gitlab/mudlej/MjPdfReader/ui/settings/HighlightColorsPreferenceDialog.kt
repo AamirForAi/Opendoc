@@ -27,10 +27,11 @@ fun showHighlightColorsPreferenceDialog(
     val selected = preferences.getHighlightColors()
         .mapNotNull(HighlightPalette::fromColor)
         .toSet()
-    val rows = HighlightPalette.entries
+    val rows = HighlightPalette.selectable
         .map { HighlightColorRow(it, enabled = it in selected) }
         .toMutableList()
-    val adapter = HighlightColorAdapter(rows)
+    var onSelectionChanged: () -> Unit = {}
+    val adapter = HighlightColorAdapter(rows) { onSelectionChanged() }
     val recyclerView = RecyclerView(context).apply {
         layoutManager = LinearLayoutManager(context)
         this.adapter = adapter
@@ -49,9 +50,16 @@ fun showHighlightColorsPreferenceDialog(
         .create()
 
     dialog.setOnShowListener {
+        val applyButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
+        fun refreshApplyEnabled() {
+            applyButton.isEnabled = rows.count { it.enabled } == Preferences.highlightColorsCount
+        }
+        onSelectionChanged = ::refreshApplyEnabled
+        refreshApplyEnabled()
         dialog.getButton(DialogInterface.BUTTON_NEUTRAL).setOnClickListener {
             rows.forEach { it.enabled = it.color in HighlightPalette.defaultSelection }
             adapter.notifyDataSetChanged()
+            refreshApplyEnabled()
         }
     }
     dialog.show()
@@ -64,6 +72,7 @@ private data class HighlightColorRow(
 
 private class HighlightColorAdapter(
     private val rows: MutableList<HighlightColorRow>,
+    private val onSelectionChanged: () -> Unit,
 ) : RecyclerView.Adapter<HighlightColorViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): HighlightColorViewHolder {
@@ -79,9 +88,9 @@ private class HighlightColorAdapter(
     private fun requestToggle(row: HighlightColorRow): Boolean {
         val target = !row.enabled
         val selectedCount = rows.count { it.enabled }
-        if (target && selectedCount >= Preferences.maxHighlightColors) return false
-        if (!target && selectedCount <= Preferences.minHighlightColors) return false
+        if (target && selectedCount >= Preferences.highlightColorsCount) return false
         row.enabled = target
+        onSelectionChanged()
         return true
     }
 }
@@ -103,11 +112,7 @@ private class HighlightColorViewHolder(
                 checkbox.isChecked = row.enabled
             } else {
                 val context = itemView.context
-                val message = if (row.enabled) {
-                    context.getString(R.string.highlight_colors_min_toast, Preferences.minHighlightColors)
-                } else {
-                    context.getString(R.string.highlight_colors_max_toast, Preferences.maxHighlightColors)
-                }
+                val message = context.getString(R.string.highlight_colors_max_toast, Preferences.highlightColorsCount)
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             }
         }

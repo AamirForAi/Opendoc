@@ -3,7 +3,11 @@
 package com.gitlab.mudlej.MjPdfReader.ui.settings
 
 import android.content.Context
+import android.content.DialogInterface
+import android.content.Intent
 import android.os.Bundle
+import android.os.CountDownTimer
+import android.provider.DocumentsContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceFragmentCompat
@@ -11,6 +15,11 @@ import androidx.preference.PreferenceScreen
 import android.widget.Toast
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.core.io.restartApplication
+import com.gitlab.mudlej.MjPdfReader.data.AutoBackupScheduler
+import com.gitlab.mudlej.MjPdfReader.data.BackupData
+import com.gitlab.mudlej.MjPdfReader.data.BackupExportOptions
+import com.gitlab.mudlej.MjPdfReader.data.BackupFolder
 import com.gitlab.mudlej.MjPdfReader.data.BackupManager
 import com.gitlab.mudlej.MjPdfReader.data.HistoryCleaner
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
@@ -19,11 +28,16 @@ import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationJournal
 import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
 import com.gitlab.mudlej.MjPdfReader.core.ui.confirmDialog
 import com.gitlab.mudlej.MjPdfReader.ui.home.CoverCache
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.timepicker.MaterialTimePicker
+import com.google.android.material.timepicker.TimeFormat
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.IOException
 
 class SettingsFragment : PreferenceFragmentCompat() {
 
@@ -33,8 +47,15 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     private var navigation: Navigation? = null
     private lateinit var preferenceFactory: SettingsPreferenceFactory
+    private lateinit var appPreferences: Preferences
     private var searchQuery = ""
-    private var includePasswordsInExport = false
+    private var pendingExportToFolder = false
+    private var pendingAutoBackupEnable = false
+    private var exportOptions = BackupExportOptions(
+        includeSettings = true,
+        includeHistory = true,
+        includePasswords = false,
+    )
     private val backupManager by lazy {
         val appContext = requireContext().applicationContext
         BackupManager(appContext, PdfRepository(AppDatabase.getInstance(appContext)))
@@ -48,11 +69,18 @@ class SettingsFragment : PreferenceFragmentCompat() {
             CoverCache.getInstance(appContext),
         )
     }
-    private val exportBackupLauncher = registerForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json"),
+    private val backupFolderPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
     ) { uri ->
         if (uri != null) {
-            runBackupExport(uri)
+            onBackupFolderPicked(uri)
+        } else {
+            pendingExportToFolder = false
+            if (pendingAutoBackupEnable) {
+                pendingAutoBackupEnable = false
+                appPreferences.setAutoBackupEnabled(false)
+                rebuildPreferences()
+            }
         }
     }
     private val importBackupLauncher = registerForActivityResult(
@@ -79,17 +107,27 @@ class SettingsFragment : PreferenceFragmentCompat() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         searchQuery = arguments?.getString(ARG_SEARCH_QUERY).orEmpty()
-        includePasswordsInExport = savedInstanceState?.getBoolean(STATE_INCLUDE_PASSWORDS) ?: false
+        if (savedInstanceState != null) {
+            exportOptions = BackupExportOptions(
+                includeSettings = savedInstanceState.getBoolean(STATE_EXPORT_SETTINGS, true),
+                includeHistory = savedInstanceState.getBoolean(STATE_EXPORT_HISTORY, true),
+                includePasswords = savedInstanceState.getBoolean(STATE_EXPORT_PASSWORDS, false),
+            )
+            pendingExportToFolder = savedInstanceState.getBoolean(STATE_EXPORT_PENDING, false)
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putBoolean(STATE_INCLUDE_PASSWORDS, includePasswordsInExport)
+        outState.putBoolean(STATE_EXPORT_SETTINGS, exportOptions.includeSettings)
+        outState.putBoolean(STATE_EXPORT_HISTORY, exportOptions.includeHistory)
+        outState.putBoolean(STATE_EXPORT_PASSWORDS, exportOptions.includePasswords)
+        outState.putBoolean(STATE_EXPORT_PENDING, pendingExportToFolder)
         super.onSaveInstanceState(outState)
     }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        val preferences = Preferences(requireNotNull(preferenceManager.sharedPreferences))
-        preferenceFactory = SettingsPreferenceFactory(this, preferences)
+        appPreferences = Preferences(requireNotNull(preferenceManager.sharedPreferences))
+        preferenceFactory = SettingsPreferenceFactory(this, appPreferences)
         rebuildPreferences()
     }
 
@@ -142,30 +180,76 @@ class SettingsFragment : PreferenceFragmentCompat() {
     }
 
     fun startBackupExport() {
-        val checked = booleanArrayOf(false)
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.backup_export_title)
-            .setMultiChoiceItems(
-                arrayOf(getString(R.string.include_saved_passwords)),
-                checked,
-            ) { _, _, isChecked -> checked[0] = isChecked }
-            .setPositiveButton(R.string.backup_export_action) { _, _ ->
-                includePasswordsInExport = checked[0]
-                exportBackupLauncher.launch(BackupManager.defaultBackupFileName())
+        showBackupExportOptionsDialog(requireContext()) { options ->
+            exportOptions = options
+            runBackupExport()
+        }
+    }
+
+    fun startPickBackupFolder() {
+        val initialUri = DocumentsContract.buildDocumentUri(
+            "com.android.externalstorage.documents", "primary:Documents")
+        backupFolderPickerLauncher.launch(initialUri)
+    }
+
+    private fun onBackupFolderPicked(uri: android.net.Uri) {
+        val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        runCatching { requireContext().contentResolver.takePersistableUriPermission(uri, flags) }
+        appPreferences.setBackupFolderTreeUri(uri.toString())
+        rebuildPreferences()
+        if (pendingExportToFolder) {
+            pendingExportToFolder = false
+            runBackupExport()
+        }
+        if (pendingAutoBackupEnable) {
+            pendingAutoBackupEnable = false
+            enableAutoBackup()
+        }
+    }
+
+    fun onAutoBackupToggled(enabled: Boolean) {
+        if (!enabled) {
+            pendingAutoBackupEnable = false
+            AutoBackupScheduler.cancel(requireContext())
+            return
+        }
+        if (appPreferences.getBackupFolderTreeUri() == null) {
+            pendingAutoBackupEnable = true
+            startPickBackupFolder()
+        } else {
+            enableAutoBackup()
+        }
+    }
+
+    private fun enableAutoBackup() {
+        AutoBackupScheduler.schedule(
+            requireContext(),
+            appPreferences.getAutoBackupHour(),
+            appPreferences.getAutoBackupMinute(),
+        )
+        startPickAutoBackupTime()
+    }
+
+    fun startPickAutoBackupTime() {
+        val is24Hour = android.text.format.DateFormat.is24HourFormat(requireContext())
+        val picker = MaterialTimePicker.Builder()
+            .setTimeFormat(if (is24Hour) TimeFormat.CLOCK_24H else TimeFormat.CLOCK_12H)
+            .setHour(appPreferences.getAutoBackupHour())
+            .setMinute(appPreferences.getAutoBackupMinute())
+            .setTitleText(R.string.auto_backup_time_title)
+            .build()
+        picker.addOnPositiveButtonClickListener {
+            appPreferences.setAutoBackupTime(picker.hour, picker.minute)
+            if (appPreferences.getAutoBackupEnabled()) {
+                AutoBackupScheduler.schedule(requireContext(), picker.hour, picker.minute)
             }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+            rebuildPreferences()
+        }
+        picker.show(childFragmentManager, "autoBackupTimePicker")
     }
 
     fun startBackupImport() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.backup_import_title)
-            .setMessage(R.string.backup_import_confirm)
-            .setPositiveButton(R.string.backup_import_action) { _, _ ->
-                importBackupLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain"))
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+        importBackupLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain"))
     }
 
     fun startClearReadingHistory() {
@@ -227,10 +311,31 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
     }
 
-    private fun runBackupExport(uri: android.net.Uri) {
+    private fun runBackupExport() {
         viewLifecycleOwner.lifecycleScope.launch {
+            val options = exportOptions
+            val appContext = requireContext().applicationContext
+            val configuredFolderUri = appPreferences.getBackupFolderTreeUri()
+            val folder = withContext(Dispatchers.IO) {
+                BackupFolder.resolve(appContext, configuredFolderUri)
+            }
+            if (folder == null) {
+                if (configuredFolderUri != null) {
+                    Toast.makeText(requireContext(), R.string.backup_folder_unavailable, Toast.LENGTH_SHORT).show()
+                }
+                pendingExportToFolder = true
+                startPickBackupFolder()
+                return@launch
+            }
             val result = try {
-                Result.success(withContext(NonCancellable) { backupManager.export(uri, includePasswordsInExport) })
+                Result.success(withContext(NonCancellable + Dispatchers.IO) {
+                    val fileName = BackupFolder.newBackupFileName()
+                    val file = folder.createFile("application/json", fileName)
+                        ?: throw IOException("Cannot create a file in the backup folder")
+                    val summary = backupManager.export(file.uri, options)
+                    BackupFolder.enforceRetention(folder)
+                    summary to (file.name ?: fileName)
+                })
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (exception: Exception) {
@@ -240,16 +345,17 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 return@launch
             }
             result.fold(
-                onSuccess = { summary ->
-                    showBackupResultDialog(
-                        R.string.backup_export_title,
-                        getString(
-                            R.string.backup_export_done,
-                            summary.settingsCount,
-                            summary.recordsCount,
-                            summary.bookmarksCount,
-                        ),
-                    )
+                onSuccess = { (summary, fileName) ->
+                    val lines = buildList {
+                        add(getString(R.string.backup_export_saved_file, fileName))
+                        if (options.includeSettings) {
+                            add(getString(R.string.backup_export_done_settings, summary.settingsCount))
+                        }
+                        if (options.includeHistory) {
+                            add(getString(R.string.backup_export_done_history, summary.recordsCount, summary.bookmarksCount))
+                        }
+                    }
+                    showBackupResultDialog(R.string.backup_export_title, lines.joinToString("\n"))
                 },
                 onFailure = { error ->
                     showBackupResultDialog(
@@ -263,8 +369,64 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     private fun runBackupImport(uri: android.net.Uri) {
         viewLifecycleOwner.lifecycleScope.launch {
+            val data = try {
+                backupManager.parse(uri)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (exception: Exception) {
+                if (isAdded) {
+                    showBackupResultDialog(
+                        R.string.backup_import_title,
+                        getString(R.string.backup_import_failed, exception.localizedMessage.orEmpty()),
+                    )
+                }
+                return@launch
+            }
+            if (!isAdded) {
+                return@launch
+            }
+            if (data.includesHistory) {
+                showImportWipeWarning { applyImport(data) }
+            } else {
+                applyImport(data)
+            }
+        }
+    }
+
+    private fun showImportWipeWarning(onConfirm: () -> Unit) {
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.backup_import_title)
+            .setMessage(R.string.backup_import_wipe_warning)
+            .setPositiveButton(R.string.backup_import_wipe_action) { _, _ -> onConfirm() }
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            val confirmButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
+            confirmButton.setTextColor(MaterialColors.getColor(confirmButton, androidx.appcompat.R.attr.colorError))
+            confirmButton.isEnabled = false
+            val label = getString(R.string.backup_import_wipe_action)
+            val countdown = object : CountDownTimer(3000, 250) {
+                override fun onTick(millisUntilFinished: Long) {
+                    confirmButton.text = "$label (${millisUntilFinished / 1000 + 1})"
+                }
+
+                override fun onFinish() {
+                    confirmButton.text = label
+                    confirmButton.isEnabled = true
+                }
+            }
+            countdown.start()
+            dialog.setOnDismissListener { countdown.cancel() }
+        }
+        dialog.show()
+    }
+
+    private fun applyImport(data: BackupData) {
+        viewLifecycleOwner.lifecycleScope.launch {
             val result = try {
-                Result.success(withContext(NonCancellable) { backupManager.import(uri) })
+                Result.success(withContext(NonCancellable + Dispatchers.IO) {
+                    backupManager.importReplace(data, historyCleaner)
+                })
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (exception: Exception) {
@@ -274,17 +436,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 return@launch
             }
             result.fold(
-                onSuccess = { summary ->
-                    showBackupResultDialog(
-                        R.string.backup_import_title,
-                        getString(
-                            R.string.backup_import_done,
-                            summary.settingsApplied,
-                            summary.recordsInserted,
-                            summary.recordsUpdated,
-                            summary.bookmarksImported,
-                        ),
-                    )
+                onSuccess = {
+                    AutoBackupScheduler.cancel(requireContext())
+                    restartApplication(requireActivity())
                 },
                 onFailure = { error ->
                     showBackupResultDialog(
@@ -307,7 +461,10 @@ class SettingsFragment : PreferenceFragmentCompat() {
     companion object {
         private const val ARG_PAGE = "settingsPage"
         private const val ARG_SEARCH_QUERY = "settingsSearchQuery"
-        private const val STATE_INCLUDE_PASSWORDS = "settingsIncludePasswordsInExport"
+        private const val STATE_EXPORT_SETTINGS = "settingsExportIncludeSettings"
+        private const val STATE_EXPORT_HISTORY = "settingsExportIncludeHistory"
+        private const val STATE_EXPORT_PASSWORDS = "settingsExportIncludePasswords"
+        private const val STATE_EXPORT_PENDING = "settingsExportPendingFolderPick"
 
         fun root(searchQuery: String = ""): SettingsFragment {
             return SettingsFragment().apply {

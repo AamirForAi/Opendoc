@@ -57,6 +57,8 @@ class ReaderMenu(
         return listOfNotNull(
             action(ConfigurableAction.TABLE_OF_CONTENTS),
             action(ConfigurableAction.USER_BOOKMARKS),
+            action(ConfigurableAction.USER_NOTES),
+            action(ConfigurableAction.USER_HIGHLIGHTS),
             action(ConfigurableAction.TEXT_MODE),
             action(ConfigurableAction.LINKS_IN_FILE),
             action(ConfigurableAction.SETTINGS),

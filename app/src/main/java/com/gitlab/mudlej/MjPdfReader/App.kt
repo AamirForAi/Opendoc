@@ -4,7 +4,11 @@ package com.gitlab.mudlej.MjPdfReader
 
 import android.app.Application
 import android.content.Context
+import androidx.preference.PreferenceManager
+import com.gitlab.mudlej.MjPdfReader.data.AutoBackupScheduler
+import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.google.android.material.color.DynamicColors
+import org.acra.ACRA
 import org.acra.ReportField
 import org.acra.config.dialog
 import org.acra.config.httpSender
@@ -15,6 +19,12 @@ class App : Application() {
     override fun onCreate() {
         DynamicColors.applyToActivitiesIfAvailable(this)
         super.onCreate()
+        if (!ACRA.isACRASenderServiceProcess()) {
+            val preferences = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
+            if (preferences.getAutoBackupEnabled()) {
+                AutoBackupScheduler.schedule(this, preferences.getAutoBackupHour(), preferences.getAutoBackupMinute())
+            }
+        }
     }
 
     override fun attachBaseContext(base: Context) {

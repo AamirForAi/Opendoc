@@ -120,7 +120,8 @@ public class PdfiumCore {
     private native boolean nativeCreateHighlightAnnotation(long docPtr, long pagePtr, int pageIndex,
                                                            float[][] rects,
                                                            int r, int g, int b, int a,
-                                                           String contents, String groupKey);
+                                                           String contents, String groupKey,
+                                                           String creationDate);
 
     private native PdfDocument.HighlightAnnotation[] nativeGetHighlightAnnotations(long pagePtr);
 
@@ -144,6 +145,10 @@ public class PdfiumCore {
 
     private native boolean nativeSetHighlightAnnotationColor(long pagePtr, int annotationIndex,
                                                              String groupKey, int r, int g, int b);
+
+    private native boolean nativeSetHighlightAnnotationNote(long pagePtr, int annotationIndex,
+                                                            String groupKey, String note,
+                                                            String modifiedDate);
 
     private native boolean nativeRemoveHighlightAnnotation(long pagePtr, int annotationIndex,
                                                            String groupKey);
@@ -714,7 +719,8 @@ public class PdfiumCore {
     }
 
     public boolean createHighlightAnnotation(PdfDocument doc, int pageIndex, List<RectF> rects,
-                                              int color, String contents, String groupKey) {
+                                              int color, String contents, String groupKey,
+                                              String creationDate) {
         synchronized (lock) {
             Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
             if (nativePagePtr == null || rects == null || rects.isEmpty()) {
@@ -731,7 +737,7 @@ public class PdfiumCore {
             }
             return nativeCreateHighlightAnnotation(doc.mNativeDocPtr, nativePagePtr, pageIndex, nativeRects,
                     Color.red(color), Color.green(color), Color.blue(color), Color.alpha(color),
-                    contents == null ? "" : contents, groupKey == null ? "" : groupKey);
+                    contents == null ? "" : contents, groupKey == null ? "" : groupKey, creationDate);
         }
     }
 
@@ -808,6 +814,18 @@ public class PdfiumCore {
             }
             return nativeSetHighlightAnnotationColor(nativePagePtr, annotationIndex, groupKey,
                     Color.red(color), Color.green(color), Color.blue(color));
+        }
+    }
+
+    public boolean setHighlightAnnotationNote(PdfDocument doc, int pageIndex, int annotationIndex,
+                                              String groupKey, String note, String modifiedDate) {
+        synchronized (lock) {
+            Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (nativePagePtr == null) {
+                return false;
+            }
+            return nativeSetHighlightAnnotationNote(nativePagePtr, annotationIndex, groupKey,
+                    note == null ? "" : note, modifiedDate);
         }
     }
 

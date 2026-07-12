@@ -89,6 +89,12 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val homeViewModeKey = "homeViewMode"
         const val homeGridSizeKey = "homeGridSize"
         const val goToPageGridColumnsKey = "goToPageGridColumns"
+        const val backupFolderTreeUriKey = "backupFolderTreeUri"
+        const val autoBackupEnabledKey = "autoBackupEnabled"
+        const val autoBackupHourKey = "autoBackupHour"
+        const val autoBackupMinuteKey = "autoBackupMinute"
+        const val autoBackupLastRunKey = "autoBackupLastRun"
+        const val autoBackupLastErrorKey = "autoBackupLastError"
         const val homeSortKey = "homeSort"
         const val historyEnabledKey = "historyEnabled"
         const val scanModeKey = "scanMode"
@@ -123,6 +129,9 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val partSizeDefault = 512f
         const val thumbnailRatioDefault = 0.45f
         const val goToPageGridColumnsDefault = 3
+        const val autoBackupEnabledDefault = false
+        const val autoBackupHourDefault = 2
+        const val autoBackupMinuteDefault = 0
         const val inlineTextSelectionDefault = true
         const val detectExistingHighlightsDefault = true
         const val searchIgnoreAccentsDefault = false
@@ -164,8 +173,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val pdfLightBackgroundColor = -0xcdcdce         // 0xff323232 = -0xcdcdce
 
         // Constants
-        const val minHighlightColors = 2
-        const val maxHighlightColors = 4
+        const val highlightColorsCount = 6
         const val minMaxZoom = 1f
         const val maxMaxZoom = 100f
         const val minPartSize = 5f
@@ -203,6 +211,18 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getThumbnailRation() = prefMan.getFloat(thumbnailRatioKey, thumbnailRatioDefault)
 
     fun getGoToPageGridColumns() = prefMan.getInt(goToPageGridColumnsKey, goToPageGridColumnsDefault)
+
+    fun getBackupFolderTreeUri(): String? = prefMan.getString(backupFolderTreeUriKey, null)
+
+    fun getAutoBackupEnabled() = prefMan.getBoolean(autoBackupEnabledKey, autoBackupEnabledDefault)
+
+    fun getAutoBackupHour() = prefMan.getInt(autoBackupHourKey, autoBackupHourDefault)
+
+    fun getAutoBackupMinute() = prefMan.getInt(autoBackupMinuteKey, autoBackupMinuteDefault)
+
+    fun getAutoBackupLastRun() = prefMan.getLong(autoBackupLastRunKey, 0L)
+
+    fun getAutoBackupLastError(): String? = prefMan.getString(autoBackupLastErrorKey, null)
     fun getMaxZoom() = prefMan.getFloat(maxZoomKey, maxZoomDefault)
     fun getInlineTextSelection() = prefMan.getBoolean(inlineTextSelectionKey, inlineTextSelectionDefault)
     fun getDetectExistingHighlights() = prefMan.getBoolean(detectExistingHighlightsKey, detectExistingHighlightsDefault)
@@ -211,12 +231,11 @@ class Preferences(private val prefMan: SharedPreferences) {
             ?.split(",")
             ?.mapNotNull(HighlightPalette::fromName)
             ?: HighlightPalette.defaultSelection
-        val selection = if (stored.size in minHighlightColors..maxHighlightColors) {
-            stored
-        } else {
-            HighlightPalette.defaultSelection
-        }
-        return selection.map { it.colorValue }
+        return (stored + HighlightPalette.defaultSelection)
+            .filter { it in HighlightPalette.selectable }
+            .distinct()
+            .take(highlightColorsCount)
+            .map { it.colorValue }
     }
     fun getSearchIgnoreAccents() = prefMan.getBoolean(searchIgnoreAccentsKey, searchIgnoreAccentsDefault)
     fun getDefaultTextMode() = prefMan.getBoolean(defaultTextModeKey, defaultTextModeDefault)
@@ -313,6 +332,20 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setThumbnailRatio(value: Float) = prefMan.edit().putFloat(thumbnailRatioKey, value).apply()
 
     fun setGoToPageGridColumns(value: Int) = prefMan.edit().putInt(goToPageGridColumnsKey, value).apply()
+
+    fun setBackupFolderTreeUri(value: String?) = prefMan.edit().putString(backupFolderTreeUriKey, value).apply()
+
+    fun setAutoBackupEnabled(value: Boolean) = prefMan.edit().putBoolean(autoBackupEnabledKey, value).apply()
+
+    fun setAutoBackupTime(hour: Int, minute: Int) = prefMan.edit()
+        .putInt(autoBackupHourKey, hour)
+        .putInt(autoBackupMinuteKey, minute)
+        .apply()
+
+    fun setAutoBackupLastResult(runAt: Long, error: String?) = prefMan.edit()
+        .putLong(autoBackupLastRunKey, runAt)
+        .putString(autoBackupLastErrorKey, error)
+        .apply()
     fun setMaxZoom(value: Float) = prefMan.edit().putFloat(maxZoomKey, value).apply()
     fun setInlineTextSelection(value: Boolean) = prefMan.edit().putBoolean(inlineTextSelectionKey, value).apply()
     fun setDetectExistingHighlights(value: Boolean) = prefMan.edit().putBoolean(detectExistingHighlightsKey, value).apply()

@@ -3,6 +3,7 @@
 package com.gitlab.mudlej.MjPdfReader.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
 import androidx.preference.PreferenceManager
@@ -23,10 +24,18 @@ class BackupManager(
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
-    suspend fun export(uri: Uri, includePasswords: Boolean): ExportSummary = withContext(Dispatchers.IO) {
-        val settings = collectSettings()
-        val records = pdfRepository.findAllRecords().map { it.toBackup(includePasswords) }
-        val bookmarks = pdfRepository.findAllUserBookmarks().map { it.toBackup() }
+    suspend fun export(uri: Uri, options: BackupExportOptions): ExportSummary = withContext(Dispatchers.IO) {
+        val settings = if (options.includeSettings) collectSettings() else null
+        val records = if (options.includeHistory) {
+            pdfRepository.findAllRecords().map { it.toBackup(options.includePasswords) }
+        } else {
+            null
+        }
+        val bookmarks = if (options.includeHistory) {
+            pdfRepository.findAllUserBookmarks().map { it.toBackup() }
+        } else {
+            null
+        }
         val data = BackupData(
             schemaVersion = SCHEMA_VERSION,
             appVersionCode = appVersionCode(),
@@ -42,10 +51,10 @@ class BackupManager(
         output.use { stream ->
             stream.write(json.toByteArray(Charsets.UTF_8))
         }
-        ExportSummary(settings.size, records.size, bookmarks.size)
+        ExportSummary(settings?.size ?: 0, records?.size ?: 0, bookmarks?.size ?: 0)
     }
 
-    suspend fun import(uri: Uri): ImportSummary = withContext(Dispatchers.IO) {
+    suspend fun parse(uri: Uri): BackupData = withContext(Dispatchers.IO) {
         val json = context.contentResolver.openInputStream(uri)?.use { stream ->
             stream.readBytes().toString(Charsets.UTF_8)
         } ?: throw IOException("Cannot open the selected file for reading")
@@ -60,10 +69,18 @@ class BackupManager(
         if (data.schemaVersion > SCHEMA_VERSION) {
             throw IOException("The backup was created by a newer app version")
         }
-        val settingsApplied = applySettings(data.settings.orEmpty())
-        val (recordsInserted, recordsUpdated) = mergeRecords(data.pdfRecords.orEmpty())
-        val bookmarksImported = mergeBookmarks(data.userBookmarks.orEmpty())
-        ImportSummary(settingsApplied, recordsInserted, recordsUpdated, bookmarksImported)
+        data
+    }
+
+    suspend fun importReplace(data: BackupData, historyCleaner: HistoryCleaner) = withContext(Dispatchers.IO) {
+        data.settings?.let { replaceSettings(it) }
+        if (data.includesHistory) {
+            historyCleaner.clearReadingHistory()
+            historyCleaner.clearBookmarks()
+            historyCleaner.clearAnnotationJournalsAndSignature()
+            insertRecords(data.pdfRecords.orEmpty())
+            insertBookmarks(data.userBookmarks.orEmpty())
+        }
     }
 
     private fun collectSettings(): List<BackupSetting> {
@@ -84,116 +101,87 @@ class BackupManager(
         }.sortedBy { it.key }
     }
 
-    private fun applySettings(settings: List<BackupSetting>): Int {
-        val editor = PreferenceManager.getDefaultSharedPreferences(context).edit()
-        var applied = 0
+    private fun replaceSettings(settings: List<BackupSetting>) {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val preserved = prefs.all.filterKeys { it in excludedSettingKeys }
+        val editor = prefs.edit().clear()
+        preserved.forEach { (key, value) -> putSetting(editor, key, value) }
         settings.forEach { setting ->
             val key = setting.key ?: return@forEach
             if (key in excludedSettingKeys) {
                 return@forEach
             }
-            val stored = when (setting.type) {
-                "boolean" -> setting.value?.toBooleanStrictOrNull()?.also { editor.putBoolean(key, it) } != null
-                "int" -> setting.value?.toIntOrNull()?.also { editor.putInt(key, it) } != null
-                "long" -> setting.value?.toLongOrNull()?.also { editor.putLong(key, it) } != null
-                "float" -> setting.value?.toFloatOrNull()?.also { editor.putFloat(key, it) } != null
-                "string" -> setting.value?.also { editor.putString(key, it) } != null
-                "stringSet" -> setting.values?.also { editor.putStringSet(key, it.toSet()) } != null
-                else -> false
-            }
-            if (stored) {
-                applied++
+            when (setting.type) {
+                "boolean" -> setting.value?.toBooleanStrictOrNull()?.let { editor.putBoolean(key, it) }
+                "int" -> setting.value?.toIntOrNull()?.let { editor.putInt(key, it) }
+                "long" -> setting.value?.toLongOrNull()?.let { editor.putLong(key, it) }
+                "float" -> setting.value?.toFloatOrNull()?.let { editor.putFloat(key, it) }
+                "string" -> setting.value?.let { editor.putString(key, it) }
+                "stringSet" -> setting.values?.let { editor.putStringSet(key, it.toSet()) }
             }
         }
-        editor.apply()
-        return applied
+        @Suppress("ApplySharedPref")
+        editor.commit()
     }
 
-    private suspend fun mergeRecords(records: List<BackupPdfRecord>): Pair<Int, Int> {
-        var inserted = 0
-        var updated = 0
-        val existingByHash = pdfRepository.findAllRecords().associateBy { it.hash }
-        val toSave = mutableListOf<PdfRecord>()
-        records.forEach { backup ->
-            val hash = backup.hash?.takeIf { it.isNotBlank() } ?: return@forEach
-            val lastOpened = parseDate(backup.lastOpened) ?: LocalDateTime.MIN
-            val existing = existingByHash[hash]
-            if (existing == null) {
-                toSave.add(
-                    PdfRecord(
-                        hash = hash,
-                        pageNumber = backup.pageNumber,
-                        uri = Uri.parse(backup.uri.orEmpty()),
-                        length = backup.length,
-                        fileName = backup.fileName.orEmpty(),
-                        password = backup.password,
-                        lastOpened = lastOpened,
-                        reading = parseReadingStatus(backup.reading),
-                        favorite = backup.favorite,
-                        cropMargins = backup.cropMargins,
-                        cropMarginsVersion = backup.cropMarginsVersion,
-                        autoScrollSpeed = backup.autoScrollSpeed,
-                        readingDirectionOverride = backup.readingDirectionOverride,
-                        detectedReadingDirection = backup.detectedReadingDirection,
-                        documentTitle = backup.documentTitle,
-                        textModeJoinParagraphs = backup.textModeJoinParagraphs,
-                        textModeDetectHeadings = backup.textModeDetectHeadings,
-                        textModeCodeBlocks = backup.textModeCodeBlocks,
-                    )
-                )
-                inserted++
-            } else if (lastOpened.isAfter(existing.lastOpened)) {
-                toSave.add(
-                    existing.copy(
-                        pageNumber = backup.pageNumber,
-                        password = backup.password ?: existing.password,
-                        lastOpened = lastOpened,
-                        reading = parseReadingStatus(backup.reading, existing.reading),
-                        favorite = backup.favorite || existing.favorite,
-                        cropMargins = backup.cropMargins ?: existing.cropMargins,
-                        cropMarginsVersion = if (backup.cropMargins != null) backup.cropMarginsVersion else existing.cropMarginsVersion,
-                        autoScrollSpeed = backup.autoScrollSpeed ?: existing.autoScrollSpeed,
-                        readingDirectionOverride = backup.readingDirectionOverride ?: existing.readingDirectionOverride,
-                        detectedReadingDirection = backup.detectedReadingDirection ?: existing.detectedReadingDirection,
-                        documentTitle = backup.documentTitle ?: existing.documentTitle,
-                        textModeJoinParagraphs = backup.textModeJoinParagraphs ?: existing.textModeJoinParagraphs,
-                        textModeDetectHeadings = backup.textModeDetectHeadings ?: existing.textModeDetectHeadings,
-                        textModeCodeBlocks = backup.textModeCodeBlocks ?: existing.textModeCodeBlocks,
-                    )
-                )
-                updated++
-            }
+    private fun putSetting(editor: SharedPreferences.Editor, key: String, value: Any?) {
+        when (value) {
+            is Boolean -> editor.putBoolean(key, value)
+            is Int -> editor.putInt(key, value)
+            is Long -> editor.putLong(key, value)
+            is Float -> editor.putFloat(key, value)
+            is String -> editor.putString(key, value)
+            is Set<*> -> editor.putStringSet(key, value.filterIsInstance<String>().toSet())
+        }
+    }
+
+    private suspend fun insertRecords(records: List<BackupPdfRecord>) {
+        val toSave = records.mapNotNull { backup ->
+            val hash = backup.hash?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            PdfRecord(
+                hash = hash,
+                pageNumber = backup.pageNumber,
+                uri = Uri.parse(backup.uri.orEmpty()),
+                length = backup.length,
+                fileName = backup.fileName.orEmpty(),
+                password = backup.password,
+                lastOpened = parseDate(backup.lastOpened) ?: LocalDateTime.MIN,
+                reading = parseReadingStatus(backup.reading),
+                favorite = backup.favorite,
+                cropMargins = backup.cropMargins,
+                cropMarginsVersion = backup.cropMarginsVersion,
+                autoScrollSpeed = backup.autoScrollSpeed,
+                readingDirectionOverride = backup.readingDirectionOverride,
+                detectedReadingDirection = backup.detectedReadingDirection,
+                documentTitle = backup.documentTitle,
+                textModeJoinParagraphs = backup.textModeJoinParagraphs,
+                textModeDetectHeadings = backup.textModeDetectHeadings,
+                textModeCodeBlocks = backup.textModeCodeBlocks,
+                hidden = backup.hidden,
+            )
         }
         if (toSave.isNotEmpty()) {
             pdfRepository.upsertRecords(toSave)
         }
-        return inserted to updated
     }
 
-    private suspend fun mergeBookmarks(bookmarks: List<BackupUserBookmark>): Int {
-        val existingByKey = pdfRepository.findAllUserBookmarks().associateBy { it.fileHash to it.pageIndex }
+    private suspend fun insertBookmarks(bookmarks: List<BackupUserBookmark>) {
         val toSave = bookmarks.mapNotNull { backup ->
             val hash = backup.fileHash?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
             if (backup.pageIndex < 0) {
                 return@mapNotNull null
             }
-            val existing = existingByKey[hash to backup.pageIndex]
-            when {
-                existing == null -> UserBookmark(
-                    fileHash = hash,
-                    pageIndex = backup.pageIndex,
-                    label = backup.label,
-                    createdAt = parseDate(backup.createdAt) ?: LocalDateTime.now(),
-                    sortOrder = backup.sortOrder.takeIf { it >= 0 } ?: backup.pageIndex,
-                )
-                existing.label == null && backup.label != null -> existing.copy(label = backup.label)
-                else -> null
-            }
+            UserBookmark(
+                fileHash = hash,
+                pageIndex = backup.pageIndex,
+                label = backup.label,
+                createdAt = parseDate(backup.createdAt) ?: LocalDateTime.now(),
+                sortOrder = backup.sortOrder.takeIf { it >= 0 } ?: backup.pageIndex,
+            )
         }
         if (toSave.isNotEmpty()) {
             pdfRepository.upsertUserBookmarks(toSave)
         }
-        return toSave.size
     }
 
     private fun PdfRecord.toBackup(includePasswords: Boolean): BackupPdfRecord {
@@ -216,6 +204,7 @@ class BackupManager(
             textModeJoinParagraphs = textModeJoinParagraphs,
             textModeDetectHeadings = textModeDetectHeadings,
             textModeCodeBlocks = textModeCodeBlocks,
+            hidden = hidden,
         )
     }
 
@@ -258,11 +247,9 @@ class BackupManager(
         private val excludedSettingKeys = setOf(
             Preferences.firstInstallKey,
             Preferences.showFeaturesDialogKey,
+            Preferences.backupFolderTreeUriKey,
+            Preferences.autoBackupLastRunKey,
+            Preferences.autoBackupLastErrorKey,
         )
-
-        fun defaultBackupFileName(): String {
-            val now = LocalDateTime.now()
-            return "mj-pdf-backup-%04d%02d%02d.json".format(now.year, now.monthValue, now.dayOfMonth)
-        }
     }
 }

@@ -197,20 +197,27 @@ public class PDFView extends RelativeLayout {
         public final RectF viewBounds;
         public final RectF pdfBounds;
         public final String contents;
+        public final String note;
 
         public HighlightAnnotation(int pageIndex, int annotationIndex, String groupKey,
                                    RectF viewBounds, String contents) {
-            this(pageIndex, annotationIndex, groupKey, viewBounds, null, contents);
+            this(pageIndex, annotationIndex, groupKey, viewBounds, null, contents, null);
         }
 
         public HighlightAnnotation(int pageIndex, int annotationIndex, String groupKey,
                                    RectF viewBounds, RectF pdfBounds, String contents) {
+            this(pageIndex, annotationIndex, groupKey, viewBounds, pdfBounds, contents, null);
+        }
+
+        public HighlightAnnotation(int pageIndex, int annotationIndex, String groupKey,
+                                   RectF viewBounds, RectF pdfBounds, String contents, String note) {
             this.pageIndex = pageIndex;
             this.annotationIndex = annotationIndex;
             this.groupKey = groupKey == null ? "" : groupKey;
             this.viewBounds = viewBounds == null ? null : new RectF(viewBounds);
             this.pdfBounds = pdfBounds == null ? null : new RectF(pdfBounds);
             this.contents = contents == null ? "" : contents;
+            this.note = note == null ? "" : note;
         }
     }
 
@@ -1877,19 +1884,30 @@ public class PDFView extends RelativeLayout {
     }
 
     public boolean addHighlight(HighlightRequest request, int color, String groupKey) {
+        return addHighlight(request, color, groupKey, null);
+    }
+
+    public boolean addHighlight(HighlightRequest request, int color, String groupKey, String creationDate) {
         if (request == null) {
             return false;
         }
-        return addHighlightAnnotation(request.pageIndex, request.pdfRects, color, request.selectedText, groupKey);
+        return addHighlightAnnotation(request.pageIndex, request.pdfRects, color, request.selectedText,
+                groupKey, creationDate);
     }
 
     public boolean addHighlightAnnotation(int pageIndex, List<RectF> pdfRects, int color,
                                           String contents, String groupKey) {
+        return addHighlightAnnotation(pageIndex, pdfRects, color, contents, groupKey, null);
+    }
+
+    public boolean addHighlightAnnotation(int pageIndex, List<RectF> pdfRects, int color,
+                                          String contents, String groupKey, String creationDate) {
         if (pdfFile == null || pdfRects == null || pdfRects.isEmpty()) {
             return false;
         }
         try {
-            boolean created = pdfFile.createHighlightAnnotation(pageIndex, pdfRects, color, contents, groupKey);
+            boolean created = pdfFile.createHighlightAnnotation(pageIndex, pdfRects, color, contents,
+                    groupKey, creationDate);
             if (created) {
                 invalidate();
             }
@@ -2081,7 +2099,8 @@ public class PDFView extends RelativeLayout {
                 hitGroup,
                 viewBounds,
                 pdfBounds,
-                hit.getContents()
+                hit.getContents(),
+                hit.getNote()
         );
     }
 
@@ -2145,7 +2164,8 @@ public class PDFView extends RelativeLayout {
                     group,
                     viewBounds,
                     pdfBounds,
-                    first.getContents()
+                    first.getContents(),
+                    first.getNote()
             );
         }
         return null;
@@ -2239,6 +2259,28 @@ public class PDFView extends RelativeLayout {
             return updated;
         } catch (Throwable throwable) {
             Log.e(TAG, "setHighlightAnnotationColor: failed to update highlight", throwable);
+            return false;
+        }
+    }
+
+    public boolean setHighlightAnnotationNote(HighlightAnnotation annotation, String note, String modifiedDate) {
+        if (pdfFile == null || annotation == null) {
+            return false;
+        }
+        try {
+            boolean updated = pdfFile.setHighlightAnnotationNote(
+                    annotation.pageIndex,
+                    annotation.annotationIndex,
+                    annotation.groupKey,
+                    note,
+                    modifiedDate
+            );
+            if (updated) {
+                invalidate();
+            }
+            return updated;
+        } catch (Throwable throwable) {
+            Log.e(TAG, "setHighlightAnnotationNote: failed to update highlight", throwable);
             return false;
         }
     }

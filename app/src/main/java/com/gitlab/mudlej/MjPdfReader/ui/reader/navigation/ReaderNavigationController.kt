@@ -15,6 +15,8 @@ import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.pdf.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.userbookmarks.UserBookmarksActivity
+import com.gitlab.mudlej.MjPdfReader.ui.userhighlights.UserHighlightsActivity
+import com.gitlab.mudlej.MjPdfReader.ui.usernotes.UserNotesActivity
 import com.gitlab.mudlej.MjPdfReader.ui.history.NavigationHistoryActivity
 import com.gitlab.mudlej.MjPdfReader.ui.gotopage.GoToPageActivity
 import com.gitlab.mudlej.MjPdfReader.ui.links.LinksActivity
@@ -32,6 +34,8 @@ class ReaderNavigationController(
     private val updateAppTitle: () -> Unit,
     private val launchTableOfContents: (Intent) -> Unit,
     private val launchUserBookmarks: (Intent) -> Unit,
+    private val launchUserNotes: (Intent) -> Unit,
+    private val launchUserHighlights: (Intent) -> Unit,
     private val launchNavigationHistory: (Intent) -> Unit,
     private val launchLinks: (Intent) -> Unit,
     private val launchSearch: (Intent) -> Unit,
@@ -79,6 +83,24 @@ class ReaderNavigationController(
             bookmarksIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
             bookmarksIntent.putExtra(PDF.passwordKey, pdf.password)
             launchUserBookmarks(bookmarksIntent)
+        }
+    }
+
+    fun showUserNotes() {
+        Intent(activity, UserNotesActivity::class.java).also { notesIntent ->
+            notesIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
+            notesIntent.putExtra(PDF.passwordKey, pdf.password)
+            notesIntent.putExtra(PDF.nameKey, pdf.name)
+            launchUserNotes(notesIntent)
+        }
+    }
+
+    fun showUserHighlights() {
+        Intent(activity, UserHighlightsActivity::class.java).also { highlightsIntent ->
+            highlightsIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
+            highlightsIntent.putExtra(PDF.passwordKey, pdf.password)
+            highlightsIntent.putExtra(PDF.nameKey, pdf.name)
+            launchUserHighlights(highlightsIntent)
         }
     }
 
@@ -144,6 +166,22 @@ class ReaderNavigationController(
     }
 
     fun handleUserBookmarksResult(resultCode: Int, intent: Intent?) {
+        if (resultCode == PDF.TABLE_OF_CONTENTS_RESULT_OK) {
+            val pageIndex = intent?.getIntExtra(PDF.chosenTableOfContentsEntryKey, pdf.pageNumber) ?: return
+            historyManager.recordJump(ReaderHistoryManager.Origin.BOOKMARK, pageIndex)
+            binding.pdfView.jumpTo(pageIndex)
+        }
+    }
+
+    fun handleUserNotesResult(resultCode: Int, intent: Intent?) {
+        if (resultCode == PDF.TABLE_OF_CONTENTS_RESULT_OK) {
+            val pageIndex = intent?.getIntExtra(PDF.chosenTableOfContentsEntryKey, pdf.pageNumber) ?: return
+            historyManager.recordJump(ReaderHistoryManager.Origin.BOOKMARK, pageIndex)
+            binding.pdfView.jumpTo(pageIndex)
+        }
+    }
+
+    fun handleUserHighlightsResult(resultCode: Int, intent: Intent?) {
         if (resultCode == PDF.TABLE_OF_CONTENTS_RESULT_OK) {
             val pageIndex = intent?.getIntExtra(PDF.chosenTableOfContentsEntryKey, pdf.pageNumber) ?: return
             historyManager.recordJump(ReaderHistoryManager.Origin.BOOKMARK, pageIndex)

@@ -18,6 +18,7 @@ import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceViewHolder
 import androidx.preference.SwitchPreferenceCompat
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.BackupFolder
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.ui.history.ReadingHistoryActivity
@@ -26,6 +27,11 @@ import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableAction
 import com.gitlab.mudlej.MjPdfReader.core.ui.SegmentedButtonStyler
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import java.time.Instant
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import kotlin.math.roundToInt
 
 internal class SettingsPreferenceFactory(
@@ -253,39 +259,107 @@ internal class SettingsPreferenceFactory(
         breadcrumb: String?,
         onClicked: (SettingsFragment) -> Unit,
     ): Preference {
+        val host = fragment as? SettingsFragment
         return Preference(context).apply {
             title = getString(titleRes)
             key = preferenceKey
             summary = formatSummary(breadcrumb, getString(summaryRes))
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
-                (fragment as? SettingsFragment)?.let(onClicked)
+                host?.let(onClicked)
+                true
+            }
+        }
+    }
+
+    fun backupFolderPreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val detail = BackupFolder.describe(appPreferences.getBackupFolderTreeUri())
+            ?.let { fragment.getString(R.string.backup_folder_summary_set, it) }
+            ?: getString(R.string.backup_folder_summary_unset)
+        return Preference(context).apply {
+            title = getString(R.string.backup_folder_title)
+            key = "backupFolder"
+            summary = formatSummary(breadcrumb, detail)
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                host?.startPickBackupFolder()
+                true
+            }
+        }
+    }
+
+    fun autoBackupSwitchPreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        return SwitchPreferenceCompat(context).apply {
+            title = getString(R.string.auto_backup_title)
+            key = Preferences.autoBackupEnabledKey
+            setDefaultValue(Preferences.autoBackupEnabledDefault)
+            summary = formatSummary(breadcrumb, getString(R.string.auto_backup_summary))
+            isIconSpaceReserved = false
+            setOnPreferenceChangeListener { _, newValue ->
+                host?.onAutoBackupToggled(newValue == true)
+                true
+            }
+        }
+    }
+
+    fun autoBackupTimePreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val time = LocalTime.of(appPreferences.getAutoBackupHour(), appPreferences.getAutoBackupMinute())
+            .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+        val detail = buildList {
+            add(fragment.getString(R.string.auto_backup_time_summary, time))
+            val lastRun = appPreferences.getAutoBackupLastRun()
+            if (lastRun > 0L) {
+                val lastRunText = Instant.ofEpochMilli(lastRun)
+                    .atZone(ZoneId.systemDefault())
+                    .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT))
+                val error = appPreferences.getAutoBackupLastError()
+                add(
+                    if (error == null) {
+                        fragment.getString(R.string.auto_backup_last_success, lastRunText)
+                    } else {
+                        fragment.getString(R.string.auto_backup_last_failed, error)
+                    }
+                )
+            }
+        }.joinToString("\n")
+        return Preference(context).apply {
+            title = getString(R.string.auto_backup_time_title)
+            key = "autoBackupTime"
+            summary = formatSummary(breadcrumb, detail)
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                host?.startPickAutoBackupTime()
                 true
             }
         }
     }
 
     fun backupExportPreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
         return Preference(context).apply {
             title = getString(R.string.backup_export_title)
             key = "backupExport"
             summary = formatSummary(breadcrumb, getString(R.string.backup_export_summary))
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
-                (fragment as? SettingsFragment)?.startBackupExport()
+                host?.startBackupExport()
                 true
             }
         }
     }
 
     fun backupImportPreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
         return Preference(context).apply {
             title = getString(R.string.backup_import_title)
             key = "backupImport"
             summary = formatSummary(breadcrumb, getString(R.string.backup_import_summary))
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
-                (fragment as? SettingsFragment)?.startBackupImport()
+                host?.startBackupImport()
                 true
             }
         }

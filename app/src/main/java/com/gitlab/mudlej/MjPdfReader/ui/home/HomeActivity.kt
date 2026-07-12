@@ -208,7 +208,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             onSortChanged = ::refresh,
             onFolderModeChanged = { foldersTab.onModeChanged() },
             onShowStats = {
-                showLibraryStatsDialog(this, allItems, libraryScanner.index.value.entries)
+                showLibraryStatsDialog(this, allItems, libraryScanner.libraryEntries())
             },
             hasFullAccess = { permissionManager.hasFullAccess() },
             onScanLocations = { scanSetupDialog.show() },
@@ -329,7 +329,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         binding.searchView.editText.doOnTextChanged { text, _, _, _ ->
             val query = text?.toString().orEmpty()
             searchResultsAdapter.submitList(
-                libraryController.searchAll(allItems, libraryScanner.index.value.entries, query)
+                libraryController.searchAll(allItems, libraryScanner.libraryEntries(), query)
             )
         }
     }

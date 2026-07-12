@@ -178,6 +178,26 @@ class MainActivity : AppCompatActivity(), ReaderUi {
             .show()
     }
 
+    internal fun runAfterAnnotationSaveGate(action: () -> Unit) {
+        if (!annotationController.hasUnsavedAnnotations) {
+            action()
+            return
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.unsaved_highlights)
+            .setMessage(R.string.unsaved_highlights_prompt)
+            .setPositiveButton(R.string.save_highlights) { _, _ ->
+                annotationSaveController.saveHighlights(postSaveAction = action)
+            }
+            .setNegativeButton(R.string.discard) { _, _ ->
+                clearUnsavedAnnotationState()
+                reloadPdf()
+                action()
+            }
+            .setNeutralButton(R.string.cancel, null)
+            .show()
+    }
+
     private fun clearUnsavedAnnotationState() {
         signatureController.cancelPlacement()
         annotationSaveController.clearPendingRequests()

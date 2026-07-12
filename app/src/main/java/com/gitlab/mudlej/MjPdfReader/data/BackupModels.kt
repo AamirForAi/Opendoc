@@ -9,7 +9,10 @@ data class BackupData(
     val settings: List<BackupSetting>? = null,
     val pdfRecords: List<BackupPdfRecord>? = null,
     val userBookmarks: List<BackupUserBookmark>? = null,
-)
+) {
+    val includesHistory: Boolean
+        get() = pdfRecords != null || userBookmarks != null
+}
 
 data class BackupSetting(
     val key: String? = null,
@@ -37,6 +40,7 @@ data class BackupPdfRecord(
     val textModeJoinParagraphs: Boolean? = null,
     val textModeDetectHeadings: Boolean? = null,
     val textModeCodeBlocks: Boolean? = null,
+    val hidden: Boolean = false,
 )
 
 data class BackupUserBookmark(
@@ -47,15 +51,14 @@ data class BackupUserBookmark(
     val sortOrder: Int = -1,
 )
 
+data class BackupExportOptions(
+    val includeSettings: Boolean,
+    val includeHistory: Boolean,
+    val includePasswords: Boolean,
+)
+
 data class ExportSummary(
     val settingsCount: Int,
     val recordsCount: Int,
     val bookmarksCount: Int,
-)
-
-data class ImportSummary(
-    val settingsApplied: Int,
-    val recordsInserted: Int,
-    val recordsUpdated: Int,
-    val bookmarksImported: Int,
 )

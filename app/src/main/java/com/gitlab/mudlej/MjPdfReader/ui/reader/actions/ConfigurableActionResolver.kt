@@ -55,6 +55,8 @@ class ConfigurableActionResolver(
         val tableOfContents: () -> Unit,
         val toggleBookmark: () -> Unit,
         val userBookmarks: () -> Unit,
+        val userNotes: () -> Unit,
+        val userHighlights: () -> Unit,
         val linksInFile: () -> Unit,
         val print: () -> Unit,
         val addSignature: () -> Unit,
@@ -226,6 +228,18 @@ class ConfigurableActionResolver(
                 R.drawable.ic_bookmarks,
                 visible = fileAvailable,
                 run = handlers.userBookmarks,
+            )
+            ConfigurableAction.USER_NOTES -> ConfiguredAction(
+                R.string.user_notes_title,
+                R.drawable.ic_comment,
+                visible = fileAvailable,
+                run = handlers.userNotes,
+            )
+            ConfigurableAction.USER_HIGHLIGHTS -> ConfiguredAction(
+                R.string.user_highlights_title,
+                R.drawable.ic_highlight,
+                visible = fileAvailable,
+                run = handlers.userHighlights,
             )
             ConfigurableAction.LINKS_IN_FILE -> ConfiguredAction(
                 R.string.links_in_file,

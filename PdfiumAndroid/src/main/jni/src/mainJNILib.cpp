@@ -1312,7 +1312,8 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
     jint blue,
     jint alpha,
     jstring contents,
-    jstring groupKey
+    jstring groupKey,
+    jstring creationDate
 ) {
     DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
@@ -1387,11 +1388,12 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
                 && FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, red, green, blue, 255)
                 && FPDFAnnot_AppendAttachmentPoints(annot, &quadpoints)
                 && FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT | FPDF_ANNOT_FLAG_HIDDEN)
-                && setAnnotWideString(env, annot, "Contents", contents)
+                && setAnnotWideString(env, annot, "MJQuote", contents)
                 && setAnnotAsciiString(annot, "T", "MJ PDF")
                 && setAnnotAsciiString(annot, "NM", name.c_str())
                 && setAnnotAsciiString(annot, "MJGroup", groupName.c_str())
-                && setAnnotAsciiString(annot, "MJColor", colorValue.c_str());
+                && setAnnotAsciiString(annot, "MJColor", colorValue.c_str())
+                && setAnnotWideString(env, annot, "CreationDate", creationDate);
         int annotIndex = FPDFPage_GetAnnotIndex(page, annot);
         FPDFPage_CloseAnnot(annot);
         if (!annotSuccess) {
@@ -1526,7 +1528,7 @@ JNI_FUNC(jobjectArray, PdfiumCore, nativeGetHighlightAnnotations)(JNI_ARGS,
     }
     jmethodID rectConstructor = env->GetMethodID(rectClass, "<init>", "(FFFF)V");
     jmethodID hitConstructor = env->GetMethodID(hitClass, "<init>",
-            "(ILjava/lang/String;Landroid/graphics/RectF;Ljava/lang/String;IZ)V");
+            "(ILjava/lang/String;Landroid/graphics/RectF;Ljava/lang/String;IZLjava/lang/String;Ljava/lang/String;)V");
     if (rectConstructor == NULL || hitConstructor == NULL) {
         env->DeleteLocalRef(rectClass);
         env->DeleteLocalRef(hitClass);
@@ -1571,10 +1573,13 @@ JNI_FUNC(jobjectArray, PdfiumCore, nativeGetHighlightAnnotations)(JNI_ARGS,
                 | ((green & 0xFF) << 8)
                 | (blue & 0xFF);
         jstring groupString = wideToJString(env, getAnnotWideString(annot, "MJGroup"));
-        jstring contentsString = wideToJString(env, getAnnotWideString(annot, "Contents"));
+        jstring contentsString = wideToJString(env, getAnnotWideString(annot, "MJQuote"));
+        jstring noteString = wideToJString(env, getAnnotWideString(annot, "Contents"));
+        jstring createdString = wideToJString(env, getAnnotWideString(annot, "CreationDate"));
         jboolean appOwned = isAppHighlightAnnotation(annot);
         jobject hitObject = env->NewObject(hitClass, hitConstructor,
-                static_cast<jint>(i), groupString, rectObject, contentsString, static_cast<jint>(color), appOwned);
+                static_cast<jint>(i), groupString, rectObject, contentsString, static_cast<jint>(color), appOwned,
+                noteString, createdString);
         if (hitObject != NULL) {
             annotations.push_back(env->NewGlobalRef(hitObject));
             env->DeleteLocalRef(hitObject);
@@ -1584,6 +1589,12 @@ JNI_FUNC(jobjectArray, PdfiumCore, nativeGetHighlightAnnotations)(JNI_ARGS,
         }
         if (contentsString != NULL) {
             env->DeleteLocalRef(contentsString);
+        }
+        if (noteString != NULL) {
+            env->DeleteLocalRef(noteString);
+        }
+        if (createdString != NULL) {
+            env->DeleteLocalRef(createdString);
         }
         env->DeleteLocalRef(rectObject);
         FPDFPage_CloseAnnot(annot);
@@ -1637,6 +1648,51 @@ JNI_FUNC(jboolean, PdfiumCore, nativeSetHighlightAnnotationColor)(JNI_ARGS,
                 success = false;
             }
             FPDFAnnot_SetFlags(annot, FPDFAnnot_GetFlags(annot) | FPDF_ANNOT_FLAG_PRINT);
+        }
+        FPDFPage_CloseAnnot(annot);
+
+        if (group.empty() && i == annotIndex) {
+            break;
+        }
+    }
+
+    return updatedAny && success;
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeSetHighlightAnnotationNote)(JNI_ARGS,
+    jlong pagePtr,
+    jint annotIndex,
+    jstring groupKey,
+    jstring note,
+    jstring modifiedDate
+) {
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (page == NULL) {
+        return false;
+    }
+
+    int annotCount = FPDFPage_GetAnnotCount(page);
+    std::vector<FPDF_WCHAR> group = jstringToWide(env, groupKey);
+    bool updatedAny = false;
+    bool success = true;
+
+    for (int i = 0; i < annotCount; i++) {
+        if (group.empty() && i != annotIndex) {
+            continue;
+        }
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (annot == NULL) {
+            continue;
+        }
+
+        bool matches = isAppHighlightAnnotation(annot)
+                && (group.empty() || wideEquals(getAnnotWideString(annot, "MJGroup"), group));
+        if (matches) {
+            updatedAny = true;
+            if (!setAnnotWideString(env, annot, "Contents", note)
+                    || !setAnnotWideString(env, annot, "M", modifiedDate)) {
+                success = false;
+            }
         }
         FPDFPage_CloseAnnot(annot);
 

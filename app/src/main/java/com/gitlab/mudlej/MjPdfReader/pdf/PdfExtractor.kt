@@ -125,6 +125,36 @@ class PdfExtractor(
         }
     }
 
+    fun getPageHighlights(pageIndex: Int): List<PdfDocument.HighlightAnnotation> {
+        var opened = false
+        try {
+            pdfiumCore.openPage(pdfDocument, pageIndex)
+            opened = true
+        }
+        catch (throwable: Throwable) {
+            Log.e(TAG, "getPageHighlights: failed to open page $pageIndex", throwable)
+            return listOf()
+        }
+        return try {
+            pdfiumCore.getHighlightAnnotations(pdfDocument, pageIndex)
+        }
+        finally {
+            if (opened) {
+                pdfiumCore.closePage(pdfDocument, pageIndex)
+            }
+        }
+    }
+
+    fun getMeta(): PdfDocument.Meta? {
+        return try {
+            pdfiumCore.getDocumentMeta(pdfDocument)
+        }
+        catch (throwable: Throwable) {
+            Log.e(TAG, "getMeta: failed to read document meta", throwable)
+            null
+        }
+    }
+
     fun getTableOfContents(): List<TableOfContentsEntry> {
         val tableOfContents = pdfiumCore.getTableOfContents(pdfDocument)
         return tableOfContents.mapIndexed { index, bookmark -> TableOfContentsEntry(bookmark, level = 0, path = index.toString()) }

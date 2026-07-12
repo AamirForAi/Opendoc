@@ -76,26 +76,25 @@ class LibraryScanner private constructor(
             return
         }
         pipelineJob = scope.launch {
-            if (pref.getScanMode() == ScanMode.NOT_CONFIGURED) {
-                return@launch
-            }
             quickSyncJob?.cancel()
             runCatching {
-                val roots = scanRoots()
+                val mode = pref.getScanMode()
                 val current = LinkedHashMap<String, ScannedPdfEntry>()
                 pdfRepository.findAllScannedPdfs().forEach { current[it.path] = it }
                 progressVisible = current.isEmpty()
                 publish(current, scanning = progressVisible)
 
                 val seenPaths = HashSet<String>()
-                mediaStorePass(current, seenPaths, roots)
+                mediaStorePass(current, seenPaths)
                 publish(current, scanning = progressVisible)
-                walkPass(current, seenPaths, roots)
-                pruneMissing(current, seenPaths, roots)
+                if (mode != ScanMode.NOT_CONFIGURED) {
+                    walkPass(current, seenPaths, walkRoots(mode))
+                }
+                pruneMissing(current, seenPaths)
                 publish(current, scanning = false)
                 lastCompletedAt = System.currentTimeMillis()
 
-                hashBackfill(current)
+                hashBackfill(current, mode)
             }.onFailure {
                 indexState.update { state -> state.copy(scanning = false) }
             }
@@ -169,37 +168,40 @@ class LibraryScanner private constructor(
         quickSyncJob?.cancel()
         quickSyncJob = scope.launch {
             delay(OBSERVER_DEBOUNCE_MILLIS)
-            if (pipelineJob?.isActive == true
-                || !PermissionManager.hasFullAccess(context)
-                || pref.getScanMode() == ScanMode.NOT_CONFIGURED
-            ) {
+            if (pipelineJob?.isActive == true || !PermissionManager.hasFullAccess(context)) {
                 return@launch
             }
             runCatching {
-                val roots = scanRoots()
                 val current = LinkedHashMap<String, ScannedPdfEntry>()
                 pdfRepository.findAllScannedPdfs().forEach { current[it.path] = it }
                 val seenPaths = HashSet<String>()
-                mediaStorePass(current, seenPaths, roots)
-                pruneMissing(current, seenPaths, roots)
+                mediaStorePass(current, seenPaths)
+                pruneMissing(current, seenPaths)
                 publish(current, scanning = false)
-                hashBackfill(current)
+                hashBackfill(current, pref.getScanMode())
             }
         }
     }
 
-    private fun scanRoots(): List<String>? {
-        return if (pref.getScanMode() == ScanMode.SELECTED_LOCATIONS) {
-            ScanScope.normalize(pref.getScanLocations())
+    fun libraryEntries(): List<ScannedPdfEntry> {
+        val roots = ScanScope.displayRoots(pref.getScanMode(), pref.getScanLocations())
+        if (roots == null) {
+            return indexState.value.entries
+        }
+        return indexState.value.entries.filter { ScanScope.contains(roots, it.path) }
+    }
+
+    private fun walkRoots(mode: ScanMode): List<File> {
+        return if (mode == ScanMode.SELECTED_LOCATIONS) {
+            ScanScope.normalize(pref.getScanLocations()).map(::File)
         } else {
-            null
+            listOf(File(StorageManager.ROOT_DIR))
         }
     }
 
     private suspend fun mediaStorePass(
         current: LinkedHashMap<String, ScannedPdfEntry>,
         seenPaths: MutableSet<String>,
-        roots: List<String>?,
     ) {
         val upserts = mutableListOf<ScannedPdfEntry>()
         runCatching {
@@ -225,9 +227,6 @@ class LibraryScanner private constructor(
                     if (!path.endsWith(".$PDF_SUFFIX", ignoreCase = true)) {
                         continue
                     }
-                    if (!ScanScope.contains(roots, path)) {
-                        continue
-                    }
                     mergeSighting(
                         current,
                         upserts,
@@ -245,12 +244,12 @@ class LibraryScanner private constructor(
     private suspend fun walkPass(
         current: LinkedHashMap<String, ScannedPdfEntry>,
         seenPaths: MutableSet<String>,
-        roots: List<String>?,
+        roots: List<File>,
     ) {
         val upserts = mutableListOf<ScannedPdfEntry>()
         var lastEmitAt = System.currentTimeMillis()
 
-        StorageManager().readAllFiles(roots?.map(::File) ?: listOf(File(StorageManager.ROOT_DIR)))
+        StorageManager().readAllFiles(roots)
             .filter { file ->
                 file.isFile && file.extension.equals(PDF_SUFFIX, ignoreCase = true)
             }
@@ -291,11 +290,8 @@ class LibraryScanner private constructor(
     private suspend fun pruneMissing(
         current: LinkedHashMap<String, ScannedPdfEntry>,
         seenPaths: Set<String>,
-        roots: List<String>?,
     ) {
-        val gone = current.keys.filter {
-            it !in seenPaths && (!ScanScope.contains(roots, it) || !File(it).exists())
-        }
+        val gone = current.keys.filter { it !in seenPaths && !File(it).exists() }
         if (gone.isEmpty()) {
             return
         }
@@ -303,8 +299,11 @@ class LibraryScanner private constructor(
         gone.chunked(SQL_CHUNK_SIZE).forEach { pdfRepository.pruneScannedPdfs(it) }
     }
 
-    private suspend fun hashBackfill(current: LinkedHashMap<String, ScannedPdfEntry>) {
-        val pending = current.values.filter { it.hash == null }
+    private suspend fun hashBackfill(current: LinkedHashMap<String, ScannedPdfEntry>, mode: ScanMode) {
+        val hashScope = ScanScope.displayRoots(mode, pref.getScanLocations())
+        val pending = current.values.filter {
+            it.hash == null && ScanScope.contains(hashScope, it.path)
+        }
         if (pending.isEmpty()) {
             return
         }

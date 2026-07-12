@@ -3,7 +3,9 @@
 package com.gitlab.mudlej.MjPdfReader.ui.home
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import com.gitlab.mudlej.MjPdfReader.R
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -14,6 +16,7 @@ data class ScanLocationRow(
     val name: String,
     val checkedState: Int,
     val checkboxEnabled: Boolean,
+    val isUp: Boolean = false,
 )
 
 class ScanLocationsAdapter(
@@ -36,6 +39,10 @@ class ScanLocationsAdapter(
 
         fun bind(row: ScanLocationRow) {
             binding.locationName.text = row.name
+            binding.locationIcon.setImageResource(
+                if (row.isUp) R.drawable.ic_small_arrow_up else R.drawable.ic_folder
+            )
+            binding.locationCheckBox.visibility = if (row.isUp) View.GONE else View.VISIBLE
             binding.locationCheckBox.setOnClickListener(null)
             binding.locationCheckBox.checkedState = row.checkedState
             binding.locationCheckBox.isEnabled = row.checkboxEnabled

@@ -81,7 +81,7 @@ class LibraryTabController(
         val gridItems = if (filter == ListFilter.ALL) {
             libraryScanner.refresh()
             libraryController.sort(
-                libraryController.mergeWithScan(allItems, libraryScanner.index.value.entries)
+                libraryController.mergeWithScan(allItems, libraryScanner.libraryEntries())
             )
         } else {
             libraryController.filterByChip(allItems, filter)

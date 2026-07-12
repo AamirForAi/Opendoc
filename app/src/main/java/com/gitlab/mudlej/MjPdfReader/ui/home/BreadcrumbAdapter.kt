@@ -2,10 +2,12 @@
 
 package com.gitlab.mudlej.MjPdfReader.ui.home
 
+import android.content.res.ColorStateList
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.setPadding
@@ -57,12 +59,17 @@ class BreadcrumbAdapter(
                 val isLast = index == crumbs.lastIndex
 
                 if (index > 0) {
-                    container.addView(TextView(context).apply {
-                        text = context.getString(R.string.home_breadcrumb_separator)
-                        setTextColor(onSurfaceVariant)
-                        setTextAppearance(R.style.TextAppearance_Material3_BodyMedium)
-                        val gap = dp(context, 4)
-                        setPadding(gap, 0, gap, 0)
+                    container.addView(ImageView(context).apply {
+                        setImageResource(R.drawable.ic_chevron_right)
+                        imageTintList = ColorStateList.valueOf(onSurfaceVariant)
+                        layoutParams = LinearLayout.LayoutParams(
+                            dp(context, 18),
+                            dp(context, 18),
+                        ).apply {
+                            gravity = Gravity.CENTER_VERTICAL
+                            marginStart = dp(context, 2)
+                            marginEnd = dp(context, 2)
+                        }
                     })
                 }
 

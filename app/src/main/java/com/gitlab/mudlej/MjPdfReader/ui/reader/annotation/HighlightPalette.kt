@@ -17,12 +17,17 @@ enum class HighlightPalette(
     GREEN(0xFF81C784.toInt(), R.string.highlight_green, R.string.color_green),
     PURPLE(0xFFB39DDB.toInt(), R.string.highlight_purple, R.string.color_purple),
     TEAL(0xFF4DB6AC.toInt(), R.string.highlight_teal, R.string.color_teal),
-    GRAY(0xFFBDBDBD.toInt(), R.string.highlight_gray, R.string.color_gray),
+    BROWN(0xFFA1887F.toInt(), R.string.highlight_brown, R.string.color_brown),
     CYAN(0xFF4DD0E1.toInt(), R.string.highlight_cyan, R.string.color_cyan),
-    RED(0xFFE57373.toInt(), R.string.highlight_red, R.string.color_red);
+    RED(0xFFE57373.toInt(), R.string.highlight_red, R.string.color_red),
+    GRAY(0xFFBDBDBD.toInt(), R.string.highlight_gray, R.string.color_gray);
 
     companion object {
-        val defaultSelection = listOf(YELLOW, ORANGE, GREEN, BLUE)
+        val defaultSelection = listOf(YELLOW, ORANGE, GREEN, BLUE, PINK_RED, PURPLE)
+
+        val noteHighlight = GRAY
+
+        val selectable = entries - GRAY
 
         fun fromName(value: String): HighlightPalette? = entries.firstOrNull { it.name == value }
 

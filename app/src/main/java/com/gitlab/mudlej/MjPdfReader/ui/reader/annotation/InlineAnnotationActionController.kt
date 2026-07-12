@@ -8,21 +8,27 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.RectF
 import android.net.Uri
+import android.text.InputType
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.FrameLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.github.barteksc.pdfviewer.PDFView
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.core.io.pdfDateNow
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
+import com.gitlab.mudlej.MjPdfReader.core.ui.confirmDialog
 import com.gitlab.mudlej.MjPdfReader.core.ui.copyToClipboard
+import com.gitlab.mudlej.MjPdfReader.ui.reader.share.showShareQuoteDialog
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import java.util.UUID
 
@@ -34,6 +40,7 @@ class InlineAnnotationActionController(
     private val updateSaveUiPosition: () -> Unit,
     private val isDetectExistingHighlightsEnabled: () -> Boolean,
     private val getHighlightColors: () -> List<Int>,
+    private val getDocumentName: () -> String,
     private val toggleReaderChrome: () -> Unit,
 ) {
     private var activeHighlightAnnotation: PDFView.HighlightAnnotation? = null
@@ -49,6 +56,10 @@ class InlineAnnotationActionController(
                 dismissCard()
             }
         }
+        binding.textSelectionShareButton.setOnClickListener { shareSelectedQuote() }
+        binding.textSelectionNoteButton.setOnClickListener { handleNoteClicked() }
+        binding.textSelectionTranslateButton.setOnClickListener { showNotImplemented() }
+        binding.textSelectionDiscardButton.setOnClickListener { dismissCard() }
         rebuildHighlightSwatches()
         binding.textSelectionDeleteHighlightButton.setOnClickListener { deleteActiveHighlightAnnotation() }
         binding.saveAnnotationsFab.setOnClickListener { onSaveClicked() }
@@ -85,13 +96,7 @@ class InlineAnnotationActionController(
             container.addView(swatchButton)
             swatchIds.add(swatchButton.id)
         }
-        binding.textSelectionActionFlow.referencedIds = (
-            swatchIds + listOf(
-                R.id.textSelectionDeleteHighlightButton,
-                R.id.textSelectionCopyButton,
-                R.id.textSelectionSearchWebButton,
-            )
-        ).toIntArray()
+        binding.textSelectionSwatchFlow.referencedIds = swatchIds.toIntArray()
     }
 
     fun handleImmediatePdfTap(event: MotionEvent): Boolean {
@@ -120,8 +125,13 @@ class InlineAnnotationActionController(
         activeHighlightAnnotation = null
         binding.pdfView.clearSelectedHighlightAnnotation()
         binding.textSelectionCopyButton.visibility = View.VISIBLE
+        binding.textSelectionShareButton.visibility = View.VISIBLE
         binding.textSelectionSearchWebButton.visibility = View.VISIBLE
+        binding.textSelectionNoteButton.visibility = View.VISIBLE
+        binding.textSelectionTranslateButton.visibility = View.VISIBLE
         binding.textSelectionDeleteHighlightButton.visibility = View.GONE
+        binding.textSelectionDiscardButton.visibility = View.VISIBLE
+        applyNoteButtonState(hasNote = false)
         showCard(viewBounds)
     }
 
@@ -154,8 +164,13 @@ class InlineAnnotationActionController(
         binding.pdfView.setSelectedHighlightAnnotation(annotation)
         val textActionVisibility = if (annotation.contents.isBlank()) View.GONE else View.VISIBLE
         binding.textSelectionCopyButton.visibility = textActionVisibility
+        binding.textSelectionShareButton.visibility = textActionVisibility
         binding.textSelectionSearchWebButton.visibility = textActionVisibility
+        binding.textSelectionTranslateButton.visibility = textActionVisibility
+        binding.textSelectionNoteButton.visibility = View.VISIBLE
         binding.textSelectionDeleteHighlightButton.visibility = View.VISIBLE
+        binding.textSelectionDiscardButton.visibility = View.GONE
+        applyNoteButtonState(hasNote = annotation.note.isNotBlank())
         showCard(annotation.viewBounds)
     }
 
@@ -192,7 +207,8 @@ class InlineAnnotationActionController(
     private fun addInlineHighlight(color: Int) {
         val request = binding.pdfView.getHighlightRequest()
         val groupKey = UUID.randomUUID().toString()
-        if (request == null || !binding.pdfView.addHighlight(request, color, groupKey)) {
+        val createdDate = pdfDateNow()
+        if (request == null || !binding.pdfView.addHighlight(request, color, groupKey, createdDate)) {
             AppSnackbar.make(binding.root, R.string.highlight_failed, Snackbar.LENGTH_SHORT).show()
             return
         }
@@ -200,8 +216,110 @@ class InlineAnnotationActionController(
         binding.pdfView.clearTextSelection()
         refreshCardRendering()
         onAnnotationEdit(
-            AnnotationEdit.Add(request.pageIndex, groupKey, request.pdfRects, color, request.selectedText)
+            AnnotationEdit.Add(request.pageIndex, groupKey, request.pdfRects, color, request.selectedText, createdDate)
         )
+    }
+
+    private fun handleNoteClicked() {
+        val annotation = activeHighlightAnnotation
+        if (annotation != null && annotation.note.isNotBlank()) {
+            showNoteViewDialog(annotation)
+        } else {
+            showNoteEditorDialog(annotation)
+        }
+    }
+
+    private fun applyNoteButtonState(hasNote: Boolean) {
+        binding.textSelectionNoteButton.setIconResource(if (hasNote) R.drawable.ic_comment else R.drawable.ic_comment_add)
+        binding.textSelectionNoteButton.contentDescription =
+            activity.getString(if (hasNote) R.string.view_note else R.string.add_note)
+    }
+
+    private fun showNoteEditorDialog(annotation: PDFView.HighlightAnnotation?) {
+        val density = activity.resources.displayMetrics.density
+        val editText = EditText(activity).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or
+                InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            minLines = 3
+            gravity = Gravity.TOP or Gravity.START
+            hint = activity.getString(R.string.note_hint)
+            setText(annotation?.note.orEmpty())
+            setSelection(text.length)
+        }
+        val container = FrameLayout(activity).apply {
+            setPadding((24 * density).toInt(), (8 * density).toInt(), (24 * density).toInt(), 0)
+            addView(editText)
+        }
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.note)
+            .setView(container)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val note = editText.text.toString().trim()
+                if (annotation != null) {
+                    applyNoteToAnnotation(annotation, note)
+                } else if (note.isNotBlank()) {
+                    addNoteToSelection(note)
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun showNoteViewDialog(annotation: PDFView.HighlightAnnotation) {
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.note)
+            .setMessage(annotation.note)
+            .setPositiveButton(R.string.edit) { _, _ -> showNoteEditorDialog(annotation) }
+            .setNegativeButton(R.string.close, null)
+            .setNeutralButton(R.string.delete) { _, _ ->
+                confirmDialog(
+                    activity,
+                    R.string.delete_note_title,
+                    activity.getString(R.string.delete_note_message),
+                    R.string.delete,
+                ) {
+                    applyNoteToAnnotation(annotation, "")
+                }
+            }
+            .show()
+    }
+
+    private fun applyNoteToAnnotation(annotation: PDFView.HighlightAnnotation, note: String) {
+        if (note.isBlank() && annotation.note.isBlank()) {
+            return
+        }
+        val date = pdfDateNow()
+        val updated = binding.pdfView.setHighlightAnnotationNote(annotation, note, date)
+        if (!updated) {
+            AppSnackbar.make(binding.root, R.string.note_failed, Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        hideActions()
+        onAnnotationEdit(AnnotationEdit.SetNote(annotation.pageIndex, annotation.groupKey, note, date))
+    }
+
+    private fun addNoteToSelection(note: String) {
+        val request = binding.pdfView.getHighlightRequest()
+        val groupKey = UUID.randomUUID().toString()
+        val createdDate = pdfDateNow()
+        val color = HighlightPalette.noteHighlight.colorValue
+        if (request == null || !binding.pdfView.addHighlight(request, color, groupKey, createdDate)) {
+            AppSnackbar.make(binding.root, R.string.highlight_failed, Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        onAnnotationEdit(
+            AnnotationEdit.Add(request.pageIndex, groupKey, request.pdfRects, color, request.selectedText, createdDate)
+        )
+
+        val reference = PDFView.HighlightAnnotation(request.pageIndex, -1, groupKey, null, "")
+        if (binding.pdfView.setHighlightAnnotationNote(reference, note, createdDate)) {
+            onAnnotationEdit(AnnotationEdit.SetNote(request.pageIndex, groupKey, note, createdDate))
+        } else {
+            AppSnackbar.make(binding.root, R.string.note_failed, Snackbar.LENGTH_SHORT).show()
+        }
+        binding.pdfView.clearTextSelection()
+        refreshCardRendering()
     }
 
     private fun updateActiveHighlightAnnotationColor(annotation: PDFView.HighlightAnnotation, color: Int) {
@@ -257,6 +375,20 @@ class InlineAnnotationActionController(
 
     private fun selectedText(): String {
         return activeHighlightAnnotation?.contents ?: binding.pdfView.getSelectedText()
+    }
+
+    private fun shareSelectedQuote() {
+        val text = selectedText()
+        if (text.isBlank()) {
+            return
+        }
+        val meta = binding.pdfView.documentMeta
+        val bookName = meta?.title?.takeIf { it.isNotBlank() } ?: getDocumentName()
+        showShareQuoteDialog(activity, text, bookName, meta?.author.orEmpty())
+    }
+
+    private fun showNotImplemented() {
+        AppSnackbar.make(binding.root, R.string.not_implemented_yet, Snackbar.LENGTH_SHORT).show()
     }
 
     private fun refreshCardRendering() {

@@ -10,6 +10,9 @@ import java.time.format.DateTimeFormatter
 
 val appDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 val appDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+private val pdfDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("'D:'yyyyMMddHHmmss")
+
+fun pdfDateNow(): String = LocalDateTime.now().format(pdfDateFormatter)
 
 fun convertDateString(input: String?): String? {
     if (input.isNullOrBlank()) return null
