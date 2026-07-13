@@ -3,7 +3,6 @@
 package com.gitlab.mudlej.MjPdfReader.ui.reader.actions
 
 import android.content.res.ColorStateList
-import android.graphics.Typeface
 import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
@@ -15,11 +14,11 @@ import android.widget.Space
 import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.core.widget.TextViewCompat
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.divider.MaterialDivider
 
 private const val COLOR_FALLBACK = 0
 private const val GRID_COLUMNS = 4
@@ -31,8 +30,8 @@ private const val TILE_LABEL_TEXT_SP = 12f
 private const val GRID_HORIZONTAL_PADDING_DP = 10
 private const val CONTENT_TOP_PADDING_DP = 12
 private const val CONTENT_BOTTOM_PADDING_DP = 18
-private const val SECTION_HEADER_START_PADDING_DP = 14
-private const val SECTION_HEADER_VERTICAL_PADDING_DP = 12
+private const val DIVIDER_HORIZONTAL_MARGIN_DP = 24
+private const val DIVIDER_VERTICAL_MARGIN_DP = 10
 private const val DISABLED_TILE_ALPHA = 0.38f
 
 data class ReaderAction(
@@ -44,7 +43,6 @@ data class ReaderAction(
 )
 
 data class ReaderMenuSection(
-    @StringRes val titleRes: Int,
     val actions: List<ReaderAction>,
 )
 
@@ -79,7 +77,9 @@ fun showReaderActionsDialog(activity: MainActivity, content: ReaderMenuContent) 
         if (actions.isEmpty()) {
             return@forEach
         }
-        column.addView(createSectionHeader(activity, section.titleRes, density))
+        if (column.childCount > 0) {
+            column.addView(createSectionDivider(activity, density))
+        }
         column.addView(buildTileGrid(activity, actions, GRID_COLUMNS, style) { dismiss() })
     }
 
@@ -91,25 +91,17 @@ fun showReaderActionsDialog(activity: MainActivity, content: ReaderMenuContent) 
     dialog.show()
 }
 
-private fun createSectionHeader(activity: MainActivity, @StringRes titleRes: Int, density: Float): View {
-    return TextView(activity).apply {
+private fun createSectionDivider(activity: MainActivity, density: Float): View {
+    return MaterialDivider(activity).apply {
         layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
-        )
-        text = activity.getString(titleRes)
-        isAllCaps = true
-        gravity = Gravity.CENTER
-        typeface = Typeface.DEFAULT_BOLD
-        letterSpacing = 0.06f
-        TextViewCompat.setTextAppearance(this, com.google.android.material.R.style.TextAppearance_Material3_TitleMedium)
-        setTextColor(MaterialColors.getColor(activity, R.attr.colorOnSurface, COLOR_FALLBACK))
-        setPadding(
-            dpToPx(SECTION_HEADER_START_PADDING_DP, density),
-            dpToPx(SECTION_HEADER_VERTICAL_PADDING_DP, density),
-            dpToPx(SECTION_HEADER_START_PADDING_DP, density),
-            dpToPx(SECTION_HEADER_VERTICAL_PADDING_DP, density),
-        )
+        ).apply {
+            marginStart = dpToPx(DIVIDER_HORIZONTAL_MARGIN_DP, density)
+            marginEnd = dpToPx(DIVIDER_HORIZONTAL_MARGIN_DP, density)
+            topMargin = dpToPx(DIVIDER_VERTICAL_MARGIN_DP, density)
+            bottomMargin = dpToPx(DIVIDER_VERTICAL_MARGIN_DP, density)
+        }
     }
 }
 

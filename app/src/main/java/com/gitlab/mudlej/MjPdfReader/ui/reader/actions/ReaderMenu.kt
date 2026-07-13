@@ -19,8 +19,8 @@ class ReaderMenu(
     private fun menuContent(): ReaderMenuContent {
         return ReaderMenuContent(
             sections = listOf(
-                ReaderMenuSection(R.string.reader_menu_actions, actionsSection()),
-                ReaderMenuSection(R.string.reader_menu_pages, pagesSection()),
+                ReaderMenuSection(actionsSection()),
+                ReaderMenuSection(pagesSection()),
             ),
         )
     }
