@@ -35,7 +35,7 @@ MJ PDF is a fast, simple, powerful and totally private PDF reader made by [Mudle
 | **Dark Mode** | **Reader Menu** | **Share Quotes** |
 | <img src="assets/screenshots/reader_dark.webp" alt="Dark mode" width="250"/> | <img src="assets/screenshots/reader_menu.webp" alt="Reader menu" width="250"/> | <img src="assets/screenshots/quote_share.webp" alt="Share quotes as images" width="250"/> |
 
-More screenshots are in the [screenshots folder](assets/screenshots/).
+More screenshots are in the [MJ PDF Gallery](http://mudlej.com/projects/mj-pdf/supplements/gallery/).
 
 ## What's new in 3.0
 Version 3.0 is the biggest update in MJ PDF's history, closer to a rewrite of the app. The short version:
