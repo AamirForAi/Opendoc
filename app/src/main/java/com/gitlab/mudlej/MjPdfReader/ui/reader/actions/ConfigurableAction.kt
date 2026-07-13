@@ -95,7 +95,6 @@ enum class ConfigurableAction(
             HORIZONTAL_LOCK,
             READING_DIRECTION,
             AUTO_SCROLL,
-            TOGGLE_LABELS,
             NAV_BACK,
             NAV_FORWARD,
             NAV_HISTORY,
@@ -108,6 +107,7 @@ enum class ConfigurableAction(
             RELOAD,
             SCREENSHOT,
             INCOGNITO,
+            TOGGLE_LABELS,
         )
 
         val shortcutBarActions = listOf(

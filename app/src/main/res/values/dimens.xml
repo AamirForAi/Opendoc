@@ -11,7 +11,7 @@
     <dimen name="fs_button_icon_padding">7dp</dimen>
     <dimen name="fs_button_text_size">12sp</dimen>
     <dimen name="fs_panel_margin">8dp</dimen>
-    <dimen name="fs_panel_margin_top">28dp</dimen>
+    <dimen name="fs_panel_margin_top">32dp</dimen>
     <dimen name="fs_panel_padding">8dp</dimen>
     <dimen name="fs_panel_fading_edge">24dp</dimen>
     <dimen name="fullscreen_info_max_width">280dp</dimen>
