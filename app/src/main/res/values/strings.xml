@@ -101,7 +101,7 @@
     <string name="whats_new_settings_title">Reorganized settings</string>
     <string name="whats_new_settings_body">Settings were regrouped and every option rewritten for clarity.</string>
     <string name="whats_new_languages_title">New languages</string>
-    <string name="whats_new_languages_body">Dutch, Polish, French, Italian and Simplified Chinese.</string>
+    <string name="whats_new_languages_body">Italian, Dutch, French, Simplified Chinese, Persian, Polish, and Ukrainian.</string>
     <string name="whats_new_section_performance">Performance and fixes</string>
     <string name="whats_new_rendering_title">Faster rendering</string>
     <string name="whats_new_rendering_body">The PDF engine is now built for speed and pages render noticeably faster.</string>
@@ -365,6 +365,7 @@
     <string name="share_quote_author">Author</string>
     <string name="share_quote_show_made_by">Show made by MJ PDF</string>
     <string name="share_quote_reflow">Remove line breaks</string>
+    <string name="share_quote_shortened">The quote was shortened to fit the card</string>
     <string name="theme_rose">Rose</string>
     <string name="theme_lavender">Lavender</string>
     <string name="theme_mint">Mint</string>
@@ -858,6 +859,22 @@
     <string name="settings_home_summary">Home library screen and its behavior</string>
     <string name="home_show_pdf_title_title">Show PDF Titles</string>
     <string name="home_show_pdf_title_summary">Use the title from the PDF metadata when available instead of the file name.</string>
+    <string name="home_grid_title_lines_title">Grid Title Lines</string>
+    <string name="home_grid_title_lines_summary">How many lines the file name can use on grid cards before it is shortened.</string>
+    <string name="home_list_title_lines_title">List Title Lines</string>
+    <string name="home_list_title_lines_summary">How many lines the file name can use on list rows before it is shortened.</string>
+    <string name="home_title_ellipsize_title">Title Truncation</string>
+    <string name="home_title_ellipsize_summary">Where the three dots go when a file name is too long to fit.</string>
+    <string name="home_title_ellipsize_start">Start</string>
+    <string name="home_title_ellipsize_middle">Middle</string>
+    <string name="home_title_ellipsize_end">End</string>
+    <plurals name="home_title_lines">
+        <item quantity="one">%d line</item>
+        <item quantity="other">%d lines</item>
+    </plurals>
+    <string name="home_progress_style_title">Reading Progress Indicator</string>
+    <string name="home_progress_style_ring">Progress ring with percentage</string>
+    <string name="home_progress_style_bar">Progress bar under the cover</string>
 
     <string name="incognito">Incognito</string>
     <string name="incognito_exit">Exit Incognito</string>

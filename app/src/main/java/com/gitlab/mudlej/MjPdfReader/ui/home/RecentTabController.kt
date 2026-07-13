@@ -6,18 +6,20 @@ import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import kotlinx.coroutines.CoroutineScope
 
 class RecentTabController(
     coverCache: CoverCache,
     scope: CoroutineScope,
     functions: HomeItemFunctions,
+    pref: Preferences,
     private val libraryController: HomeLibraryController,
     selection: () -> Set<String> = { emptySet() },
 ) {
 
     private val sectionsAdapter = HomeSectionsAdapter(coverCache, scope, functions)
-    private val rowsAdapter = LibraryAdapter(coverCache, scope, functions, selection).apply {
+    private val rowsAdapter = LibraryAdapter(coverCache, scope, functions, pref, selection).apply {
         viewMode = HomeViewMode.LIST
         metaStyle = ListMetaStyle.RECENT
     }
@@ -50,6 +52,8 @@ class RecentTabController(
     }
 
     fun currentItems(): List<HomeItem> = rowsAdapter.currentList
+
+    fun applyTitleStyle() = rowsAdapter.applyTitleStyle()
 
     fun notifySelectionChanged() = rowsAdapter.notifySelectionChanged()
 

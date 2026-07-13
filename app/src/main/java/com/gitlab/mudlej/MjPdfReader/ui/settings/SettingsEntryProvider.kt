@@ -42,6 +42,37 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 summaryRes = R.string.home_show_pdf_title_summary,
                 keywords = listOf("home", "title", "metadata", "name"),
             ),
+            SettingEntry(
+                page = SettingsPage.HOME,
+                titleRes = R.string.home_progress_style_title,
+                keywords = listOf("home", "progress", "ring", "bar", "indicator", "cover", "percent"),
+            ) { breadcrumb ->
+                homeProgressStylePreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.HOME,
+                titleRes = R.string.home_grid_title_lines_title,
+                summaryRes = R.string.home_grid_title_lines_summary,
+                keywords = listOf("home", "title", "name", "lines", "grid", "rows", "wrap", "truncate"),
+            ) { breadcrumb ->
+                homeGridTitleLinesPreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.HOME,
+                titleRes = R.string.home_list_title_lines_title,
+                summaryRes = R.string.home_list_title_lines_summary,
+                keywords = listOf("home", "title", "name", "lines", "list", "rows", "wrap", "truncate"),
+            ) { breadcrumb ->
+                homeListTitleLinesPreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.HOME,
+                titleRes = R.string.home_title_ellipsize_title,
+                summaryRes = R.string.home_title_ellipsize_summary,
+                keywords = listOf("home", "title", "name", "ellipsis", "ellipsize", "truncate", "dots", "start", "middle", "end"),
+            ) { breadcrumb ->
+                homeTitleEllipsizePreference(breadcrumb)
+            },
         )
     }
 

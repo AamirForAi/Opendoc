@@ -32,7 +32,7 @@ class FoldersTabController(
     )
     private val breadcrumbAdapter = BreadcrumbAdapter { path -> navigateTo(path) }
     private val folderAdapter = FolderAdapter { node -> navigateTo(node.path) }
-    private val filesAdapter = LibraryAdapter(coverCache, scope, functions, selection).apply {
+    private val filesAdapter = LibraryAdapter(coverCache, scope, functions, pref, selection).apply {
         viewMode = HomeViewMode.LIST
         metaStyle = ListMetaStyle.FOLDERS
     }
@@ -67,6 +67,8 @@ class FoldersTabController(
     fun canGoBack(): Boolean = currentDir != null
 
     fun currentItems(): List<HomeItem> = filesAdapter.currentList
+
+    fun applyTitleStyle() = filesAdapter.applyTitleStyle()
 
     fun notifySelectionChanged() = filesAdapter.notifySelectionChanged()
 

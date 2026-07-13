@@ -679,13 +679,59 @@ public class PdfiumCore {
         if (text == null || text.isEmpty()) {
             return "";
         }
-        // Some PDFs expose Arabic presentation forms/ligatures. NFKC converts
-        // compatibility glyph forms back to normal Unicode letters for copying.
-        return Normalizer.normalize(text, Normalizer.Form.NFKC)
-                .replace('\uFFFE', '-')
+        return Normalizer.normalize(mapPresentationFormMarks(text), Normalizer.Form.NFKC)
+                .replace("\uFFFE\r\n", "")
+                .replace("\uFFFE\n", "")
+                .replace("\uFFFE\r", "")
+                .replace("\uFFFE", "")
                 .replace("\u200B", "")
                 .replace("\r\n", "\n")
                 .replace('\r', '\n');
+    }
+
+    public static String mapPresentationFormMarks(String text) {
+        char[] chars = null;
+        for (int i = 0; i < text.length(); i++) {
+            char mapped = mapPresentationFormMark(text.charAt(i));
+            if (mapped != text.charAt(i)) {
+                if (chars == null) {
+                    chars = text.toCharArray();
+                }
+                chars[i] = mapped;
+            }
+        }
+        return chars == null ? text : new String(chars);
+    }
+
+    private static char mapPresentationFormMark(char c) {
+        switch (c) {
+            case '\uFE70':  // fathatan isolated form
+            case '\uFE71':  // tatweel with fathatan above
+                return '\u064B';  // fathatan
+            case '\uFE72':  // dammatan isolated form
+                return '\u064C';  // dammatan
+            case '\uFE74':  // kasratan isolated form
+                return '\u064D';  // kasratan
+            case '\uFE76':  // fatha isolated form
+            case '\uFE77':  // fatha medial form
+                return '\u064E';  // fatha
+            case '\uFE78':  // damma isolated form
+            case '\uFE79':  // damma medial form
+                return '\u064F';  // damma
+            case '\uFE7A':  // kasra isolated form
+            case '\uFE7B':  // kasra medial form
+                return '\u0650';  // kasra
+            case '\uFE7C':  // shadda isolated form
+            case '\uFE7D':  // shadda medial form
+                return '\u0651';  // shadda
+            case '\uFE7E':  // sukun isolated form
+            case '\uFE7F':  // sukun medial form
+                return '\u0652';  // sukun
+            case '\uFE73':  // tail fragment, a rendering artifact
+                return '\u200B';  // zero width space, stripped by the normalizers
+            default:
+                return c;
+        }
     }
 
     public Map<Integer, String> getPagesText(PdfDocument doc, int start, int end) {

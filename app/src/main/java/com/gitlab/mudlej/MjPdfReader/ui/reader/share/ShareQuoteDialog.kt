@@ -29,6 +29,10 @@ fun showShareQuoteDialog(
     binding.bookNameInput.setText(bookName)
     binding.authorInput.setText(author)
 
+    val trimmedQuote = shortenQuote(quote.trim())
+    binding.shortenedNotice.visibility = if (trimmedQuote != null) View.VISIBLE else View.GONE
+    val cardQuote = trimmedQuote ?: quote
+
     val themeChips = listOf(
         binding.themeLight to QuoteCardTheme.LIGHT,
         binding.themeDark to QuoteCardTheme.DARK,
@@ -41,7 +45,7 @@ fun showShareQuoteDialog(
     fun currentOptions(): QuoteCardOptions {
         val theme = themeChips.firstOrNull { it.first.isChecked }?.second ?: QuoteCardTheme.LIGHT
         return QuoteCardOptions(
-            quote = quote,
+            quote = cardQuote,
             bookName = binding.bookNameInput.text?.toString().orEmpty(),
             author = binding.authorInput.text?.toString().orEmpty(),
             showMadeBy = binding.madeBySwitch.isChecked,
@@ -81,6 +85,16 @@ fun showShareQuoteDialog(
         }
         .setNegativeButton(R.string.cancel, null)
         .show()
+}
+
+private fun shortenQuote(quote: String): String? {
+    if (quote.length <= QuoteImageRenderer.MAX_QUOTE_CHARS) {
+        return null
+    }
+    val cut = quote.take(QuoteImageRenderer.MAX_QUOTE_CHARS)
+    val boundary = cut.indexOfLast { it.isWhitespace() }
+    val kept = if (boundary > QuoteImageRenderer.MAX_QUOTE_CHARS / 2) cut.substring(0, boundary) else cut
+    return kept.trimEnd() + "…"
 }
 
 private fun shareQuoteBitmap(activity: Activity, bitmap: Bitmap) {

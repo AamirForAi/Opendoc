@@ -16,6 +16,10 @@ fun AppCompatActivity.applyIncognitoNightMode() {
     delegate.localNightMode = AppCompatDelegate.MODE_NIGHT_YES
 }
 
+fun AppCompatActivity.clearIncognitoNightMode() {
+    delegate.localNightMode = AppCompatDelegate.MODE_NIGHT_UNSPECIFIED
+}
+
 fun AppCompatActivity.applyIncognitoOverlay() {
     theme.applyStyle(R.style.IncognitoThemeOverlay, true)
 }

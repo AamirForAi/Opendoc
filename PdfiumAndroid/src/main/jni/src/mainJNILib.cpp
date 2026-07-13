@@ -21,6 +21,7 @@ using namespace android;
 #include <fpdfview.h>
 #include <fpdf_doc.h>
 #include <fpdf_text.h>
+#include <fpdf_searchex.h>
 #include <fpdf_annot.h>
 #include <fpdf_formfill.h>
 #include <fpdf_edit.h>
@@ -2034,6 +2035,146 @@ JNI_FUNC(jint, PdfiumCore, nativeClearSearchResultAnnot)(JNI_ARGS, jlong pagePtr
     return removed;
 }
 
+static bool isAttachableArabicMark(jchar c) {
+    return (c >= 0x0610 && c <= 0x061A)
+            || (c >= 0x064B && c <= 0x065F)
+            || c == 0x0670
+            || (c >= 0x06D6 && c <= 0x06DC)
+            || (c >= 0x06DF && c <= 0x06E4)
+            || c == 0x06E7 || c == 0x06E8
+            || (c >= 0x06EA && c <= 0x06ED)
+            || (c >= 0x08D3 && c <= 0x08FF)
+            || (c >= 0xFE70 && c <= 0xFE7F);
+}
+
+static const int kMarkBaseWindow = 8;
+static const double kDegenerateBoxSize = 0.01;
+
+static void reorderArabicMarks(FPDF_TEXTPAGE textPage, int firstCharIndex, jchar* buf, int len) {
+    if (len <= 1) {
+        return;
+    }
+    bool hasMark = false;
+    for (int i = 0; i < len; i++) {
+        if (isAttachableArabicMark(buf[i])) {
+            hasMark = true;
+            break;
+        }
+    }
+    if (!hasMark) {
+        return;
+    }
+
+    int charCount = FPDFText_CountChars(textPage);
+    int textStart = -1;
+    while (firstCharIndex < charCount) {
+        textStart = FPDFText_GetTextIndexFromCharIndex(textPage, firstCharIndex);
+        if (textStart >= 0) {
+            break;
+        }
+        firstCharIndex++;
+    }
+    if (textStart < 0) {
+        return;
+    }
+
+    std::vector<int> charIndex(len);
+    for (int i = 0; i < len; i++) {
+        charIndex[i] = FPDFText_GetCharIndexFromTextIndex(textPage, textStart + i);
+        if (charIndex[i] < 0) {
+            return;
+        }
+    }
+
+    std::vector<int> attachedTo(len, -1);
+    bool anyAttached = false;
+    for (int i = 0; i < len; i++) {
+        if (!isAttachableArabicMark(buf[i])) {
+            continue;
+        }
+        double left, right, bottom, top;
+        if (!FPDFText_GetCharBox(textPage, charIndex[i], &left, &right, &bottom, &top)) {
+            continue;
+        }
+        if (right - left < kDegenerateBoxSize) {
+            double x, y;
+            if (FPDFText_GetCharOrigin(textPage, charIndex[i], &x, &y)) {
+                left = x;
+                right = x;
+            }
+        }
+        double markCenterY = (bottom + top) / 2.0;
+
+        int best = -1;
+        double bestOverlap = 0.0;
+        double bestDy = 0.0;
+        int windowStart = i - kMarkBaseWindow < 0 ? 0 : i - kMarkBaseWindow;
+        int windowEnd = i + kMarkBaseWindow >= len ? len - 1 : i + kMarkBaseWindow;
+        for (int j = windowStart; j <= windowEnd; j++) {
+            jchar c = buf[j];
+            if (j == i || isAttachableArabicMark(c)
+                    || c == 0x0020 || c == 0xFFFE || c == '\r' || c == '\n') {
+                continue;
+            }
+            double bl, br, bb, bt;
+            if (!FPDFText_GetCharBox(textPage, charIndex[j], &bl, &br, &bb, &bt)) {
+                continue;
+            }
+            double baseHeight = bt - bb;
+            if (br - bl < kDegenerateBoxSize || baseHeight < kDegenerateBoxSize) {
+                continue;
+            }
+            double overlap;
+            if (right > left) {
+                double lo = left > bl ? left : bl;
+                double hi = right < br ? right : br;
+                overlap = hi - lo;
+            } else {
+                overlap = (left >= bl && left <= br) ? br - bl : 0.0;
+            }
+            if (overlap <= 0.0) {
+                continue;
+            }
+            double dy = fabs(markCenterY - (bb + bt) / 2.0);
+            if (dy > 1.5 * baseHeight) {
+                continue;
+            }
+            if (best < 0 || overlap > bestOverlap
+                    || (overlap == bestOverlap && dy < bestDy)) {
+                best = j;
+                bestOverlap = overlap;
+                bestDy = dy;
+            }
+        }
+        if (best >= 0) {
+            attachedTo[i] = best;
+            anyAttached = true;
+        }
+    }
+    if (!anyAttached) {
+        return;
+    }
+
+    std::vector<jchar> out;
+    out.reserve(len);
+    for (int i = 0; i < len; i++) {
+        if (attachedTo[i] >= 0) {
+            continue;
+        }
+        out.push_back(buf[i]);
+        int lo = i - kMarkBaseWindow < 0 ? 0 : i - kMarkBaseWindow;
+        int hi = i + kMarkBaseWindow >= len ? len - 1 : i + kMarkBaseWindow;
+        for (int m = lo; m <= hi; m++) {
+            if (attachedTo[m] == i) {
+                out.push_back(buf[m]);
+            }
+        }
+    }
+    if ((int) out.size() == len) {
+        memcpy(buf, out.data(), len * sizeof(jchar));
+    }
+}
+
 JNI_FUNC(jstring, PdfiumCore, nativeGetPageText)(JNI_ARGS, jlong pagePtr) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
     FPDF_TEXTPAGE pageText = FPDFText_LoadPage(page);
@@ -2053,15 +2194,8 @@ JNI_FUNC(jstring, PdfiumCore, nativeGetPageText)(JNI_ARGS, jlong pagePtr) {
     }
     int length = FPDFText_GetText(pageText, 0, charCount, str);
 
-    // ---------
-    //LOGD("string: %s", env->GetStringUTFChars(string, 0));
-    //for (int i = 0; i < length; ++i) {
-    //    if (str[i] == -2) str[i] = '-';
-    //    //LOGD("char: %c value: %hd", str[i], str[i]);
-    //}
-    // ---------
-
     if (length > 0) {
+        reorderArabicMarks(pageText, 0, str, length - 1);
         jstring result = env->NewString(str, length - 1);       // no trailing zero
         free(str);
         FPDFText_ClosePage(pageText);
@@ -2382,6 +2516,7 @@ JNI_FUNC(jstring, PdfiumCore, nativeTextRange)(JNI_ARGS, jlong textPagePtr,
         return env->NewStringUTF("");
     }
 
+    reorderArabicMarks(textPage, start, str, len - 1);
     jstring result = env->NewString(str, len - 1);
     free(str);
     return result;

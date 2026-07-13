@@ -21,6 +21,17 @@
             android:contentDescription="@string/share_quote"
             android:scaleType="fitCenter" />
 
+        <TextView
+            android:id="@+id/shortenedNotice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="@string/share_quote_shortened"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
+
         <LinearLayout
             android:id="@+id/customizeHeader"
             android:layout_width="match_parent"

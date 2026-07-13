@@ -6,8 +6,10 @@ import android.content.SharedPreferences
 import com.gitlab.mudlej.MjPdfReader.ui.reader.annotation.HighlightPalette
 import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableAction
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeGridSize
+import com.gitlab.mudlej.MjPdfReader.ui.home.HomeProgressStyle
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeSortOrder
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeTab
+import com.gitlab.mudlej.MjPdfReader.ui.home.HomeTitleEllipsize
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeViewMode
 import com.gitlab.mudlej.MjPdfReader.ui.home.ListFilter
 import com.gitlab.mudlej.MjPdfReader.ui.home.ScanMode
@@ -88,7 +90,11 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val homeTabKey = "homeTab"
         const val homeFolderFlatKey = "homeFolderFlat"
         const val homeViewModeKey = "homeViewMode"
+        const val homeProgressStyleKey = "homeProgressStyle"
         const val homeGridSizeKey = "homeGridSize"
+        const val homeListTitleLinesKey = "homeListTitleLines"
+        const val homeGridTitleLinesKey = "homeGridTitleLines"
+        const val homeTitleEllipsizeKey = "homeTitleEllipsize"
         const val goToPageGridColumnsKey = "goToPageGridColumns"
         const val backupFolderTreeUriKey = "backupFolderTreeUri"
         const val autoBackupEnabledKey = "autoBackupEnabled"
@@ -164,7 +170,11 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val homeTabDefault = "RECENT"
         const val homeFolderFlatDefault = false
         const val homeViewModeDefault = "GRID"
+        const val homeProgressStyleDefault = "RING"
         const val homeGridSizeDefault = "MEDIUM"
+        const val homeListTitleLinesDefault = 2
+        const val homeGridTitleLinesDefault = 2
+        const val homeTitleEllipsizeDefault = "END"
         const val homeSortDefault = "LAST_OPENED"
         const val historyEnabledDefault = true
         const val scanModeDefault = "NOT_CONFIGURED"
@@ -319,7 +329,11 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getHomeTab() = HomeTab.valueOf(prefMan.getString(homeTabKey, homeTabDefault) as String)
     fun getHomeFolderFlat() = prefMan.getBoolean(homeFolderFlatKey, homeFolderFlatDefault)
     fun getHomeViewMode() = HomeViewMode.valueOf(prefMan.getString(homeViewModeKey, homeViewModeDefault) as String)
+    fun getHomeProgressStyle() = HomeProgressStyle.valueOf(prefMan.getString(homeProgressStyleKey, homeProgressStyleDefault) as String)
     fun getHomeGridSize() = HomeGridSize.valueOf(prefMan.getString(homeGridSizeKey, homeGridSizeDefault) as String)
+    fun getHomeListTitleLines() = prefMan.getInt(homeListTitleLinesKey, homeListTitleLinesDefault)
+    fun getHomeGridTitleLines() = prefMan.getInt(homeGridTitleLinesKey, homeGridTitleLinesDefault)
+    fun getHomeTitleEllipsize() = HomeTitleEllipsize.valueOf(prefMan.getString(homeTitleEllipsizeKey, homeTitleEllipsizeDefault) as String)
     fun getHomeSort() = HomeSortOrder.valueOf(prefMan.getString(homeSortKey, homeSortDefault) as String)
     fun getHistoryEnabled() = prefMan.getBoolean(historyEnabledKey, historyEnabledDefault)
     fun getScanMode() = ScanMode.valueOf(prefMan.getString(scanModeKey, scanModeDefault) as String)
@@ -421,7 +435,11 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setHomeTab(value: HomeTab) = prefMan.edit().putString(homeTabKey, value.name).apply()
     fun setHomeFolderFlat(value: Boolean) = prefMan.edit().putBoolean(homeFolderFlatKey, value).apply()
     fun setHomeViewMode(value: HomeViewMode) = prefMan.edit().putString(homeViewModeKey, value.name).apply()
+    fun setHomeProgressStyle(value: HomeProgressStyle) = prefMan.edit().putString(homeProgressStyleKey, value.name).apply()
     fun setHomeGridSize(value: HomeGridSize) = prefMan.edit().putString(homeGridSizeKey, value.name).apply()
+    fun setHomeListTitleLines(value: Int) = prefMan.edit().putInt(homeListTitleLinesKey, value).apply()
+    fun setHomeGridTitleLines(value: Int) = prefMan.edit().putInt(homeGridTitleLinesKey, value).apply()
+    fun setHomeTitleEllipsize(value: HomeTitleEllipsize) = prefMan.edit().putString(homeTitleEllipsizeKey, value.name).apply()
     fun setHomeSort(value: HomeSortOrder) = prefMan.edit().putString(homeSortKey, value.name).apply()
     fun setHistoryEnabled(value: Boolean) = prefMan.edit().putBoolean(historyEnabledKey, value).apply()
     fun setScanMode(value: ScanMode) = prefMan.edit().putString(scanModeKey, value.name).apply()

@@ -26,7 +26,7 @@ class LibraryTabController(
     onFilterChanged: () -> Unit,
 ) {
 
-    val libraryAdapter = LibraryAdapter(coverCache, scope, functions, selection)
+    val libraryAdapter = LibraryAdapter(coverCache, scope, functions, pref, selection)
 
     private val sectionsAdapter = HomeSectionsAdapter(
         coverCache,
@@ -47,6 +47,7 @@ class LibraryTabController(
     fun attach(recyclerView: RecyclerView) {
         spanCount = computeSpanCount()
         libraryAdapter.viewMode = pref.getHomeViewMode()
+        libraryAdapter.progressStyle = pref.getHomeProgressStyle()
         libraryAdapter.coverWidthPx = context.resources.displayMetrics.widthPixels / spanCount
 
         val layoutManager = GridLayoutManager(context, spanCount)
@@ -109,6 +110,18 @@ class LibraryTabController(
     fun applyViewMode() {
         libraryAdapter.viewMode = pref.getHomeViewMode()
         libraryAdapter.notifyDataSetChanged()
+    }
+
+    fun applyProgressStyle() {
+        val style = pref.getHomeProgressStyle()
+        if (libraryAdapter.progressStyle != style) {
+            libraryAdapter.progressStyle = style
+            libraryAdapter.notifyDataSetChanged()
+        }
+    }
+
+    fun applyTitleStyle() {
+        libraryAdapter.applyTitleStyle()
     }
 
     fun applyGridSize() {

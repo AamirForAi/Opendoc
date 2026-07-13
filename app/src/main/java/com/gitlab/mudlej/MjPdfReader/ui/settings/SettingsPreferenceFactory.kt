@@ -29,6 +29,8 @@ import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationEngine
 import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationLanguages
 import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationUrlBuilder
 import com.gitlab.mudlej.MjPdfReader.ui.history.ReadingHistoryActivity
+import com.gitlab.mudlej.MjPdfReader.ui.home.HomeProgressStyle
+import com.gitlab.mudlej.MjPdfReader.ui.home.HomeTitleEllipsize
 import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableAction
 import com.gitlab.mudlej.MjPdfReader.core.ui.SegmentedButtonStyler
 import com.google.android.material.button.MaterialButtonToggleGroup
@@ -102,6 +104,124 @@ internal class SettingsPreferenceFactory(
             initialSelectedMode = appPreferences.getPdfPagesTheme(),
         ) { mode ->
             appPreferences.setPdfPagesTheme(mode)
+        }
+    }
+
+    private val titleLineOptions = listOf(1, 2, 3, 4, 5)
+
+    private fun progressStyleLabel(style: HomeProgressStyle): String {
+        return when (style) {
+            HomeProgressStyle.RING -> getString(R.string.home_progress_style_ring)
+            HomeProgressStyle.BAR -> getString(R.string.home_progress_style_bar)
+        }
+    }
+
+    fun homeProgressStylePreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val styles = HomeProgressStyle.entries
+        return Preference(context).apply {
+            title = getString(R.string.home_progress_style_title)
+            key = Preferences.homeProgressStyleKey
+            summary = formatSummary(breadcrumb, progressStyleLabel(appPreferences.getHomeProgressStyle()))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showSingleChoiceDialog(
+                    title = getString(R.string.home_progress_style_title),
+                    items = styles.map { progressStyleLabel(it) },
+                    checkedIndex = styles.indexOf(appPreferences.getHomeProgressStyle()),
+                    onReset = {
+                        appPreferences.setHomeProgressStyle(HomeProgressStyle.valueOf(Preferences.homeProgressStyleDefault))
+                        host?.refreshPreferences()
+                    },
+                ) { index ->
+                    appPreferences.setHomeProgressStyle(styles[index])
+                    host?.refreshPreferences()
+                }
+                true
+            }
+        }
+    }
+
+    fun homeTitleEllipsizePreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val options = HomeTitleEllipsize.entries
+        return Preference(context).apply {
+            title = getString(R.string.home_title_ellipsize_title)
+            key = Preferences.homeTitleEllipsizeKey
+            summary = formatSummary(breadcrumb, getString(appPreferences.getHomeTitleEllipsize().labelRes))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showSingleChoiceDialog(
+                    title = getString(R.string.home_title_ellipsize_title),
+                    items = options.map { getString(it.labelRes) },
+                    checkedIndex = options.indexOf(appPreferences.getHomeTitleEllipsize()),
+                    onReset = {
+                        appPreferences.setHomeTitleEllipsize(HomeTitleEllipsize.valueOf(Preferences.homeTitleEllipsizeDefault))
+                        host?.refreshPreferences()
+                    },
+                ) { index ->
+                    appPreferences.setHomeTitleEllipsize(options[index])
+                    host?.refreshPreferences()
+                }
+                true
+            }
+        }
+    }
+
+    fun homeGridTitleLinesPreference(breadcrumb: String?): Preference {
+        return titleLinesPreference(
+            titleRes = R.string.home_grid_title_lines_title,
+            key = Preferences.homeGridTitleLinesKey,
+            currentValue = appPreferences.getHomeGridTitleLines(),
+            defaultValue = Preferences.homeGridTitleLinesDefault,
+            breadcrumb = breadcrumb,
+            onSelected = appPreferences::setHomeGridTitleLines,
+        )
+    }
+
+    fun homeListTitleLinesPreference(breadcrumb: String?): Preference {
+        return titleLinesPreference(
+            titleRes = R.string.home_list_title_lines_title,
+            key = Preferences.homeListTitleLinesKey,
+            currentValue = appPreferences.getHomeListTitleLines(),
+            defaultValue = Preferences.homeListTitleLinesDefault,
+            breadcrumb = breadcrumb,
+            onSelected = appPreferences::setHomeListTitleLines,
+        )
+    }
+
+    private fun titleLinesPreference(
+        @StringRes titleRes: Int,
+        key: String,
+        currentValue: Int,
+        defaultValue: Int,
+        breadcrumb: String?,
+        onSelected: (Int) -> Unit,
+    ): Preference {
+        val host = fragment as? SettingsFragment
+        val labels = titleLineOptions.map {
+            context.resources.getQuantityString(R.plurals.home_title_lines, it, it)
+        }
+        return Preference(context).apply {
+            title = getString(titleRes)
+            this.key = key
+            summary = formatSummary(breadcrumb, labels.getOrNull(titleLineOptions.indexOf(currentValue)))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showSingleChoiceDialog(
+                    title = getString(titleRes),
+                    items = labels,
+                    checkedIndex = titleLineOptions.indexOf(currentValue),
+                    onReset = {
+                        onSelected(defaultValue)
+                        host?.refreshPreferences()
+                    },
+                ) { index ->
+                    onSelected(titleLineOptions[index])
+                    host?.refreshPreferences()
+                }
+                true
+            }
         }
     }
 
@@ -385,7 +505,7 @@ internal class SettingsPreferenceFactory(
             summary = formatSummary(breadcrumb, getString(detailRes))
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
-                showTranslationChoiceDialog(
+                showSingleChoiceDialog(
                     title = getString(R.string.translate_with_title),
                     items = modes.map { getString(it.second) },
                     checkedIndex = modes.indexOfFirst { it.first == appPreferences.getTranslationMode() },
@@ -430,7 +550,7 @@ internal class SettingsPreferenceFactory(
             isEnabled = appPreferences.getTranslationMode() == Preferences.translationModeWeb
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
-                showTranslationChoiceDialog(
+                showSingleChoiceDialog(
                     title = getString(R.string.translation_engine_title),
                     items = engines.map { engineLabel(it) },
                     checkedIndex = engines.indexOf(TranslationEngine.fromId(appPreferences.getTranslationEngine())),
@@ -469,7 +589,7 @@ internal class SettingsPreferenceFactory(
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
                 val current = appPreferences.getTranslationTargetLanguage()
-                showTranslationChoiceDialog(
+                showSingleChoiceDialog(
                     title = getString(R.string.translation_target_language_title),
                     items = listOf(deviceLabel) + codes.map { TranslationLanguages.displayName(it) },
                     checkedIndex = if (current.isBlank()) 0 else codes.indexOf(current) + 1,
@@ -527,7 +647,7 @@ internal class SettingsPreferenceFactory(
         }
     }
 
-    private fun showTranslationChoiceDialog(
+    private fun showSingleChoiceDialog(
         title: String,
         items: List<String>,
         checkedIndex: Int,

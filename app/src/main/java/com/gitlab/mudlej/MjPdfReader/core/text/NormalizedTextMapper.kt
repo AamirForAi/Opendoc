@@ -2,6 +2,7 @@
 
 package com.gitlab.mudlej.MjPdfReader.core.text
 
+import com.shockwave.pdfium.PdfiumCore
 import java.text.Normalizer
 
 object NormalizedTextMapper {
@@ -29,6 +30,13 @@ object NormalizedTextMapper {
     }
 
     private fun chunkEnd(text: String, start: Int): Int {
+        if (text[start] == '￾') {
+            return when {
+                text.startsWith("￾\r\n", start) -> start + 3
+                start + 1 < text.length && (text[start + 1] == '\r' || text[start + 1] == '\n') -> start + 2
+                else -> start + 1
+            }
+        }
         if (text.startsWith("\r\n", start)) {
             return start + 2
         }
@@ -51,8 +59,11 @@ object NormalizedTextMapper {
     }
 
     private fun normalizedLength(chunk: String): Int {
-        return Normalizer.normalize(chunk, Normalizer.Form.NFKC)
-            .replace('\uFFFE', '-')
+        return Normalizer.normalize(PdfiumCore.mapPresentationFormMarks(chunk), Normalizer.Form.NFKC)
+            .replace("\uFFFE\r\n", "")
+            .replace("\uFFFE\n", "")
+            .replace("\uFFFE\r", "")
+            .replace("\uFFFE", "")
             .replace("\u200B", "")
             .replace("\r\n", "\n")
             .replace('\r', '\n')

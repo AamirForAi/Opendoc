@@ -40,6 +40,7 @@ import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.ui.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoNightMode
 import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoOverlay
+import com.gitlab.mudlej.MjPdfReader.core.ui.clearIncognitoNightMode
 import com.gitlab.mudlej.MjPdfReader.core.ui.showOptionalIcons
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.pdf.PdfPropertiesSummary
@@ -91,6 +92,8 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         }
         if (incognito) {
             applyIncognitoNightMode()
+        } else {
+            clearIncognitoNightMode()
         }
         super.onCreate(savedInstanceState)
         if (incognito) {

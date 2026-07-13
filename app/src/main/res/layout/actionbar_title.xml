@@ -38,6 +38,8 @@
         android:textSize="18sp"
         android:textColor="?attr/colorOnSurface"
         android:text="@string/mj_app_name"
+        android:textDirection="firstStrong"
+        android:textAlignment="viewStart"
         android:maxLines="2"
         android:ellipsize="end" />
 </androidx.appcompat.widget.LinearLayoutCompat>

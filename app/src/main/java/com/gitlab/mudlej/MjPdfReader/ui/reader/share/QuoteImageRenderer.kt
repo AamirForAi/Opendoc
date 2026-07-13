@@ -36,11 +36,14 @@ data class QuoteCardOptions(
 
 object QuoteImageRenderer {
 
+    const val MAX_QUOTE_CHARS = 400
+
     private const val SIZE = 1080
     private const val HORIZONTAL_MARGIN = 128f
     private const val QUOTE_AREA_TOP = 200f
     private const val QUOTE_AREA_BOTTOM = 800f
-    private const val MAX_QUOTE_CHARS = 800
+    private const val MIN_TEXT_SIZE = 38f
+    private const val LINE_SPACING = 1.25f
 
     fun render(options: QuoteCardOptions): Bitmap {
         val bitmap = Bitmap.createBitmap(SIZE, SIZE, Bitmap.Config.ARGB_8888)
@@ -48,8 +51,9 @@ object QuoteImageRenderer {
         val theme = options.theme
         canvas.drawColor(theme.backgroundColor)
 
-        drawDecorativeQuoteMark(canvas, theme)
-        drawQuote(canvas, options)
+        val rtl = isRtlText(options.quote)
+        drawDecorativeQuoteMark(canvas, theme, rtl)
+        drawQuote(canvas, options, rtl)
         drawBookAndAuthor(canvas, options)
         if (options.showMadeBy) {
             drawMadeBy(canvas, theme)
@@ -57,24 +61,37 @@ object QuoteImageRenderer {
         return bitmap
     }
 
-    private fun drawDecorativeQuoteMark(canvas: Canvas, theme: QuoteCardTheme) {
+    private fun isRtlText(text: String): Boolean {
+        for (char in text) {
+            when (Character.getDirectionality(char)) {
+                Character.DIRECTIONALITY_RIGHT_TO_LEFT,
+                Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC -> return true
+                Character.DIRECTIONALITY_LEFT_TO_RIGHT -> return false
+            }
+        }
+        return false
+    }
+
+    private fun drawDecorativeQuoteMark(canvas: Canvas, theme: QuoteCardTheme, rtl: Boolean) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = theme.decorColor
             typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
             textSize = 300f
         }
-        canvas.drawText("“", 64f, 280f, paint)
+        if (rtl) {
+            paint.textAlign = Paint.Align.RIGHT
+            canvas.drawText("”", SIZE - 64f, 280f, paint)
+        } else {
+            canvas.drawText("“", 64f, 280f, paint)
+        }
     }
 
-    private fun drawQuote(canvas: Canvas, options: QuoteCardOptions) {
+    private fun drawQuote(canvas: Canvas, options: QuoteCardOptions, rtl: Boolean) {
         var quote = options.quote.trim()
         if (options.reflow) {
             quote = quote.replace(Regex("\\s+"), " ")
         }
-        if (quote.length > MAX_QUOTE_CHARS) {
-            quote = quote.take(MAX_QUOTE_CHARS).trimEnd() + "…"
-        }
-        quote = "“$quote”"
+        quote = if (rtl) "”$quote“" else "“$quote”"
 
         val width = (SIZE - 2 * HORIZONTAL_MARGIN).toInt()
         val maxHeight = QUOTE_AREA_BOTTOM - QUOTE_AREA_TOP
@@ -85,7 +102,7 @@ object QuoteImageRenderer {
 
         var layout: StaticLayout? = null
         var textSize = 64f
-        while (textSize >= 30f) {
+        while (textSize >= MIN_TEXT_SIZE) {
             paint.textSize = textSize
             val candidate = buildLayout(quote, paint, width)
             if (candidate.height <= maxHeight) {
@@ -95,8 +112,9 @@ object QuoteImageRenderer {
             textSize -= 4f
         }
         if (layout == null) {
-            paint.textSize = 30f
-            layout = buildLayout(quote, paint, width, maxLines = 16)
+            paint.textSize = MIN_TEXT_SIZE
+            val maxLines = (maxHeight / (MIN_TEXT_SIZE * LINE_SPACING)).toInt().coerceAtLeast(1)
+            layout = buildLayout(quote, paint, width, maxLines = maxLines)
         }
 
         val top = QUOTE_AREA_TOP + ((maxHeight - layout.height) / 2f).coerceAtLeast(0f)
@@ -109,7 +127,7 @@ object QuoteImageRenderer {
     private fun buildLayout(text: String, paint: TextPaint, width: Int, maxLines: Int = Int.MAX_VALUE): StaticLayout {
         return StaticLayout.Builder.obtain(text, 0, text.length, paint, width)
             .setAlignment(Layout.Alignment.ALIGN_CENTER)
-            .setLineSpacing(0f, 1.25f)
+            .setLineSpacing(0f, LINE_SPACING)
             .setMaxLines(maxLines)
             .setEllipsize(TextUtils.TruncateAt.END)
             .build()

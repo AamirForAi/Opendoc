@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeGridCellBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ItemHomeListRowBinding
+import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.core.io.formatRelativeDate
 import com.gitlab.mudlej.MjPdfReader.core.text.StringUtil.formatEnumToTitle
@@ -24,12 +25,34 @@ class LibraryAdapter(
     private val coverCache: CoverCache,
     private val scope: CoroutineScope,
     private val functions: HomeItemFunctions,
+    private val pref: Preferences,
     private val selection: () -> Set<String> = { emptySet() },
 ) : ListAdapter<HomeItem, RecyclerView.ViewHolder>(HomeItemComparator()) {
 
     var viewMode: HomeViewMode = HomeViewMode.GRID
     var coverWidthPx: Int = DEFAULT_COVER_WIDTH_PX
     var metaStyle: ListMetaStyle = ListMetaStyle.LIBRARY
+    var progressStyle: HomeProgressStyle = HomeProgressStyle.RING
+
+    private var appliedTitleSignature: String? = null
+
+    fun applyTitleStyle() {
+        val signature = titleSignature()
+        val firstApply = appliedTitleSignature == null
+        appliedTitleSignature = signature
+        if (!firstApply) {
+            notifyDataSetChanged()
+        }
+    }
+
+    private fun titleSignature(): String {
+        return "${pref.getHomeGridTitleLines()}|${pref.getHomeListTitleLines()}|${pref.getHomeTitleEllipsize().name}"
+    }
+
+    private fun TextView.applyTitleLines(maxLines: Int) {
+        this.maxLines = maxLines
+        ellipsize = pref.getHomeTitleEllipsize().truncateAt
+    }
 
     override fun getItemViewType(position: Int): Int {
         return if (viewMode == HomeViewMode.GRID) TYPE_GRID else TYPE_LIST
@@ -80,6 +103,7 @@ class LibraryAdapter(
 
         fun bind(item: HomeItem) {
             binding.title.text = item.title
+            binding.title.applyTitleLines(pref.getHomeGridTitleLines())
 
             if (item.hasBeenOpened) {
                 binding.lastOpenedLabel.visibility = View.VISIBLE
@@ -89,15 +113,16 @@ class LibraryAdapter(
                 binding.lastOpenedLabel.visibility = View.GONE
             }
 
-            if (item.progressPercent > 0) {
-                binding.progress.visibility = View.VISIBLE
+            val showBar = item.progressPercent > 0 && progressStyle == HomeProgressStyle.BAR
+            val showRing = item.progressPercent > 0 && progressStyle == HomeProgressStyle.RING
+            binding.progress.visibility = if (showBar) View.VISIBLE else View.GONE
+            binding.progressBadge.visibility = if (showRing) View.VISIBLE else View.GONE
+            if (showBar) {
                 binding.progress.progress = item.progressPercent
-                binding.progressBadge.visibility = View.VISIBLE
+            }
+            if (showRing) {
                 binding.progressCircle.progress = item.progressPercent
                 binding.progressPercent.text = item.progressPercent.toString()
-            } else {
-                binding.progress.visibility = View.GONE
-                binding.progressBadge.visibility = View.GONE
             }
 
             applySelection(item)
@@ -119,6 +144,7 @@ class LibraryAdapter(
 
         fun bind(item: HomeItem) {
             binding.title.text = item.title
+            binding.title.applyTitleLines(pref.getHomeListTitleLines())
             bindMetaBadges(item)
 
             applySelection(item)

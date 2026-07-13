@@ -18,6 +18,7 @@ import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.view.doOnPreDraw
 import androidx.lifecycle.lifecycleScope
 import com.github.barteksc.pdfviewer.PDFView.Configurator
 import com.github.barteksc.pdfviewer.listener.OnTextSelectionChangeListener
@@ -530,21 +531,17 @@ class ReaderComposition(
     }
 
     private fun showPendingIncognitoNotice() {
-        if (vm.pendingIncognitoNotice == null) {
-            return
-        }
-        binding.root.post {
+        val turnedOn = vm.pendingIncognitoNotice ?: return
+        vm.pendingIncognitoNotice = null
+        binding.root.doOnPreDraw {
             if (activity.isFinishing || activity.isDestroyed) {
-                return@post
+                return@doOnPreDraw
             }
-            vm.pendingIncognitoNotice?.let { turnedOn ->
-                vm.pendingIncognitoNotice = null
-                AppSnackbar.make(
-                    binding.root,
-                    if (turnedOn) R.string.incognito_on_message else R.string.incognito_off_message,
-                    Snackbar.LENGTH_SHORT,
-                ).show()
-            }
+            AppSnackbar.make(
+                binding.root,
+                if (turnedOn) R.string.incognito_on_message else R.string.incognito_off_message,
+                Snackbar.LENGTH_SHORT,
+            ).show()
         }
     }
 

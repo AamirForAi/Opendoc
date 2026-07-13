@@ -10,6 +10,7 @@ import android.view.MotionEvent;
 import android.widget.Magnifier;
 
 import com.github.barteksc.pdfviewer.util.TextDirectionUtil;
+import com.shockwave.pdfium.PdfiumCore;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
@@ -294,16 +295,21 @@ final class TextSelectionManager {
         float radius = handleRadiusFor(docRect);
         float anchorX = handleAnchorX(handle, docRect);
         float anchorY = docRect.bottom;
-        float centerX = handle == Handle.START ? anchorX - radius : anchorX + radius;
+        boolean bulgeRight = handleBulgesRight(handle);
+        float centerX = bulgeRight ? anchorX + radius : anchorX - radius;
         float centerY = anchorY + radius;
         handlePath.rewind();
         handlePath.addCircle(centerX, centerY, radius, Path.Direction.CW);
-        if (handle == Handle.START) {
-            handlePath.addRect(centerX, anchorY, anchorX, centerY, Path.Direction.CW);
-        } else {
+        if (bulgeRight) {
             handlePath.addRect(anchorX, anchorY, centerX, centerY, Path.Direction.CW);
+        } else {
+            handlePath.addRect(centerX, anchorY, anchorX, centerY, Path.Direction.CW);
         }
         canvas.drawPath(handlePath, handlePaint);
+    }
+
+    private boolean handleBulgesRight(Handle handle) {
+        return (handle == Handle.END) != isHandleEndpointRtl(handle);
     }
 
     private float handleRadiusFor(RectF docRect) {
@@ -487,7 +493,7 @@ final class TextSelectionManager {
         }
         float radius = handleRadiusFor(docRect);
         float anchorX = handleAnchorX(handle, docRect);
-        float x = handle == Handle.START ? anchorX - radius : anchorX + radius;
+        float x = handleBulgesRight(handle) ? anchorX + radius : anchorX - radius;
         float y = docRect.bottom + radius;
         return new PointF(x + pdfView.getCurrentXOffset(), y + pdfView.getCurrentYOffset());
     }
@@ -708,8 +714,11 @@ final class TextSelectionManager {
         if (text == null || text.isEmpty()) {
             return "";
         }
-        return Normalizer.normalize(text, Normalizer.Form.NFKC)
-                .replace('\uFFFE', '-')
+        return Normalizer.normalize(PdfiumCore.mapPresentationFormMarks(text), Normalizer.Form.NFKC)
+                .replace("\uFFFE\r\n", "")
+                .replace("\uFFFE\n", "")
+                .replace("\uFFFE\r", "")
+                .replace("\uFFFE", "")
                 .replace("\u200B", "")
                 .replace("\r\n", "\n")
                 .replace('\r', '\n');
@@ -717,7 +726,8 @@ final class TextSelectionManager {
 
     private boolean isWordChar(int codePoint) {
         return Character.isLetterOrDigit(codePoint)
-                || codePoint == '_';
+                || codePoint == '_'
+                || Character.getType(codePoint) == Character.NON_SPACING_MARK;
     }
 
     private int clamp(int value, int min, int max) {

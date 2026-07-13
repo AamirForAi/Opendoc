@@ -49,11 +49,11 @@
     * Cards show reading position, or total page count when unread.
     * Folder cards show the file size of every book.
     * Books opened through the picker now show page counts and sizes correctly.
-    * A thin reading progress bar runs across the bottom edge of covers.
+    * Covers show reading progress as a ring with the percentage, or a thin bar along the bottom edge.
+    * A Home setting picks the progress indicator style, with the ring as the default.
     * Progress bars no longer show dots at their ends.
     * An options button appears on every card, including never opened files.
     * Grid tiles get a three dots options button in the top right corner.
-    * Grid tiles show a circular progress ring with the percentage inside.
     * The last read date was removed from small cards.
     * More title spacing and a slightly larger info font on cards.
     * First page cover thumbnails with memory and disk caching.
@@ -468,7 +468,7 @@
     * Go To Page and All Pages follow the selected theme.
     * Improved accessibility support.
   * Languages:
-    * Added Italian, Dutch, French, Simplified Chinese, Persian, and Polish translations.
+    * Added Italian, Dutch, French, Simplified Chinese, Persian, Polish, and Ukrainian translations.
     * Updated the existing translations.
     * Cleaned up the merged community translations.
   * Performance:

@@ -69,6 +69,8 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
 
     private var allItems: List<HomeItem> = emptyList()
 
+    private val tabRecyclerViews = mutableMapOf<HomeTab, RecyclerView>()
+
     private val foldersBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
             foldersTab.goBack()
@@ -164,6 +166,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             coverCache,
             lifecycleScope,
             this,
+            pref,
             libraryController,
             selection = { selectionController.selectedHashes },
         )
@@ -261,12 +264,14 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
 
     private fun setupPager() {
         binding.homePager.adapter = HomeTabsAdapter { tab, recyclerView, swipeRefresh ->
+            tabRecyclerViews[tab] = recyclerView
             when (tab) {
                 HomeTab.RECENT -> recentTab.attach(recyclerView)
                 HomeTab.LIBRARY -> libraryTab.attach(recyclerView)
                 HomeTab.FOLDERS -> foldersTab.attach(recyclerView)
             }
             setupPullToRefresh(swipeRefresh)
+            if (tab == currentTab()) pinLiftTarget()
         }
         binding.homePager.offscreenPageLimit = HomeTab.entries.size - 1
 
@@ -286,8 +291,13 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
                 pref.setHomeTab(HomeTab.entries[position])
                 selectionController.finish()
                 updateFoldersBackState()
+                pinLiftTarget()
             }
         })
+    }
+
+    private fun pinLiftTarget() {
+        tabRecyclerViews[currentTab()]?.let(binding.appBarLayout::setLiftOnScrollTargetView)
     }
 
     private fun updateFoldersBackState() {
@@ -333,6 +343,11 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     override fun onResume() {
         super.onResume()
         permissionManager.recheck()
+        libraryTab.applyProgressStyle()
+        libraryTab.applyTitleStyle()
+        recentTab.applyTitleStyle()
+        foldersTab.applyTitleStyle()
+        searchResultsAdapter.applyTitleStyle()
         libraryScanner.refresh()
         refresh()
     }
@@ -341,7 +356,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         binding.searchView.setupWithSearchBar(binding.searchBar)
 
         searchResultsAdapter =
-            LibraryAdapter(coverCache, lifecycleScope, this) { selectionController.selectedHashes }
+            LibraryAdapter(coverCache, lifecycleScope, this, pref) { selectionController.selectedHashes }
         searchResultsAdapter.viewMode = HomeViewMode.LIST
         binding.searchResultsRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.searchResultsRecyclerView.adapter = searchResultsAdapter
