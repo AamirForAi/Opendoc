@@ -367,7 +367,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/fs_panel_margin"
-            android:layout_marginTop="@dimen/fs_panel_margin"
+            android:layout_marginTop="@dimen/fs_panel_margin_top"
             android:layout_marginBottom="@dimen/fs_panel_margin"
             android:background="@drawable/fullscreen_panel_background"
             android:visibility="gone"

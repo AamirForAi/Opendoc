@@ -121,16 +121,50 @@ class FullscreenController(
 
     private fun applyOverlayColumnInsets() {
         val base = activity.resources.getDimensionPixelSize(R.dimen.fs_panel_margin)
+        val topBase = activity.resources.getDimensionPixelSize(R.dimen.fs_panel_margin_top)
         val cutout = if (vm.isFullScreenToggled) overlayCutoutInsets() else Insets.NONE
         val isRtl = binding.root.layoutDirection == View.LAYOUT_DIRECTION_RTL
         val startInset = if (isRtl) cutout.right else cutout.left
+        val topInset = if (topCutoutOverlapsPanel(cutout.top, base + startInset)) cutout.top + base else 0
         val params = binding.fullScreenButtonsLayout.layoutParams as? ViewGroup.MarginLayoutParams ?: return
-        if (params.marginStart == base + startInset && params.topMargin == base + cutout.top) {
+        if (params.marginStart == base + startInset && params.topMargin == maxOf(topBase, topInset)) {
             return
         }
         params.marginStart = base + startInset
-        params.topMargin = base + cutout.top
+        params.topMargin = maxOf(topBase, topInset)
         binding.fullScreenButtonsLayout.requestLayout()
+    }
+
+    private fun topCutoutOverlapsPanel(cutoutTop: Int, panelStart: Int): Boolean {
+        if (cutoutTop <= 0) {
+            return false
+        }
+        val insets = ViewCompat.getRootWindowInsets(binding.root) ?: return true
+        val rects = insets.displayCutout?.boundingRects ?: return true
+        val panelWidth = panelWidth()
+        if (panelWidth <= 0) {
+            return true
+        }
+        val isRtl = binding.root.layoutDirection == View.LAYOUT_DIRECTION_RTL
+        val rootWidth = binding.root.width
+        if (isRtl && rootWidth <= 0) {
+            return true
+        }
+        val left = if (isRtl) rootWidth - panelStart - panelWidth else panelStart
+        val right = left + panelWidth
+        return rects.any { it.top < cutoutTop && it.right > left && it.left < right }
+    }
+
+    private fun panelWidth(): Int {
+        val panel = binding.fullScreenButtonsLayout
+        if (panel.width > 0) {
+            return panel.width
+        }
+        panel.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        return panel.measuredWidth
     }
 
     private fun unlockScreenOrientation() {
