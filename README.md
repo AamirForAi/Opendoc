@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="fastlane/metadata/android/en-US/images/icon.png" width="110" alt="MJ PDF icon"/>
+<img src="fastlane/metadata/android/en-US/images/icon_rounded.png" width="110" alt="MJ PDF icon"/>
 
 # MJ PDF
 
-MJ PDF is a fast, minimalist, powerful and totally free PDF reader made by [Mudlej](https://mudlej.com).
+MJ PDF is a fast, simple, powerful and totally private PDF reader made by [Mudlej](https://mudlej.com).
 
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-3.0.0-2ea44f.svg)](change_log.md)
@@ -13,21 +13,19 @@ MJ PDF is a fast, minimalist, powerful and totally free PDF reader made by [Mudl
 
 </div>
 
-## Download & Links
-
 <div align="center">
 
-<a href="https://mudlej.com/projects/mj-pdf"><img src="https://img.shields.io/badge/mudlej.com-The%20Official%20MJ%20PDF%20Page-6750A4?style=for-the-badge" height="50" alt="The official MJ PDF page"/></a>
-
-<br/><br/>
-
-<a href="https://apt.izzysoft.de/fdroid/index/apk/com.gitlab.mudlej.MjPdfReader"><img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" height="80" alt="Get it on IzzyOnDroid"/></a>
+<a href="https://mudlej.com/projects/mj-pdf"><img src="assets/buttons/official_page.png" height="88" alt="The official MJ PDF page on mudlej.com"/></a>
 
 <br/>
 
-<a href="https://droidify.app/"><img src="https://img.shields.io/badge/Auto%20Updates-Droid--ify-24C48E?style=for-the-badge&logoColor=white" height="36" alt="Get auto updates with Droid-ify"/></a>
-<a href="https://gitlab.com/mudlej_android/mj_pdf_reader/-/releases"><img src="https://img.shields.io/badge/Direct%20APK-GitLab%20Releases-FC6D26?style=for-the-badge&logo=gitlab&logoColor=white" height="36" alt="Direct APK from GitLab releases"/></a>
-<a href="https://github.com/mudlej/mj_pdf/"><img src="https://img.shields.io/badge/Issues%20%26%20Requests-GitHub-181717?style=for-the-badge&logo=github&logoColor=white" height="36" alt="Issues and requests on GitHub"/></a>
+<a href="https://apt.izzysoft.de/fdroid/index/apk/com.gitlab.mudlej.MjPdfReader"><img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" height="76" alt="Get it on IzzyOnDroid"/></a>
+<a href="https://gitlab.com/mudlej_android/mj_pdf_reader/-/releases"><img src="assets/buttons/direct_apk.png" height="76" alt="Direct APK download"/></a>
+
+<br/>
+
+<a href="https://gitlab.com/mudlej_android/mj_pdf_reader"><img src="assets/buttons/gitlab.png" height="76" alt="Source code on GitLab"/></a>
+<a href="https://github.com/mudlej/mj_pdf/"><img src="assets/buttons/github.png" height="76" alt="GitHub mirror"/></a>
 
 <sub>F-Droid main repo and Play Store are not available for now, see the <a href="https://mudlej.com/projects/mj-pdf#faq">FAQ</a>.</sub>
 
@@ -133,7 +131,7 @@ The repository is three modules:
 | `PdfiumAndroid` | MJ PDF's bindings to the PDFium engine |
 
 ## Contributing
-- **Bugs and requests**: open an issue on [GitHub](https://github.com/mudlej/mj_pdf/) or [GitLab](https://gitlab.com/mudlej_android/mj_pdf_reader).
+- **Bugs and requests**: open an issue on [GitLab](https://gitlab.com/mudlej_android/mj_pdf_reader/-/issues). If you do not have a GitLab account, use the [GitHub mirror](https://github.com/mudlej/mj_pdf/).
 - **Translations**: MJ PDF is available in 13 languages: Arabic, Chinese, Dutch, French, German, Hindi, Italian, Persian, Polish, Portuguese (Brazil), Russian, Spanish, and Turkish. To add or improve one, edit `app/src/main/res/values-<lang>/strings.xml` and open a merge request.
 - **Code**: merge requests are welcome. The [changelog](change_log.md) and [todo list](todo.md) show where the project is heading.
 
