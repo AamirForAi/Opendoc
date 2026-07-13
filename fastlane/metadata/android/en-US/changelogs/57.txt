@@ -1,0 +1,10 @@
+MJ PDF 3.0.0 - the biggest update yet:
+• New Home with a recent list, library, reading statuses, and a real folder browser
+• Highlight text, add notes, and save them into the PDF
+• Draw and place handwritten signatures
+• Fill PDF forms
+• All-new Text Mode (e-reader style reflow)
+• Dual page mode, RTL reading, hide margins, incognito mode
+• User bookmarks and browser-like navigation history
+• Backup & restore your data
+• Much faster rendering, and hundreds of fixes

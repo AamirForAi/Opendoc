@@ -102,6 +102,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 summaryRes = R.string.show_app_bar_page_count_summary,
                 keywords = listOf("app bar", "toolbar", "title", "page count"),
             ),
+            scrollingInfoCardEntry(),
         )
     }
 
@@ -165,35 +166,11 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             ),
             switchEntry(
                 page = SettingsPage.READING,
-                titleRes = R.string.turn_page_by_volume_buttons_title,
-                key = Preferences.turnPageByVolumeButtonsKey,
-                defaultValue = Preferences.turnPageByVolumeButtonsDefault,
-                summaryRes = R.string.turn_page_by_volume_buttons_summary,
-                keywords = listOf("volume", "buttons", "page turn"),
-            ),
-            switchEntry(
-                page = SettingsPage.READING,
-                titleRes = R.string.turn_page_by_mouse_buttons_title,
-                key = Preferences.turnPageByMouseButtonsKey,
-                defaultValue = Preferences.turnPageByMouseButtonsDefault,
-                summaryRes = R.string.turn_page_by_mouse_buttons_summary,
-                keywords = listOf("mouse", "buttons", "page turn", "back", "forward"),
-            ),
-            switchEntry(
-                page = SettingsPage.READING,
                 titleRes = R.string.keep_screen_on,
                 key = Preferences.screenOnKey,
                 defaultValue = Preferences.screenOnDefault,
                 summaryRes = R.string.keep_screen_on_summary,
                 keywords = listOf("display", "sleep", "screen"),
-            ),
-            switchEntry(
-                page = SettingsPage.READING,
-                titleRes = R.string.double_tap_to_exit,
-                key = Preferences.doubleTapToExitEnabledKey,
-                defaultValue = Preferences.doubleTapToExitEnabledDefault,
-                summaryRes = R.string.double_tap_to_exit_summary,
-                keywords = listOf("exit", "back"),
             ),
             switchEntry(
                 page = SettingsPage.READING,
@@ -232,13 +209,28 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             fullScreenButtonsEntry(),
             switchEntry(
                 page = SettingsPage.CUSTOMIZE_CONTROLS,
+                titleRes = R.string.turn_page_by_volume_buttons_title,
+                key = Preferences.turnPageByVolumeButtonsKey,
+                defaultValue = Preferences.turnPageByVolumeButtonsDefault,
+                summaryRes = R.string.turn_page_by_volume_buttons_summary,
+                keywords = listOf("volume", "buttons", "page turn"),
+            ),
+            switchEntry(
+                page = SettingsPage.CUSTOMIZE_CONTROLS,
+                titleRes = R.string.turn_page_by_mouse_buttons_title,
+                key = Preferences.turnPageByMouseButtonsKey,
+                defaultValue = Preferences.turnPageByMouseButtonsDefault,
+                summaryRes = R.string.turn_page_by_mouse_buttons_summary,
+                keywords = listOf("mouse", "buttons", "page turn", "back", "forward"),
+            ),
+            switchEntry(
+                page = SettingsPage.CUSTOMIZE_CONTROLS,
                 titleRes = R.string.auto_full_screen,
                 key = Preferences.autoFullScreenKey,
                 defaultValue = Preferences.autoFullScreenDefault,
                 summaryRes = R.string.auto_full_screen_summary,
                 keywords = listOf("fullscreen", "startup", "open"),
             ),
-            scrollingInfoCardEntry(),
         )
     }
 
@@ -445,6 +437,14 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
 
     private fun advancedEntries(): List<SettingEntry> {
         return listOf(
+            switchEntry(
+                page = SettingsPage.ADVANCED,
+                titleRes = R.string.double_tap_to_exit,
+                key = Preferences.doubleTapToExitEnabledKey,
+                defaultValue = Preferences.doubleTapToExitEnabledDefault,
+                summaryRes = R.string.double_tap_to_exit_summary,
+                keywords = listOf("exit", "back"),
+            ),
             floatPreferenceEntry(
                 page = SettingsPage.ADVANCED,
                 titleRes = R.string.part_size,
@@ -506,7 +506,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
 
     private fun scrollingInfoCardEntry(): SettingEntry {
         return SettingEntry(
-            page = SettingsPage.CUSTOMIZE_CONTROLS,
+            page = SettingsPage.APPEARANCE,
             titleRes = R.string.scrolling_info_card,
             summaryRes = R.string.scrolling_info_card_summary,
             keywords = listOf("scrolling", "fullscreen", "info", "card", "time", "clock", "page", "percent", "progress", "title", "file"),

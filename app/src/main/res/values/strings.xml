@@ -288,8 +288,8 @@
     <string name="settings_reading_summary">Scrolling, gestures, page movement, and screen behavior</string>
     <string name="customize_controls">Customize Controls</string>
     <string name="customize_controls_summary">Toolbar, shortcuts, fullscreen buttons, and fullscreen info</string>
-    <string name="settings_text">Text</string>
-    <string name="settings_text_summary">Text Mode, text selection, and copy behavior</string>
+    <string name="settings_text">Text and Search</string>
+    <string name="settings_text_summary">Text Mode, selection, copying, and in-document search</string>
     <string name="settings_highlighting">Highlighting</string>
     <string name="settings_highlighting_summary">Highlight colors and detection behavior</string>
     <string name="highlight_colors">Highlight Colors</string>
