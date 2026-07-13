@@ -147,12 +147,12 @@ enum class ConfigurableAction(
 
         val defaultShortcutBarSelectedActions = listOf(
             SWITCH_THEME,
-            OPEN_LOCAL,
-            EXTRACT_TEXT,
             TABLE_OF_CONTENTS,
-            SHARE,
             SEARCH,
+            TEXT_MODE,
             GO_TO_PAGE,
+            BOOKMARK_PAGE,
+            SETTINGS,
         )
 
         val defaultShortcutBarOrder = defaultShortcutBarSelectedActions + shortcutBarActions.filterNot {
@@ -172,6 +172,7 @@ enum class ConfigurableAction(
             HORIZONTAL_LOCK.id,
             ZOOM_LOCK.id,
             CROP_MARGINS.id,
+            TABLE_OF_CONTENTS.id,
             SCREENSHOT.id,
             TOGGLE_LABELS.id,
         ) + requiredFullScreenOverlayActionIds
