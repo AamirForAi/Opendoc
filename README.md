@@ -43,6 +43,8 @@ Version 3.0 is the biggest update in MJ PDF's history, closer to a rewrite of th
 - Draw handwritten signatures and save them into the PDF.
 - Fill PDF forms.
 - A new Text Mode that reads like an e-book.
+- Turn selected text into a beautiful, shareable quote image.
+- Translate selected text and define words with an offline dictionary.
 - Dual page mode, RTL reading, hide margins, incognito mode.
 - User bookmarks and browser-like navigation history.
 - Backup and restore for your data.
@@ -80,6 +82,7 @@ The full list is in the [changelog](change_log.md).
 - Draw a handwritten signature once, reuse it anywhere, saved as sharp vector strokes.
 - Fill PDF forms.
 - Select text inline with copy, share, web-search, translate, and dictionary actions.
+- Share quotes as images, with the book's name and a choice of themes.
 
 **Search and navigation**
 - Very fast and powerful search with live streaming results.
@@ -129,16 +132,15 @@ The repository is three modules:
 
 ## Contributing
 - **Bugs and requests**: open an issue on [GitLab](https://gitlab.com/mudlej_android/mj_pdf_reader/-/issues). If you do not have a GitLab account, use the [GitHub mirror](https://github.com/mudlej/mj_pdf/).
-- **Translations**: MJ PDF is available in 13 languages: Arabic, Chinese, Dutch, French, German, Hindi, Italian, Persian, Polish, Portuguese (Brazil), Russian, Spanish, and Turkish. To add or improve one, edit `app/src/main/res/values-<lang>/strings.xml` and open a merge request.
-- **Code**: merge requests are welcome. The [changelog](change_log.md) and [todo list](todo.md) show where the project is heading.
+- **Translations**: MJ PDF is available in 15 languages: Arabic, Chinese, Dutch, English, French, German, Hindi, Italian, Persian, Polish, Portuguese (Brazil), Russian, Spanish, Ukrainian and Turkish. To add or improve one, edit `app/src/main/res/values-<lang>/strings.xml` and open a merge request.
 
 ## Authors and acknowledgment
 - MJ PDF is made by [Mudlej](https://mudlej.com). The full story is on the [official page](https://mudlej.com/projects/mj-pdf).
-- MJ PDF started in 2022 based on PDF Viewer Plus by Gokul Swaminathan ([@JavaCafe01](https://github.com/JavaCafe01)), who discontinued his app and recommended MJ PDF as its replacement. The app has since been almost entirely rewritten.
+- MJ PDF v1 and v2 were based on PDF Viewer Plus by Gokul Swaminathan ([@JavaCafe01](https://github.com/JavaCafe01)), who discontinued his app and recommended MJ PDF as its replacement. The app in v3.0.0 since been entirely rewritten.
 - [@barteksc](https://github.com/barteksc) wrote the original viewer and PDFium binding libraries that MJ PDF's PDF stack grew from.
 - Credits to [@Derekelkins](https://github.com/Derekelkins) for adding the ability to remember the last opened page to the original app.
 - Big thanks to [Bnyro](https://gitlab.com/Bnyro) (LibreTube's dev) for helping me with the colors and the migration to M3. (MJ PDF v2.1)
-- Community translators brought the app to 13 languages.
+- Community translators brought the app to 15 languages.
 
 ## License
 MJ PDF uses the GPLv3 license. The original app (PDF Viewer Plus) was under the MIT license.

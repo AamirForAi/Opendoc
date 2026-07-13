@@ -73,6 +73,10 @@
     <string name="whats_new_signature_body">Draw a signature once, then place, move and resize it on any page.</string>
     <string name="whats_new_forms_title">Form filling</string>
     <string name="whats_new_forms_body">Fill in PDF form fields.</string>
+    <string name="whats_new_translate_title">Translate and define</string>
+    <string name="whats_new_translate_body">Translate selected text and define words with an offline dictionary.</string>
+    <string name="whats_new_quote_title">Share quotes</string>
+    <string name="whats_new_quote_body">Turn selected text into a shareable quote image.</string>
     <string name="whats_new_saving_title">Safer saving</string>
     <string name="whats_new_saving_body">Save into the file or as a copy, and recover unsaved highlights after a crash.</string>
     <string name="whats_new_section_navigation">Navigation</string>

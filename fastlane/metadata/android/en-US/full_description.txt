@@ -16,6 +16,7 @@
 * Draw handwritten signatures and save them into the PDF as sharp vector strokes.
 * Fill PDF forms.
 * Select text with copy, share, web search, translate, and dictionary actions.
+* Share quotes as images, with the book's name and a choice of themes.
 * Text Mode: read any PDF like an e-book, with reflow, fonts and themes.
 * Dual page mode that pairs pages like an open book.
 * Powerful search with live results and next/previous navigation inside the reader.

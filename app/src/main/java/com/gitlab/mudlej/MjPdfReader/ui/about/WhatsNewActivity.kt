@@ -80,6 +80,8 @@ class WhatsNewActivity : AppCompatActivity() {
                 Change(R.drawable.ic_highlight, R.string.whats_new_highlights_title, R.string.whats_new_highlights_body),
                 Change(R.drawable.ic_signature, R.string.whats_new_signature_title, R.string.whats_new_signature_body),
                 Change(R.drawable.ic_edit, R.string.whats_new_forms_title, R.string.whats_new_forms_body),
+                Change(R.drawable.ic_translate, R.string.whats_new_translate_title, R.string.whats_new_translate_body),
+                Change(R.drawable.ic_share, R.string.whats_new_quote_title, R.string.whats_new_quote_body),
                 Change(R.drawable.ic_save, R.string.whats_new_saving_title, R.string.whats_new_saving_body),
             ),
         ),
