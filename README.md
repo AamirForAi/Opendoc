@@ -19,13 +19,10 @@ MJ PDF is a fast, simple, powerful and totally private PDF reader made by [Mudle
 
 <br/>
 
-<a href="https://apt.izzysoft.de/fdroid/index/apk/com.gitlab.mudlej.MjPdfReader"><img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" height="76" alt="Get it on IzzyOnDroid"/></a>
-<a href="https://gitlab.com/mudlej_android/mj_pdf_reader/-/releases"><img src="assets/buttons/direct_apk.png" height="76" alt="Direct APK download"/></a>
-
-<br/>
-
-<a href="https://gitlab.com/mudlej_android/mj_pdf_reader"><img src="assets/buttons/gitlab.png" height="76" alt="Source code on GitLab"/></a>
-<a href="https://github.com/mudlej/mj_pdf/"><img src="assets/buttons/github.png" height="76" alt="GitHub mirror"/></a>
+<a href="https://apt.izzysoft.de/fdroid/index/apk/com.gitlab.mudlej.MjPdfReader"><img src="assets/buttons/izzy.png" height="60" alt="Get it on IzzyOnDroid"/></a>
+<a href="https://gitlab.com/mudlej_android/mj_pdf_reader/-/releases"><img src="assets/buttons/direct_apk.png" height="60" alt="Direct APK download"/></a>
+<a href="https://gitlab.com/mudlej_android/mj_pdf_reader"><img src="assets/buttons/gitlab.png" height="60" alt="Source code on GitLab"/></a>
+<a href="https://github.com/mudlej/mj_pdf/"><img src="assets/buttons/github.png" height="60" alt="GitHub mirror"/></a>
 
 <sub>F-Droid main repo and Play Store are not available for now, see the <a href="https://mudlej.com/projects/mj-pdf#faq">FAQ</a>.</sub>
 
