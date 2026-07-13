@@ -2,6 +2,11 @@
 
 package com.gitlab.mudlej.MjPdfReader.pdf
 
+import android.content.ClipData
+import android.content.ContentResolver
+import android.content.Intent
+import android.net.Uri
+
 object PDF {
 
     // constants
@@ -62,4 +67,13 @@ object PDF {
     const val filePathKey = "filePathKey"
     const val chosenPageIndexKey = "chosenPageIndexKey"
     const val incognitoKey = "incognito"
+}
+
+fun Intent.grantPdfReadAccess(uriString: String?) {
+    val uri = uriString?.let(Uri::parse) ?: return
+    if (uri.scheme != ContentResolver.SCHEME_CONTENT) {
+        return
+    }
+    clipData = ClipData.newRawUri(null, uri)
+    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 }

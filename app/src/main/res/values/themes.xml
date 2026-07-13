@@ -57,6 +57,24 @@
         <item name="android:windowLightStatusBar" tools:ignore="NewApi">true</item>
     </style>
 
+    <style name="IncognitoThemeOverlay" parent="">
+        <item name="android:colorBackground">@color/incognito_surface</item>
+        <item name="colorSurface">@color/incognito_surface</item>
+        <item name="colorSurfaceContainer">@color/incognito_surface</item>
+        <item name="colorSurfaceContainerLow">@color/incognito_surface</item>
+        <item name="colorSurfaceContainerLowest">@color/incognito_surface</item>
+        <item name="colorSurfaceContainerHigh">@color/incognito_surface</item>
+        <item name="colorSurfaceContainerHighest">@color/incognito_surface</item>
+        <item name="colorSurfaceBright">@color/incognito_surface</item>
+        <item name="colorSurfaceDim">@color/incognito_surface</item>
+        <item name="colorOnSurface">@color/incognito_on_surface</item>
+        <item name="colorOnBackground">@color/incognito_on_surface</item>
+        <item name="colorSurfaceVariant">@color/incognito_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/incognito_on_surface_variant</item>
+        <item name="colorOutline">@color/incognito_outline</item>
+        <item name="colorOutlineVariant">@color/incognito_outline_variant</item>
+    </style>
+
     <style name="TextModeTheme" parent="@style/MJ_PDF_THEME">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
@@ -168,7 +186,6 @@
     </style>
 
     <style name="ChromeSnackbar" parent="Widget.Material3.Snackbar">
-        <item name="materialThemeOverlay">@style/ChromeSnackbarThemeOverlay</item>
         <item name="backgroundTint">?attr/colorSurfaceContainerHigh</item>
         <item name="shapeAppearance">@style/ChromeSnackbarShape</item>
         <item name="elevation">6dp</item>
@@ -178,10 +195,6 @@
     <style name="ChromeSnackbarShape" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">16dp</item>
-    </style>
-
-    <style name="ChromeSnackbarThemeOverlay" parent="ThemeOverlay.Material3.Snackbar">
-        <item name="colorOnSurface">@color/md_theme_onSurface</item>
     </style>
 
     <style name="ChromeSnackbarTextView" parent="Widget.Material3.Snackbar.TextView">

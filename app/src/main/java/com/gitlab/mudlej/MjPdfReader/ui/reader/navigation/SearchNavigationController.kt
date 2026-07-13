@@ -20,6 +20,7 @@ import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.pdf.SearchResult
+import com.gitlab.mudlej.MjPdfReader.pdf.grantPdfReadAccess
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.search.SearchActivity
 import com.gitlab.mudlej.MjPdfReader.ui.search.SearchCoordinator
@@ -37,6 +38,7 @@ class SearchNavigationController(
     private val binding: ActivityMainBinding,
     private val pdf: DocumentState,
     private val pref: Preferences,
+    private val isIncognito: () -> Boolean,
     private val historyManager: ReaderHistoryManager,
     private val launchSearch: (Intent) -> Unit,
 ) {
@@ -328,6 +330,7 @@ class SearchNavigationController(
         Intent(activity, SearchActivity::class.java).also { searchIntent ->
             searchIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
             searchIntent.putExtra(PDF.passwordKey, pdf.password)
+            searchIntent.putExtra(PDF.incognitoKey, isIncognito())
             pdf.fileHash?.let { searchIntent.putExtra(PDF.fileHashKey, it) }
             if (query.isNotBlank()) {
                 searchIntent.putExtra(PDF.searchQueryKey, query)
@@ -335,6 +338,7 @@ class SearchNavigationController(
             hits.getOrNull(currentPosition)?.let { hit ->
                 searchIntent.putExtra(PDF.resultPositionInListKey, hit.resultIndex)
             }
+            searchIntent.grantPdfReadAccess(pdf.uri.toString())
             launchSearch(searchIntent)
         }
     }

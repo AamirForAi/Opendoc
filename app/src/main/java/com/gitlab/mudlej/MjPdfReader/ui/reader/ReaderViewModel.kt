@@ -25,6 +25,7 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
     var isPortrait = true
     var isFullScreenToggled = false
     var incognito = false
+    var pendingIncognitoNotice: Boolean? = null
     var isBrightnessClicked = false
     var isAutoScrollClicked = false
     var isAutoScrolling = false

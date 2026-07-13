@@ -14,6 +14,7 @@ import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.pdf.SearchResult
+import com.gitlab.mudlej.MjPdfReader.pdf.grantPdfReadAccess
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.userbookmarks.UserBookmarksActivity
 import com.gitlab.mudlej.MjPdfReader.ui.userhighlights.UserHighlightsActivity
@@ -32,6 +33,7 @@ class ReaderNavigationController(
     private val binding: ActivityMainBinding,
     private val pdf: DocumentState,
     private val pref: Preferences,
+    private val isIncognito: () -> Boolean,
     private val historyManager: ReaderHistoryManager,
     private val onPageDisplayed: (Int) -> Unit,
     private val updateAppTitle: () -> Unit,
@@ -46,7 +48,7 @@ class ReaderNavigationController(
 ) {
 
     private val searchNavigationController =
-        SearchNavigationController(activity, binding, pdf, pref, historyManager, launchSearch)
+        SearchNavigationController(activity, binding, pdf, pref, isIncognito, historyManager, launchSearch)
     private val tableOfContentsSnackbar = JumpBackSnackbar(binding.root)
     private val linkJumpSnackbar = JumpBackSnackbar(binding.root)
     private var tableOfContentsState = TableOfContentsState()
@@ -57,6 +59,8 @@ class ReaderNavigationController(
         Intent(activity, LinksActivity::class.java).also { linksIntent ->
             linksIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
             linksIntent.putExtra(PDF.passwordKey, pdf.password)
+            linksIntent.putExtra(PDF.incognitoKey, isIncognito())
+            linksIntent.grantPdfReadAccess(pdf.uri.toString())
             launchLinks(linksIntent)
         }
     }
@@ -66,7 +70,9 @@ class ReaderNavigationController(
             tocIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
             tocIntent.putExtra(PDF.passwordKey, pdf.password)
             tocIntent.putExtra(PDF.pageNumberKey, pdf.pageNumber)
+            tocIntent.putExtra(PDF.incognitoKey, isIncognito())
             tableOfContentsState.putInto(tocIntent)
+            tocIntent.grantPdfReadAccess(pdf.uri.toString())
             launchTableOfContents(tocIntent)
         }
     }
@@ -76,6 +82,8 @@ class ReaderNavigationController(
             gridIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
             gridIntent.putExtra(PDF.passwordKey, pdf.password)
             gridIntent.putExtra(PDF.pageNumberKey, pdf.pageNumber)
+            gridIntent.putExtra(PDF.incognitoKey, isIncognito())
+            gridIntent.grantPdfReadAccess(pdf.uri.toString())
             launchGoToPageGrid(gridIntent)
         }
     }
@@ -85,6 +93,8 @@ class ReaderNavigationController(
             pdf.fileHash?.let { bookmarksIntent.putExtra(PDF.fileHashKey, it) }
             bookmarksIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
             bookmarksIntent.putExtra(PDF.passwordKey, pdf.password)
+            bookmarksIntent.putExtra(PDF.incognitoKey, isIncognito())
+            bookmarksIntent.grantPdfReadAccess(pdf.uri.toString())
             launchUserBookmarks(bookmarksIntent)
         }
     }
@@ -94,6 +104,8 @@ class ReaderNavigationController(
             notesIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
             notesIntent.putExtra(PDF.passwordKey, pdf.password)
             notesIntent.putExtra(PDF.nameKey, pdf.name)
+            notesIntent.putExtra(PDF.incognitoKey, isIncognito())
+            notesIntent.grantPdfReadAccess(pdf.uri.toString())
             launchUserNotes(notesIntent)
         }
     }
@@ -103,6 +115,8 @@ class ReaderNavigationController(
             highlightsIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
             highlightsIntent.putExtra(PDF.passwordKey, pdf.password)
             highlightsIntent.putExtra(PDF.nameKey, pdf.name)
+            highlightsIntent.putExtra(PDF.incognitoKey, isIncognito())
+            highlightsIntent.grantPdfReadAccess(pdf.uri.toString())
             launchUserHighlights(highlightsIntent)
         }
     }
@@ -121,6 +135,8 @@ class ReaderNavigationController(
         )
         historyIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
         historyIntent.putExtra(PDF.passwordKey, pdf.password)
+        historyIntent.putExtra(PDF.incognitoKey, isIncognito())
+        historyIntent.grantPdfReadAccess(pdf.uri.toString())
         launchNavigationHistory(historyIntent)
     }
 

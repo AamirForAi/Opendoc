@@ -14,7 +14,7 @@
         android:layout_marginEnd="8dp"
         android:contentDescription="@string/incognito"
         android:src="@drawable/ic_incognito"
-        app:tint="@color/incognito_bar_content"
+        app:tint="?attr/colorOnSurface"
         android:visibility="gone" />
 
     <TextView

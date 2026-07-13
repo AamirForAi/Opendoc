@@ -3,12 +3,7 @@
 package com.gitlab.mudlej.MjPdfReader.core.ui
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.ColorFilter
-import android.graphics.Paint
-import android.graphics.PixelFormat
 import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.Drawable
 import android.os.Build
 import android.view.Gravity
 import android.view.View
@@ -22,7 +17,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.gitlab.mudlej.MjPdfReader.R
 import com.google.android.material.color.MaterialColors
-import java.util.WeakHashMap
 
 
 object ColorUtil {
@@ -30,22 +24,18 @@ object ColorUtil {
     private const val STATUS_BAR_BACKGROUND_TAG = "mj_pdf_status_bar_background"
     private const val NAVIGATION_BAR_BACKGROUND_TAG = "mj_pdf_navigation_bar_background"
 
-    private val windowBarsBackgrounds = WeakHashMap<Window, SystemBarsBackground>()
-
-    fun colorize(context: Context, window: Window, actionBar: ActionBar?, topBarColor: Int? = null) {
+    fun colorize(context: Context, window: Window, actionBar: ActionBar?) {
         val color = getBarColor(context)
-        val statusBarColor = topBarColor ?: color
 
         WindowCompat.setDecorFitsSystemWindows(window, true)
-        window.statusBarColor = statusBarColor
+        window.statusBarColor = color
         window.navigationBarColor = color
         showSystemBars(window)
-        val barsBackground = applyWindowBarsBackground(context, window, statusBarColor, color)
-        drawSystemBarBackgrounds(window, statusBarColor, color, barsBackground)
-        setSystemBarIconColors(window, statusBarColor, color)
+        drawSystemBarBackgrounds(window, color)
+        setSystemBarIconColors(window, color)
         fitContentBelowSystemBars(window)
 
-        actionBar?.setBackgroundDrawable(ColorDrawable(statusBarColor))
+        actionBar?.setBackgroundDrawable(ColorDrawable(color))
         // Flatten the app bar so it blends into the status bar.
         actionBar?.elevation = 0f
     }
@@ -59,10 +49,6 @@ object ColorUtil {
         controller.hide(WindowInsetsCompat.Type.systemBars())
     }
 
-    fun exitFullscreen(context: Context, window: Window, actionBar: ActionBar?, topBarColor: Int? = null) {
-        colorize(context, window, actionBar, topBarColor)
-    }
-
     fun getBarColor(context: Context): Int {
         return MaterialColors.getColor(
             context,
@@ -71,69 +57,28 @@ object ColorUtil {
         )
     }
 
-    private fun setSystemBarIconColors(window: Window, statusBarColor: Int, navigationBarColor: Int) {
+    private fun setSystemBarIconColors(window: Window, color: Int) {
         val controller = WindowInsetsControllerCompat(window, window.decorView)
-        controller.isAppearanceLightStatusBars = MaterialColors.isColorLight(statusBarColor)
-        controller.isAppearanceLightNavigationBars = MaterialColors.isColorLight(navigationBarColor)
+        val isLight = MaterialColors.isColorLight(color)
+        controller.isAppearanceLightStatusBars = isLight
+        controller.isAppearanceLightNavigationBars = isLight
     }
 
-    private fun applyWindowBarsBackground(
-        context: Context,
-        window: Window,
-        statusBarColor: Int,
-        navigationBarColor: Int,
-    ): SystemBarsBackground {
-        val background = windowBarsBackgrounds.getOrPut(window) { SystemBarsBackground() }
-        background.baseColor = MaterialColors.getColor(
-            context, android.R.attr.colorBackground, navigationBarColor
-        )
-        background.statusBarColor = statusBarColor
-        background.navigationBarColor = navigationBarColor
-        (window.decorView as? ViewGroup)?.let { decor ->
-            if (background.statusBarHeight == 0) {
-                background.statusBarHeight = getSystemBarHeight(decor, "status_bar_height")
-            }
-            if (background.navigationBarHeight == 0) {
-                background.navigationBarHeight = getSystemBarHeight(decor, "navigation_bar_height")
-            }
-            ViewCompat.getRootWindowInsets(decor)?.let { insets ->
-                background.statusBarHeight = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
-                background.navigationBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
-            }
-        }
-        window.setBackgroundDrawable(background)
-        background.invalidateSelf()
-        return background
-    }
-
-    private fun drawSystemBarBackgrounds(
-        window: Window,
-        statusBarColor: Int,
-        navigationBarColor: Int,
-        barsBackground: SystemBarsBackground,
-    ) {
+    private fun drawSystemBarBackgrounds(window: Window, color: Int) {
         ensureSystemBarBackground(
             window = window,
             tag = STATUS_BAR_BACKGROUND_TAG,
-            color = statusBarColor,
+            color = color,
             gravity = Gravity.TOP,
-            fallbackResourceName = "status_bar_height",
-            onHeight = { height ->
-                barsBackground.statusBarHeight = height
-                barsBackground.invalidateSelf()
-            },
+            fallbackResourceName = "status_bar_height"
         ) { insets -> insets.getInsets(WindowInsetsCompat.Type.statusBars()).top }
 
         ensureSystemBarBackground(
             window = window,
             tag = NAVIGATION_BAR_BACKGROUND_TAG,
-            color = navigationBarColor,
+            color = color,
             gravity = Gravity.BOTTOM,
-            fallbackResourceName = "navigation_bar_height",
-            onHeight = { height ->
-                barsBackground.navigationBarHeight = height
-                barsBackground.invalidateSelf()
-            },
+            fallbackResourceName = "navigation_bar_height"
         ) { insets -> insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom }
     }
 
@@ -143,7 +88,6 @@ object ColorUtil {
         color: Int,
         gravity: Int,
         fallbackResourceName: String,
-        onHeight: (Int) -> Unit,
         getHeight: (WindowInsetsCompat) -> Int
     ) {
         val decor = window.decorView as? ViewGroup ?: return
@@ -171,7 +115,6 @@ object ColorUtil {
             val height = getHeight(insets)
             val decorPadding = if (gravity == Gravity.TOP) decor.paddingTop else decor.paddingBottom
             setSystemBarBackgroundHeight(view, if (decorPadding > 0) 0 else height)
-            onHeight(height)
             insets
         }
         ViewCompat.requestApplyInsets(background)
@@ -226,49 +169,6 @@ object ColorUtil {
         val visibility = if (visible) View.VISIBLE else View.GONE
         decor.findViewWithTag<View>(STATUS_BAR_BACKGROUND_TAG)?.visibility = visibility
         decor.findViewWithTag<View>(NAVIGATION_BAR_BACKGROUND_TAG)?.visibility = visibility
-    }
-
-    private class SystemBarsBackground : Drawable() {
-
-        var baseColor = 0
-        var statusBarColor = 0
-        var navigationBarColor = 0
-        var statusBarHeight = 0
-        var navigationBarHeight = 0
-
-        private val paint = Paint()
-
-        override fun draw(canvas: Canvas) {
-            paint.color = baseColor
-            canvas.drawRect(bounds, paint)
-            if (statusBarHeight > 0) {
-                paint.color = statusBarColor
-                canvas.drawRect(
-                    bounds.left.toFloat(),
-                    bounds.top.toFloat(),
-                    bounds.right.toFloat(),
-                    (bounds.top + statusBarHeight).toFloat(),
-                    paint,
-                )
-            }
-            if (navigationBarHeight > 0) {
-                paint.color = navigationBarColor
-                canvas.drawRect(
-                    bounds.left.toFloat(),
-                    (bounds.bottom - navigationBarHeight).toFloat(),
-                    bounds.right.toFloat(),
-                    bounds.bottom.toFloat(),
-                    paint,
-                )
-            }
-        }
-
-        override fun setAlpha(alpha: Int) = Unit
-
-        override fun setColorFilter(colorFilter: ColorFilter?) = Unit
-
-        @Deprecated("Deprecated in Java")
-        override fun getOpacity(): Int = PixelFormat.OPAQUE
     }
 
 }

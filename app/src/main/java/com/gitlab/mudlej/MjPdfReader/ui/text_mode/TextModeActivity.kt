@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
+import com.gitlab.mudlej.MjPdfReader.pdf.grantPdfReadAccess
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityTextModeBinding
@@ -32,6 +33,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsState
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.ui.ColorUtil
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoThemeFromIntent
 import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
@@ -103,6 +105,7 @@ class TextModeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyIncognitoThemeFromIntent()
         binding = ActivityTextModeBinding.inflate(layoutInflater)
         setContentView(binding.root)
         ColorUtil.colorize(this, window, supportActionBar)
@@ -419,7 +422,9 @@ class TextModeActivity : AppCompatActivity() {
             bookmarkIntent.putExtra(PDF.filePathKey, pdfUri.toString())
             bookmarkIntent.putExtra(PDF.passwordKey, pdfPassword)
             bookmarkIntent.putExtra(PDF.pageNumberKey, currentPageIndex)
+            bookmarkIntent.putExtra(PDF.incognitoKey, intent.getBooleanExtra(PDF.incognitoKey, false))
             tableOfContentsState.putInto(bookmarkIntent)
+            bookmarkIntent.grantPdfReadAccess(pdfUri.toString())
             tableOfContentsLauncher.launch(bookmarkIntent)
         }
     }
@@ -429,6 +434,8 @@ class TextModeActivity : AppCompatActivity() {
             gridIntent.putExtra(PDF.filePathKey, pdfUri.toString())
             gridIntent.putExtra(PDF.passwordKey, pdfPassword)
             gridIntent.putExtra(PDF.pageNumberKey, currentPageIndex)
+            gridIntent.putExtra(PDF.incognitoKey, intent.getBooleanExtra(PDF.incognitoKey, false))
+            gridIntent.grantPdfReadAccess(pdfUri.toString())
             goToPageGridLauncher.launch(gridIntent)
         }
     }

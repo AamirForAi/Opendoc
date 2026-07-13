@@ -442,7 +442,7 @@
     <string name="pdf_title">Title</string>
     <string name="pdf_author">Author</string>
 
-    <string name="file_opening_error">Error opening the pdf. (storage permission? free space?)</string>
+    <string name="file_opening_error">Could not open the PDF. The file may have been moved, deleted, or MJ PDF no longer has access to it.</string>
     <string name="protected_pdf">Protected PDF</string>
     <string name="enter_password">Enter the correct password to open the document:</string>
     <string name="wrong_password">Wrong password.</string>
@@ -863,7 +863,6 @@
     <string name="incognito_off_message">Incognito is off. Reading history is saved again.</string>
     <string name="history_action_blocked">Not available while incognito or history saving is off</string>
     <string name="open_in_incognito">Open in Incognito</string>
-    <string name="open_in_incognito_summary">Read a file without saving any history about it</string>
     <string name="open_in_incognito_hint">Choose a file to open in incognito</string>
     <string name="settings_history_privacy">History and Privacy</string>
     <string name="settings_history_privacy_summary">Reading history, incognito, and data removal</string>

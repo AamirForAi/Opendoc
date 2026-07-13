@@ -31,8 +31,12 @@
 
     <color name="favorite">#FF0052</color>
     <color name="search">#019a66</color>
-    <color name="incognito_bar">#3B3D3B</color>
-    <color name="incognito_bar_content">#FFFFFF</color>
+    <color name="incognito_surface">#3B3D3B</color>
+    <color name="incognito_on_surface">#FFFFFF</color>
+    <color name="incognito_surface_variant">#4C4F4C</color>
+    <color name="incognito_on_surface_variant">#C6C9C6</color>
+    <color name="incognito_outline">#8F928F</color>
+    <color name="incognito_outline_variant">#565956</color>
 
 
 </resources>

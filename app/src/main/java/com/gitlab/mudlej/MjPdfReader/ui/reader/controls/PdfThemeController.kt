@@ -17,11 +17,10 @@ class PdfThemeController(
     private val activity: AppCompatActivity,
     private val binding: ActivityMainBinding,
     private val pref: Preferences,
-    private val topBarColor: () -> Int? = { null },
 ) {
 
     fun configureTheme() {
-        ColorUtil.colorize(activity, activity.window, activity.supportActionBar, topBarColor())
+        ColorUtil.colorize(activity, activity.window, activity.supportActionBar)
         val color = ColorUtil.getBarColor(activity)
         binding.secondBarScrollView.setBackgroundColor(color)
 

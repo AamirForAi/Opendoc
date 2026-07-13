@@ -9,6 +9,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoThemeFromIntent
 import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivitySettingsBinding
 import com.gitlab.mudlej.MjPdfReader.core.ui.tintIconsForChrome
@@ -24,6 +25,7 @@ class SettingsActivity : AppCompatActivity(), SettingsFragment.Navigation {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyIncognitoThemeFromIntent()
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setupScreenChrome()

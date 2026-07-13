@@ -28,9 +28,7 @@ import com.gitlab.mudlej.MjPdfReader.data.translation.DictionaryStore
 import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationEngine
 import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationLanguages
 import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationUrlBuilder
-import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.ui.history.ReadingHistoryActivity
-import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableAction
 import com.gitlab.mudlej.MjPdfReader.core.ui.SegmentedButtonStyler
 import com.google.android.material.button.MaterialButtonToggleGroup
@@ -192,21 +190,6 @@ internal class SettingsPreferenceFactory(
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
                 showShortcutBarButtonsPreferenceDialog(context, appPreferences) {}
-                true
-            }
-        }
-    }
-
-    fun openIncognitoPreference(breadcrumb: String?): Preference {
-        return Preference(context).apply {
-            title = getString(R.string.open_in_incognito)
-            key = "openIncognito"
-            summary = formatSummary(breadcrumb, getString(R.string.open_in_incognito_summary))
-            isIconSpaceReserved = false
-            setOnPreferenceClickListener {
-                val intent = Intent(context, MainActivity::class.java)
-                intent.putExtra(PDF.incognitoKey, true)
-                context.startActivity(intent)
                 true
             }
         }

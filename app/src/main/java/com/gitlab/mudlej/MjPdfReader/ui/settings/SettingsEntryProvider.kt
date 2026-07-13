@@ -348,14 +348,6 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             ),
             SettingEntry(
                 page = SettingsPage.HISTORY_PRIVACY,
-                titleRes = R.string.open_in_incognito,
-                summaryRes = R.string.open_in_incognito_summary,
-                keywords = listOf("incognito", "private", "privacy", "history"),
-            ) { breadcrumb ->
-                openIncognitoPreference(breadcrumb)
-            },
-            SettingEntry(
-                page = SettingsPage.HISTORY_PRIVACY,
                 titleRes = R.string.reading_history,
                 summaryRes = R.string.reading_history_row_summary,
                 keywords = listOf("history", "recent", "view", "records", "privacy"),

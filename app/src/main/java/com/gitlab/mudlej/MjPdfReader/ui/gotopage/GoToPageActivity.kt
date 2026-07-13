@@ -14,6 +14,7 @@ import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.GridLayoutManager
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoThemeFromIntent
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityGoToPageBinding
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
@@ -35,6 +36,7 @@ class GoToPageActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyIncognitoThemeFromIntent()
         binding = ActivityGoToPageBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setupScreenChrome()

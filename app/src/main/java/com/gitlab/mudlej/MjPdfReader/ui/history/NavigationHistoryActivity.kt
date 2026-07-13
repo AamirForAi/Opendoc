@@ -13,6 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoThemeFromIntent
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityNavigationHistoryBinding
 import com.gitlab.mudlej.MjPdfReader.ui.reader.navigation.ReaderHistoryManager
@@ -26,6 +27,7 @@ class NavigationHistoryActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyIncognitoThemeFromIntent()
         binding = ActivityNavigationHistoryBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setupScreenChrome()

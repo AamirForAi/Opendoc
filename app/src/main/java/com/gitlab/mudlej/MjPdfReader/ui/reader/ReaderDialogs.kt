@@ -20,6 +20,7 @@ import androidx.core.text.isDigitsOnly
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
+import com.gitlab.mudlej.MjPdfReader.pdf.grantPdfReadAccess
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
@@ -185,7 +186,7 @@ fun showCopyPageTextDialog(
         .show()
 }
 
-fun showSearchDialog(activity: Activity, pdf: DocumentState, launchSearch: (Intent) -> Unit) {
+fun showSearchDialog(activity: Activity, pdf: DocumentState, isIncognito: Boolean, launchSearch: (Intent) -> Unit) {
     val pref = Preferences(PreferenceManager.getDefaultSharedPreferences(activity))
     val searchLayout = LayoutInflater.from(activity).inflate(R.layout.input_layout, null) as TextInputLayout
     val ignoreAccentsCheckBox = MaterialCheckBox(activity).apply {
@@ -219,6 +220,8 @@ fun showSearchDialog(activity: Activity, pdf: DocumentState, launchSearch: (Inte
                     searchIntent.putExtra(PDF.passwordKey, pdf.password)
                     pdf.fileHash?.let { searchIntent.putExtra(PDF.fileHashKey, it) }
                     searchIntent.putExtra(PDF.searchQueryKey, queryText)
+                    searchIntent.putExtra(PDF.incognitoKey, isIncognito)
+                    searchIntent.grantPdfReadAccess(pdf.uri.toString())
                     pdf.lastQuery = queryText
                     launchSearch(searchIntent)
                 }
@@ -233,7 +236,7 @@ fun showSearchDialog(activity: Activity, pdf: DocumentState, launchSearch: (Inte
                     .setPositiveButton(activity.getText(R.string.ok)) { badQueryDialog, _ ->
                         searchDialog.dismiss()
                         badQueryDialog.dismiss()
-                        showSearchDialog(activity, pdf, launchSearch)
+                        showSearchDialog(activity, pdf, isIncognito, launchSearch)
                     }
                     .show()
             }

@@ -8,7 +8,6 @@ import android.app.ActivityManager
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
-import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Bundle
 import android.os.StrictMode
@@ -24,10 +23,8 @@ import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
-import androidx.core.view.MenuItemCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.gitlab.mudlej.MjPdfReader.R
@@ -41,10 +38,10 @@ import com.gitlab.mudlej.MjPdfReader.core.io.imageShareIntent
 import com.gitlab.mudlej.MjPdfReader.core.io.plainTextShareIntent
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.ui.ColorUtil
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoTheme
 import com.gitlab.mudlej.MjPdfReader.core.ui.showOptionalIcons
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.pdf.PdfPropertiesSummary
-import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.shockwave.pdfium.PdfPasswordException
@@ -89,6 +86,13 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         super.onCreate(savedInstanceState)
         pref = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
 
+        if (savedInstanceState == null) {
+            vm.incognito = intent.getBooleanExtra(PDF.incognitoKey, false)
+        }
+        if (vm.incognito) {
+            applyIncognitoTheme()
+        }
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setCustomActionBar()
@@ -110,7 +114,6 @@ class MainActivity : AppCompatActivity(), ReaderUi {
             restoreInstanceState(savedInstanceState)
         }
         else {
-            vm.incognito = intent.getBooleanExtra(PDF.incognitoKey, false)
             val intentUri = intent.data
             if (intentUri == null) {
                 if (intent.getBooleanExtra(HomeActivity.EXTRA_OPEN_ONLINE_DIALOG, false)) {
@@ -143,6 +146,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         appTitlePageNumber = customView.findViewById(R.id.actionbarPageNumber)
         appTitle = customView.findViewById(R.id.actionbarTitle)
         appTitleIncognitoIcon = customView.findViewById(R.id.actionbarIncognitoIcon)
+        appTitleIncognitoIcon.visibility = if (vm.incognito) View.VISIBLE else View.GONE
 
         fun titleClickListener() {
             val title = pdf.getTitle()
@@ -163,43 +167,6 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         actionBar?.setDisplayHomeAsUpEnabled(homeEnabled)
         if (homeEnabled) {
             actionBar?.setHomeAsUpIndicator(R.drawable.ic_home)
-        }
-    }
-
-    fun barColorOverride(): Int? =
-        if (vm.incognito) ContextCompat.getColor(this, R.color.incognito_bar) else null
-
-    fun updateIncognitoChrome() {
-        val incognito = vm.incognito
-        appTitleIncognitoIcon.visibility = if (incognito) View.VISIBLE else View.GONE
-        val contentColor = if (incognito) {
-            ContextCompat.getColor(this, R.color.incognito_bar_content)
-        } else {
-            MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOnSurface)
-        }
-        appTitle.setTextColor(contentColor)
-        appTitlePageNumber.setTextColor(contentColor)
-        (appTitle.parent.parent as? Toolbar)?.let { toolbar ->
-            toolbar.navigationIcon?.mutate()?.setTint(contentColor)
-            toolbar.overflowIcon?.mutate()?.setTint(contentColor)
-        }
-        applyIncognitoMenuTint()
-        if (!vm.isFullScreenToggled) {
-            ColorUtil.colorize(this, window, supportActionBar, barColorOverride())
-        }
-    }
-
-    private fun applyIncognitoMenuTint() {
-        if (!::actionBarMenu.isInitialized) {
-            return
-        }
-        val tint = if (vm.incognito) {
-            ColorStateList.valueOf(ContextCompat.getColor(this, R.color.incognito_bar_content))
-        } else {
-            null
-        }
-        for (index in 0 until actionBarMenu.size()) {
-            MenuItemCompat.setIconTintList(actionBarMenu.getItem(index), tint)
         }
     }
 
@@ -286,7 +253,6 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         }
 
         reader.toolbarActionController.update(actionBarMenu)
-        applyIncognitoMenuTint()
     }
 
     internal fun checkAlwaysHorizontal() {
@@ -396,7 +362,6 @@ class MainActivity : AppCompatActivity(), ReaderUi {
             updateActionBar()
         }
         updateHomeUpIndicator()
-        updateIncognitoChrome()
         reader.onResume()
 
         // check if there is a pdf at first
@@ -583,7 +548,6 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         this.actionBarMenu = menu
         menu.showOptionalIcons(this)
         updateActionBar()
-        updateIncognitoChrome()
         return true
     }
 

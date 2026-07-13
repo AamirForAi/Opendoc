@@ -25,6 +25,7 @@ import com.github.barteksc.pdfviewer.scroll.DefaultScrollHandle
 import com.github.barteksc.pdfviewer.scroll.ScrollHandle
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
+import com.gitlab.mudlej.MjPdfReader.pdf.grantPdfReadAccess
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
@@ -188,7 +189,7 @@ class ReaderComposition(
         FullScreenOptionsManager(binding, vm, pref.getHideDelay().toLong(), pref)
     val zoomSwipeLockController = ZoomSwipeLockController(binding, ::drawableOf)
     val brightnessController = BrightnessController(activity, binding, vm)
-    val pdfThemeController = PdfThemeController(activity, binding, pref, activity::barColorOverride)
+    val pdfThemeController = PdfThemeController(activity, binding, pref)
     val volumeKeyPager = VolumeKeyPager(binding, doc, pref)
     val mousePager = MousePager(binding, doc, pref)
     val printController = PrintController(activity, binding, doc, scope)
@@ -292,6 +293,7 @@ class ReaderComposition(
         binding,
         doc,
         pref,
+        { vm.incognito },
         readerHistory,
         userBookmarkController::onPageDisplayed,
         ui::updateTitle,
@@ -347,7 +349,6 @@ class ReaderComposition(
         autoScrollManager,
         zoomSwipeLockController,
         brightnessController,
-        activity::barColorOverride,
     ) { shortcutBarController.updateVisibility() }
 
 
@@ -525,7 +526,14 @@ class ReaderComposition(
             discardAnnotationsFab.setOnClickListener { activity.confirmDiscardAnnotations() }
         }
         fullScreenButtonController.configure()
-        updateIncognitoIndicator()
+        vm.pendingIncognitoNotice?.let { turnedOn ->
+            vm.pendingIncognitoNotice = null
+            AppSnackbar.make(
+                binding.root,
+                if (turnedOn) R.string.incognito_on_message else R.string.incognito_off_message,
+                Snackbar.LENGTH_SHORT,
+            ).show()
+        }
     }
 
     fun onResume() {
@@ -595,12 +603,16 @@ class ReaderComposition(
             reload = activity::reloadPdf,
             openLocal = ::pickFile,
             openOnline = { onlinePdfController.showOpenOnlinePdfDialog() },
-            search = { showSearchDialog(activity, doc) { intent -> searchLauncher.launch(intent) } },
+            search = { showSearchDialog(activity, doc, vm.incognito) { intent -> searchLauncher.launch(intent) } },
             goToPage = ::goToPage,
             extractText = { pageTextCopier.copyPageText() },
             textMode = ::navToTextMode,
             share = { activity.shareFile(doc.uri) },
-            settings = { settingsLauncher.launch(Intent(activity, SettingsActivity::class.java)) },
+            settings = {
+                val settingsIntent = Intent(activity, SettingsActivity::class.java)
+                settingsIntent.putExtra(PDF.incognitoKey, vm.incognito)
+                settingsLauncher.launch(settingsIntent)
+            },
             fileMetadata = activity::showFileMetadata,
             about = { activity.startActivity(navIntent(activity, AboutActivity::class.java)) },
             tableOfContents = { readerNavigationController.showTableOfContents() },
@@ -627,18 +639,8 @@ class ReaderComposition(
 
     private fun toggleIncognito() {
         vm.incognito = !vm.incognito
-        if (vm.incognito) {
-            AppSnackbar.make(binding.root, R.string.incognito_on_message, Snackbar.LENGTH_SHORT).show()
-        } else {
-            documentLoader.persistCurrentDocument()
-            AppSnackbar.make(binding.root, R.string.incognito_off_message, Snackbar.LENGTH_SHORT).show()
-        }
-        updateIncognitoIndicator()
-        refreshActions()
-    }
-
-    fun updateIncognitoIndicator() {
-        activity.updateIncognitoChrome()
+        vm.pendingIncognitoNotice = vm.incognito
+        activity.recreate()
     }
 
     private fun openSelectedDocument(selectedDocumentUri: Uri?) {
@@ -756,6 +758,7 @@ class ReaderComposition(
             it.putExtra(PDF.pageNumberKey, currentPageIndex)
             it.putExtra(PDF.incognitoKey, vm.incognito)
             doc.fileHash?.let { fileHash -> it.putExtra(PDF.fileHashKey, fileHash) }
+            it.grantPdfReadAccess(doc.uri.toString())
             textModeLauncher.launch(it)
         }
     }
