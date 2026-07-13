@@ -19,6 +19,14 @@
             android:layout_height="wrap_content"
             android:hint="@string/home_search_hint" />
 
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/selectionToolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:visibility="gone"
+            app:navigationIcon="@drawable/ic_close"
+            app:navigationIconTint="?attr/colorOnSurface" />
+
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/homeTabs"
             android:layout_width="match_parent"

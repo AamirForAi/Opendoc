@@ -11,7 +11,7 @@
 
     <item
         android:id="@+id/removeRecentBatchOption"
-        android:icon="@drawable/close_icon"
+        android:icon="@drawable/ic_remove_recent"
         android:title="@string/home_remove_from_recent"
         app:showAsAction="always" />
 

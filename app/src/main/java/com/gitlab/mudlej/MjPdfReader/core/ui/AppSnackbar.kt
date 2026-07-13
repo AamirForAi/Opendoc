@@ -19,7 +19,7 @@ object AppSnackbar {
     }
 
     fun make(view: View, text: CharSequence, duration: Int): Snackbar {
-        return Snackbar.make(view, text, duration).also(::applyCardStyle)
+        return Snackbar.make(view.context, view, text, duration).also(::applyCardStyle)
     }
 
     private fun applyCardStyle(snackbar: Snackbar) {

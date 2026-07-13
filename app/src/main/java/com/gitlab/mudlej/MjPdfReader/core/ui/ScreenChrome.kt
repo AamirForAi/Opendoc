@@ -12,13 +12,25 @@ fun AppCompatActivity.setupScreenChrome() {
     supportActionBar?.setDisplayHomeAsUpEnabled(true)
 }
 
-fun AppCompatActivity.applyIncognitoTheme() {
+fun AppCompatActivity.applyIncognitoNightMode() {
     delegate.localNightMode = AppCompatDelegate.MODE_NIGHT_YES
+}
+
+fun AppCompatActivity.applyIncognitoOverlay() {
     theme.applyStyle(R.style.IncognitoThemeOverlay, true)
 }
 
-fun AppCompatActivity.applyIncognitoThemeFromIntent() {
-    if (intent.getBooleanExtra(PDF.incognitoKey, false)) {
-        applyIncognitoTheme()
+fun AppCompatActivity.isIncognitoLaunch(): Boolean =
+    intent.getBooleanExtra(PDF.incognitoKey, false)
+
+fun AppCompatActivity.applyIncognitoNightModeFromIntent() {
+    if (isIncognitoLaunch()) {
+        applyIncognitoNightMode()
+    }
+}
+
+fun AppCompatActivity.applyIncognitoOverlayFromIntent() {
+    if (isIncognitoLaunch()) {
+        applyIncognitoOverlay()
     }
 }

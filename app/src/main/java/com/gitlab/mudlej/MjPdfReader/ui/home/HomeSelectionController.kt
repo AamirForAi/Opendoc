@@ -4,14 +4,21 @@ package com.gitlab.mudlej.MjPdfReader.ui.home
 
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.view.ActionMode
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.databinding.ActivityHomeBinding
 
 enum class SelectionContext { RECENT, LIBRARY, FOLDERS, SEARCH }
 
 class HomeSelectionController(
     private val activity: AppCompatActivity,
+    private val binding: ActivityHomeBinding,
     private val currentItems: () -> List<HomeItem>,
     private val currentContext: () -> SelectionContext,
     private val onSelectionChanged: () -> Unit,
@@ -21,12 +28,35 @@ class HomeSelectionController(
     private val onDeleteBatch: (List<HomeItem>) -> Unit,
 ) {
     private var actionMode: ActionMode? = null
+    private var toolbarActive = false
     private var context = SelectionContext.LIBRARY
 
     val selectedHashes = mutableSetOf<String>()
 
     val active: Boolean
-        get() = actionMode != null
+        get() = actionMode != null || toolbarActive
+
+    private val backCallback = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
+            finish()
+        }
+    }
+
+    init {
+        binding.selectionToolbar.inflateMenu(R.menu.home_action_mode)
+        binding.selectionToolbar.setNavigationOnClickListener { finish() }
+        binding.selectionToolbar.setOnMenuItemClickListener { item -> handleAction(item) }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.selectionToolbar) { view, insets ->
+            val topInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            val params = view.layoutParams as ViewGroup.MarginLayoutParams
+            if (params.topMargin != topInset) {
+                params.topMargin = topInset
+                view.layoutParams = params
+            }
+            insets
+        }
+        activity.onBackPressedDispatcher.addCallback(activity, backCallback)
+    }
 
     fun begin(item: HomeItem): Boolean {
         if (active) {
@@ -35,7 +65,11 @@ class HomeSelectionController(
         }
         selectedHashes.add(item.hash)
         context = currentContext()
-        actionMode = activity.startSupportActionMode(callback)
+        if (context == SelectionContext.SEARCH) {
+            actionMode = activity.startSupportActionMode(actionModeCallback)
+        } else {
+            showSelectionToolbar()
+        }
         updateTitle()
         onSelectionChanged()
         return true
@@ -55,47 +89,82 @@ class HomeSelectionController(
 
     fun finish() {
         actionMode?.finish()
+        if (toolbarActive) {
+            hideSelectionToolbar()
+            endSelection()
+        }
+    }
+
+    private fun showSelectionToolbar() {
+        applyContextVisibility(binding.selectionToolbar.menu)
+        toolbarActive = true
+        backCallback.isEnabled = true
+        binding.searchBar.visibility = View.GONE
+        binding.selectionToolbar.visibility = View.VISIBLE
+    }
+
+    private fun hideSelectionToolbar() {
+        toolbarActive = false
+        backCallback.isEnabled = false
+        binding.selectionToolbar.visibility = View.GONE
+        binding.searchBar.visibility = View.VISIBLE
+    }
+
+    private fun endSelection() {
+        selectedHashes.clear()
+        onSelectionChanged()
+    }
+
+    private fun applyContextVisibility(menu: Menu) {
+        menu.findItem(R.id.removeRecentBatchOption).isVisible = context == SelectionContext.RECENT
+        menu.findItem(R.id.hideBatchOption).isVisible = context == SelectionContext.LIBRARY
+        menu.findItem(R.id.deleteBatchOption).isVisible = context == SelectionContext.FOLDERS
     }
 
     private fun updateTitle() {
-        actionMode?.title = activity.getString(R.string.home_selected_count, selectedHashes.size)
+        val title = activity.getString(R.string.home_selected_count, selectedHashes.size)
+        actionMode?.title = title
+        if (toolbarActive) {
+            binding.selectionToolbar.title = title
+        }
     }
 
     private fun selectedItems(): List<HomeItem> {
         return currentItems().filter { it.hash in selectedHashes }
     }
 
-    private val callback = object : ActionMode.Callback {
+    private fun handleAction(item: MenuItem): Boolean {
+        val items = selectedItems()
+        if (items.isEmpty()) {
+            return true
+        }
+        when (item.itemId) {
+            R.id.statusBatchOption -> onStatusBatch(items)
+            R.id.removeRecentBatchOption -> onRemoveRecentBatch(items)
+            R.id.hideBatchOption -> onHideBatch(items)
+            R.id.deleteBatchOption -> onDeleteBatch(items)
+            else -> return false
+        }
+        return true
+    }
+
+    private val actionModeCallback = object : ActionMode.Callback {
 
         override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
             mode.menuInflater.inflate(R.menu.home_action_mode, menu)
-            menu.findItem(R.id.removeRecentBatchOption).isVisible = context == SelectionContext.RECENT
-            menu.findItem(R.id.hideBatchOption).isVisible = context == SelectionContext.LIBRARY
-            menu.findItem(R.id.deleteBatchOption).isVisible = context == SelectionContext.FOLDERS
+            applyContextVisibility(menu)
             return true
         }
 
         override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean = false
 
         override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
-            val items = selectedItems()
-            if (items.isEmpty()) {
-                return true
-            }
-            when (item.itemId) {
-                R.id.statusBatchOption -> onStatusBatch(items)
-                R.id.removeRecentBatchOption -> onRemoveRecentBatch(items)
-                R.id.hideBatchOption -> onHideBatch(items)
-                R.id.deleteBatchOption -> onDeleteBatch(items)
-                else -> return false
-            }
-            return true
+            return handleAction(item)
         }
 
         override fun onDestroyActionMode(mode: ActionMode) {
-            selectedHashes.clear()
             actionMode = null
-            onSelectionChanged()
+            endSelection()
         }
     }
 }

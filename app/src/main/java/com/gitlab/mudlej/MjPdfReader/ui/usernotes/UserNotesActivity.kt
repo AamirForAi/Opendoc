@@ -20,7 +20,8 @@ import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.ui.attachFilterSearchView
 import com.gitlab.mudlej.MjPdfReader.core.ui.configureSearchIcon
 import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
-import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoThemeFromIntent
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoNightModeFromIntent
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoOverlayFromIntent
 import com.gitlab.mudlej.MjPdfReader.core.ui.tintIconsForChrome
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityUserNotesBinding
 import com.gitlab.mudlej.MjPdfReader.pdf.ExtractorScreen
@@ -57,8 +58,9 @@ class UserNotesActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applyIncognitoNightModeFromIntent()
         super.onCreate(savedInstanceState)
-        applyIncognitoThemeFromIntent()
+        applyIncognitoOverlayFromIntent()
         binding = ActivityUserNotesBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setupScreenChrome()

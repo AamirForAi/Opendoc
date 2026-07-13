@@ -866,6 +866,8 @@
     <string name="open_in_incognito_hint">Choose a file to open in incognito</string>
     <string name="settings_history_privacy">History and Privacy</string>
     <string name="settings_history_privacy_summary">Reading history, incognito, and data removal</string>
+    <string name="settings_backup">Backup and Restore</string>
+    <string name="settings_backup_summary">Export and import your settings, reading history, and bookmarks</string>
     <string name="history_enabled_title">Save Reading History</string>
     <string name="history_enabled_summary">Remember opened files, reading positions, and per file settings.</string>
     <string name="reading_history">Reading History</string>

@@ -22,7 +22,8 @@ import com.gitlab.mudlej.MjPdfReader.pdf.SearchResult
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivitySearchBinding
 import com.gitlab.mudlej.MjPdfReader.core.ui.attachFilterSearchView
 import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
-import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoThemeFromIntent
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoNightModeFromIntent
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoOverlayFromIntent
 import com.gitlab.mudlej.MjPdfReader.pdf.ExtractorScreen
 import com.gitlab.mudlej.MjPdfReader.pdf.PdfExtractor
 import com.gitlab.mudlej.MjPdfReader.core.ui.configureSearchIcon
@@ -57,8 +58,9 @@ class SearchActivity : AppCompatActivity(), SearchResultFunctions {
     private var coordinatorListener: SearchCoordinator.Listener? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applyIncognitoNightModeFromIntent()
         super.onCreate(savedInstanceState)
-        applyIncognitoThemeFromIntent()
+        applyIncognitoOverlayFromIntent()
         binding = ActivitySearchBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setupScreenChrome()

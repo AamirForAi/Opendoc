@@ -33,7 +33,8 @@ import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsState
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.ui.ColorUtil
-import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoThemeFromIntent
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoNightModeFromIntent
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoOverlayFromIntent
 import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
@@ -104,8 +105,9 @@ class TextModeActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applyIncognitoNightModeFromIntent()
         super.onCreate(savedInstanceState)
-        applyIncognitoThemeFromIntent()
+        applyIncognitoOverlayFromIntent()
         binding = ActivityTextModeBinding.inflate(layoutInflater)
         setContentView(binding.root)
         ColorUtil.colorize(this, window, supportActionBar)

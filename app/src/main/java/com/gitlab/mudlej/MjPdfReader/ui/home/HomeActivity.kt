@@ -195,6 +195,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
 
         selectionController = HomeSelectionController(
             this,
+            binding,
             currentItems = ::selectableItems,
             currentContext = ::selectionContext,
             onSelectionChanged = ::notifySelectionChanged,

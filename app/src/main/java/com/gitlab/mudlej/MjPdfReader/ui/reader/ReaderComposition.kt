@@ -526,13 +526,25 @@ class ReaderComposition(
             discardAnnotationsFab.setOnClickListener { activity.confirmDiscardAnnotations() }
         }
         fullScreenButtonController.configure()
-        vm.pendingIncognitoNotice?.let { turnedOn ->
-            vm.pendingIncognitoNotice = null
-            AppSnackbar.make(
-                binding.root,
-                if (turnedOn) R.string.incognito_on_message else R.string.incognito_off_message,
-                Snackbar.LENGTH_SHORT,
-            ).show()
+        showPendingIncognitoNotice()
+    }
+
+    private fun showPendingIncognitoNotice() {
+        if (vm.pendingIncognitoNotice == null) {
+            return
+        }
+        binding.root.post {
+            if (activity.isFinishing || activity.isDestroyed) {
+                return@post
+            }
+            vm.pendingIncognitoNotice?.let { turnedOn ->
+                vm.pendingIncognitoNotice = null
+                AppSnackbar.make(
+                    binding.root,
+                    if (turnedOn) R.string.incognito_on_message else R.string.incognito_off_message,
+                    Snackbar.LENGTH_SHORT,
+                ).show()
+            }
         }
     }
 

@@ -15,7 +15,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.core.ui.attachFilterSearchView
 import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
-import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoThemeFromIntent
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoNightModeFromIntent
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoOverlayFromIntent
 import com.gitlab.mudlej.MjPdfReader.pdf.Link
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityLinkBinding
@@ -41,8 +42,9 @@ class LinksActivity : AppCompatActivity(), LinkFunctions {
     private val lastPageLiveData = MutableLiveData<Int>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applyIncognitoNightModeFromIntent()
         super.onCreate(savedInstanceState)
-        applyIncognitoThemeFromIntent()
+        applyIncognitoOverlayFromIntent()
         binding = ActivityLinkBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setupScreenChrome()

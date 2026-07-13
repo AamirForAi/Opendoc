@@ -51,6 +51,11 @@ enum class SettingsPage(
         R.string.settings_history_privacy_summary,
         R.drawable.privacy_icon,
     ),
+    BACKUP(
+        R.string.settings_backup,
+        R.string.settings_backup_summary,
+        R.drawable.ic_save,
+    ),
     ADVANCED(
         R.string.advanced,
         R.string.advanced_summary,

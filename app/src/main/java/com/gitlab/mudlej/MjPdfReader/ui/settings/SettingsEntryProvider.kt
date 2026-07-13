@@ -19,12 +19,21 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             highlightingEntries(),
             translationEntries(),
             privacyEntries(),
+            backupEntries(),
             advancedEntries(),
         ).flatten()
     }
 
     private fun homeEntries(): List<SettingEntry> {
         return listOf(
+            switchEntry(
+                page = SettingsPage.HOME,
+                titleRes = R.string.disable_home_library_title,
+                key = Preferences.homeDisabledKey,
+                defaultValue = Preferences.homeDisabledDefault,
+                summaryRes = R.string.disable_home_library_summary,
+                keywords = listOf("home", "library", "disable", "launch", "start", "picker"),
+            ),
             switchEntry(
                 page = SettingsPage.HOME,
                 titleRes = R.string.home_show_pdf_title_title,
@@ -389,16 +398,53 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
         )
     }
 
+    private fun backupEntries(): List<SettingEntry> {
+        return listOf(
+            SettingEntry(
+                page = SettingsPage.BACKUP,
+                titleRes = R.string.backup_folder_title,
+                summaryRes = R.string.backup_folder_summary_unset,
+                keywords = listOf("backup", "folder", "location", "directory", "save"),
+            ) { breadcrumb ->
+                backupFolderPreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.BACKUP,
+                titleRes = R.string.auto_backup_title,
+                summaryRes = R.string.auto_backup_summary,
+                keywords = listOf("backup", "automatic", "daily", "schedule", "auto"),
+            ) { breadcrumb ->
+                autoBackupSwitchPreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.BACKUP,
+                titleRes = R.string.auto_backup_time_title,
+                summaryRes = R.string.auto_backup_time_summary,
+                keywords = listOf("backup", "time", "schedule", "daily", "hour"),
+            ) { breadcrumb ->
+                autoBackupTimePreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.BACKUP,
+                titleRes = R.string.backup_export_title,
+                summaryRes = R.string.backup_export_summary,
+                keywords = listOf("backup", "export", "save", "data", "transfer", "progress"),
+            ) { breadcrumb ->
+                backupExportPreference(breadcrumb)
+            },
+            SettingEntry(
+                page = SettingsPage.BACKUP,
+                titleRes = R.string.backup_import_title,
+                summaryRes = R.string.backup_import_summary,
+                keywords = listOf("backup", "import", "restore", "data", "transfer", "progress"),
+            ) { breadcrumb ->
+                backupImportPreference(breadcrumb)
+            },
+        )
+    }
+
     private fun advancedEntries(): List<SettingEntry> {
         return listOf(
-            switchEntry(
-                page = SettingsPage.ADVANCED,
-                titleRes = R.string.disable_home_library_title,
-                key = Preferences.homeDisabledKey,
-                defaultValue = Preferences.homeDisabledDefault,
-                summaryRes = R.string.disable_home_library_summary,
-                keywords = listOf("home", "library", "disable", "launch", "start", "picker"),
-            ),
             floatPreferenceEntry(
                 page = SettingsPage.ADVANCED,
                 titleRes = R.string.part_size,
@@ -423,46 +469,6 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 keywords = listOf("advanced", "zoom", "scale"),
                 onValueSelected = preferences::setMaxZoom,
             ),
-            SettingEntry(
-                page = SettingsPage.ADVANCED,
-                titleRes = R.string.backup_folder_title,
-                summaryRes = R.string.backup_folder_summary_unset,
-                keywords = listOf("backup", "folder", "location", "directory", "save"),
-            ) { breadcrumb ->
-                backupFolderPreference(breadcrumb)
-            },
-            SettingEntry(
-                page = SettingsPage.ADVANCED,
-                titleRes = R.string.auto_backup_title,
-                summaryRes = R.string.auto_backup_summary,
-                keywords = listOf("backup", "automatic", "daily", "schedule", "auto"),
-            ) { breadcrumb ->
-                autoBackupSwitchPreference(breadcrumb)
-            },
-            SettingEntry(
-                page = SettingsPage.ADVANCED,
-                titleRes = R.string.auto_backup_time_title,
-                summaryRes = R.string.auto_backup_time_summary,
-                keywords = listOf("backup", "time", "schedule", "daily", "hour"),
-            ) { breadcrumb ->
-                autoBackupTimePreference(breadcrumb)
-            },
-            SettingEntry(
-                page = SettingsPage.ADVANCED,
-                titleRes = R.string.backup_export_title,
-                summaryRes = R.string.backup_export_summary,
-                keywords = listOf("backup", "export", "save", "data", "transfer", "progress"),
-            ) { breadcrumb ->
-                backupExportPreference(breadcrumb)
-            },
-            SettingEntry(
-                page = SettingsPage.ADVANCED,
-                titleRes = R.string.backup_import_title,
-                summaryRes = R.string.backup_import_summary,
-                keywords = listOf("backup", "import", "restore", "data", "transfer", "progress"),
-            ) { breadcrumb ->
-                backupImportPreference(breadcrumb)
-            },
         )
     }
 

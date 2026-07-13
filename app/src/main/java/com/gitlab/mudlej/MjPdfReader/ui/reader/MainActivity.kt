@@ -38,7 +38,8 @@ import com.gitlab.mudlej.MjPdfReader.core.io.imageShareIntent
 import com.gitlab.mudlej.MjPdfReader.core.io.plainTextShareIntent
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.ui.ColorUtil
-import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoTheme
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoNightMode
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoOverlay
 import com.gitlab.mudlej.MjPdfReader.core.ui.showOptionalIcons
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.pdf.PdfPropertiesSummary
@@ -83,14 +84,22 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     private val pdfRepository get() = reader.pdfRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val incognito = if (savedInstanceState?.containsKey(PDF.incognitoKey) == true) {
+            savedInstanceState.getBoolean(PDF.incognitoKey)
+        } else {
+            intent.getBooleanExtra(PDF.incognitoKey, false)
+        }
+        if (incognito) {
+            applyIncognitoNightMode()
+        }
         super.onCreate(savedInstanceState)
+        if (incognito) {
+            applyIncognitoOverlay()
+        }
         pref = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
 
         if (savedInstanceState == null) {
             vm.incognito = intent.getBooleanExtra(PDF.incognitoKey, false)
-        }
-        if (vm.incognito) {
-            applyIncognitoTheme()
         }
 
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -639,6 +648,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         signatureController.capturePlacementForState()
         readerNavigationController.saveState(outState)
         readerHistory.saveState(outState)
+        outState.putBoolean(PDF.incognitoKey, vm.incognito)
         super.onSaveInstanceState(outState)
     }
 
