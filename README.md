@@ -31,9 +31,9 @@ MJ PDF is a fast, simple, powerful and totally private PDF reader made by [Mudle
 ## Screenshots
 | Home | Library | Highlight & Select |
 |:-:|:-:|:-:|
-| ![Home](assets/screenshots/home_recent.webp) | ![Library](assets/screenshots/home_library.webp) | ![Highlight and select text](assets/screenshots/selection_highlight.webp) |
+| <img src="assets/screenshots/home_recent.webp" alt="Home" width="250"/> | <img src="assets/screenshots/home_library.webp" alt="Library" width="250"/> | <img src="assets/screenshots/selection_highlight.webp" alt="Highlight and select text" width="250"/> |
 | **Dark Mode** | **Reader Menu** | **Share Quotes** |
-| ![Dark mode](assets/screenshots/reader_dark.webp) | ![Reader menu](assets/screenshots/reader_menu.webp) | ![Share quotes as images](assets/screenshots/quote_share.webp) |
+| <img src="assets/screenshots/reader_dark.webp" alt="Dark mode" width="250"/> | <img src="assets/screenshots/reader_menu.webp" alt="Reader menu" width="250"/> | <img src="assets/screenshots/quote_share.webp" alt="Share quotes as images" width="250"/> |
 
 More screenshots are in the [screenshots folder](assets/screenshots/).
 

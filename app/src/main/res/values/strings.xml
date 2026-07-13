@@ -25,7 +25,7 @@
     <string name="intro_library_search">Search every PDF on your device</string>
     <string name="intro_reading_title">Made for long reading</string>
     <string name="intro_reading_dark">Dark mode for the pages themselves</string>
-    <string name="intro_reading_crop">Crop margins for focused reading</string>
+    <string name="intro_reading_crop">Hide margins for focused reading</string>
     <string name="intro_reading_scroll">Auto scroll with adjustable speed</string>
     <string name="intro_reading_text_mode">Text mode with your own typography</string>
     <string name="intro_annotate_title">Do more than read</string>
