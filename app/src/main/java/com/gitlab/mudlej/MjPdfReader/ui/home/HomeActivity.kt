@@ -15,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.viewpager2.widget.ViewPager2
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
@@ -34,6 +35,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.intro.MainIntroActivity
 import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
 import com.gitlab.mudlej.MjPdfReader.core.text.StringUtil.formatEnumToTitle
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.search.SearchView
 import com.google.android.material.tabs.TabLayoutMediator
@@ -258,12 +260,13 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     }
 
     private fun setupPager() {
-        binding.homePager.adapter = HomeTabsAdapter { tab, recyclerView ->
+        binding.homePager.adapter = HomeTabsAdapter { tab, recyclerView, swipeRefresh ->
             when (tab) {
                 HomeTab.RECENT -> recentTab.attach(recyclerView)
                 HomeTab.LIBRARY -> libraryTab.attach(recyclerView)
                 HomeTab.FOLDERS -> foldersTab.attach(recyclerView)
             }
+            setupPullToRefresh(swipeRefresh)
         }
         binding.homePager.offscreenPageLimit = HomeTab.entries.size - 1
 
@@ -373,12 +376,30 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     }
 
     private fun refresh() {
-        lifecycleScope.launch {
-            allItems = libraryController.loadLibrary()
-            val scanIndex = libraryScanner.index.value
-            recentTab.render(allItems)
-            libraryTab.render(allItems)
-            foldersTab.render(allItems, scanIndex.entries, scanIndex.scanning)
+        lifecycleScope.launch { renderTabs() }
+    }
+
+    private suspend fun renderTabs() {
+        allItems = libraryController.loadLibrary()
+        val scanIndex = libraryScanner.index.value
+        recentTab.render(allItems)
+        libraryTab.render(allItems)
+        foldersTab.render(allItems, scanIndex.entries, scanIndex.scanning)
+    }
+
+    private fun setupPullToRefresh(swipeRefresh: SwipeRefreshLayout) {
+        swipeRefresh.setColorSchemeColors(
+            MaterialColors.getColor(swipeRefresh, androidx.appcompat.R.attr.colorPrimary, 0)
+        )
+        swipeRefresh.setProgressBackgroundColorSchemeColor(
+            MaterialColors.getColor(swipeRefresh, com.google.android.material.R.attr.colorSurface, 0)
+        )
+        swipeRefresh.setOnRefreshListener {
+            libraryScanner.refresh(force = true)
+            lifecycleScope.launch {
+                renderTabs()
+                swipeRefresh.isRefreshing = false
+            }
         }
     }
 

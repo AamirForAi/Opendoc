@@ -104,18 +104,24 @@ class HomeSectionsAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         private val heroAdapter = HeroCarouselAdapter(coverCache, scope, functions)
+        private val heroRecyclerView = binding.heroRecyclerView
         private var boundCoverEpoch = -1
 
         init {
-            binding.heroRecyclerView.layoutManager = LinearLayoutManager(
+            heroRecyclerView.layoutManager = LinearLayoutManager(
                 binding.root.context, LinearLayoutManager.HORIZONTAL, false
             )
-            binding.heroRecyclerView.adapter = heroAdapter
-            PagerSnapHelper().attachToRecyclerView(binding.heroRecyclerView)
+            heroRecyclerView.adapter = heroAdapter
+            PagerSnapHelper().attachToRecyclerView(heroRecyclerView)
         }
 
         fun bind(section: HomeSection.Hero) {
-            heroAdapter.submitList(section.items)
+            val previousFirstHash = heroAdapter.currentList.firstOrNull()?.hash
+            heroAdapter.submitList(section.items) {
+                if (section.items.firstOrNull()?.hash != previousFirstHash) {
+                    heroRecyclerView.scrollToPosition(0)
+                }
+            }
             if (boundCoverEpoch != coverEpoch) {
                 boundCoverEpoch = coverEpoch
                 heroAdapter.notifyDataSetChanged()
