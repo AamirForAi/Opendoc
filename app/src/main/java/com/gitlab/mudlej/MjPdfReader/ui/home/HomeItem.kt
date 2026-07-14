@@ -23,6 +23,7 @@ data class HomeItem(
     val coverKey: String,
     val sizeBytes: Long,
     val hidden: Boolean,
+    val sortKey: String,
 ) {
 
     val progressPercent: Int
@@ -61,6 +62,7 @@ data class HomeItem(
                     0L
                 },
                 hidden = record.hidden,
+                sortKey = sortKeyOf(record.fileName),
             )
         }
 
@@ -81,7 +83,12 @@ data class HomeItem(
                 coverKey = syntheticKey,
                 sizeBytes = entry.size,
                 hidden = false,
+                sortKey = sortKeyOf(file.name),
             )
+        }
+
+        private fun sortKeyOf(name: String): String {
+            return name.lowercase().removeSuffix(".pdf")
         }
     }
 }

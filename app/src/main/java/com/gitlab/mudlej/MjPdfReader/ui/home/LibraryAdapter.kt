@@ -46,7 +46,9 @@ class LibraryAdapter(
     }
 
     private fun titleSignature(): String {
-        return "${pref.getHomeGridTitleLines()}|${pref.getHomeListTitleLines()}|${pref.getHomeTitleEllipsize().name}"
+        return "${pref.getHomeGridTitleLines()}|${pref.getHomeListTitleLines()}|${pref.getHomeTitleEllipsize().name}" +
+            "|${pref.getHomeBadgePages()}|${pref.getHomeBadgeProgress()}|${pref.getHomeBadgeLastOpened()}" +
+            "|${pref.getHomeBadgeFileSize()}|${pref.getHomeBadgeStatus()}"
     }
 
     private fun TextView.applyTitleLines(maxLines: Int) {
@@ -182,7 +184,7 @@ class LibraryAdapter(
         private fun buildMetaParts(item: HomeItem): List<Pair<String, Boolean>> {
             val context = binding.root.context
             val parts = mutableListOf<Pair<String, Boolean>>()
-            if (item.length > 0) {
+            if (pref.getHomeBadgePages() && item.length > 0) {
                 if (item.pageNumber > 0) {
                     parts.add("${item.pageNumber + 1}/${item.length}" to false)
                 } else {
@@ -194,18 +196,20 @@ class LibraryAdapter(
                 }
             }
             if (metaStyle == ListMetaStyle.FOLDERS) {
-                if (item.sizeBytes > 0) {
+                if (pref.getHomeBadgeFileSize() && item.sizeBytes > 0) {
                     parts.add(Formatter.formatShortFileSize(context, item.sizeBytes) to false)
                 }
             } else {
-                if (item.progressPercent > 0) {
+                if (pref.getHomeBadgeProgress() && item.progressPercent > 0) {
                     parts.add("${item.progressPercent}%" to false)
                 }
-                if (item.hasBeenOpened) {
+                if (pref.getHomeBadgeLastOpened() && item.hasBeenOpened) {
                     parts.add(formatRelativeDate(context, item.lastOpened) to false)
                 }
             }
-            if (metaStyle == ListMetaStyle.RECENT && item.readingStatus != ReadingStatus.UNSET) {
+            if (pref.getHomeBadgeStatus() && metaStyle == ListMetaStyle.RECENT
+                && item.readingStatus != ReadingStatus.UNSET
+            ) {
                 parts.add(item.readingStatus.name.formatEnumToTitle() to true)
             }
             return parts

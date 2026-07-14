@@ -289,6 +289,19 @@ internal class SettingsPreferenceFactory(
         }
     }
 
+    fun listCardBadgesPreference(breadcrumb: String?): Preference {
+        return Preference(context).apply {
+            title = getString(R.string.home_list_badges_title)
+            key = Preferences.homeBadgePagesKey
+            summary = formatSummary(breadcrumb, getString(R.string.home_list_badges_summary))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showListCardBadgesPreferenceDialog(context, appPreferences)
+                true
+            }
+        }
+    }
+
     fun scrollingInfoCardPreference(breadcrumb: String?): Preference {
         return Preference(context).apply {
             title = getString(R.string.scrolling_info_card)

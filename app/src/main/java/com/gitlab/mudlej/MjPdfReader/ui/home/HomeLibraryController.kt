@@ -23,9 +23,13 @@ class HomeLibraryController(
     fun sort(items: List<HomeItem>): List<HomeItem> {
         return when (pref.getHomeSort()) {
             HomeSortOrder.LAST_OPENED -> items.sortedWith(
-                compareByDescending<HomeItem> { it.lastOpened }.thenBy { it.title.lowercase() }
+                compareByDescending<HomeItem> { it.lastOpened }
+                    .thenBy { it.sortKey }
+                    .thenBy { it.uri.toString() }
             )
-            HomeSortOrder.NAME -> items.sortedBy { it.title.lowercase() }
+            HomeSortOrder.NAME -> items.sortedWith(
+                compareBy<HomeItem> { it.sortKey }.thenBy { it.uri.toString() }
+            )
         }
     }
 
@@ -60,7 +64,7 @@ class HomeLibraryController(
 
     fun continueReading(items: List<HomeItem>): List<HomeItem> {
         return items
-            .filter { it.hasBeenOpened && it.progressPercent in 1..99 }
+            .filter { it.hasBeenOpened }
             .sortedByDescending { it.lastOpened }
             .take(HERO_COUNT)
     }
@@ -91,7 +95,7 @@ class HomeLibraryController(
         val recordMatches = filterByQuery(records, query)
         val scanMatches = mergeWithScan(records, entries)
             .filter { it.isScanOnly && it.title.contains(query, ignoreCase = true) }
-        return recordMatches + scanMatches
+        return sort(recordMatches + scanMatches)
     }
 
     companion object {

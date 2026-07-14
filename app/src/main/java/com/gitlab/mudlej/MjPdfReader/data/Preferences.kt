@@ -95,6 +95,11 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val homeListTitleLinesKey = "homeListTitleLines"
         const val homeGridTitleLinesKey = "homeGridTitleLines"
         const val homeTitleEllipsizeKey = "homeTitleEllipsize"
+        const val homeBadgePagesKey = "homeBadgePages"
+        const val homeBadgeProgressKey = "homeBadgeProgress"
+        const val homeBadgeLastOpenedKey = "homeBadgeLastOpened"
+        const val homeBadgeFileSizeKey = "homeBadgeFileSize"
+        const val homeBadgeStatusKey = "homeBadgeStatus"
         const val goToPageGridColumnsKey = "goToPageGridColumns"
         const val backupFolderTreeUriKey = "backupFolderTreeUri"
         const val autoBackupEnabledKey = "autoBackupEnabled"
@@ -175,7 +180,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val homeListTitleLinesDefault = 2
         const val homeGridTitleLinesDefault = 2
         const val homeTitleEllipsizeDefault = "END"
-        const val homeSortDefault = "LAST_OPENED"
+        const val homeBadgeDefault = true
+        const val homeSortDefault = "NAME"
         const val historyEnabledDefault = true
         const val scanModeDefault = "NOT_CONFIGURED"
         val scanLocationsDefault: Set<String> = emptySet()
@@ -334,6 +340,11 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getHomeListTitleLines() = prefMan.getInt(homeListTitleLinesKey, homeListTitleLinesDefault)
     fun getHomeGridTitleLines() = prefMan.getInt(homeGridTitleLinesKey, homeGridTitleLinesDefault)
     fun getHomeTitleEllipsize() = HomeTitleEllipsize.valueOf(prefMan.getString(homeTitleEllipsizeKey, homeTitleEllipsizeDefault) as String)
+    fun getHomeBadgePages() = prefMan.getBoolean(homeBadgePagesKey, homeBadgeDefault)
+    fun getHomeBadgeProgress() = prefMan.getBoolean(homeBadgeProgressKey, homeBadgeDefault)
+    fun getHomeBadgeLastOpened() = prefMan.getBoolean(homeBadgeLastOpenedKey, homeBadgeDefault)
+    fun getHomeBadgeFileSize() = prefMan.getBoolean(homeBadgeFileSizeKey, homeBadgeDefault)
+    fun getHomeBadgeStatus() = prefMan.getBoolean(homeBadgeStatusKey, homeBadgeDefault)
     fun getHomeSort() = HomeSortOrder.valueOf(prefMan.getString(homeSortKey, homeSortDefault) as String)
     fun getHistoryEnabled() = prefMan.getBoolean(historyEnabledKey, historyEnabledDefault)
     fun getScanMode() = ScanMode.valueOf(prefMan.getString(scanModeKey, scanModeDefault) as String)
@@ -440,6 +451,11 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setHomeListTitleLines(value: Int) = prefMan.edit().putInt(homeListTitleLinesKey, value).apply()
     fun setHomeGridTitleLines(value: Int) = prefMan.edit().putInt(homeGridTitleLinesKey, value).apply()
     fun setHomeTitleEllipsize(value: HomeTitleEllipsize) = prefMan.edit().putString(homeTitleEllipsizeKey, value.name).apply()
+    fun setHomeBadgePages(value: Boolean) = prefMan.edit().putBoolean(homeBadgePagesKey, value).apply()
+    fun setHomeBadgeProgress(value: Boolean) = prefMan.edit().putBoolean(homeBadgeProgressKey, value).apply()
+    fun setHomeBadgeLastOpened(value: Boolean) = prefMan.edit().putBoolean(homeBadgeLastOpenedKey, value).apply()
+    fun setHomeBadgeFileSize(value: Boolean) = prefMan.edit().putBoolean(homeBadgeFileSizeKey, value).apply()
+    fun setHomeBadgeStatus(value: Boolean) = prefMan.edit().putBoolean(homeBadgeStatusKey, value).apply()
     fun setHomeSort(value: HomeSortOrder) = prefMan.edit().putString(homeSortKey, value.name).apply()
     fun setHistoryEnabled(value: Boolean) = prefMan.edit().putBoolean(historyEnabledKey, value).apply()
     fun setScanMode(value: ScanMode) = prefMan.edit().putString(scanModeKey, value.name).apply()
