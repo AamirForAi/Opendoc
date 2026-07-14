@@ -94,6 +94,18 @@ class PdfRepository(private val database: AppDatabase) {
         }
     }
 
+    suspend fun findRecordByUri(uri: String): PdfRecord? {
+        return withContext(Dispatchers.IO) {
+            database.pdfRecordDao().findByUri(uri)
+        }
+    }
+
+    suspend fun setRecordSourceUri(fileHash: String, sourceUri: String?) {
+        withContext(Dispatchers.IO) {
+            database.pdfRecordDao().updateSourceUri(fileHash, sourceUri)
+        }
+    }
+
     suspend fun findAnnotationSaveDestinationBySourceKey(sourceKey: String): PdfAnnotationSaveDestination? {
         return withContext(Dispatchers.IO) {
             database.pdfAnnotationSaveDestinationDao().findBySourceKey(sourceKey)

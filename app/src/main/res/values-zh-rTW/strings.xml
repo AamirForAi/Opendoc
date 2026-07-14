@@ -821,6 +821,12 @@
     <string name="home_relocate_found">已在新位置找到檔案</string>
     <string name="home_relocate_mismatch_title">不同的檔案</string>
     <string name="home_relocate_mismatch_message">所選檔案與原始 PDF 不符。要以新文件的方式開啟嗎？</string>
+    <string name="stale_shared_title">檔案已無法使用</string>
+    <string name="stale_shared_message">分享此檔案的應用程式已不再允許存取。若您擁有該檔案，可自行重新定位。</string>
+    <string name="stale_shared_locate">定位</string>
+    <string name="hash_failed_notice">無法辨識此檔案。本次工作階段將不會儲存閱讀位置與設定。</string>
+    <string name="shared_copy_saved_public">已將副本儲存至 Documents/MJ PDF</string>
+    <string name="shared_copy_saved_private">已在應用程式儲存空間中保留副本，以確保此檔案持續可用</string>
     <string name="home_open_anyway">仍要開啟</string>
     <string name="home_cover_description">PDF 封面</string>
     <string name="disable_home_library_title">停用首頁書庫</string>
@@ -857,6 +863,8 @@
     <string name="settings_backup_summary">匯出與匯入您的設定、閱讀記錄與書籤</string>
     <string name="history_enabled_title">儲存閱讀記錄</string>
     <string name="history_enabled_summary">記住已開啟的檔案、閱讀位置與個別檔案設定。</string>
+    <string name="keep_shared_copies_title">保留分享檔案的副本</string>
+    <string name="keep_shared_copies_summary">當 PDF 透過其他應用程式的暫時分享傳入時，將副本儲存至 Documents/MJ PDF，以確保檔案持續可用。</string>
     <string name="reading_history">閱讀記錄</string>
     <string name="reading_history_row_summary">檢視並刪除應用程式對您檔案的所有記憶</string>
     <string name="reading_history_empty">尚無閱讀記錄。</string>

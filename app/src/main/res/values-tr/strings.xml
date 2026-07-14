@@ -826,6 +826,12 @@
     <string name="home_relocate_found">Dosya yeni konumunda bulundu</string>
     <string name="home_relocate_mismatch_title">Farklı Dosya</string>
     <string name="home_relocate_mismatch_message">Seçilen dosya orijinal PDF ile eşleşmiyor. Yeni bir belge olarak açılsın mı?</string>
+    <string name="stale_shared_title">Dosya Artık Kullanılamıyor</string>
+    <string name="stale_shared_message">Bu dosyayı paylaşan uygulama artık ona erişime izin vermiyor. Dosya sizde varsa onu kendiniz bulabilirsiniz.</string>
+    <string name="stale_shared_locate">Bul</string>
+    <string name="hash_failed_notice">Bu dosya tanımlanamadı. Okuma konumu ve ayarlar bu oturumda kaydedilmeyecek.</string>
+    <string name="shared_copy_saved_public">Documents/MJ PDF konumuna bir kopya kaydedildi</string>
+    <string name="shared_copy_saved_private">Bu dosyanın kullanılabilir kalması için uygulama depolamasında bir kopya saklandı</string>
     <string name="home_open_anyway">Yine de Aç</string>
     <string name="home_cover_description">PDF kapağı</string>
     <string name="disable_home_library_title">Ana Kitaplığı Devre Dışı Bırak</string>
@@ -863,6 +869,8 @@
     <string name="settings_backup_summary">Ayarlarınızı, okuma geçmişinizi ve yer işaretlerinizi dışa/içe aktarın</string>
     <string name="history_enabled_title">Okuma Geçmişini Kaydet</string>
     <string name="history_enabled_summary">Açılan dosyaları, okuma konumlarını ve dosyaya özel ayarları hatırlar.</string>
+    <string name="keep_shared_copies_title">Paylaşılan Dosyaların Kopyalarını Sakla</string>
+    <string name="keep_shared_copies_summary">Başka bir uygulamadan geçici bir paylaşımla PDF geldiğinde, kullanılabilir kalması için Documents/MJ PDF konumuna bir kopya kaydet.</string>
     <string name="reading_history">Okuma Geçmişi</string>
     <string name="reading_history_row_summary">Uygulamanın dosyalarınız hakkında hatırladığı her şeyi görüntüleyin ve silin</string>
     <string name="reading_history_empty">Henüz okuma geçmişi yok.</string>

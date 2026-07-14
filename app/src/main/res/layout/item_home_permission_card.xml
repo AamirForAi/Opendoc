@@ -22,6 +22,7 @@
         android:padding="16dp">
 
         <TextView
+            android:id="@+id/permissionMessage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/home_permission_card_message"

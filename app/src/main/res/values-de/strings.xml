@@ -826,6 +826,12 @@
     <string name="home_relocate_found">Datei am neuen Ort gefunden</string>
     <string name="home_relocate_mismatch_title">Andere Datei</string>
     <string name="home_relocate_mismatch_message">Die ausgewählte Datei stimmt nicht mit dem ursprünglichen PDF überein. Als neues Dokument öffnen?</string>
+    <string name="stale_shared_title">Datei nicht mehr verfügbar</string>
+    <string name="stale_shared_message">Die App, die diese Datei geteilt hat, erlaubt keinen Zugriff mehr darauf. Wenn Sie die Datei haben, können Sie sie selbst lokalisieren.</string>
+    <string name="stale_shared_locate">Lokalisieren</string>
+    <string name="hash_failed_notice">Diese Datei konnte nicht identifiziert werden. Leseposition und Einstellungen werden in dieser Sitzung nicht gespeichert.</string>
+    <string name="shared_copy_saved_public">Eine Kopie wurde in Documents/MJ PDF gespeichert</string>
+    <string name="shared_copy_saved_private">Eine Kopie wurde im App-Speicher behalten, damit diese Datei verfügbar bleibt</string>
     <string name="home_open_anyway">Trotzdem öffnen</string>
     <string name="home_cover_description">PDF-Cover</string>
     <string name="disable_home_library_title">Startbibliothek deaktivieren</string>
@@ -863,6 +869,8 @@
     <string name="settings_backup_summary">Exportieren und importieren Sie Ihre Einstellungen, Ihren Leseverlauf und Ihre Lesezeichen</string>
     <string name="history_enabled_title">Leseverlauf speichern</string>
     <string name="history_enabled_summary">Merkt sich geöffnete Dateien, Lesepositionen und Einstellungen pro Datei.</string>
+    <string name="keep_shared_copies_title">Kopien geteilter Dateien behalten</string>
+    <string name="keep_shared_copies_summary">Wenn ein PDF über eine temporäre Freigabe aus einer anderen App eintrifft, wird eine Kopie in Documents/MJ PDF gespeichert, damit es verfügbar bleibt.</string>
     <string name="reading_history">Leseverlauf</string>
     <string name="reading_history_row_summary">Zeigen und löschen Sie alles, was die App über Ihre Dateien weiß</string>
     <string name="reading_history_empty">Noch kein Leseverlauf.</string>

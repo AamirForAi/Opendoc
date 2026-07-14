@@ -846,6 +846,12 @@
     <string name="home_relocate_found">تم العثور على الملف في موقعه الجديد</string>
     <string name="home_relocate_mismatch_title">ملف مختلف</string>
     <string name="home_relocate_mismatch_message">الملف المحدد لا يطابق ملف PDF الأصلي. فتحه كمستند جديد؟</string>
+    <string name="stale_shared_title">الملف لم يعد متاحًا</string>
+    <string name="stale_shared_message">لم يعد التطبيق الذي شارك هذا الملف يسمح بالوصول إليه. إن كان الملف لديك، يمكنك تحديد موقعه بنفسك.</string>
+    <string name="stale_shared_locate">تحديد الموقع</string>
+    <string name="hash_failed_notice">تعذّر التعرف على هذا الملف. لن يُحفظ موضع القراءة والإعدادات في هذه الجلسة.</string>
+    <string name="shared_copy_saved_public">تم حفظ نسخة في Documents/MJ PDF</string>
+    <string name="shared_copy_saved_private">تم الاحتفاظ بنسخة في مساحة تخزين التطبيق ليبقى هذا الملف متاحًا</string>
     <string name="home_open_anyway">فتح على أي حال</string>
     <string name="home_cover_description">غلاف PDF</string>
     <string name="disable_home_library_title">تعطيل مكتبة الرئيسية</string>
@@ -887,6 +893,8 @@
     <string name="settings_backup_summary">صدّر واستورد إعداداتك وسجل قراءتك وعلاماتك</string>
     <string name="history_enabled_title">حفظ سجل القراءة</string>
     <string name="history_enabled_summary">تذكر الملفات المفتوحة ومواضع القراءة وإعدادات كل ملف.</string>
+    <string name="keep_shared_copies_title">الاحتفاظ بنسخ من الملفات المشتركة</string>
+    <string name="keep_shared_copies_summary">عند وصول ملف PDF عبر مشاركة مؤقتة من تطبيق آخر، احفظ نسخة في Documents/MJ PDF ليبقى متاحًا.</string>
     <string name="reading_history">سجل القراءة</string>
     <string name="reading_history_row_summary">اعرض واحذف كل ما يتذكره التطبيق عن ملفاتك</string>
     <string name="reading_history_empty">لا يوجد سجل قراءة بعد.</string>

@@ -831,6 +831,12 @@
     <string name="home_relocate_found">Fichier trouvé à son nouvel emplacement</string>
     <string name="home_relocate_mismatch_title">Fichier différent</string>
     <string name="home_relocate_mismatch_message">Le fichier sélectionné ne correspond pas au PDF original. L\'ouvrir comme un nouveau document ?</string>
+    <string name="stale_shared_title">Fichier indisponible</string>
+    <string name="stale_shared_message">L\'application qui a partagé ce fichier n\'y autorise plus l\'accès. Si vous disposez du fichier, vous pouvez le localiser vous-même.</string>
+    <string name="stale_shared_locate">Localiser</string>
+    <string name="hash_failed_notice">Ce fichier n\'a pas pu être identifié. La position de lecture et les réglages ne seront pas enregistrés durant cette session.</string>
+    <string name="shared_copy_saved_public">Une copie a été enregistrée dans Documents/MJ PDF</string>
+    <string name="shared_copy_saved_private">Une copie a été conservée dans le stockage de l\'application afin que ce fichier reste disponible</string>
     <string name="home_open_anyway">Ouvrir quand même</string>
     <string name="home_cover_description">Couverture du PDF</string>
     <string name="disable_home_library_title">Désactiver la bibliothèque d\'accueil</string>
@@ -869,6 +875,8 @@
     <string name="settings_backup_summary">Exportez et importez vos réglages, votre historique de lecture et vos marque-pages</string>
     <string name="history_enabled_title">Enregistrer l\'historique de lecture</string>
     <string name="history_enabled_summary">Mémorise les fichiers ouverts, les positions de lecture et les réglages par fichier.</string>
+    <string name="keep_shared_copies_title">Conserver les copies des fichiers partagés</string>
+    <string name="keep_shared_copies_summary">Lorsqu\'un PDF arrive via un partage temporaire depuis une autre application, enregistre une copie dans Documents/MJ PDF afin qu\'il reste disponible.</string>
     <string name="reading_history">Historique de lecture</string>
     <string name="reading_history_row_summary">Consultez et supprimez tout ce que l\'application mémorise sur vos fichiers</string>
     <string name="reading_history_empty">Aucun historique de lecture pour l\'instant.</string>

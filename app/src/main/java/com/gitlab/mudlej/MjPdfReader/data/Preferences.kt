@@ -109,6 +109,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val autoBackupLastErrorKey = "autoBackupLastError"
         const val homeSortKey = "homeSort"
         const val historyEnabledKey = "historyEnabled"
+        const val keepSharedCopiesKey = "keepSharedCopies"
         const val scanModeKey = "scanMode"
         const val scanLocationsKey = "scanLocations"
         const val translationModeKey = "translationMode"
@@ -183,6 +184,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val homeBadgeDefault = true
         const val homeSortDefault = "NAME"
         const val historyEnabledDefault = true
+        const val keepSharedCopiesDefault = true
         const val scanModeDefault = "NOT_CONFIGURED"
         val scanLocationsDefault: Set<String> = emptySet()
         const val themeSystem = "system"
@@ -347,6 +349,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getHomeBadgeStatus() = prefMan.getBoolean(homeBadgeStatusKey, homeBadgeDefault)
     fun getHomeSort() = HomeSortOrder.valueOf(prefMan.getString(homeSortKey, homeSortDefault) as String)
     fun getHistoryEnabled() = prefMan.getBoolean(historyEnabledKey, historyEnabledDefault)
+
+    fun getKeepSharedCopies() = prefMan.getBoolean(keepSharedCopiesKey, keepSharedCopiesDefault)
     fun getScanMode() = ScanMode.valueOf(prefMan.getString(scanModeKey, scanModeDefault) as String)
     fun getScanLocations(): Set<String> {
         return prefMan.getStringSet(scanLocationsKey, scanLocationsDefault)?.toSet()
@@ -458,6 +462,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setHomeBadgeStatus(value: Boolean) = prefMan.edit().putBoolean(homeBadgeStatusKey, value).apply()
     fun setHomeSort(value: HomeSortOrder) = prefMan.edit().putString(homeSortKey, value.name).apply()
     fun setHistoryEnabled(value: Boolean) = prefMan.edit().putBoolean(historyEnabledKey, value).apply()
+
+    fun setKeepSharedCopies(value: Boolean) = prefMan.edit().putBoolean(keepSharedCopiesKey, value).apply()
     fun setScanMode(value: ScanMode) = prefMan.edit().putString(scanModeKey, value.name).apply()
     fun setScanLocations(value: Set<String>) = prefMan.edit().putStringSet(scanLocationsKey, value).apply()
 

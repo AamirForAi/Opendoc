@@ -3,10 +3,13 @@
 package com.gitlab.mudlej.MjPdfReader.ui.home
 
 import androidx.annotation.StringRes
+import com.gitlab.mudlej.MjPdfReader.R
 
 sealed class HomeSection {
 
-    data object PermissionCard : HomeSection()
+    data class PermissionCard(
+        @StringRes val messageRes: Int = R.string.home_permission_card_message,
+    ) : HomeSection()
 
     data object ScanSetupCard : HomeSection()
 

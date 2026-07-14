@@ -826,6 +826,12 @@
     <string name="home_relocate_found">Archivo encontrado en su nueva ubicación</string>
     <string name="home_relocate_mismatch_title">Archivo Diferente</string>
     <string name="home_relocate_mismatch_message">El archivo seleccionado no coincide con el PDF original. ¿Abrirlo como un documento nuevo?</string>
+    <string name="stale_shared_title">El archivo ya no está disponible</string>
+    <string name="stale_shared_message">La aplicación que compartió este archivo ya no permite acceder a él. Si tiene el archivo, puede localizarlo usted mismo.</string>
+    <string name="stale_shared_locate">Localizar</string>
+    <string name="hash_failed_notice">No se pudo identificar este archivo. La posición de lectura y los ajustes no se guardarán en esta sesión.</string>
+    <string name="shared_copy_saved_public">Se guardó una copia en Documents/MJ PDF</string>
+    <string name="shared_copy_saved_private">Se guardó una copia en el almacenamiento de la aplicación para que este archivo siga estando disponible</string>
     <string name="home_open_anyway">Abrir de Todos Modos</string>
     <string name="home_cover_description">Portada del PDF</string>
     <string name="disable_home_library_title">Desactivar Biblioteca de Inicio</string>
@@ -863,6 +869,8 @@
     <string name="settings_backup_summary">Exporte e importe su configuración, historial de lectura y marcadores</string>
     <string name="history_enabled_title">Guardar Historial de Lectura</string>
     <string name="history_enabled_summary">Recuerde los archivos abiertos, las posiciones de lectura y la configuración por archivo.</string>
+    <string name="keep_shared_copies_title">Conservar copias de los archivos compartidos</string>
+    <string name="keep_shared_copies_summary">Cuando un PDF llega mediante un uso compartido temporal desde otra aplicación, guarde una copia en Documents/MJ PDF para que siga estando disponible.</string>
     <string name="reading_history">Historial de Lectura</string>
     <string name="reading_history_row_summary">Vea y elimine todo lo que la aplicación recuerda sobre sus archivos</string>
     <string name="reading_history_empty">Aún no hay historial de lectura.</string>

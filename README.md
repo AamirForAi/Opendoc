@@ -2,9 +2,7 @@
 
 <img src="assets/logo/logo.webp" width="110" alt="MJ PDF logo"/>
 
-# MJ PDF
-
-MJ PDF is a fast, simple, powerful and totally private PDF reader made by [Mudlej](https://mudlej.com).
+**MJ PDF** is a fast, simple, powerful and totally private PDF reader made by [Mudlej](https://mudlej.com).
 
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-3.0.0-2ea44f.svg)](change_log.md)

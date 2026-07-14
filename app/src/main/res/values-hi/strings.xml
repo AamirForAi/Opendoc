@@ -826,6 +826,12 @@
     <string name="home_relocate_found">फ़ाइल अपने नए स्थान पर मिली</string>
     <string name="home_relocate_mismatch_title">अलग फ़ाइल</string>
     <string name="home_relocate_mismatch_message">चयनित फ़ाइल मूल PDF से मेल नहीं खाती। इसे नए दस्तावेज़ के रूप में खोलें?</string>
+    <string name="stale_shared_title">फ़ाइल अब उपलब्ध नहीं</string>
+    <string name="stale_shared_message">जिस ऐप ने यह फ़ाइल साझा की थी वह अब इस तक पहुँच की अनुमति नहीं देता। यदि फ़ाइल आपके पास है, तो आप इसे स्वयं ढूंढ सकते हैं।</string>
+    <string name="stale_shared_locate">ढूंढें</string>
+    <string name="hash_failed_notice">इस फ़ाइल की पहचान नहीं हो सकी। इस सत्र में पढ़ने की स्थिति और सेटिंग्स सहेजी नहीं जाएंगी।</string>
+    <string name="shared_copy_saved_public">एक प्रति Documents/MJ PDF में सहेजी गई</string>
+    <string name="shared_copy_saved_private">इस फ़ाइल को उपलब्ध रखने के लिए एक प्रति ऐप स्टोरेज में रखी गई</string>
     <string name="home_open_anyway">फिर भी खोलें</string>
     <string name="home_cover_description">PDF कवर</string>
     <string name="disable_home_library_title">होम लाइब्रेरी अक्षम करें</string>
@@ -863,6 +869,8 @@
     <string name="settings_backup_summary">अपनी सेटिंग्स, पढ़ने का इतिहास, और बुकमार्क निर्यात और आयात करें</string>
     <string name="history_enabled_title">पढ़ने का इतिहास सहेजें</string>
     <string name="history_enabled_summary">खोली गई फ़ाइलों, पढ़ने की स्थितियों, और प्रति फ़ाइल सेटिंग्स को याद रखें।</string>
+    <string name="keep_shared_copies_title">साझा की गई फ़ाइलों की प्रतियां रखें</string>
+    <string name="keep_shared_copies_summary">जब कोई PDF किसी अन्य ऐप से अस्थायी साझाकरण के ज़रिए आती है, तो उसे उपलब्ध रखने के लिए Documents/MJ PDF में एक प्रति सहेजें।</string>
     <string name="reading_history">पढ़ने का इतिहास</string>
     <string name="reading_history_row_summary">ऐप आपकी फ़ाइलों के बारे में जो कुछ भी याद रखता है उसे देखें और हटाएं</string>
     <string name="reading_history_empty">अभी तक कोई पढ़ने का इतिहास नहीं।</string>

@@ -386,6 +386,14 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 summaryRes = R.string.history_enabled_summary,
                 keywords = listOf("history", "privacy", "save", "recent", "remember", "positions"),
             ),
+            switchEntry(
+                page = SettingsPage.HISTORY_PRIVACY,
+                titleRes = R.string.keep_shared_copies_title,
+                key = Preferences.keepSharedCopiesKey,
+                defaultValue = Preferences.keepSharedCopiesDefault,
+                summaryRes = R.string.keep_shared_copies_summary,
+                keywords = listOf("copy", "share", "import", "temporary", "documents", "whatsapp", "telegram"),
+            ),
             SettingEntry(
                 page = SettingsPage.HISTORY_PRIVACY,
                 titleRes = R.string.reading_history,

@@ -836,6 +836,12 @@
     <string name="home_relocate_found">Файл знайдено в новому місці</string>
     <string name="home_relocate_mismatch_title">Інший файл</string>
     <string name="home_relocate_mismatch_message">Вибраний файл не збігається з оригінальним PDF. Відкрити його як новий документ?</string>
+    <string name="stale_shared_title">Файл більше недоступний</string>
+    <string name="stale_shared_message">Застосунок, який поділився цим файлом, більше не надає до нього доступу. Якщо файл є у вас, ви можете знайти його самостійно.</string>
+    <string name="stale_shared_locate">Знайти</string>
+    <string name="hash_failed_notice">Не вдалося розпізнати цей файл. Позиція читання й налаштування не збережуться в цьому сеансі.</string>
+    <string name="shared_copy_saved_public">Копію збережено в Documents/MJ PDF</string>
+    <string name="shared_copy_saved_private">Копію збережено в сховищі застосунку, щоб цей файл залишався доступним</string>
     <string name="home_open_anyway">Усе одно відкрити</string>
     <string name="home_cover_description">Обкладинка PDF</string>
     <string name="disable_home_library_title">Вимкнути домашню бібліотеку</string>
@@ -875,6 +881,8 @@
     <string name="settings_backup_summary">Експортуйте й імпортуйте свої налаштування, історію читання та закладки</string>
     <string name="history_enabled_title">Зберігати історію читання</string>
     <string name="history_enabled_summary">Запам\'ятовувати відкриті файли, позиції читання й налаштування для кожного файлу.</string>
+    <string name="keep_shared_copies_title">Зберігати копії надісланих файлів</string>
+    <string name="keep_shared_copies_summary">Коли PDF надходить через тимчасове надання доступу з іншого застосунку, зберігати копію в Documents/MJ PDF, щоб він залишався доступним.</string>
     <string name="reading_history">Історія читання</string>
     <string name="reading_history_row_summary">Переглядайте й видаляйте все, що застосунок пам\'ятає про ваші файли</string>
     <string name="reading_history_empty">Ще немає історії читання.</string>
