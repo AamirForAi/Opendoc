@@ -108,7 +108,11 @@ class TextModeContentLoader(
     fun loadTargetWindow(pageIndex: Int) {
         val window = (pageIndex - PREFETCH_DISTANCE)..(pageIndex + JUMP_LOAD_AHEAD)
         cancelLoadsOutside(window)
-        for (index in window) {
+        loadPage(pageIndex)
+        for (index in pageIndex + 1..window.last) {
+            loadPage(index)
+        }
+        for (index in pageIndex - 1 downTo window.first) {
             loadPage(index)
         }
     }

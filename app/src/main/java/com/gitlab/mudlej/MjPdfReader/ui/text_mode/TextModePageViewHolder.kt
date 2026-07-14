@@ -20,6 +20,7 @@ import com.gitlab.mudlej.MjPdfReader.core.io.plainTextShareIntent
 class TextModePageViewHolder(
     private val binding: TextModePageItemBinding,
     private val onRetry: (Int) -> Unit,
+    private val viewportHeight: () -> Int,
 ) : RecyclerView.ViewHolder(binding.root) {
 
     fun bind(state: TextModePageState, settings: TextModeSettings) {
@@ -28,6 +29,7 @@ class TextModePageViewHolder(
         val horizontalPadding = dp(settings.horizontalMargin)
 
         binding.root.setBackgroundColor(colors.background)
+        applyPlaceholderHeight(state)
         binding.pageContainer.setPadding(horizontalPadding, dp(18), horizontalPadding, dp(18))
         applyReadableLineLength(settings)
         binding.pageLabel.text = context.getString(R.string.text_mode_page_label, state.pageIndex + 1)
@@ -115,6 +117,19 @@ class TextModePageViewHolder(
         }
     }
 
+    private fun applyPlaceholderHeight(state: TextModePageState) {
+        val isPlaceholder = state is TextModePageState.NotLoaded || state is TextModePageState.Loading
+        val minHeight = if (isPlaceholder) {
+            val height = (viewportHeight() * PLACEHOLDER_VIEWPORT_FRACTION).toInt()
+            if (height > 0) height else dp(PLACEHOLDER_FALLBACK_HEIGHT_DP)
+        } else {
+            0
+        }
+        if (binding.root.minimumHeight != minHeight) {
+            binding.root.minimumHeight = minHeight
+        }
+    }
+
     private fun applyReadableLineLength(settings: TextModeSettings) {
         val params = binding.pageContainer.layoutParams as ConstraintLayout.LayoutParams
         val maxWidth = if (settings.readableLineLength) {
@@ -135,5 +150,7 @@ class TextModePageViewHolder(
     private companion object {
         const val SHARE_SELECTION_ID = 1001
         const val SEARCH_WEB_SELECTION_ID = 1002
+        const val PLACEHOLDER_VIEWPORT_FRACTION = 0.65f
+        const val PLACEHOLDER_FALLBACK_HEIGHT_DP = 420
     }
 }

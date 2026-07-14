@@ -13,6 +13,15 @@ class TextModePageAdapter(
 
     private val pages = mutableListOf<TextModePageState>()
     private var settings = TextModeSettings()
+    private var recyclerView: RecyclerView? = null
+
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        this.recyclerView = recyclerView
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        this.recyclerView = null
+    }
 
     fun submitPageCount(pageCount: Int) {
         pages.clear()
@@ -27,7 +36,10 @@ class TextModePageAdapter(
     fun updatePageState(state: TextModePageState) {
         if (state.pageIndex !in pages.indices) return
 
+        val previous = pages[state.pageIndex]
         pages[state.pageIndex] = state
+        if (previous is TextModePageState.NotLoaded && state is TextModePageState.Loading) return
+
         notifyItemChanged(state.pageIndex)
     }
 
@@ -40,6 +52,7 @@ class TextModePageAdapter(
         return TextModePageViewHolder(
             TextModePageItemBinding.inflate(LayoutInflater.from(parent.context), parent, false),
             onRetry,
+            { recyclerView?.height ?: 0 },
         )
     }
 

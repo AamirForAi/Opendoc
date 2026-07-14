@@ -14,7 +14,6 @@ import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.viewpager2.widget.ViewPager2
 import com.gitlab.mudlej.MjPdfReader.R
@@ -68,8 +67,6 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     private lateinit var foldersTab: FoldersTabController
 
     private var allItems: List<HomeItem> = emptyList()
-
-    private val tabRecyclerViews = mutableMapOf<HomeTab, RecyclerView>()
 
     private val foldersBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -264,14 +261,12 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
 
     private fun setupPager() {
         binding.homePager.adapter = HomeTabsAdapter { tab, recyclerView, swipeRefresh ->
-            tabRecyclerViews[tab] = recyclerView
             when (tab) {
                 HomeTab.RECENT -> recentTab.attach(recyclerView)
                 HomeTab.LIBRARY -> libraryTab.attach(recyclerView)
                 HomeTab.FOLDERS -> foldersTab.attach(recyclerView)
             }
             setupPullToRefresh(swipeRefresh)
-            if (tab == currentTab()) pinLiftTarget()
         }
         binding.homePager.offscreenPageLimit = HomeTab.entries.size - 1
 
@@ -291,13 +286,8 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
                 pref.setHomeTab(HomeTab.entries[position])
                 selectionController.finish()
                 updateFoldersBackState()
-                pinLiftTarget()
             }
         })
-    }
-
-    private fun pinLiftTarget() {
-        tabRecyclerViews[currentTab()]?.let(binding.appBarLayout::setLiftOnScrollTargetView)
     }
 
     private fun updateFoldersBackState() {
@@ -367,12 +357,16 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             }
         }
 
-        binding.searchView.editText.doOnTextChanged { text, _, _, _ ->
-            val query = text?.toString().orEmpty()
-            searchResultsAdapter.submitList(
-                libraryController.searchAll(allItems, libraryScanner.libraryEntries(), query)
-            )
+        binding.searchView.editText.doOnTextChanged { _, _, _, _ ->
+            submitSearchResults()
         }
+    }
+
+    private fun submitSearchResults() {
+        val query = binding.searchView.editText.text?.toString().orEmpty()
+        searchResultsAdapter.submitList(
+            libraryController.searchAll(allItems, libraryScanner.libraryEntries(), query)
+        )
     }
 
     private fun shouldShowScanSetup(): Boolean {
@@ -400,6 +394,9 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         recentTab.render(allItems)
         libraryTab.render(allItems)
         foldersTab.render(allItems, scanIndex.entries, scanIndex.scanning)
+        if (binding.searchView.isShowing) {
+            submitSearchResults()
+        }
     }
 
     private fun setupPullToRefresh(swipeRefresh: SwipeRefreshLayout) {

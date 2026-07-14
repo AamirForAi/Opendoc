@@ -359,6 +359,7 @@ class TextModeActivity : AppCompatActivity() {
 
         currentPageIndex = pageIndex.coerceIn(0, pageCount - 1)
         pendingScrollTarget = currentPageIndex
+        binding.textPagesRecyclerView.stopScroll()
         layoutManager.scrollToPositionWithOffset(currentPageIndex, 0)
         contentLoader.loadTargetWindow(currentPageIndex)
         binding.textPagesRecyclerView.doOnNextLayout { contentLoader.loadVisiblePages() }
@@ -381,10 +382,12 @@ class TextModeActivity : AppCompatActivity() {
 
         val pending = pendingScrollTarget
         if (pending != RecyclerView.NO_POSITION) {
-            if (firstVisiblePage == pending) {
+            val lastVisiblePage = layoutManager.findLastVisibleItemPosition()
+            val pendingAtTop = firstVisiblePage == pending
+            val pendingClampedAtEnd = pending in firstVisiblePage..lastVisiblePage &&
+                !binding.textPagesRecyclerView.canScrollVertically(1)
+            if (pendingAtTop || pendingClampedAtEnd) {
                 pendingScrollTarget = RecyclerView.NO_POSITION
-            } else {
-                layoutManager.scrollToPositionWithOffset(pending, 0)
             }
             return
         }

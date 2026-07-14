@@ -118,7 +118,8 @@ class HomeSelectionController(
     private fun applyContextVisibility(menu: Menu) {
         menu.findItem(R.id.removeRecentBatchOption).isVisible = context == SelectionContext.RECENT
         menu.findItem(R.id.hideBatchOption).isVisible = context == SelectionContext.LIBRARY
-        menu.findItem(R.id.deleteBatchOption).isVisible = context == SelectionContext.FOLDERS
+        menu.findItem(R.id.deleteBatchOption).isVisible =
+            context == SelectionContext.FOLDERS || context == SelectionContext.SEARCH
     }
 
     private fun updateTitle() {
