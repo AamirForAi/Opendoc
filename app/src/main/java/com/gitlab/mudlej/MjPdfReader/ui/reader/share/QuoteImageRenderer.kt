@@ -8,6 +8,7 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.text.Layout
 import android.text.StaticLayout
+import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import android.text.TextUtils
 
@@ -66,7 +67,6 @@ object QuoteImageRenderer {
             when (Character.getDirectionality(char)) {
                 Character.DIRECTIONALITY_RIGHT_TO_LEFT,
                 Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC -> return true
-                Character.DIRECTIONALITY_LEFT_TO_RIGHT -> return false
             }
         }
         return false
@@ -97,14 +97,14 @@ object QuoteImageRenderer {
         val maxHeight = QUOTE_AREA_BOTTOM - QUOTE_AREA_TOP
         val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = options.theme.textColor
-            typeface = Typeface.create(Typeface.SERIF, Typeface.ITALIC)
+            typeface = if (rtl) Typeface.SERIF else Typeface.create(Typeface.SERIF, Typeface.ITALIC)
         }
 
         var layout: StaticLayout? = null
         var textSize = 64f
         while (textSize >= MIN_TEXT_SIZE) {
             paint.textSize = textSize
-            val candidate = buildLayout(quote, paint, width)
+            val candidate = buildLayout(quote, paint, width, rtl)
             if (candidate.height <= maxHeight) {
                 layout = candidate
                 break
@@ -114,7 +114,7 @@ object QuoteImageRenderer {
         if (layout == null) {
             paint.textSize = MIN_TEXT_SIZE
             val maxLines = (maxHeight / (MIN_TEXT_SIZE * LINE_SPACING)).toInt().coerceAtLeast(1)
-            layout = buildLayout(quote, paint, width, maxLines = maxLines)
+            layout = buildLayout(quote, paint, width, rtl, maxLines = maxLines)
         }
 
         val top = QUOTE_AREA_TOP + ((maxHeight - layout.height) / 2f).coerceAtLeast(0f)
@@ -124,9 +124,10 @@ object QuoteImageRenderer {
         canvas.restore()
     }
 
-    private fun buildLayout(text: String, paint: TextPaint, width: Int, maxLines: Int = Int.MAX_VALUE): StaticLayout {
+    private fun buildLayout(text: String, paint: TextPaint, width: Int, rtl: Boolean, maxLines: Int = Int.MAX_VALUE): StaticLayout {
         return StaticLayout.Builder.obtain(text, 0, text.length, paint, width)
             .setAlignment(Layout.Alignment.ALIGN_CENTER)
+            .setTextDirection(if (rtl) TextDirectionHeuristics.RTL else TextDirectionHeuristics.LTR)
             .setLineSpacing(0f, LINE_SPACING)
             .setMaxLines(maxLines)
             .setEllipsize(TextUtils.TruncateAt.END)
