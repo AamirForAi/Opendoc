@@ -27,6 +27,7 @@ import com.gitlab.mudlej.MjPdfReader.core.io.getFileName
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.snackbar.Snackbar
 import com.shockwave.pdfium.PdfPasswordException
+import java.io.File
 import java.time.LocalDateTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -50,6 +51,7 @@ class DocumentLoader(
         private set
 
     private val listeners = mutableListOf<DocumentListener>()
+    private var hashErrorShownForToken = -1L
     private val doc get() = vm.doc
     private val context get() = binding.root.context
 
@@ -130,21 +132,35 @@ class DocumentLoader(
                 return@launch
             }
             if (hash == null && doc.pageNumber == 0) {
-                val recoveredFile = doc.uri?.let { unreadableUri ->
-                    withContext(Dispatchers.IO) { UriCanonicalizer.canonicalize(context, unreadableUri) }
-                }
+                val failedUri = doc.uri
+                val readable = failedUri != null && isUriReadable(failedUri)
                 if (!vm.isCurrent(loadToken, documentUri)) {
                     return@launch
                 }
-                val recoveredUri = recoveredFile?.let(Uri::fromFile)
-                if (recoveredUri != null && recoveredUri != doc.uri) {
-                    withContext(Dispatchers.Main) {
-                        displayFromUri(recoveredUri, savePassword)
-                    }
-                } else {
+                if (readable) {
                     showFailedToComputeHashError()
+                } else {
+                    val recoveredFile = failedUri?.let { unreadableUri ->
+                        withContext(Dispatchers.IO) { UriCanonicalizer.canonicalize(context, unreadableUri) }
+                    }
+                    if (!vm.isCurrent(loadToken, documentUri)) {
+                        return@launch
+                    }
+                    val recoveredUri = recoveredFile?.let(Uri::fromFile)
+                    if (recoveredUri != null && recoveredUri != doc.uri) {
+                        withContext(Dispatchers.Main) {
+                            displayFromUri(recoveredUri, savePassword)
+                        }
+                    } else {
+                        val failure = DocumentUnreachableException(failedUri)
+                        state = LoadState.Failed(failure)
+                        withContext(Dispatchers.Main) {
+                            hideProgressBar(loadToken, documentUri)
+                            emit { it.onLoadFailed(failure) }
+                        }
+                    }
+                    return@launch
                 }
-                return@launch
             }
 
             if (hash != null) {
@@ -236,9 +252,26 @@ class DocumentLoader(
     }
 
     fun showFailedToComputeHashError() {
-        val message = "Can't hash the file! Last visited page won't be remembered in this session."
+        val loadToken = vm.currentLoadToken
+        if (hashErrorShownForToken == loadToken) {
+            return
+        }
+        hashErrorShownForToken = loadToken
+        val message = context.getString(R.string.hash_failed_notice)
         AppSnackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
         Log.e(TAG, "showFailedToComputeHashError: $message", RuntimeException())
+    }
+
+    private suspend fun isUriReadable(uri: Uri): Boolean {
+        return withContext(Dispatchers.IO) {
+            if (uri.scheme == "file") {
+                uri.path?.let { File(it).canRead() } == true
+            } else {
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { } != null
+                }.getOrDefault(false)
+            }
+        }
     }
 
     private suspend fun resolveAnnotationDestination(documentUri: Uri?) {
@@ -462,10 +495,13 @@ class DocumentLoader(
 
     private suspend fun updateRecordUri(fileHash: String) {
         val currentUri = doc.uri ?: return
-        val canonicalFile = UriCanonicalizer.canonicalize(context, currentUri)
+        val canonicalFile = withContext(Dispatchers.IO) { UriCanonicalizer.canonicalize(context, currentUri) }
         val durableUri = canonicalFile?.let(Uri::fromFile) ?: currentUri
         val storedUri = pdfRepository.findRecord(fileHash)?.uri
         if (storedUri?.toString() == durableUri.toString()) {
+            return
+        }
+        if (canonicalFile == null && storedUri != null && isUriReadable(storedUri)) {
             return
         }
         pdfRepository.updateRecordIdentity(

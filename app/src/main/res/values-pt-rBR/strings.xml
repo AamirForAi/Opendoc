@@ -831,6 +831,12 @@
     <string name="home_relocate_found">Arquivo encontrado no novo local</string>
     <string name="home_relocate_mismatch_title">Arquivo Diferente</string>
     <string name="home_relocate_mismatch_message">O arquivo selecionado não corresponde ao PDF original. Abri-lo como um novo documento?</string>
+    <string name="stale_shared_title">Arquivo Não Está Mais Disponível</string>
+    <string name="stale_shared_message">O aplicativo que compartilhou este arquivo não permite mais acesso a ele. Se você tiver o arquivo, pode localizá-lo você mesmo.</string>
+    <string name="stale_shared_locate">Localizar</string>
+    <string name="hash_failed_notice">Não foi possível identificar este arquivo. A posição de leitura e as configurações não serão salvas nesta sessão.</string>
+    <string name="shared_copy_saved_public">Uma cópia foi salva em Documents/MJ PDF</string>
+    <string name="shared_copy_saved_private">Uma cópia foi mantida no armazenamento do aplicativo para que este arquivo continue disponível</string>
     <string name="home_open_anyway">Abrir Mesmo Assim</string>
     <string name="home_cover_description">Capa do PDF</string>
     <string name="disable_home_library_title">Desativar Biblioteca Inicial</string>
@@ -869,6 +875,8 @@
     <string name="settings_backup_summary">Exporte e importe suas configurações, histórico de leitura e marcadores</string>
     <string name="history_enabled_title">Salvar Histórico de Leitura</string>
     <string name="history_enabled_summary">Lembre arquivos abertos, posições de leitura e configurações por arquivo.</string>
+    <string name="keep_shared_copies_title">Manter Cópias de Arquivos Compartilhados</string>
+    <string name="keep_shared_copies_summary">Quando um PDF chega por um compartilhamento temporário de outro aplicativo, salve uma cópia em Documents/MJ PDF para que ele continue disponível.</string>
     <string name="reading_history">Histórico de Leitura</string>
     <string name="reading_history_row_summary">Veja e exclua tudo o que o aplicativo lembra sobre seus arquivos</string>
     <string name="reading_history_empty">Nenhum histórico de leitura ainda.</string>

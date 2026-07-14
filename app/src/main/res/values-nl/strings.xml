@@ -826,6 +826,12 @@
     <string name="home_relocate_found">Bestand gevonden op de nieuwe locatie</string>
     <string name="home_relocate_mismatch_title">Ander bestand</string>
     <string name="home_relocate_mismatch_message">Het geselecteerde bestand komt niet overeen met de originele PDF. Openen als nieuw document?</string>
+    <string name="stale_shared_title">Bestand niet meer beschikbaar</string>
+    <string name="stale_shared_message">De app die dit bestand deelde geeft er geen toegang meer toe. Als je het bestand hebt, kun je het zelf opzoeken.</string>
+    <string name="stale_shared_locate">Opzoeken</string>
+    <string name="hash_failed_notice">Dit bestand kon niet worden geïdentificeerd. De leespositie en instellingen worden in deze sessie niet opgeslagen.</string>
+    <string name="shared_copy_saved_public">Er is een kopie opgeslagen in Documents/MJ PDF</string>
+    <string name="shared_copy_saved_private">Er is een kopie in de app-opslag bewaard zodat dit bestand beschikbaar blijft</string>
     <string name="home_open_anyway">Toch openen</string>
     <string name="home_cover_description">PDF-omslag</string>
     <string name="disable_home_library_title">Startbibliotheek uitschakelen</string>
@@ -863,6 +869,8 @@
     <string name="settings_backup_summary">Exporteer en importeer je instellingen, leesgeschiedenis en bladwijzers</string>
     <string name="history_enabled_title">Leesgeschiedenis opslaan</string>
     <string name="history_enabled_summary">Onthoud geopende bestanden, leesposities en instellingen per bestand.</string>
+    <string name="keep_shared_copies_title">Kopieën van gedeelde bestanden bewaren</string>
+    <string name="keep_shared_copies_summary">Wanneer een PDF via een tijdelijke deling uit een andere app binnenkomt, sla een kopie op in Documents/MJ PDF zodat deze beschikbaar blijft.</string>
     <string name="reading_history">Leesgeschiedenis</string>
     <string name="reading_history_row_summary">Bekijk en verwijder alles wat de app over je bestanden onthoudt</string>
     <string name="reading_history_empty">Nog geen leesgeschiedenis.</string>

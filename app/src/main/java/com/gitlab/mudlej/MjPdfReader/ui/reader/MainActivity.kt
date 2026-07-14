@@ -44,6 +44,7 @@ import com.gitlab.mudlej.MjPdfReader.core.ui.clearIncognitoNightMode
 import com.gitlab.mudlej.MjPdfReader.core.ui.showOptionalIcons
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.pdf.PdfPropertiesSummary
+import com.gitlab.mudlej.MjPdfReader.ui.reader.load.DocumentUnreachableException
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.shockwave.pdfium.PdfPasswordException
@@ -439,6 +440,9 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         else if (shouldReturnToHomeForRelocate(exception)) {
             returnToHomeForRelocate()
         }
+        else if (isStaleDocumentFailure(exception) && hasRecoverableUri()) {
+            reader.startStaleDocumentRecovery(pdf.uri ?: return)
+        }
         else {
             AppSnackbar.make(binding.root, R.string.file_opening_error, Snackbar.LENGTH_LONG).show()
             Log.e(TAG, getString(R.string.file_opening_error), exception)
@@ -446,20 +450,32 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     }
 
     private fun shouldReturnToHomeForRelocate(exception: Throwable): Boolean {
+        if (pref.getHomeDisabled()) {
+            return false
+        }
         if (!intent.getBooleanExtra(HomeActivity.EXTRA_FROM_HOME, false)) {
             return false
         }
         if (intent.getStringExtra(HomeActivity.EXTRA_RECORD_HASH) == null) {
             return false
         }
+        return isStaleDocumentFailure(exception)
+    }
+
+    private fun isStaleDocumentFailure(exception: Throwable): Boolean {
         var cause: Throwable? = exception
         while (cause != null) {
-            if (cause is SecurityException || cause is FileNotFoundException) {
+            if (cause is SecurityException || cause is FileNotFoundException || cause is DocumentUnreachableException) {
                 return true
             }
             cause = cause.cause
         }
         return false
+    }
+
+    private fun hasRecoverableUri(): Boolean {
+        val scheme = pdf.uri?.scheme
+        return scheme == "content" || scheme == "file"
     }
 
     private fun returnToHomeForRelocate() {

@@ -826,6 +826,12 @@
     <string name="home_relocate_found">File trovato nella nuova posizione</string>
     <string name="home_relocate_mismatch_title">File diverso</string>
     <string name="home_relocate_mismatch_message">Il file selezionato non corrisponde al PDF originale. Aprirlo come nuovo documento?</string>
+    <string name="stale_shared_title">File non più disponibile</string>
+    <string name="stale_shared_message">L\'app che ha condiviso questo file non ne consente più l\'accesso. Se hai il file, puoi individuarlo tu stesso.</string>
+    <string name="stale_shared_locate">Individua</string>
+    <string name="hash_failed_notice">Non è stato possibile identificare questo file. La posizione di lettura e le impostazioni non verranno salvate in questa sessione.</string>
+    <string name="shared_copy_saved_public">Una copia è stata salvata in Documents/MJ PDF</string>
+    <string name="shared_copy_saved_private">Una copia è stata conservata nella memoria dell\'app affinché questo file resti disponibile</string>
     <string name="home_open_anyway">Apri comunque</string>
     <string name="home_cover_description">Copertina PDF</string>
     <string name="disable_home_library_title">Disattiva libreria home</string>
@@ -863,6 +869,8 @@
     <string name="settings_backup_summary">Esporta e importa le tue impostazioni, la cronologia di lettura e i segnalibri</string>
     <string name="history_enabled_title">Salva cronologia di lettura</string>
     <string name="history_enabled_summary">Ricorda i file aperti, le posizioni di lettura e le impostazioni per singolo file.</string>
+    <string name="keep_shared_copies_title">Conserva le copie dei file condivisi</string>
+    <string name="keep_shared_copies_summary">Quando un PDF arriva tramite una condivisione temporanea da un\'altra app, salva una copia in Documents/MJ PDF affinché resti disponibile.</string>
     <string name="reading_history">Cronologia di lettura</string>
     <string name="reading_history_row_summary">Visualizza ed elimina tutto ciò che l\'app ricorda dei tuoi file</string>
     <string name="reading_history_empty">Ancora nessuna cronologia di lettura.</string>

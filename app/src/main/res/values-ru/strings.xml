@@ -836,6 +836,12 @@
     <string name="home_relocate_found">Файл найден в новом месте</string>
     <string name="home_relocate_mismatch_title">Другой файл</string>
     <string name="home_relocate_mismatch_message">Выбранный файл не соответствует оригинальному PDF. Открыть его как новый документ?</string>
+    <string name="stale_shared_title">Файл больше недоступен</string>
+    <string name="stale_shared_message">Приложение, которое поделилось этим файлом, больше не предоставляет к нему доступ. Если файл есть у вас, вы можете найти его самостоятельно.</string>
+    <string name="stale_shared_locate">Найти</string>
+    <string name="hash_failed_notice">Не удалось распознать этот файл. Позиция чтения и настройки не будут сохранены в этом сеансе.</string>
+    <string name="shared_copy_saved_public">Копия сохранена в Documents/MJ PDF</string>
+    <string name="shared_copy_saved_private">Копия сохранена в хранилище приложения, чтобы этот файл оставался доступным</string>
     <string name="home_open_anyway">Всё равно открыть</string>
     <string name="home_cover_description">Обложка PDF</string>
     <string name="disable_home_library_title">Отключить главную библиотеку</string>
@@ -875,6 +881,8 @@
     <string name="settings_backup_summary">Экспорт и импорт настроек, истории чтения и закладок</string>
     <string name="history_enabled_title">Сохранять историю чтения</string>
     <string name="history_enabled_summary">Запоминать открытые файлы, позиции чтения и настройки для каждого файла.</string>
+    <string name="keep_shared_copies_title">Сохранять копии присланных файлов</string>
+    <string name="keep_shared_copies_summary">Когда PDF приходит через временный доступ из другого приложения, сохранять копию в Documents/MJ PDF, чтобы он оставался доступным.</string>
     <string name="reading_history">История чтения</string>
     <string name="reading_history_row_summary">Просматривайте и удаляйте всё, что приложение помнит о ваших файлах</string>
     <string name="reading_history_empty">История чтения пока пуста.</string>

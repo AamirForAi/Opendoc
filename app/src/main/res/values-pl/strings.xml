@@ -836,6 +836,12 @@
     <string name="home_relocate_found">Znaleziono plik w nowej lokalizacji</string>
     <string name="home_relocate_mismatch_title">Inny plik</string>
     <string name="home_relocate_mismatch_message">Wybrany plik nie pasuje do oryginalnego pliku PDF. Otworzyć go jako nowy dokument?</string>
+    <string name="stale_shared_title">Plik nie jest już dostępny</string>
+    <string name="stale_shared_message">Aplikacja, która udostępniła ten plik, nie zezwala już na dostęp do niego. Jeśli masz ten plik, możesz zlokalizować go samodzielnie.</string>
+    <string name="stale_shared_locate">Zlokalizuj</string>
+    <string name="hash_failed_notice">Nie udało się zidentyfikować tego pliku. Pozycja czytania i ustawienia nie zostaną zapisane w tej sesji.</string>
+    <string name="shared_copy_saved_public">Kopia została zapisana w Documents/MJ PDF</string>
+    <string name="shared_copy_saved_private">Kopia została zachowana w pamięci aplikacji, aby ten plik pozostał dostępny</string>
     <string name="home_open_anyway">Otwórz mimo to</string>
     <string name="home_cover_description">Okładka PDF</string>
     <string name="disable_home_library_title">Wyłącz bibliotekę na ekranie głównym</string>
@@ -875,6 +881,8 @@
     <string name="settings_backup_summary">Eksportuj i importuj swoje ustawienia, historię czytania i zakładki</string>
     <string name="history_enabled_title">Zapisuj historię czytania</string>
     <string name="history_enabled_summary">Pamiętaj otwarte pliki, pozycje czytania i ustawienia dla poszczególnych plików.</string>
+    <string name="keep_shared_copies_title">Zachowuj kopie udostępnionych plików</string>
+    <string name="keep_shared_copies_summary">Gdy plik PDF pojawia się przez tymczasowe udostępnienie z innej aplikacji, zapisz kopię w Documents/MJ PDF, aby pozostał dostępny.</string>
     <string name="reading_history">Historia czytania</string>
     <string name="reading_history_row_summary">Zobacz i usuń wszystko, co aplikacja pamięta o Twoich plikach</string>
     <string name="reading_history_empty">Brak historii czytania.</string>

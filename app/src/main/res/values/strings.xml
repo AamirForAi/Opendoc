@@ -750,6 +750,7 @@
     <string name="storage_permission_continue">Continue</string>
     <string name="storage_permission_not_now">Not Now</string>
     <string name="storage_permission_grant">Allow Access</string>
+    <string name="home_recent_permission_message">Your books need file access to open again. Allow access to unlock them.</string>
     <string name="home_permission_card_message">Allow file access to build your library from the PDFs on this device.</string>
     <string name="home_scan_setup_message">Choose where MJ PDF should look for PDF files to build your library.</string>
     <string name="home_scan_setup_button">Scan for PDFs</string>
@@ -851,6 +852,12 @@
     <string name="home_relocate_found">File found at its new location</string>
     <string name="home_relocate_mismatch_title">Different File</string>
     <string name="home_relocate_mismatch_message">The selected file does not match the original PDF. Open it as a new document?</string>
+    <string name="stale_shared_title">File No Longer Available</string>
+    <string name="stale_shared_message">The app that shared this file no longer allows access to it. If you have the file, you can locate it yourself.</string>
+    <string name="stale_shared_locate">Locate</string>
+    <string name="hash_failed_notice">This file could not be identified. The reading position and settings will not be saved in this session.</string>
+    <string name="shared_copy_saved_public">A copy was saved to Documents/MJ PDF</string>
+    <string name="shared_copy_saved_private">A copy was kept in the app storage so this file stays available</string>
     <string name="home_open_anyway">Open Anyway</string>
     <string name="home_cover_description">PDF cover</string>
     <string name="disable_home_library_title">Disable Home Library</string>
@@ -896,6 +903,8 @@
     <string name="settings_backup_summary">Export and import your settings, reading history, and bookmarks</string>
     <string name="history_enabled_title">Save Reading History</string>
     <string name="history_enabled_summary">Remember opened files, reading positions, and per file settings.</string>
+    <string name="keep_shared_copies_title">Keep Copies of Shared Files</string>
+    <string name="keep_shared_copies_summary">When a PDF arrives through a temporary share from another app, save a copy in Documents/MJ PDF so it stays available.</string>
     <string name="reading_history">Reading History</string>
     <string name="reading_history_row_summary">View and delete everything the app remembers about your files</string>
     <string name="reading_history_empty">No reading history yet.</string>

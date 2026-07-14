@@ -13,9 +13,9 @@ object PersistedGrantKeeper {
     private const val CAP_R_AND_UP = 512
     private const val CAP_HEADROOM = 8
 
-    fun takeReadGrant(context: Context, uri: Uri) {
+    fun takeReadGrant(context: Context, uri: Uri): Boolean {
         if (uri.scheme != "content") {
-            return
+            return false
         }
         val resolver = context.contentResolver
         runCatching {
@@ -36,7 +36,9 @@ object PersistedGrantKeeper {
                         }
                     }
             }
-            resolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
+        return runCatching {
+            resolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }.isSuccess
     }
 }

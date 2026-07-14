@@ -74,12 +74,20 @@ import com.gitlab.mudlej.MjPdfReader.ui.gotopage.showGoToPageDialog
 import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
+import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
+import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.gitlab.mudlej.MjPdfReader.core.io.navIntent
+import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
+import com.gitlab.mudlej.MjPdfReader.ui.home.HomeActivity
+import com.gitlab.mudlej.MjPdfReader.ui.reader.load.TemporaryCopyImporter
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ReaderComposition(
     private val activity: MainActivity,
@@ -106,6 +114,40 @@ class ReaderComposition(
     }
 
     private var pickerOpenedByBackButton = false
+
+    private var pendingRelocateRecord: PdfRecord? = null
+
+    private val relocatePickerLauncher: ActivityResultLauncher<Array<String>> = activity.registerForActivityResult(OpenDocument()) { pickedUri ->
+        val record = pendingRelocateRecord
+        pendingRelocateRecord = null
+        if (pickedUri == null) {
+            exitAfterFailedRecovery()
+            return@registerForActivityResult
+        }
+        if (record == null) {
+            if (!vm.incognito) {
+                PersistedGrantKeeper.takeReadGrant(activity, pickedUri)
+            }
+            activity.displayFromUri(pickedUri, savePassword = true)
+            return@registerForActivityResult
+        }
+        scope.launch {
+            val pickedHash = computeHash(activity, pickedUri)
+            if (pickedHash == record.hash) {
+                if (!vm.incognito) {
+                    PersistedGrantKeeper.takeReadGrant(activity, pickedUri)
+                }
+                val canonicalFile = withContext(Dispatchers.IO) { UriCanonicalizer.canonicalize(activity, pickedUri) }
+                val durableUri = canonicalFile?.let(Uri::fromFile) ?: pickedUri
+                if (historyPolicy.canRecord()) {
+                    pdfRepository.updateRecordIdentity(record.hash, durableUri, record.fileName, record.lastOpened)
+                }
+                activity.displayFromUri(durableUri)
+            } else {
+                showRelocateMismatchDialog(pickedUri)
+            }
+        }
+    }
 
     private val saveToDownloadPermissionLauncher: ActivityResultLauncher<String> = activity.registerForActivityResult(RequestPermission()) { granted ->
         onlinePdfController.saveDownloadedFileAfterPermissionRequest(granted)
@@ -383,6 +425,20 @@ class ReaderComposition(
         readingDirectionResolver,
         documentLoader,
     )
+    val temporaryCopyImporter: TemporaryCopyImporter = TemporaryCopyImporter(
+        activity.applicationContext,
+        pdfRepository,
+        historyPolicy,
+        pref,
+        { doc.uri to doc.name },
+        backgroundSaveScope,
+    ) { fileHash, messageRes ->
+        binding.root.post {
+            if (!activity.isFinishing && !activity.isDestroyed && doc.fileHash == fileHash) {
+                AppSnackbar.make(binding.root, messageRes, Snackbar.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     private var historyNavState = false to false
 
@@ -428,6 +484,7 @@ class ReaderComposition(
     }
 
     private fun subscribeDocumentListeners() {
+        documentLoader.subscribe(temporaryCopyImporter)
         documentLoader.subscribe(object : DocumentListener {
             override fun onDocumentReset() {
                 autoScrollSpeedStore.flushPendingSave()
@@ -675,6 +732,108 @@ class ReaderComposition(
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
             }
             activity.startActivity(intent)
+        }
+    }
+
+    fun startStaleDocumentRecovery(failedUri: Uri) {
+        scope.launch {
+            val knownHash = activity.intent.getStringExtra(HomeActivity.EXTRA_RECORD_HASH)
+            val record = knownHash?.let { pdfRepository.findRecord(it) }
+                ?: pdfRepository.findRecordByUri(failedUri.toString())
+            if (activity.isFinishing || activity.isDestroyed) {
+                return@launch
+            }
+            if (record == null) {
+                showTemporaryFileGoneDialog()
+                return@launch
+            }
+            if (record.uri != failedUri && isUriReadable(record.uri)) {
+                activity.displayFromUri(record.uri)
+                return@launch
+            }
+            val scannedFile = pdfRepository.findScannedPdfsByHash(record.hash)
+                .map { File(it.path) }
+                .let { files -> withContext(Dispatchers.IO) { files.firstOrNull { it.canRead() } } }
+            if (activity.isFinishing || activity.isDestroyed) {
+                return@launch
+            }
+            if (scannedFile != null) {
+                val healedUri = Uri.fromFile(scannedFile)
+                if (historyPolicy.canRecord()) {
+                    pdfRepository.updateRecordIdentity(record.hash, healedUri, record.fileName, record.lastOpened)
+                }
+                AppSnackbar.make(binding.root, R.string.home_relocate_found, Snackbar.LENGTH_SHORT).show()
+                activity.displayFromUri(healedUri)
+                return@launch
+            }
+            showRelocateDialog(record)
+        }
+    }
+
+    private fun showRelocateDialog(record: PdfRecord) {
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.home_relocate_title)
+            .setMessage(activity.getString(R.string.home_relocate_message, record.fileName))
+            .setPositiveButton(R.string.home_relocate_action) { _, _ ->
+                pendingRelocateRecord = record
+                relocatePickerLauncher.launch(arrayOf(PDF.FILE_TYPE))
+            }
+            .setNegativeButton(R.string.cancel) { _, _ -> exitAfterFailedRecovery() }
+            .setOnCancelListener { exitAfterFailedRecovery() }
+            .show()
+    }
+
+    private fun showTemporaryFileGoneDialog() {
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.stale_shared_title)
+            .setMessage(R.string.stale_shared_message)
+            .setPositiveButton(R.string.stale_shared_locate) { _, _ ->
+                pendingRelocateRecord = null
+                relocatePickerLauncher.launch(arrayOf(PDF.FILE_TYPE))
+            }
+            .setNegativeButton(R.string.cancel) { _, _ -> exitAfterFailedRecovery() }
+            .setOnCancelListener { exitAfterFailedRecovery() }
+            .show()
+    }
+
+    private fun showRelocateMismatchDialog(pickedUri: Uri) {
+        if (activity.isFinishing || activity.isDestroyed) {
+            return
+        }
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.home_relocate_mismatch_title)
+            .setMessage(R.string.home_relocate_mismatch_message)
+            .setPositiveButton(R.string.home_open_anyway) { _, _ ->
+                if (!vm.incognito) {
+                    PersistedGrantKeeper.takeReadGrant(activity, pickedUri)
+                }
+                activity.displayFromUri(pickedUri, savePassword = true)
+            }
+            .setNegativeButton(R.string.cancel) { _, _ -> exitAfterFailedRecovery() }
+            .setOnCancelListener { exitAfterFailedRecovery() }
+            .show()
+    }
+
+    private fun exitAfterFailedRecovery() {
+        if (activity.intent.getBooleanExtra(HomeActivity.EXTRA_FROM_HOME, false) && !pref.getHomeDisabled()) {
+            activity.startActivity(Intent(activity, HomeActivity::class.java))
+            activity.finish()
+        } else if (activity.intent.data != null) {
+            activity.finish()
+        } else {
+            pickFile()
+        }
+    }
+
+    private suspend fun isUriReadable(uri: Uri): Boolean {
+        return withContext(Dispatchers.IO) {
+            if (uri.scheme == "file") {
+                uri.path?.let { File(it).canRead() } == true
+            } else {
+                runCatching {
+                    activity.contentResolver.openInputStream(uri)?.use { } != null
+                }.getOrDefault(false)
+            }
         }
     }
 

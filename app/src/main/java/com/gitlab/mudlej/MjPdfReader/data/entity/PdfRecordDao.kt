@@ -24,6 +24,12 @@ interface PdfRecordDao {
     @Query("SELECT * FROM PdfRecord WHERE hash = :fileHash LIMIT 1")
     fun findByHash(fileHash: String): PdfRecord?
 
+    @Query("SELECT * FROM PdfRecord WHERE uri = :uri OR sourceUri = :uri LIMIT 1")
+    fun findByUri(uri: String): PdfRecord?
+
+    @Query("UPDATE PdfRecord SET sourceUri = :sourceUri WHERE hash = :fileHash")
+    fun updateSourceUri(fileHash: String, sourceUri: String?): Int
+
     @Query("SELECT pageNumber FROM PdfRecord WHERE hash = :fileHash")
     fun findSavedPage(fileHash: String?): Int?
 

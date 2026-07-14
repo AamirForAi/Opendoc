@@ -821,6 +821,12 @@
     <string name="home_relocate_found">已在新位置找到文件</string>
     <string name="home_relocate_mismatch_title">不同的文件</string>
     <string name="home_relocate_mismatch_message">所选文件与原始 PDF 不匹配。是否将其作为新文档打开？</string>
+    <string name="stale_shared_title">文件已不可用</string>
+    <string name="stale_shared_message">分享此文件的应用已不再允许访问它。如果您拥有该文件，可以自行找到它。</string>
+    <string name="stale_shared_locate">定位</string>
+    <string name="hash_failed_notice">无法识别此文件。本次会话中不会保存阅读位置和设置。</string>
+    <string name="shared_copy_saved_public">已将副本保存至 Documents/MJ PDF</string>
+    <string name="shared_copy_saved_private">已在应用存储中保留副本，以便此文件保持可用</string>
     <string name="home_open_anyway">仍要打开</string>
     <string name="home_cover_description">PDF 封面</string>
     <string name="disable_home_library_title">禁用主页资料库</string>
@@ -857,6 +863,8 @@
     <string name="settings_backup_summary">导出和导入您的设置、阅读历史和书签</string>
     <string name="history_enabled_title">保存阅读历史</string>
     <string name="history_enabled_summary">记住已打开的文件、阅读位置和按文件设置。</string>
+    <string name="keep_shared_copies_title">保留共享文件的副本</string>
+    <string name="keep_shared_copies_summary">当 PDF 通过其他应用的临时分享传入时，在 Documents/MJ PDF 中保存一份副本，以便其保持可用。</string>
     <string name="reading_history">阅读历史</string>
     <string name="reading_history_row_summary">查看和删除应用记住的关于您文件的一切</string>
     <string name="reading_history_empty">暂无阅读历史。</string>

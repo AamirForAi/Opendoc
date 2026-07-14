@@ -68,6 +68,9 @@ data class PdfRecord(
 
     @ColumnInfo(defaultValue = UNSET_TEXT_MODE_REFLOW)
     val textModeCodeBlocks: Boolean? = null,
+
+    @ColumnInfo(defaultValue = UNSET_SOURCE_URI)
+    val sourceUri: String? = null,
 ) {
 
     companion object {
@@ -101,5 +104,6 @@ data class PdfRecord(
         const val UNSET_DOCUMENT_TITLE = "NULL"
         const val UNSET_HIDDEN = "false"
         const val UNSET_TEXT_MODE_REFLOW = "NULL"
+        const val UNSET_SOURCE_URI = "NULL"
     }
 }

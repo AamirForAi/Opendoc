@@ -826,6 +826,12 @@
     <string name="home_relocate_found">پرونده در محل تازه‌اش پیدا شد</string>
     <string name="home_relocate_mismatch_title">پرونده متفاوت</string>
     <string name="home_relocate_mismatch_message">پرونده انتخاب‌شده با PDF اصلی مطابقت ندارد. آن را به‌صورت سند تازه باز کنیم؟</string>
+    <string name="stale_shared_title">پرونده دیگر در دسترس نیست</string>
+    <string name="stale_shared_message">برنامه‌ای که این پرونده را به اشتراک گذاشته بود، دیگر اجازه دسترسی به آن را نمی‌دهد. اگر پرونده را دارید، می‌توانید خودتان آن را پیدا کنید.</string>
+    <string name="stale_shared_locate">پیدا کردن</string>
+    <string name="hash_failed_notice">این پرونده قابل شناسایی نبود. موقعیت خواندن و تنظیمات در این نشست ذخیره نخواهند شد.</string>
+    <string name="shared_copy_saved_public">یک نسخه در Documents/MJ PDF ذخیره شد</string>
+    <string name="shared_copy_saved_private">یک نسخه در حافظه برنامه نگه داشته شد تا این پرونده در دسترس بماند</string>
     <string name="home_open_anyway">به هر حال باز شود</string>
     <string name="home_cover_description">جلد PDF</string>
     <string name="disable_home_library_title">غیرفعال کردن کتابخانه خانه</string>
@@ -863,6 +869,8 @@
     <string name="settings_backup_summary">برون‌بری و درون‌بری تنظیمات، تاریخچه خواندن و نشانه‌های شما</string>
     <string name="history_enabled_title">ذخیره تاریخچه خواندن</string>
     <string name="history_enabled_summary">پرونده‌های بازشده، موقعیت‌های خواندن و تنظیمات هر پرونده را به خاطر بسپار.</string>
+    <string name="keep_shared_copies_title">نگه‌داری نسخه‌ای از پرونده‌های اشتراکی</string>
+    <string name="keep_shared_copies_summary">وقتی یک PDF از طریق اشتراک‌گذاری موقت از برنامه‌ای دیگر می‌رسد، نسخه‌ای از آن را در Documents/MJ PDF ذخیره کن تا در دسترس بماند.</string>
     <string name="reading_history">تاریخچه خواندن</string>
     <string name="reading_history_row_summary">دیدن و حذف هر آنچه برنامه درباره پرونده‌های شما به خاطر دارد</string>
     <string name="reading_history_empty">هنوز تاریخچه خواندنی نیست.</string>
