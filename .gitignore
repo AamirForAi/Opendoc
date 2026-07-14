@@ -44,3 +44,5 @@ build_dependencies/libpng_build/**
 build_dependencies/freetype_build/**
 problems-report.html
 dist/
+mj-pdf.apk
+mj-pdf.apk.idsig

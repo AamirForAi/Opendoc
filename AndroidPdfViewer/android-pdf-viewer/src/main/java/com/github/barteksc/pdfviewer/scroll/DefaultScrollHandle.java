@@ -226,10 +226,17 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
     }
 
     private String getPageNumText(int pageNum) {
-        if (showPageCount && pdfView != null && pdfView.getPageCount() > 0) {
-            return pageNum + "/" + pdfView.getPageCount();
+        String pageText = String.valueOf(pageNum);
+        if (pdfView != null) {
+            int rowLastPage = pdfView.getRowLastPage(pageNum - 1) + 1;
+            if (rowLastPage > pageNum) {
+                pageText = pageNum + "-" + rowLastPage;
+            }
         }
-        return String.valueOf(pageNum);
+        if (showPageCount && pdfView != null && pdfView.getPageCount() > 0) {
+            return pageText + "/" + pdfView.getPageCount();
+        }
+        return pageText;
     }
 
     @Override

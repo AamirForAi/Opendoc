@@ -73,6 +73,14 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             ) { breadcrumb ->
                 homeTitleEllipsizePreference(breadcrumb)
             },
+            SettingEntry(
+                page = SettingsPage.HOME,
+                titleRes = R.string.home_list_badges_title,
+                summaryRes = R.string.home_list_badges_summary,
+                keywords = listOf("home", "badge", "list", "pages", "progress", "size", "status", "date", "meta", "details"),
+            ) { breadcrumb ->
+                listCardBadgesPreference(breadcrumb)
+            },
         )
     }
 

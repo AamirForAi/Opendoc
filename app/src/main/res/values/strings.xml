@@ -781,7 +781,7 @@
     <string name="home_chip_completed">Completed</string>
     <string name="home_chip_abandoned">Abandoned</string>
     <string name="home_chip_all_files">All Files</string>
-    <string name="home_hero_progress_template">%1$d%% · %2$d pages</string>
+    <string name="home_hero_progress_template">%1$d%% · %2$d/%3$d</string>
     <string name="home_scanning_progress">Scanning… %1$d PDFs found</string>
     <string name="home_menu_title">Library Menu</string>
     <string name="home_menu_view">View</string>
@@ -865,6 +865,13 @@
     <string name="home_list_title_lines_summary">How many lines the file name can use on list rows before it is shortened.</string>
     <string name="home_title_ellipsize_title">Title Truncation</string>
     <string name="home_title_ellipsize_summary">Where the three dots go when a file name is too long to fit.</string>
+    <string name="home_list_badges_title">List Card Badges</string>
+    <string name="home_list_badges_summary">Choose which details show under file names in list view.</string>
+    <string name="home_badge_pages">Page count</string>
+    <string name="home_badge_progress">Reading progress</string>
+    <string name="home_badge_last_opened">Last opened</string>
+    <string name="home_badge_file_size">File size</string>
+    <string name="home_badge_status">Reading status</string>
     <string name="home_title_ellipsize_start">Start</string>
     <string name="home_title_ellipsize_middle">Middle</string>
     <string name="home_title_ellipsize_end">End</string>

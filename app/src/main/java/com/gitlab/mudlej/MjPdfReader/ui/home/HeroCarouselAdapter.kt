@@ -39,7 +39,10 @@ class HeroCarouselAdapter(
             if (item.length > 0) {
                 binding.progressLabel.visibility = View.VISIBLE
                 binding.progressLabel.text = binding.root.context.getString(
-                    R.string.home_hero_progress_template, item.progressPercent, item.length
+                    R.string.home_hero_progress_template,
+                    item.progressPercent,
+                    item.pageNumber + 1,
+                    item.length,
                 )
             } else {
                 binding.progressLabel.visibility = View.GONE
