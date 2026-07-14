@@ -136,7 +136,7 @@ class FoldersTabController(
 
         topSections.submitList(buildList {
             if (!hasFullAccess()) {
-                add(HomeSection.PermissionCard)
+                add(HomeSection.PermissionCard())
             }
             if (lastScanning) {
                 add(HomeSection.ScanProgressRow(lastEntriesCount))

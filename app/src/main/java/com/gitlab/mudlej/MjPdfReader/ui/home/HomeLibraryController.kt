@@ -6,17 +6,22 @@ import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.entity.ScannedPdfEntry
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class HomeLibraryController(
     private val pdfRepository: PdfRepository,
     private val pref: Preferences,
 ) {
 
-    suspend fun loadLibrary(): List<HomeItem> {
+    suspend fun loadLibrary(availabilityProbe: AvailabilityProbe): List<HomeItem> {
         val showPdfTitle = pref.getHomeShowPdfTitle()
-        val items = pdfRepository.findAllRecords()
-            .filter { it.fileName.isNotEmpty() }
-            .map { HomeItem.from(it, showPdfTitle) }
+        val records = pdfRepository.findAllRecords()
+        val items = withContext(Dispatchers.IO) {
+            records
+                .filter { it.fileName.isNotEmpty() }
+                .map { HomeItem.from(it, showPdfTitle, availabilityProbe.availabilityOf(it.uri)) }
+        }
         return sort(items)
     }
 

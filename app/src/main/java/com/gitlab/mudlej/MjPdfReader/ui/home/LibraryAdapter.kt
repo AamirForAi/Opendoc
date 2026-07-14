@@ -104,6 +104,7 @@ class LibraryAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: HomeItem) {
+            binding.root.alpha = if (item.available) 1f else UNAVAILABLE_ALPHA
             binding.title.text = item.title
             binding.title.applyTitleLines(pref.getHomeGridTitleLines())
 
@@ -145,6 +146,7 @@ class LibraryAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: HomeItem) {
+            binding.root.alpha = if (item.available) 1f else UNAVAILABLE_ALPHA
             binding.title.text = item.title
             binding.title.applyTitleLines(pref.getHomeListTitleLines())
             bindMetaBadges(item)
@@ -222,6 +224,7 @@ class LibraryAdapter(
         private const val DEFAULT_COVER_WIDTH_PX = 320
         private const val LIST_COVER_WIDTH_PX = 192
         private const val SELECTION_PAYLOAD = "selection"
+        private const val UNAVAILABLE_ALPHA = 0.45f
     }
 }
 

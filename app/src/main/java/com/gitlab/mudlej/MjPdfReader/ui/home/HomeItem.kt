@@ -24,7 +24,11 @@ data class HomeItem(
     val sizeBytes: Long,
     val hidden: Boolean,
     val sortKey: String,
+    val availability: Availability = Availability.AVAILABLE,
 ) {
+
+    val available: Boolean
+        get() = availability == Availability.AVAILABLE
 
     val progressPercent: Int
         get() = if (pageNumber <= 0 || length <= 0) {
@@ -38,7 +42,7 @@ data class HomeItem(
 
     companion object {
 
-        fun from(record: PdfRecord, showPdfTitle: Boolean): HomeItem {
+        fun from(record: PdfRecord, showPdfTitle: Boolean, availability: Availability): HomeItem {
             val documentTitle = record.documentTitle
             val title = if (showPdfTitle && !documentTitle.isNullOrBlank()) {
                 documentTitle
@@ -63,6 +67,7 @@ data class HomeItem(
                 },
                 hidden = record.hidden,
                 sortKey = sortKeyOf(record.fileName),
+                availability = availability,
             )
         }
 

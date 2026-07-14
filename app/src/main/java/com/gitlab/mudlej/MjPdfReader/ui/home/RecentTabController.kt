@@ -15,10 +15,12 @@ class RecentTabController(
     functions: HomeItemFunctions,
     pref: Preferences,
     private val libraryController: HomeLibraryController,
+    private val hasFullAccess: () -> Boolean,
+    onGrantAccessClicked: () -> Unit,
     selection: () -> Set<String> = { emptySet() },
 ) {
 
-    private val sectionsAdapter = HomeSectionsAdapter(coverCache, scope, functions)
+    private val sectionsAdapter = HomeSectionsAdapter(coverCache, scope, functions, onGrantAccessClicked)
     private val rowsAdapter = LibraryAdapter(coverCache, scope, functions, pref, selection).apply {
         viewMode = HomeViewMode.LIST
         metaStyle = ListMetaStyle.RECENT
@@ -31,13 +33,16 @@ class RecentTabController(
 
     fun render(allItems: List<HomeItem>) {
         val visibleItems = allItems.filter { !it.hidden }
-        val heroItems = libraryController.continueReading(visibleItems)
+        val heroItems = libraryController.continueReading(visibleItems.filter { it.available })
         val rows = visibleItems
             .filter { it.hasBeenOpened }
             .sortedByDescending { it.lastOpened }
 
         rowsAdapter.submitList(rows)
         sectionsAdapter.submitList(buildList {
+            if (!hasFullAccess() && rows.any { !it.available }) {
+                add(HomeSection.PermissionCard(R.string.home_recent_permission_message))
+            }
             if (heroItems.isNotEmpty()) {
                 add(HomeSection.Hero(heroItems))
             }
