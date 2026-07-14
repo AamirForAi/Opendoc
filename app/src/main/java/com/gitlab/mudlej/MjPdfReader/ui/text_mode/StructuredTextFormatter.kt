@@ -11,6 +11,8 @@ import android.text.style.SubscriptSpan
 import android.text.style.SuperscriptSpan
 import android.text.style.TypefaceSpan
 import com.gitlab.mudlej.MjPdfReader.pdf.PageCharMetrics
+import com.shockwave.pdfium.PdfiumCore
+import java.text.Normalizer
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -155,10 +157,15 @@ object StructuredTextFormatter {
         var accumulator = LineAccumulator()
         val pendingCells = ArrayList<Cell>()
         var softBreakPending = false
+        var joinWrapPending = false
+
+        fun appendNoStatsText(text: String) {
+            val cell = Cell(text, false, false, 0f, 0f, 0f, 0f, -1f)
+            if (softBreakPending) pendingCells.add(cell) else accumulator.cells.add(cell)
+        }
 
         fun appendNoStats(codePoint: Int) {
-            val cell = Cell(expandCodePoint(codePoint), false, false, 0f, 0f, 0f, 0f, -1f)
-            if (softBreakPending) pendingCells.add(cell) else accumulator.cells.add(cell)
+            appendNoStatsText(expandCodePoint(codePoint))
         }
 
         fun appendSpace() {
@@ -178,9 +185,14 @@ object StructuredTextFormatter {
         for (i in 0 until metrics.count) {
             val codePoint = metrics.codePoint[i]
             if (codePoint == 0x0A || codePoint == 0x0D) {
-                softBreakPending = true
+                if (!joinWrapPending) softBreakPending = true
                 continue
             }
+            if (codePoint == 0xFFFE) {
+                joinWrapPending = true
+                continue
+            }
+            joinWrapPending = false
 
             val width = metrics.right[i] - metrics.left[i]
             val height = metrics.top[i] - metrics.bottom[i]
@@ -196,6 +208,11 @@ object StructuredTextFormatter {
             if (codePoint < 0x20 || codePoint == 0xFEFF) continue
             if (isBidiControl(codePoint)) {
                 appendNoStats(codePoint)
+                continue
+            }
+            if (isCombiningMark(codePoint)) {
+                val markText = expandCodePoint(codePoint).replace("\u200B", "")
+                if (markText.isNotEmpty()) appendNoStatsText(markText)
                 continue
             }
             if (width <= 0f || height <= 0f) {
@@ -664,8 +681,21 @@ object StructuredTextFormatter {
             0xFB04 -> "ffl"
             0xFB05 -> "ft"
             0xFB06 -> "st"
-            else -> String(Character.toChars(codePoint))
+            else -> {
+                val raw = String(Character.toChars(codePoint))
+                if (codePoint in 0xFB50..0xFEFF) {
+                    Normalizer.normalize(PdfiumCore.mapPresentationFormMarks(raw), Normalizer.Form.NFKC)
+                } else {
+                    raw
+                }
+            }
         }
+    }
+
+    private fun isCombiningMark(codePoint: Int): Boolean {
+        if (codePoint in 0xFE70..0xFE7F) return true
+        val type = Character.getType(codePoint)
+        return type == Character.NON_SPACING_MARK.toInt() || type == Character.ENCLOSING_MARK.toInt()
     }
 
     private fun median(values: List<Float>): Float {
