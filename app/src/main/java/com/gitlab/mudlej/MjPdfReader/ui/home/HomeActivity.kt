@@ -67,6 +67,8 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     private lateinit var foldersTab: FoldersTabController
 
     private var allItems: List<HomeItem> = emptyList()
+    private var allRecordItems: List<HomeItem> = emptyList()
+    private var relinkRunning = false
 
     private val foldersBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -165,6 +167,8 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             this,
             pref,
             libraryController,
+            hasFullAccess = { permissionManager.hasFullAccess() },
+            onGrantAccessClicked = { permissionManager.requestFullAccess() },
             selection = { selectionController.selectedHashes },
         )
         libraryTab = LibraryTabController(
@@ -389,13 +393,52 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     }
 
     private suspend fun renderTabs() {
-        allItems = libraryController.loadLibrary()
+        val probe = AvailabilityProbe(applicationContext, permissionManager.hasFullAccess())
+        allRecordItems = libraryController.loadLibrary(probe)
+        allItems = allRecordItems.filter { it.availability != Availability.MISSING }
         val scanIndex = libraryScanner.index.value
         recentTab.render(allItems)
         libraryTab.render(allItems)
         foldersTab.render(allItems, scanIndex.entries, scanIndex.scanning)
         if (binding.searchView.isShowing) {
             submitSearchResults()
+        }
+        maybeRelinkRecords()
+    }
+
+    private fun maybeRelinkRecords() {
+        val scanIndex = libraryScanner.index.value
+        if (relinkRunning || !permissionManager.hasFullAccess() || !scanIndex.loaded || scanIndex.scanning) {
+            return
+        }
+        if (!historyPolicy.canRecord()) {
+            return
+        }
+        val unavailableHashes = allRecordItems
+            .filter { !it.available && !it.isScanOnly }
+            .map { it.hash }
+        if (unavailableHashes.isEmpty()) {
+            return
+        }
+        relinkRunning = true
+        lifecycleScope.launch {
+            try {
+                var healed = false
+                for (hash in unavailableHashes) {
+                    val record = pdfRepository.findRecord(hash) ?: continue
+                    val healedPath = libraryScanner.findPathByHash(hash) ?: continue
+                    val file = File(healedPath)
+                    pdfRepository.updateRecordIdentity(
+                        hash, Uri.fromFile(file), file.nameWithoutExtension, record.lastOpened
+                    )
+                    healed = true
+                }
+                if (healed) {
+                    refresh()
+                }
+            } finally {
+                relinkRunning = false
+            }
         }
     }
 
@@ -435,6 +478,14 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         }
         if (binding.searchView.isShowing) {
             binding.searchView.hide()
+        }
+        if (!item.available) {
+            if (item.availability == Availability.LOCKED) {
+                permissionManager.requestFullAccess()
+            } else {
+                relocateController.handleMissingFile(item.hash)
+            }
+            return
         }
         if (isMissingFile(item)) {
             relocateController.handleMissingFile(item.hash)

@@ -72,7 +72,7 @@ class HomeSectionsAdapter(
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val section = getItem(position)) {
-            is HomeSection.PermissionCard -> (holder as PermissionCardViewHolder).bind()
+            is HomeSection.PermissionCard -> (holder as PermissionCardViewHolder).bind(section)
             is HomeSection.ScanSetupCard -> (holder as ScanSetupCardViewHolder).bind()
             is HomeSection.Hero -> (holder as HeroSectionViewHolder).bind(section)
             is HomeSection.Chips -> (holder as ChipRowViewHolder).bind()
@@ -85,7 +85,8 @@ class HomeSectionsAdapter(
         private val binding: ItemHomePermissionCardBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind() {
+        fun bind(section: HomeSection.PermissionCard) {
+            binding.permissionMessage.setText(section.messageRes)
             binding.grantAccessButton.setOnClickListener { onGrantAccessClicked() }
         }
     }

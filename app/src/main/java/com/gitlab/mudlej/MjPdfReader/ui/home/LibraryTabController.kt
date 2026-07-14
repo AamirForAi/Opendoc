@@ -93,7 +93,7 @@ class LibraryTabController(
         val scanningAll = filter == ListFilter.ALL && scanIndex.scanning
         sectionsAdapter.submitList(buildList {
             if (!hasFullAccess()) {
-                add(HomeSection.PermissionCard)
+                add(HomeSection.PermissionCard())
             } else if (showScanSetup()) {
                 add(HomeSection.ScanSetupCard)
             }
