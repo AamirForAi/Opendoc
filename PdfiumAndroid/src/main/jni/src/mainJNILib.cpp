@@ -2050,42 +2050,8 @@ static bool isAttachableArabicMark(jchar c) {
 static const int kMarkBaseWindow = 8;
 static const double kDegenerateBoxSize = 0.01;
 
-static void reorderArabicMarks(FPDF_TEXTPAGE textPage, int firstCharIndex, jchar* buf, int len) {
-    if (len <= 1) {
-        return;
-    }
-    bool hasMark = false;
-    for (int i = 0; i < len; i++) {
-        if (isAttachableArabicMark(buf[i])) {
-            hasMark = true;
-            break;
-        }
-    }
-    if (!hasMark) {
-        return;
-    }
-
-    int charCount = FPDFText_CountChars(textPage);
-    int textStart = -1;
-    while (firstCharIndex < charCount) {
-        textStart = FPDFText_GetTextIndexFromCharIndex(textPage, firstCharIndex);
-        if (textStart >= 0) {
-            break;
-        }
-        firstCharIndex++;
-    }
-    if (textStart < 0) {
-        return;
-    }
-
-    std::vector<int> charIndex(len);
-    for (int i = 0; i < len; i++) {
-        charIndex[i] = FPDFText_GetCharIndexFromTextIndex(textPage, textStart + i);
-        if (charIndex[i] < 0) {
-            return;
-        }
-    }
-
+static std::vector<int> arabicMarkEmitOrder(FPDF_TEXTPAGE textPage, const std::vector<int>& charIndex,
+        const jchar* buf, int len) {
     std::vector<int> attachedTo(len, -1);
     bool anyAttached = false;
     for (int i = 0; i < len; i++) {
@@ -2113,7 +2079,7 @@ static void reorderArabicMarks(FPDF_TEXTPAGE textPage, int firstCharIndex, jchar
         for (int j = windowStart; j <= windowEnd; j++) {
             jchar c = buf[j];
             if (j == i || isAttachableArabicMark(c)
-                    || c == 0x0020 || c == 0xFFFE || c == '\r' || c == '\n') {
+                    || c == 0 || c == 0x0020 || c == 0xFFFE || c == '\r' || c == '\n') {
                 continue;
             }
             double bl, br, bb, bt;
@@ -2152,27 +2118,75 @@ static void reorderArabicMarks(FPDF_TEXTPAGE textPage, int firstCharIndex, jchar
         }
     }
     if (!anyAttached) {
-        return;
+        return std::vector<int>();
     }
 
-    std::vector<jchar> out;
-    out.reserve(len);
+    std::vector<int> order;
+    order.reserve(len);
     for (int i = 0; i < len; i++) {
         if (attachedTo[i] >= 0) {
             continue;
         }
-        out.push_back(buf[i]);
+        order.push_back(i);
         int lo = i - kMarkBaseWindow < 0 ? 0 : i - kMarkBaseWindow;
         int hi = i + kMarkBaseWindow >= len ? len - 1 : i + kMarkBaseWindow;
         for (int m = lo; m <= hi; m++) {
             if (attachedTo[m] == i) {
-                out.push_back(buf[m]);
+                order.push_back(m);
             }
         }
     }
-    if ((int) out.size() == len) {
-        memcpy(buf, out.data(), len * sizeof(jchar));
+    if ((int) order.size() != len) {
+        return std::vector<int>();
     }
+    return order;
+}
+
+static void reorderArabicMarks(FPDF_TEXTPAGE textPage, int firstCharIndex, jchar* buf, int len) {
+    if (len <= 1) {
+        return;
+    }
+    bool hasMark = false;
+    for (int i = 0; i < len; i++) {
+        if (isAttachableArabicMark(buf[i])) {
+            hasMark = true;
+            break;
+        }
+    }
+    if (!hasMark) {
+        return;
+    }
+
+    int charCount = FPDFText_CountChars(textPage);
+    int textStart = -1;
+    while (firstCharIndex < charCount) {
+        textStart = FPDFText_GetTextIndexFromCharIndex(textPage, firstCharIndex);
+        if (textStart >= 0) {
+            break;
+        }
+        firstCharIndex++;
+    }
+    if (textStart < 0) {
+        return;
+    }
+
+    std::vector<int> charIndex(len);
+    for (int i = 0; i < len; i++) {
+        charIndex[i] = FPDFText_GetCharIndexFromTextIndex(textPage, textStart + i);
+        if (charIndex[i] < 0) {
+            return;
+        }
+    }
+
+    std::vector<int> order = arabicMarkEmitOrder(textPage, charIndex, buf, len);
+    if (order.empty()) {
+        return;
+    }
+    std::vector<jchar> out(len);
+    for (int k = 0; k < len; k++) {
+        out[k] = buf[order[k]];
+    }
+    memcpy(buf, out.data(), len * sizeof(jchar));
 }
 
 JNI_FUNC(jstring, PdfiumCore, nativeGetPageText)(JNI_ARGS, jlong pagePtr) {
@@ -2435,9 +2449,26 @@ JNI_FUNC(jdoubleArray, PdfiumCore, nativeTextCharMetrics)(JNI_ARGS, jlong textPa
         return env->NewDoubleArray(0);
     }
 
+    std::vector<jchar> chars(safeCount);
+    std::vector<int> charIndex(safeCount);
+    bool hasMark = false;
+    for (int k = 0; k < safeCount; k++) {
+        unsigned int unicode = FPDFText_GetUnicode(textPage, start + k);
+        chars[k] = unicode <= 0xFFFF ? (jchar) unicode : 0;
+        charIndex[k] = start + k;
+        if (isAttachableArabicMark(chars[k])) {
+            hasMark = true;
+        }
+    }
+    std::vector<int> order;
+    if (hasMark) {
+        order = arabicMarkEmitOrder(textPage, charIndex, chars.data(), safeCount);
+    }
+
     std::vector<jdouble> values;
     values.reserve(static_cast<size_t>(safeCount) * 9);
-    for (int i = start; i < start + safeCount; i++) {
+    for (int k = 0; k < safeCount; k++) {
+        int i = start + (order.empty() ? k : order[k]);
         double left = 0, bottom = 0, right = 0, top = 0;
         FS_RECTF looseRect;
         if (FPDFText_GetLooseCharBox(textPage, i, &looseRect)) {

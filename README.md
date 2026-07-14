@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="fastlane/metadata/android/en-US/images/icon_rounded.png" width="110" alt="MJ PDF icon"/>
+<img src="assets/logo/logo.webp" width="110" alt="MJ PDF logo"/>
 
 # MJ PDF
 

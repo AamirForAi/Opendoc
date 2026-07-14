@@ -15,7 +15,7 @@ class MainIntroActivity : AppCompatActivity() {
 
     private val pages = listOf(
         IntroPage(
-            R.mipmap.ic_launcher, R.string.intro_welcome_title, listOf(
+            R.drawable.ic_logo, R.string.intro_welcome_title, listOf(
                 IntroFeature(R.drawable.ic_elevated_pdf, R.string.intro_welcome_tagline),
                 IntroFeature(R.drawable.ic_lock, R.string.intro_welcome_privacy),
                 IntroFeature(R.drawable.ic_hide, R.string.intro_welcome_clean),
