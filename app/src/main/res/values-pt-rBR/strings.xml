@@ -211,7 +211,7 @@
     <string name="features_tools_share_body">Envie o arquivo para qualquer aplicativo com Compartilhar Arquivo.</string>
     <string name="features_tools_extract_title">Texto da Página</string>
     <string name="features_tools_extract_body">Texto da Página mostra o texto completo da página atual para seleção e cópia.</string>
-    <string name="features_tools_metadata_title">Metadados do Arquivo</string>
+    <string name="features_tools_metadata_title">Propriedades do Arquivo</string>
     <string name="features_tools_metadata_body">Título, autor, contagem e tamanho de páginas, dimensões da página, fontes incorporadas, e datas de criação e modificação.</string>
     <string name="features_tools_reload_title">Recarregar PDF</string>
     <string name="features_tools_reload_body">Reabre o arquivo no lugar, útil quando outro aplicativo o alterou.</string>
@@ -265,7 +265,7 @@
     <string name="none">Nenhum</string>
     <string name="app_info">Informações do App</string>
     <string name="author_info">Informações do Autor</string>
-    <string name="file_metadata">Metadados do Arquivo</string>
+    <string name="file_metadata">Propriedades do Arquivo</string>
     <string name="app_settings">Configurações do App</string>
     <string name="quality">Renderização de Alta Qualidade</string>
     <string name="quality_summary">Renderize páginas com maior fidelidade de cor usando ARGB_8888 em vez de RGB_565. Pode ser mais lento e usar mais memória.</string>

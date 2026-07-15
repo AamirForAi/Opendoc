@@ -211,7 +211,7 @@
     <string name="features_tools_share_body">Senden Sie die Datei mit Datei teilen an eine beliebige App.</string>
     <string name="features_tools_extract_title">Seitentext</string>
     <string name="features_tools_extract_body">Seitentext zeigt den vollständigen Text der aktuellen Seite zum Auswählen und Kopieren an.</string>
-    <string name="features_tools_metadata_title">Datei-Metadaten</string>
+    <string name="features_tools_metadata_title">Dateieigenschaften</string>
     <string name="features_tools_metadata_body">Titel, Autor, Seitenanzahl und Größe, Seitenabmessungen, eingebettete Schriftarten sowie Erstellungs- und Änderungsdatum.</string>
     <string name="features_tools_reload_title">PDF neu laden</string>
     <string name="features_tools_reload_body">Öffnet die Datei erneut an Ort und Stelle, nützlich wenn eine andere App sie geändert hat.</string>
@@ -265,7 +265,7 @@
     <string name="none">Keine</string>
     <string name="app_info">App-Info</string>
     <string name="author_info">Autorinfo</string>
-    <string name="file_metadata">Datei-Metadaten</string>
+    <string name="file_metadata">Dateieigenschaften</string>
     <string name="app_settings">App-Einstellungen</string>
     <string name="quality">Hochwertiges Rendering</string>
     <string name="quality_summary">Seiten mit höherer Farbtreue rendern, indem ARGB_8888 statt RGB_565 verwendet wird. Kann langsamer sein und mehr Speicher beanspruchen.</string>

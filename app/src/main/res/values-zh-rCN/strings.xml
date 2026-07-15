@@ -211,7 +211,7 @@
     <string name="features_tools_share_body">使用分享文档功能将文件发送到任意应用。</string>
     <string name="features_tools_extract_title">页面文字</string>
     <string name="features_tools_extract_body">页面文字功能显示当前页面的全部文字，可供选择和复制。</string>
-    <string name="features_tools_metadata_title">文档元数据</string>
+    <string name="features_tools_metadata_title">文档属性</string>
     <string name="features_tools_metadata_body">标题、作者、页数和大小、页面尺寸、内嵌字体，以及创建和修改日期。</string>
     <string name="features_tools_reload_title">重新加载 PDF</string>
     <string name="features_tools_reload_body">原地重新打开文件，适用于其他应用更改了文件的情况。</string>
@@ -265,7 +265,7 @@
     <string name="none">无</string>
     <string name="app_info">应用信息</string>
     <string name="author_info">作者信息</string>
-    <string name="file_metadata">文档元数据</string>
+    <string name="file_metadata">文档属性</string>
     <string name="app_settings">应用设置</string>
     <string name="quality">高品质渲染</string>
     <string name="quality_summary">使用 ARGB_8888 而非 RGB_565 渲染页面，以获得更高的色彩保真度。可能会更慢并占用更多内存。</string>

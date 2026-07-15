@@ -18,6 +18,7 @@ import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.ui.reader.showMetaDialog
 import com.gitlab.mudlej.MjPdfReader.core.io.appDateFormatter
 import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
+import com.gitlab.mudlej.MjPdfReader.core.io.pdfShareIntent
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.shockwave.pdfium.PdfDocument
 import com.shockwave.pdfium.PdfiumCore
@@ -128,6 +129,11 @@ class RecordOptionsDialog(
         binding.openIncognitoRow.setOnClickListener {
             dialog.dismiss()
             onOpenIncognito(item)
+        }
+
+        binding.sharePdfRow.setOnClickListener {
+            dialog.dismiss()
+            sharePdf(item, record)
         }
 
         binding.optionsInfoButton.setOnClickListener { showFullProperties(item, record) }
@@ -275,6 +281,16 @@ class RecordOptionsDialog(
                 activity.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length }
             }.getOrNull()
         }?.takeIf { it > 0 }
+    }
+
+    private fun sharePdf(item: HomeItem, record: PdfRecord?) {
+        scope.launch {
+            try {
+                activity.startActivity(pdfShareIntent(activity, item.uri, fileNameOf(item, record)))
+            } catch (e: Throwable) {
+                Toast.makeText(activity, R.string.home_share_failed, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun showRenameDialog(item: HomeItem, record: PdfRecord?) {

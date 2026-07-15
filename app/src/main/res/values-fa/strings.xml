@@ -211,7 +211,7 @@
     <string name="features_tools_share_body">پرونده را با هم‌رسانی پرونده به هر برنامه‌ای بفرستید.</string>
     <string name="features_tools_extract_title">متن صفحه</string>
     <string name="features_tools_extract_body">متن صفحه متن کامل صفحه فعلی را برای انتخاب و رونویسی نشان می‌دهد.</string>
-    <string name="features_tools_metadata_title">داده‌های پرونده</string>
+    <string name="features_tools_metadata_title">ویژگی‌های پرونده</string>
     <string name="features_tools_metadata_body">عنوان، نویسنده، شمار و اندازه صفحات، ابعاد صفحه، قلم‌های جاسازی‌شده، و تاریخ‌های ساخت و تغییر.</string>
     <string name="features_tools_reload_title">بارگذاری دوباره PDF</string>
     <string name="features_tools_reload_body">پرونده را در جای خود دوباره باز می‌کند، مفید زمانی که برنامه‌ای دیگر آن را تغییر داده است.</string>
@@ -265,7 +265,7 @@
     <string name="none">هیچ‌کدام</string>
     <string name="app_info">درباره برنامه</string>
     <string name="author_info">درباره نویسنده</string>
-    <string name="file_metadata">داده‌های پرونده</string>
+    <string name="file_metadata">ویژگی‌های پرونده</string>
     <string name="app_settings">تنظیمات برنامه</string>
     <string name="quality">رندر باکیفیت بالا</string>
     <string name="quality_summary">صفحات را با وفاداری رنگی بالاتر با استفاده از ARGB_8888 به‌جای RGB_565 رندر کنید. ممکن است کندتر باشد و حافظه بیشتری استفاده کند.</string>

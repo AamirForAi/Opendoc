@@ -211,7 +211,7 @@
     <string name="features_tools_share_body">फाइल शेयर करें के साथ फ़ाइल को किसी भी ऐप में भेजें।</string>
     <string name="features_tools_extract_title">पेज का टेक्स्ट</string>
     <string name="features_tools_extract_body">पेज का टेक्स्ट चुनने और कॉपी करने के लिए वर्तमान पेज का पूरा टेक्स्ट दिखाता है।</string>
-    <string name="features_tools_metadata_title">फ़ाइल मेटाडेटा</string>
+    <string name="features_tools_metadata_title">फ़ाइल गुण</string>
     <string name="features_tools_metadata_body">शीर्षक, लेखक, पेज गिनती और आकार, पेज आयाम, एम्बेडेड फ़ॉन्ट, और निर्माण व संशोधन तिथियाँ।</string>
     <string name="features_tools_reload_title">PDF रीलोड करें</string>
     <string name="features_tools_reload_body">फ़ाइल को उसी जगह फिर से खोलता है, तब उपयोगी जब किसी अन्य ऐप ने इसे बदल दिया हो।</string>
@@ -265,7 +265,7 @@
     <string name="none">कोई नहीं</string>
     <string name="app_info">ऐप जानकारी</string>
     <string name="author_info">लेखक की जानकारी</string>
-    <string name="file_metadata">फ़ाइल मेटाडेटा</string>
+    <string name="file_metadata">फ़ाइल गुण</string>
     <string name="app_settings">ऐप सेटिंग्स</string>
     <string name="quality">उच्च गुणवत्ता रेंडरिंग</string>
     <string name="quality_summary">ARGB_8888 के बजाय RGB_565 का उपयोग करके उच्च रंग निष्ठा के साथ पृष्ठों को रेंडर करें। धीमा हो सकता है और अधिक मेमोरी का उपयोग कर सकता है।</string>

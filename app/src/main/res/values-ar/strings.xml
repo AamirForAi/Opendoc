@@ -211,7 +211,7 @@
     <string name="features_tools_share_body">أرسل الملف إلى أي تطبيق باستخدام مشاركة الملف.</string>
     <string name="features_tools_extract_title">نص الصفحة</string>
     <string name="features_tools_extract_body">يعرض نص الصفحة النص الكامل للصفحة الحالية لتحديده ونسخه.</string>
-    <string name="features_tools_metadata_title">بيانات الملف</string>
+    <string name="features_tools_metadata_title">بيانات حول الملف</string>
     <string name="features_tools_metadata_body">العنوان، المؤلف، عدد الصفحات وحجمها، أبعاد الصفحة، الخطوط المضمنة، وتاريخا الإنشاء والتعديل.</string>
     <string name="features_tools_reload_title">إعادة تحميل الملف</string>
     <string name="features_tools_reload_body">يعيد فتح الملف في مكانه، مفيد عندما يغيّره تطبيق آخر.</string>
@@ -265,7 +265,7 @@
     <string name="none">بلا</string>
     <string name="app_info">معلومات عن التطبيق</string>
     <string name="author_info">معلومات عن المؤلف</string>
-    <string name="file_metadata">بيانات الملف</string>
+    <string name="file_metadata">بيانات حول الملف</string>
     <string name="app_settings">إعدادات التطبيق</string>
     <string name="quality">دقة عالية</string>
     <string name="quality_summary">تصيير الصفحات بدقة ألوان أعلى باستخدام ARGB_8888 بدلًا من RGB_565. قد يكون أبطأ ويستهلك ذاكرة أكثر.</string>

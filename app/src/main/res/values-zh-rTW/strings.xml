@@ -211,7 +211,7 @@
     <string name="features_tools_share_body">使用「分享檔案」將檔案傳送給任何應用程式。</string>
     <string name="features_tools_extract_title">頁面文字</string>
     <string name="features_tools_extract_body">「頁面文字」會顯示目前頁面的完整文字，方便選取與複製。</string>
-    <string name="features_tools_metadata_title">檔案元資料</string>
+    <string name="features_tools_metadata_title">檔案屬性</string>
     <string name="features_tools_metadata_body">標題、作者、頁數與大小、頁面尺寸、內嵌字型，以及建立與修改時間。</string>
     <string name="features_tools_reload_title">重新載入 PDF</string>
     <string name="features_tools_reload_body">就地重新開啟檔案，適用於檔案被其他應用程式變更時。</string>
@@ -265,7 +265,7 @@
     <string name="none">無</string>
     <string name="app_info">應用程式資訊</string>
     <string name="author_info">作者資訊</string>
-    <string name="file_metadata">檔案元資料</string>
+    <string name="file_metadata">檔案屬性</string>
     <string name="app_settings">應用程式設定</string>
     <string name="quality">高品質渲染</string>
     <string name="quality_summary">使用 ARGB_8888 而非 RGB_565，以更高的色彩保真度渲染頁面。可能較慢且使用更多記憶體。</string>
@@ -702,7 +702,7 @@
     <string name="send">發送</string>
     <string name="no">否</string>
     <string name="toggle_shortcuts">切換快捷方式</string>
-    <string name="file_properties">文件屬性</string>
+    <string name="file_properties">檔案屬性</string>
     <string name="pdf_pages">頁面</string>
     <string name="pdf_subject">主題</string>
     <string name="pdf_keywords">關鍵字</string>

@@ -4,12 +4,17 @@ package com.gitlab.mudlej.MjPdfReader.core.io
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.content.ContentResolver
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import android.os.Build
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import com.gitlab.mudlej.MjPdfReader.R
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -89,3 +94,48 @@ fun readBytesToEnd(inputStream: InputStream): ByteArray? {
 val File.size get() = if (!exists()) 0.0 else length().toDouble()
 val File.sizeInKb get() = size / 1024
 val File.sizeInMb get() = sizeInKb / 1024
+
+private const val PDF_SUFFIX = ".pdf"
+private const val SHARE_CACHE_DIR = "share"
+private const val SHARE_CACHE_MAX_AGE_MILLIS = 24L * 60 * 60 * 1000
+
+fun ensurePdfFileName(name: String): String {
+    val cleaned = name
+        .replace(Regex("[\\\\/:*?\"<>|\\u0000-\\u001F]"), "_")
+        .trim()
+        .trim('.')
+    val base = cleaned.ifBlank { "Shared PDF" }
+    return if (base.endsWith(PDF_SUFFIX, ignoreCase = true)) base else base + PDF_SUFFIX
+}
+
+@Throws(IOException::class)
+fun pdfShareUri(context: Context, sourceUri: Uri, displayName: String): Uri {
+    val sourceHasPdfName = sourceUri.scheme == ContentResolver.SCHEME_CONTENT &&
+        getFileName(context, sourceUri).endsWith(PDF_SUFFIX, ignoreCase = true)
+    if (sourceHasPdfName) {
+        return sourceUri
+    }
+
+    val shareDir = File(context.cacheDir, SHARE_CACHE_DIR).apply { mkdirs() }
+    val expiredBefore = System.currentTimeMillis() - SHARE_CACHE_MAX_AGE_MILLIS
+    shareDir.listFiles()?.forEach { file ->
+        if (file.name.endsWith(PDF_SUFFIX, ignoreCase = true) && file.lastModified() < expiredBefore) {
+            file.delete()
+        }
+    }
+
+    val target = File(shareDir, ensurePdfFileName(displayName))
+    context.contentResolver.openInputStream(sourceUri).use { input ->
+        input ?: throw IOException("Unable to open source for sharing")
+        FileOutputStream(target).use { output -> input.copyTo(output) }
+    }
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", target)
+}
+
+suspend fun pdfShareIntent(context: Context, sourceUri: Uri, displayName: String): Intent {
+    val fileName = ensurePdfFileName(displayName)
+    val shareUri = withContext(Dispatchers.IO) {
+        runCatching { pdfShareUri(context, sourceUri, displayName) }.getOrNull()
+    } ?: sourceUri
+    return fileShareIntent(context.getString(R.string.share_file), fileName, shareUri)
+}

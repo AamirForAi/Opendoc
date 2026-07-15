@@ -211,7 +211,7 @@
     <string name="features_tools_share_body">Invia il file a qualsiasi app con Condividi file.</string>
     <string name="features_tools_extract_title">Testo della pagina</string>
     <string name="features_tools_extract_body">Testo della pagina mostra il testo completo della pagina corrente per selezionarlo e copiarlo.</string>
-    <string name="features_tools_metadata_title">Metadati del file</string>
+    <string name="features_tools_metadata_title">Proprietà del file</string>
     <string name="features_tools_metadata_body">Titolo, autore, numero e dimensione delle pagine, dimensioni pagina, font incorporati, e date di creazione e modifica.</string>
     <string name="features_tools_reload_title">Ricarica PDF</string>
     <string name="features_tools_reload_body">Riapre il file sul posto, utile quando un\'altra app lo ha modificato.</string>
@@ -265,7 +265,7 @@
     <string name="none">Nessuno</string>
     <string name="app_info">Informazioni sull\'app</string>
     <string name="author_info">Informazioni sull\'autore</string>
-    <string name="file_metadata">Metadati del file</string>
+    <string name="file_metadata">Proprietà del file</string>
     <string name="app_settings">Impostazioni dell\'app</string>
     <string name="quality">Rendering ad alta qualità</string>
     <string name="quality_summary">Renderizza le pagine con fedeltà cromatica superiore usando ARGB_8888 invece di RGB_565. Può essere più lento e usare più memoria.</string>
