@@ -211,7 +211,7 @@
     <string name="features_tools_share_body">Stuur het bestand naar elke app met Bestand delen.</string>
     <string name="features_tools_extract_title">Paginatekst</string>
     <string name="features_tools_extract_body">Paginatekst toont de volledige tekst van de huidige pagina om te selecteren en te kopiëren.</string>
-    <string name="features_tools_metadata_title">Bestandsmetagegevens</string>
+    <string name="features_tools_metadata_title">Bestandseigenschappen</string>
     <string name="features_tools_metadata_body">Titel, auteur, aantal pagina\'s en grootte, paginaformaat, ingesloten lettertypen, en aanmaak- en wijzigingsdatum.</string>
     <string name="features_tools_reload_title">PDF opnieuw laden</string>
     <string name="features_tools_reload_body">Opent het bestand opnieuw op dezelfde plek, handig wanneer een andere app het heeft gewijzigd.</string>
@@ -265,7 +265,7 @@
     <string name="none">Geen</string>
     <string name="app_info">App-info</string>
     <string name="author_info">Auteursinformatie</string>
-    <string name="file_metadata">Bestands-metagegevens</string>
+    <string name="file_metadata">Bestandseigenschappen</string>
     <string name="app_settings">App-instellingen</string>
     <string name="quality">Hoge kwaliteitsweergave</string>
     <string name="quality_summary">Geef pagina\'s weer met hogere kleurgetrouwheid via ARGB_8888 in plaats van RGB_565. Kan trager zijn en meer geheugen gebruiken.</string>

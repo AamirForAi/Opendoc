@@ -33,8 +33,8 @@ import com.gitlab.mudlej.MjPdfReader.data.*
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeActivity
-import com.gitlab.mudlej.MjPdfReader.core.io.fileShareIntent
 import com.gitlab.mudlej.MjPdfReader.core.io.imageShareIntent
+import com.gitlab.mudlej.MjPdfReader.core.io.pdfShareIntent
 import com.gitlab.mudlej.MjPdfReader.core.io.plainTextShareIntent
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.ui.ColorUtil
@@ -395,17 +395,21 @@ class MainActivity : AppCompatActivity(), ReaderUi {
             checkHasFile()  // only to show the message
             return
         }
-        val sharingIntent: Intent =
-            if (uri.scheme != null && uri.scheme!!.startsWith("http")) {
-                plainTextShareIntent(getString(R.string.share_file), pdf.uri.toString())
-            }
-            else if (asImage) {
-                imageShareIntent(getString(R.string.share_file), pdf.name, uri)
-            }
-            else {
-                fileShareIntent(getString(R.string.share_file), pdf.name, uri)
-            }
+        if (uri.scheme != null && uri.scheme!!.startsWith("http")) {
+            startShareIntent(plainTextShareIntent(getString(R.string.share_file), pdf.uri.toString()))
+            return
+        }
+        if (asImage) {
+            startShareIntent(imageShareIntent(getString(R.string.share_file), pdf.name, uri))
+            return
+        }
 
+        lifecycleScope.launch {
+            startShareIntent(pdfShareIntent(this@MainActivity, uri, pdf.name))
+        }
+    }
+
+    private fun startShareIntent(sharingIntent: Intent) {
         try {
             startActivity(sharingIntent)
         }

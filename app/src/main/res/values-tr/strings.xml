@@ -211,7 +211,7 @@
     <string name="features_tools_share_body">Dosya Paylaş ile dosyayı herhangi bir uygulamaya gönderin.</string>
     <string name="features_tools_extract_title">Sayfa Metni</string>
     <string name="features_tools_extract_body">Sayfa Metni, seçmek ve kopyalamak için geçerli sayfanın tam metnini gösterir.</string>
-    <string name="features_tools_metadata_title">Dosya Meta Verisi</string>
+    <string name="features_tools_metadata_title">Dosya Özellikleri</string>
     <string name="features_tools_metadata_body">Başlık, yazar, sayfa sayısı ve boyutu, sayfa boyutları, gömülü yazı tipleri, oluşturulma ve değiştirilme tarihleri.</string>
     <string name="features_tools_reload_title">PDF\'i Yeniden Yükle</string>
     <string name="features_tools_reload_body">Dosyayı olduğu yerde yeniden açar; başka bir uygulama onu değiştirdiğinde kullanışlıdır.</string>
@@ -265,7 +265,7 @@
     <string name="none">Hiçbiri</string>
     <string name="app_info">Uygulama Bilgisi</string>
     <string name="author_info">Yazar Bilgisi</string>
-    <string name="file_metadata">Dosya Meta Verisi</string>
+    <string name="file_metadata">Dosya Özellikleri</string>
     <string name="app_settings">Uygulama Ayarları</string>
     <string name="quality">Yüksek Kalite Renderlama</string>
     <string name="quality_summary">ARGB_8888 yerine RGB_565 kullanarak sayfaları daha yüksek renk doğruluğuyla işleyin. Daha yavaş olabilir ve daha fazla bellek kullanabilir.</string>

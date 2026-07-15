@@ -211,7 +211,7 @@
     <string name="features_tools_share_body">Wyślij plik do dowolnej aplikacji za pomocą Udostępnij plik.</string>
     <string name="features_tools_extract_title">Tekst strony</string>
     <string name="features_tools_extract_body">Tekst strony pokazuje pełny tekst bieżącej strony do zaznaczania i kopiowania.</string>
-    <string name="features_tools_metadata_title">Metadane pliku</string>
+    <string name="features_tools_metadata_title">Właściwości pliku</string>
     <string name="features_tools_metadata_body">Tytuł, autor, liczba i rozmiar stron, wymiary stron, osadzone czcionki oraz daty utworzenia i modyfikacji.</string>
     <string name="features_tools_reload_title">Przeładuj PDF</string>
     <string name="features_tools_reload_body">Otwiera plik ponownie w tym samym miejscu, przydatne, gdy inna aplikacja go zmieniła.</string>
@@ -265,7 +265,7 @@
     <string name="none">Brak</string>
     <string name="app_info">Informacje o aplikacji</string>
     <string name="author_info">Informacje o autorze</string>
-    <string name="file_metadata">Metadane pliku</string>
+    <string name="file_metadata">Właściwości pliku</string>
     <string name="app_settings">Ustawienia aplikacji</string>
     <string name="quality">Renderowanie wysokiej jakości</string>
     <string name="quality_summary">Renderuj strony z wyższą wiernością kolorów, używając ARGB_8888 zamiast RGB_565. Może być wolniejsze i zużywać więcej pamięci.</string>

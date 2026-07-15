@@ -20,7 +20,8 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
--keep class com.shockwave.**
+# JNI constructs these via GetMethodID, so members must survive R8 too
+-keep class com.shockwave.** { *; }
 
 
 # Restore some Source file names and restore approximate line numbers in the stack traces,

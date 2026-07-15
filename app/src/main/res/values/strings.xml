@@ -220,7 +220,7 @@
     <string name="features_tools_share_body">Send the file to any app with Share File.</string>
     <string name="features_tools_extract_title">Page Text</string>
     <string name="features_tools_extract_body">Page Text shows the full text of the current page for selecting and copying.</string>
-    <string name="features_tools_metadata_title">File Metadata</string>
+    <string name="features_tools_metadata_title">File Properties</string>
     <string name="features_tools_metadata_body">Title, author, page count and size, page dimensions, embedded fonts, and creation and modification dates.</string>
     <string name="features_tools_reload_title">Reload PDF</string>
     <string name="features_tools_reload_body">Re-opens the file in place, useful when another app has changed it.</string>
@@ -279,7 +279,7 @@
     <string name="app_info">App Info</string>
     <string name="author_info">Author Info</string>
 
-    <string name="file_metadata">File Metadata</string>
+    <string name="file_metadata">File Properties</string>
     <string name="app_settings">App Settings</string>
     <string name="quality">High Quality Rendering</string>
     <string name="quality_summary">Render pages with higher color fidelity using ARGB_8888 instead of RGB_565. May be slower and use more memory.</string>
@@ -804,6 +804,7 @@
     <string name="home_delete_from_device">Delete PDF</string>
     <string name="home_rename_exists">A file with that name already exists.</string>
     <string name="home_rename_failed">Could not rename the file.</string>
+    <string name="home_share_failed">Could not share the file.</string>
     <string name="home_delete_failed">Could not delete the file.</string>
     <string name="home_delete_confirm_message">"%1$s" will be permanently deleted from this device.</string>
     <plurals name="home_delete_batch_confirm_message">
@@ -895,6 +896,7 @@
     <string name="incognito_on_message">Incognito is on. Nothing about this document will be saved.</string>
     <string name="incognito_off_message">Incognito is off. Reading history is saved again.</string>
     <string name="history_action_blocked">Not available while incognito or history saving is off</string>
+    <string name="home_share_pdf">Share PDF File</string>
     <string name="open_in_incognito">Open in Incognito</string>
     <string name="open_in_incognito_hint">Choose a file to open in incognito</string>
     <string name="settings_history_privacy">History and Privacy</string>

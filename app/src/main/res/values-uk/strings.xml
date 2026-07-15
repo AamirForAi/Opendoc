@@ -211,7 +211,7 @@
     <string name="features_tools_share_body">Надсилайте файл у будь-який застосунок за допомогою «Поділитися файлом».</string>
     <string name="features_tools_extract_title">Текст сторінки</string>
     <string name="features_tools_extract_body">«Текст сторінки» показує повний текст поточної сторінки для вибору й копіювання.</string>
-    <string name="features_tools_metadata_title">Метадані файлу</string>
+    <string name="features_tools_metadata_title">Властивості файлу</string>
     <string name="features_tools_metadata_body">Назва, автор, кількість сторінок і розмір, розміри сторінки, вбудовані шрифти, а також дати створення та зміни.</string>
     <string name="features_tools_reload_title">Перезавантажити PDF</string>
     <string name="features_tools_reload_body">Повторно відкриває файл на місці, корисно, коли інший застосунок його змінив.</string>
@@ -265,7 +265,7 @@
     <string name="none">Немає</string>
     <string name="app_info">Інформація про застосунок</string>
     <string name="author_info">Інформація про автора</string>
-    <string name="file_metadata">Метадані файлу</string>
+    <string name="file_metadata">Властивості файлу</string>
     <string name="app_settings">Налаштування застосунку</string>
     <string name="quality">Високоякісна візуалізація</string>
     <string name="quality_summary">Відтворюйте сторінки з вищою точністю передачі кольору, використовуючи ARGB_8888 замість RGB_565. Це може сповільнити роботу та споживати більше пам’яті.</string>

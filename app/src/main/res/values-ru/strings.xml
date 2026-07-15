@@ -211,7 +211,7 @@
     <string name="features_tools_share_body">Отправляйте файл в любое приложение с помощью «Поделиться файлом».</string>
     <string name="features_tools_extract_title">Текст страницы</string>
     <string name="features_tools_extract_body">«Текст страницы» показывает весь текст текущей страницы для выделения и копирования.</string>
-    <string name="features_tools_metadata_title">Метаданные файла</string>
+    <string name="features_tools_metadata_title">Свойства файла</string>
     <string name="features_tools_metadata_body">Заголовок, автор, количество страниц и размер, размеры страницы, встроенные шрифты, а также даты создания и изменения.</string>
     <string name="features_tools_reload_title">Перезагрузить PDF</string>
     <string name="features_tools_reload_body">Заново открывает файл на месте — полезно, если его изменило другое приложение.</string>
@@ -265,7 +265,7 @@
     <string name="none">Нет</string>
     <string name="app_info">Информация о приложении</string>
     <string name="author_info">Информация об авторе</string>
-    <string name="file_metadata">Метаданные файла</string>
+    <string name="file_metadata">Свойства файла</string>
     <string name="app_settings">Настройки приложения</string>
     <string name="quality">Рендеринг высокого качества</string>
     <string name="quality_summary">Рендерить страницы с более высокой цветопередачей, используя ARGB_8888 вместо RGB_565. Может быть медленнее и использовать больше памяти.</string>
