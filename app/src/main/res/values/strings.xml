@@ -44,6 +44,7 @@
 
     <string name="whats_new_title">What\'s New</string>
     <string name="whats_new_intro">The largest update so far. A new home screen, annotation tools, and a rework of nearly every part of the app.</string>
+    <string name="whats_new_release_link">Visit the official release page</string>
     <string name="whats_new_section_home">Home and Library</string>
     <string name="whats_new_home_title">A new home screen</string>
     <string name="whats_new_home_body">Recent, Library and Folders tabs with covers, reading progress, statuses and favorites.</string>
@@ -328,6 +329,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">Enter an http(s) URL containing {text}</string>
     <string name="no_translate_app_found">No translation app installed</string>
+    <string name="no_translate_app_message">No app on this device can translate selected text. Install an app that supports text translation, or choose a web translator in Settings.</string>
     <string name="dictionary_title">Offline English dictionary</string>
     <string name="dictionary_summary_not_installed">Not installed. %1$s download, then every lookup works offline.</string>
     <string name="dictionary_summary_installed">Installed, %1$s. Tap to remove.</string>
@@ -375,6 +377,16 @@
     <string name="advanced_summary">Rendering limits and technical reader options</string>
     <string name="anti_aliasing">Smooth Edges / Anti-Aliasing</string>
     <string name="anti_aliasing_summary">Smooth text and page edges while rendering. Usually improves appearance with little performance cost.</string>
+    <string name="reading_section_scrolling">Scrolling</string>
+    <string name="reading_section_layout">Layout &amp; Orientation</string>
+    <string name="reading_section_session">Session</string>
+    <string name="appearance_section_theme">Theme</string>
+    <string name="appearance_section_rendering">Rendering</string>
+    <string name="appearance_section_page">Page Display</string>
+    <string name="privacy_section_privacy">Privacy</string>
+    <string name="privacy_section_clear">Clear Data</string>
+    <string name="translation_section_translation">Translation</string>
+    <string name="translation_section_dictionary">Dictionary</string>
     <string name="horizontal_scrolling_mode">Horizontal Scrolling</string>
     <string name="horizontal_scrolling_summary">Navigate pages horizontally instead of vertically. MJ PDF will try to auto-detect the right reading direction. You can override it per PDF from Menu &gt; Reading Direction after enabling horizontal scrolling.</string>
     <string name="dual_page_mode_title">Dual Page Mode</string>

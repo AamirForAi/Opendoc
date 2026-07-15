@@ -2,6 +2,7 @@
 
 package com.gitlab.mudlej.MjPdfReader.ui.about
 
+import android.content.ActivityNotFoundException
 import android.os.Bundle
 import android.view.MenuItem
 import androidx.annotation.DrawableRes
@@ -9,10 +10,13 @@ import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.core.io.linkIntent
+import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityWhatsNewBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.WhatsNewRowItemBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.WhatsNewSectionBinding
+import com.google.android.material.snackbar.Snackbar
 
 class WhatsNewActivity : AppCompatActivity() {
 
@@ -35,7 +39,16 @@ class WhatsNewActivity : AppCompatActivity() {
         setContentView(binding.root)
         setupScreenChrome()
         binding.versionChip.text = "Version ${BuildConfig.VERSION_NAME}"
+        binding.introCard.setOnClickListener { openReleasePage() }
         bindSections()
+    }
+
+    private fun openReleasePage() {
+        try {
+            startActivity(linkIntent(RELEASE_URL))
+        } catch (e: ActivityNotFoundException) {
+            AppSnackbar.make(binding.root, RELEASE_URL, Snackbar.LENGTH_SHORT).show()
+        }
     }
 
     private fun bindSections() {
@@ -125,5 +138,9 @@ class WhatsNewActivity : AppCompatActivity() {
             return true
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private companion object {
+        const val RELEASE_URL = "https://mudlej.com/projects/mj-pdf/supplements/v3.0.0-release/"
     }
 }
