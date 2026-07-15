@@ -12,7 +12,9 @@ import android.text.format.Formatter
 import android.widget.FrameLayout
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
+import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceGroup
 import androidx.preference.PreferenceScreen
 import android.widget.Toast
 import com.gitlab.mudlej.MjPdfReader.R
@@ -178,8 +180,20 @@ class SettingsFragment : PreferenceFragmentCompat() {
     }
 
     private fun buildPageScreen(screen: PreferenceScreen, page: SettingsPage) {
+        var target: PreferenceGroup = screen
+        var currentSection: Int? = null
         preferenceFactory.entriesFor(page).forEach { entry ->
-            screen.addPreference(entry.createPreference(preferenceFactory, breadcrumb = null))
+            if (entry.sectionRes != currentSection) {
+                currentSection = entry.sectionRes
+                target = entry.sectionRes?.let { sectionRes ->
+                    PreferenceCategory(requireContext()).apply {
+                        setTitle(sectionRes)
+                        isIconSpaceReserved = false
+                        screen.addPreference(this)
+                    }
+                } ?: screen
+            }
+            target.addPreference(entry.createPreference(preferenceFactory, breadcrumb = null))
         }
     }
 

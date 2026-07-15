@@ -277,6 +277,7 @@ class ReaderComposition(
             )
         },
         dictionaryDefinitionController::defineWord,
+        ::openSettings,
     ) { fullScreenOptionsManager.showAllTemporarilyOrHide() }
     val annotationSaveController: AnnotationSaveController = AnnotationSaveController(
         activity,
@@ -677,11 +678,7 @@ class ReaderComposition(
             extractText = { pageTextCopier.copyPageText() },
             textMode = ::navToTextMode,
             share = { activity.shareFile(doc.uri) },
-            settings = {
-                val settingsIntent = Intent(activity, SettingsActivity::class.java)
-                settingsIntent.putExtra(PDF.incognitoKey, vm.incognito)
-                settingsLauncher.launch(settingsIntent)
-            },
+            settings = ::openSettings,
             fileMetadata = activity::showFileMetadata,
             about = { activity.startActivity(navIntent(activity, AboutActivity::class.java)) },
             tableOfContents = { readerNavigationController.showTableOfContents() },
@@ -932,6 +929,12 @@ class ReaderComposition(
             it.grantPdfReadAccess(doc.uri.toString())
             textModeLauncher.launch(it)
         }
+    }
+
+    private fun openSettings() {
+        val settingsIntent = Intent(activity, SettingsActivity::class.java)
+        settingsIntent.putExtra(PDF.incognitoKey, vm.incognito)
+        settingsLauncher.launch(settingsIntent)
     }
 
     private fun currentPdfViewPageIndex(): Int {

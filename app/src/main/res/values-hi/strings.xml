@@ -309,6 +309,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">{text} वाला http(s) URL दर्ज करें</string>
     <string name="no_translate_app_found">कोई अनुवाद ऐप इंस्टॉल नहीं है</string>
+    <string name="no_translate_app_message">इस डिवाइस पर कोई भी ऐप चयनित टेक्स्ट का अनुवाद नहीं कर सकता। टेक्स्ट अनुवाद का समर्थन करने वाला कोई ऐप इंस्टॉल करें, या सेटिंग्स में कोई वेब अनुवादक चुनें।</string>
     <string name="dictionary_title">ऑफ़लाइन अंग्रेज़ी शब्दकोश</string>
     <string name="dictionary_summary_not_installed">इंस्टॉल नहीं है। %1$s डाउनलोड करें, फिर हर खोज ऑफ़लाइन काम करती है।</string>
     <string name="dictionary_summary_installed">इंस्टॉल है, %1$s। हटाने के लिए टैप करें।</string>
@@ -890,4 +891,16 @@
     <string name="clear_annotation_journals_message">सभी असहेजित हाइलाइट रिकवरी डेटा और संग्रहीत हस्ताक्षर हटाएं? फ़ाइलों में पहले से सहेजी गई हाइलाइट्स प्रभावित नहीं होतीं।</string>
     <string name="cleared_entries">%1$d प्रविष्टियाँ हटा दी गईं</string>
     <string name="cleared_done">हो गया</string>
+    <string name="home_share_pdf">PDF फ़ाइल साझा करें</string>
+    <string name="home_share_failed">फ़ाइल साझा नहीं की जा सकी.</string>
+    <string name="reading_section_scrolling">स्क्रॉलिंग</string>
+    <string name="reading_section_layout">लेआउट और अभिविन्यास</string>
+    <string name="reading_section_session">सत्र</string>
+    <string name="appearance_section_theme">थीम</string>
+    <string name="appearance_section_rendering">रेंडरिंग</string>
+    <string name="appearance_section_page">पेज प्रदर्शन</string>
+    <string name="privacy_section_privacy">गोपनीयता</string>
+    <string name="privacy_section_clear">डेटा साफ़ करें</string>
+    <string name="translation_section_translation">अनुवाद</string>
+    <string name="translation_section_dictionary">शब्दकोश</string>
 </resources>

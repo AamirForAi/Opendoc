@@ -309,6 +309,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">Введіть http(s) URL-адресу, що містить {text}</string>
     <string name="no_translate_app_found">Не встановлено застосунку для перекладу</string>
+    <string name="no_translate_app_message">Жоден застосунок на цьому пристрої не може перекласти виділений текст. Встановіть застосунок, який підтримує переклад тексту, або оберіть вебперекладач у Налаштуваннях.</string>
     <string name="dictionary_title">Офлайн-словник англійської</string>
     <string name="dictionary_summary_not_installed">Не встановлено. %1$s завантажити, і кожен пошук працюватиме офлайн.</string>
     <string name="dictionary_summary_installed">Встановлено, %1$s. Торкніться, щоб прибрати.</string>
@@ -902,4 +903,16 @@
     <string name="clear_annotation_journals_message">Видалити всі дані відновлення незбережених виділень і збережений підпис? Виділення, уже збережені у файли, не зачіпаються.</string>
     <string name="cleared_entries">Видалено %1$d записів</string>
     <string name="cleared_done">Готово</string>
+    <string name="home_share_pdf">Поділитися файлом PDF</string>
+    <string name="home_share_failed">Не вдалося поділитися файлом.</string>
+    <string name="reading_section_scrolling">Гортання</string>
+    <string name="reading_section_layout">Компонування та орієнтація</string>
+    <string name="reading_section_session">Сеанс</string>
+    <string name="appearance_section_theme">Тема</string>
+    <string name="appearance_section_rendering">Рендеринг</string>
+    <string name="appearance_section_page">Відображення сторінки</string>
+    <string name="privacy_section_privacy">Приватність</string>
+    <string name="privacy_section_clear">Очистити дані</string>
+    <string name="translation_section_translation">Переклад</string>
+    <string name="translation_section_dictionary">Словник</string>
 </resources>

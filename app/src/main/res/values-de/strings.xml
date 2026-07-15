@@ -309,6 +309,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">Geben Sie eine http(s)-URL ein, die {text} enthält</string>
     <string name="no_translate_app_found">Keine Übersetzungs-App installiert</string>
+    <string name="no_translate_app_message">Keine App auf diesem Gerät kann ausgewählten Text übersetzen. Installieren Sie eine App, die Textübersetzung unterstützt, oder wählen Sie in den Einstellungen einen Web-Übersetzer.</string>
     <string name="dictionary_title">Offline-Englischwörterbuch</string>
     <string name="dictionary_summary_not_installed">Nicht installiert. %1$s herunterladen, dann funktioniert jede Nachschlage offline.</string>
     <string name="dictionary_summary_installed">Installiert, %1$s. Zum Entfernen tippen.</string>
@@ -890,4 +891,16 @@
     <string name="clear_annotation_journals_message">Alle nicht gespeicherten Hervorhebungswiederherstellungsdaten und die gespeicherte Signatur löschen? Bereits in Dateien gespeicherte Hervorhebungen sind davon nicht betroffen.</string>
     <string name="cleared_entries">%1$d Einträge gelöscht</string>
     <string name="cleared_done">Fertig</string>
+    <string name="home_share_pdf">PDF-Datei teilen</string>
+    <string name="home_share_failed">Datei konnte nicht geteilt werden.</string>
+    <string name="reading_section_scrolling">Scrollen</string>
+    <string name="reading_section_layout">Layout und Ausrichtung</string>
+    <string name="reading_section_session">Sitzung</string>
+    <string name="appearance_section_theme">Thema</string>
+    <string name="appearance_section_rendering">Rendering</string>
+    <string name="appearance_section_page">Seitenanzeige</string>
+    <string name="privacy_section_privacy">Privatsphäre</string>
+    <string name="privacy_section_clear">Daten löschen</string>
+    <string name="translation_section_translation">Übersetzung</string>
+    <string name="translation_section_dictionary">Wörterbuch</string>
 </resources>

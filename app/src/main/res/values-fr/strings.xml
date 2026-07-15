@@ -309,6 +309,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">Saisissez une URL http(s) contenant {text}</string>
     <string name="no_translate_app_found">Aucune application de traduction installée</string>
+    <string name="no_translate_app_message">Aucune application de cet appareil ne peut traduire le texte sélectionné. Installez une application prenant en charge la traduction de texte, ou choisissez un traducteur web dans les Réglages.</string>
     <string name="dictionary_title">Dictionnaire anglais hors ligne</string>
     <string name="dictionary_summary_not_installed">Non installé. %1$s à télécharger, puis chaque recherche fonctionne hors ligne.</string>
     <string name="dictionary_summary_installed">Installé, %1$s. Touchez pour supprimer.</string>
@@ -896,4 +897,16 @@
     <string name="clear_annotation_journals_message">Supprimer toutes les données de récupération de surlignages non enregistrés et la signature enregistrée ? Les surlignages déjà enregistrés dans les fichiers ne sont pas affectés.</string>
     <string name="cleared_entries">%1$d entrées supprimées</string>
     <string name="cleared_done">Terminé</string>
+    <string name="home_share_pdf">Partager le fichier PDF</string>
+    <string name="home_share_failed">Impossible de partager le fichier.</string>
+    <string name="reading_section_scrolling">Défilement</string>
+    <string name="reading_section_layout">Disposition et orientation</string>
+    <string name="reading_section_session">Session</string>
+    <string name="appearance_section_theme">Thème</string>
+    <string name="appearance_section_rendering">Rendu</string>
+    <string name="appearance_section_page">Affichage des pages</string>
+    <string name="privacy_section_privacy">Confidentialité</string>
+    <string name="privacy_section_clear">Effacer les données</string>
+    <string name="translation_section_translation">Traduction</string>
+    <string name="translation_section_dictionary">Dictionnaire</string>
 </resources>

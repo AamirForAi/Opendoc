@@ -309,6 +309,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">請輸入包含 {text} 的 http(s) 網址</string>
     <string name="no_translate_app_found">未安裝翻譯應用程式</string>
+    <string name="no_translate_app_message">此裝置上沒有應用程式可翻譯選取的文字。請安裝支援文字翻譯的應用程式，或在設定中選擇網頁翻譯。</string>
     <string name="dictionary_title">離線英文字典</string>
     <string name="dictionary_summary_not_installed">尚未安裝。%1$s 下載後，往後每次查詢都可離線使用。</string>
     <string name="dictionary_summary_installed">已安裝，%1$s。點按以移除。</string>
@@ -884,4 +885,16 @@
     <string name="clear_annotation_journals_message">要刪除所有未儲存的醒目標示還原資料與已儲存的簽名嗎？已儲存到檔案中的醒目標示不受影響。</string>
     <string name="cleared_entries">已刪除 %1$d 筆項目</string>
     <string name="cleared_done">完成</string>
+    <string name="home_share_pdf">分享 PDF 檔案</string>
+    <string name="home_share_failed">無法分享檔案。</string>
+    <string name="reading_section_scrolling">捲動</string>
+    <string name="reading_section_layout">版面與方向</string>
+    <string name="reading_section_session">工作階段</string>
+    <string name="appearance_section_theme">主題</string>
+    <string name="appearance_section_rendering">算繪</string>
+    <string name="appearance_section_page">頁面顯示</string>
+    <string name="privacy_section_privacy">隱私</string>
+    <string name="privacy_section_clear">清除資料</string>
+    <string name="translation_section_translation">翻譯</string>
+    <string name="translation_section_dictionary">字典</string>
 </resources>

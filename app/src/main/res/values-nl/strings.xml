@@ -309,6 +309,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">Voer een http(s)-URL in die {text} bevat</string>
     <string name="no_translate_app_found">Geen vertaal-app geïnstalleerd</string>
+    <string name="no_translate_app_message">Geen enkele app op dit apparaat kan de geselecteerde tekst vertalen. Installeer een app die tekstvertaling ondersteunt, of kies een webvertaler in Instellingen.</string>
     <string name="dictionary_title">Offline Engels woordenboek</string>
     <string name="dictionary_summary_not_installed">Niet geïnstalleerd. %1$s downloaden, en daarna werkt elke opzoeking offline.</string>
     <string name="dictionary_summary_installed">Geïnstalleerd, %1$s. Tik om te verwijderen.</string>
@@ -890,4 +891,16 @@
     <string name="clear_annotation_journals_message">Alle niet-opgeslagen herstelgegevens van markeringen en de opgeslagen handtekening verwijderen? Markeringen die al in bestanden zijn opgeslagen, blijven ongewijzigd.</string>
     <string name="cleared_entries">%1$d items verwijderd</string>
     <string name="cleared_done">Klaar</string>
+    <string name="home_share_pdf">PDF-bestand delen</string>
+    <string name="home_share_failed">Kan het bestand niet delen.</string>
+    <string name="reading_section_scrolling">Bladeren</string>
+    <string name="reading_section_layout">Lay-out en oriëntatie</string>
+    <string name="reading_section_session">Sessie</string>
+    <string name="appearance_section_theme">Thema</string>
+    <string name="appearance_section_rendering">Rendering</string>
+    <string name="appearance_section_page">Paginaweergave</string>
+    <string name="privacy_section_privacy">Privacy</string>
+    <string name="privacy_section_clear">Gegevens wissen</string>
+    <string name="translation_section_translation">Vertaling</string>
+    <string name="translation_section_dictionary">Woordenboek</string>
 </resources>

@@ -309,6 +309,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">Введите http(s)-ссылку, содержащую {text}</string>
     <string name="no_translate_app_found">Не установлено ни одного приложения для перевода</string>
+    <string name="no_translate_app_message">Ни одно приложение на этом устройстве не может перевести выделенный текст. Установите приложение с поддержкой перевода текста или выберите веб-переводчик в Настройках.</string>
     <string name="dictionary_title">Офлайн-словарь английского языка</string>
     <string name="dictionary_summary_not_installed">Не установлен. %1$s загрузка, после чего каждый поиск работает офлайн.</string>
     <string name="dictionary_summary_installed">Установлен, %1$s. Нажмите, чтобы удалить.</string>
@@ -902,4 +903,16 @@
     <string name="clear_annotation_journals_message">Удалить все данные восстановления несохранённых подсветок и сохранённую подпись? Подсветки, уже сохранённые в файлах, не пострадают.</string>
     <string name="cleared_entries">Удалено записей: %1$d</string>
     <string name="cleared_done">Готово</string>
+    <string name="home_share_pdf">Поделиться PDF-файлом</string>
+    <string name="home_share_failed">Не удалось поделиться файлом.</string>
+    <string name="reading_section_scrolling">Прокрутка</string>
+    <string name="reading_section_layout">Макет и ориентация</string>
+    <string name="reading_section_session">Сеанс</string>
+    <string name="appearance_section_theme">Тема</string>
+    <string name="appearance_section_rendering">Отрисовка</string>
+    <string name="appearance_section_page">Отображение страницы</string>
+    <string name="privacy_section_privacy">Конфиденциальность</string>
+    <string name="privacy_section_clear">Очистить данные</string>
+    <string name="translation_section_translation">Перевод</string>
+    <string name="translation_section_dictionary">Словарь</string>
 </resources>
