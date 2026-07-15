@@ -309,6 +309,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">Ingrese una URL http(s) que contenga {text}</string>
     <string name="no_translate_app_found">No hay ninguna aplicación de traducción instalada</string>
+    <string name="no_translate_app_message">Ninguna aplicación de este dispositivo puede traducir el texto seleccionado. Instale una aplicación compatible con la traducción de texto, o elija un traductor web en Configuración.</string>
     <string name="dictionary_title">Diccionario de inglés sin conexión</string>
     <string name="dictionary_summary_not_installed">No instalado. %1$s la descarga y luego cada consulta funciona sin conexión.</string>
     <string name="dictionary_summary_installed">Instalado, %1$s. Toque para eliminar.</string>
@@ -890,4 +891,16 @@
     <string name="clear_annotation_journals_message">¿Eliminar todos los datos de recuperación de resaltados no guardados y la firma almacenada? Los resaltados ya guardados en archivos no se ven afectados.</string>
     <string name="cleared_entries">%1$d entradas eliminadas</string>
     <string name="cleared_done">Hecho</string>
+    <string name="home_share_pdf">Compartir Archivo PDF</string>
+    <string name="home_share_failed">No se pudo compartir el archivo.</string>
+    <string name="reading_section_scrolling">Desplazamiento</string>
+    <string name="reading_section_layout">Diseño y orientación</string>
+    <string name="reading_section_session">Sesión</string>
+    <string name="appearance_section_theme">Tema</string>
+    <string name="appearance_section_rendering">Renderizado</string>
+    <string name="appearance_section_page">Visualización de Página</string>
+    <string name="privacy_section_privacy">Privacidad</string>
+    <string name="privacy_section_clear">Borrar Datos</string>
+    <string name="translation_section_translation">Traducción</string>
+    <string name="translation_section_dictionary">Diccionario</string>
 </resources>

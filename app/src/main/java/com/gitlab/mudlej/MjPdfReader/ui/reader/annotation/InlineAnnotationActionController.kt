@@ -49,6 +49,7 @@ class InlineAnnotationActionController(
     private val getDocumentName: () -> String,
     private val getTranslationSettings: () -> TranslationSettings,
     private val onDefineWord: (String, () -> Unit) -> Boolean,
+    private val onOpenSettings: () -> Unit,
     private val toggleReaderChrome: () -> Unit,
 ) {
     private var activeHighlightAnnotation: PDFView.HighlightAnnotation? = null
@@ -459,7 +460,7 @@ class InlineAnnotationActionController(
             .filter { it.activityInfo.packageName != activity.packageName }
         return when {
             handlers.isEmpty() -> {
-                AppSnackbar.make(binding.root, R.string.no_translate_app_found, Snackbar.LENGTH_LONG).show()
+                showNoTranslationAppDialog()
                 false
             }
             handlers.size == 1 -> {
@@ -477,6 +478,15 @@ class InlineAnnotationActionController(
                 true
             }
         }
+    }
+
+    private fun showNoTranslationAppDialog() {
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.no_translate_app_found)
+            .setMessage(R.string.no_translate_app_message)
+            .setPositiveButton(R.string.settings) { _, _ -> onOpenSettings() }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun refreshCardRendering() {

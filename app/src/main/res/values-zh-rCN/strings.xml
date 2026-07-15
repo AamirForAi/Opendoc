@@ -309,6 +309,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">请输入包含 {text} 的 http(s) URL</string>
     <string name="no_translate_app_found">未安装翻译应用</string>
+    <string name="no_translate_app_message">此设备上没有可翻译选中文字的应用。请安装支持文字翻译的应用，或在设置中选择网页翻译。</string>
     <string name="dictionary_title">离线英语词典</string>
     <string name="dictionary_summary_not_installed">尚未安装。%1$s 下载后，每次查询都可离线使用。</string>
     <string name="dictionary_summary_installed">已安装，%1$s。点击以移除。</string>
@@ -884,4 +885,16 @@
     <string name="clear_annotation_journals_message">是否删除所有未保存的高亮恢复数据和已存储的签名？已保存到文件中的高亮不受影响。</string>
     <string name="cleared_entries">已删除 %1$d 项</string>
     <string name="cleared_done">完成</string>
+    <string name="home_share_pdf">分享 PDF 文件</string>
+    <string name="home_share_failed">无法分享文件。</string>
+    <string name="reading_section_scrolling">滚动</string>
+    <string name="reading_section_layout">布局与方向</string>
+    <string name="reading_section_session">会话</string>
+    <string name="appearance_section_theme">主题</string>
+    <string name="appearance_section_rendering">渲染</string>
+    <string name="appearance_section_page">页面显示</string>
+    <string name="privacy_section_privacy">隐私</string>
+    <string name="privacy_section_clear">清除数据</string>
+    <string name="translation_section_translation">翻译</string>
+    <string name="translation_section_dictionary">词典</string>
 </resources>

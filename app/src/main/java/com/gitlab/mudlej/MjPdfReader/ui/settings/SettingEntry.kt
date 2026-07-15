@@ -11,6 +11,7 @@ internal class SettingEntry(
     @StringRes val titleRes: Int,
     @StringRes private val summaryRes: Int? = null,
     private val keywords: List<String> = emptyList(),
+    @StringRes val sectionRes: Int? = null,
     private val preferenceBuilder: SettingsPreferenceFactory.(breadcrumb: String?) -> Preference,
 ) {
     fun createPreference(factory: SettingsPreferenceFactory, breadcrumb: String?): Preference {

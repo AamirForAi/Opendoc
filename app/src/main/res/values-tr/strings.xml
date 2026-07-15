@@ -309,6 +309,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">{text} içeren bir http(s) URL\'si girin</string>
     <string name="no_translate_app_found">Yüklü çeviri uygulaması yok</string>
+    <string name="no_translate_app_message">Bu cihazdaki hiçbir uygulama seçilen metni çeviremez. Metin çevirisini destekleyen bir uygulama yükleyin veya Ayarlar\'dan bir web çevirici seçin.</string>
     <string name="dictionary_title">Çevrimdışı İngilizce sözlük</string>
     <string name="dictionary_summary_not_installed">Yüklü değil. %1$s indirin, ardından her arama çevrimdışı çalışır.</string>
     <string name="dictionary_summary_installed">Yüklü, %1$s. Kaldırmak için dokunun.</string>
@@ -890,4 +891,16 @@
     <string name="clear_annotation_journals_message">Tüm kaydedilmemiş vurgu kurtarma verileri ve kayıtlı imza silinsin mi? Dosyalara zaten kaydedilmiş vurgular etkilenmez.</string>
     <string name="cleared_entries">%1$d girdi silindi</string>
     <string name="cleared_done">Tamamlandı</string>
+    <string name="home_share_pdf">PDF Dosyasını Paylaş</string>
+    <string name="home_share_failed">Dosya paylaşılamadı.</string>
+    <string name="reading_section_scrolling">Kaydırma</string>
+    <string name="reading_section_layout">Düzen ve Yönlendirme</string>
+    <string name="reading_section_session">Oturum</string>
+    <string name="appearance_section_theme">Tema</string>
+    <string name="appearance_section_rendering">İşleme</string>
+    <string name="appearance_section_page">Sayfa Görünümü</string>
+    <string name="privacy_section_privacy">Gizlilik</string>
+    <string name="privacy_section_clear">Verileri Temizle</string>
+    <string name="translation_section_translation">Çeviri</string>
+    <string name="translation_section_dictionary">Sözlük</string>
 </resources>

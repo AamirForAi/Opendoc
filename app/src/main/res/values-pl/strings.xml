@@ -309,6 +309,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">Wprowadź adres URL http(s) zawierający {text}</string>
     <string name="no_translate_app_found">Nie zainstalowano żadnej aplikacji do tłumaczenia</string>
+    <string name="no_translate_app_message">Żadna aplikacja na tym urządzeniu nie może przetłumaczyć zaznaczonego tekstu. Zainstaluj aplikację obsługującą tłumaczenie tekstu lub wybierz tłumacz internetowy w Ustawieniach.</string>
     <string name="dictionary_title">Słownik angielski offline</string>
     <string name="dictionary_summary_not_installed">Nie zainstalowany. %1$s pobierz, a potem każde wyszukiwanie działa offline.</string>
     <string name="dictionary_summary_installed">Zainstalowany, %1$s. Dotknij, aby usunąć.</string>
@@ -902,4 +903,16 @@
     <string name="clear_annotation_journals_message">Usunąć wszystkie niezapisane dane odzyskiwania zaznaczeń i zapisany podpis? Zaznaczenia już zapisane w plikach nie zostaną naruszone.</string>
     <string name="cleared_entries">Usunięto wpisów: %1$d</string>
     <string name="cleared_done">Gotowe</string>
+    <string name="home_share_pdf">Udostępnij plik PDF</string>
+    <string name="home_share_failed">Nie można udostępnić pliku.</string>
+    <string name="reading_section_scrolling">Przewijanie</string>
+    <string name="reading_section_layout">Układ i orientacja</string>
+    <string name="reading_section_session">Sesja</string>
+    <string name="appearance_section_theme">Motyw</string>
+    <string name="appearance_section_rendering">Renderowanie</string>
+    <string name="appearance_section_page">Wyświetlanie strony</string>
+    <string name="privacy_section_privacy">Prywatność</string>
+    <string name="privacy_section_clear">Wyczyść dane</string>
+    <string name="translation_section_translation">Tłumaczenie</string>
+    <string name="translation_section_dictionary">Słownik</string>
 </resources>

@@ -309,6 +309,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">یک نشانی http(s) حاوی {text} وارد کنید</string>
     <string name="no_translate_app_found">هیچ برنامه ترجمه‌ای نصب نشده است</string>
+    <string name="no_translate_app_message">هیچ برنامه‌ای روی این دستگاه نمی‌تواند متن انتخاب‌شده را ترجمه کند. برنامه‌ای نصب کنید که ترجمه متن را پشتیبانی کند، یا در تنظیمات یک مترجم وب انتخاب کنید.</string>
     <string name="dictionary_title">فرهنگ لغت انگلیسی آفلاین</string>
     <string name="dictionary_summary_not_installed">نصب نشده. %1$s دریافت کنید، سپس هر جستجو به‌صورت آفلاین کار می‌کند.</string>
     <string name="dictionary_summary_installed">نصب شده، %1$s. برای حذف ضربه بزنید.</string>
@@ -890,4 +891,16 @@
     <string name="clear_annotation_journals_message">همه داده‌های بازیابی هایلایت ذخیره‌نشده و امضای ذخیره‌شده حذف شوند؟ هایلایت‌هایی که از پیش در پرونده‌ها ذخیره شده‌اند تحت تأثیر قرار نمی‌گیرند.</string>
     <string name="cleared_entries">%1$d مدخل حذف شد</string>
     <string name="cleared_done">انجام شد</string>
+    <string name="home_share_pdf">هم‌رسانی فایل PDF</string>
+    <string name="home_share_failed">هم‌رسانی فایل ممکن نشد.</string>
+    <string name="reading_section_scrolling">پیمایش</string>
+    <string name="reading_section_layout">چیدمان و جهت</string>
+    <string name="reading_section_session">نشست</string>
+    <string name="appearance_section_theme">پوسته</string>
+    <string name="appearance_section_rendering">رندر</string>
+    <string name="appearance_section_page">نمایش صفحه</string>
+    <string name="privacy_section_privacy">حریم خصوصی</string>
+    <string name="privacy_section_clear">پاک کردن داده‌ها</string>
+    <string name="translation_section_translation">ترجمه</string>
+    <string name="translation_section_dictionary">فرهنگ لغت</string>
 </resources>

@@ -309,6 +309,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">Insira uma URL http(s) contendo {text}</string>
     <string name="no_translate_app_found">Nenhum aplicativo de tradução instalado</string>
+    <string name="no_translate_app_message">Nenhum aplicativo neste dispositivo pode traduzir o texto selecionado. Instale um aplicativo que ofereça tradução de texto ou escolha um tradutor da web nas Configurações.</string>
     <string name="dictionary_title">Dicionário de inglês offline</string>
     <string name="dictionary_summary_not_installed">Não instalado. %1$s de download, depois toda consulta funciona offline.</string>
     <string name="dictionary_summary_installed">Instalado, %1$s. Toque para remover.</string>
@@ -896,4 +897,16 @@
     <string name="clear_annotation_journals_message">Excluir todos os dados de recuperação de destaques não salvos e a assinatura armazenada? Destaques já salvos nos arquivos não são afetados.</string>
     <string name="cleared_entries">%1$d itens excluídos</string>
     <string name="cleared_done">Concluído</string>
+    <string name="home_share_pdf">Compartilhar Arquivo PDF</string>
+    <string name="home_share_failed">Não foi possível compartilhar o arquivo.</string>
+    <string name="reading_section_scrolling">Rolagem</string>
+    <string name="reading_section_layout">Layout e Orientação</string>
+    <string name="reading_section_session">Sessão</string>
+    <string name="appearance_section_theme">Tema</string>
+    <string name="appearance_section_rendering">Renderização</string>
+    <string name="appearance_section_page">Exibição de Página</string>
+    <string name="privacy_section_privacy">Privacidade</string>
+    <string name="privacy_section_clear">Limpar Dados</string>
+    <string name="translation_section_translation">Tradução</string>
+    <string name="translation_section_dictionary">Dicionário</string>
 </resources>

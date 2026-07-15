@@ -309,6 +309,7 @@
     <string name="translation_custom_url_hint">https://example.com/?q={text}&amp;to={lang}</string>
     <string name="translation_custom_url_invalid">أدخل رابط http(s) يحتوي على {text}</string>
     <string name="no_translate_app_found">لا يوجد تطبيق ترجمة مثبت</string>
+    <string name="no_translate_app_message">لا يوجد على هذا الجهاز تطبيق يمكنه ترجمة النص المحدد. ثبّت تطبيقًا يدعم ترجمة النصوص، أو اختر مترجم ويب في الإعدادات.</string>
     <string name="dictionary_title">قاموس إنجليزي دون إنترنت</string>
     <string name="dictionary_summary_not_installed">غير مثبت. تحميل %1$s، وبعدها يعمل كل بحث دون إنترنت.</string>
     <string name="dictionary_summary_installed">مثبت، %1$s. اضغط للإزالة.</string>
@@ -914,4 +915,16 @@
     <string name="clear_annotation_journals_message">حذف كل بيانات استعادة التظليلات غير المحفوظة والتوقيع المخزن؟ لن تتأثر التظليلات المحفوظة بالفعل في الملفات.</string>
     <string name="cleared_entries">تم حذف %1$d عناصر</string>
     <string name="cleared_done">تم</string>
+    <string name="home_share_pdf">مشاركة ملف PDF</string>
+    <string name="home_share_failed">تعذّرت مشاركة الملف.</string>
+    <string name="reading_section_scrolling">التمرير</string>
+    <string name="reading_section_layout">التخطيط والاتجاه</string>
+    <string name="reading_section_session">الجلسة</string>
+    <string name="appearance_section_theme">الثيم</string>
+    <string name="appearance_section_rendering">التصيير</string>
+    <string name="appearance_section_page">عرض الصفحة</string>
+    <string name="privacy_section_privacy">الخصوصية</string>
+    <string name="privacy_section_clear">مسح البيانات</string>
+    <string name="translation_section_translation">الترجمة</string>
+    <string name="translation_section_dictionary">القاموس</string>
 </resources>
