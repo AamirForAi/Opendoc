@@ -91,9 +91,11 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 page = SettingsPage.APPEARANCE,
                 titleRes = R.string.dark_theme_for_pdf,
                 keywords = listOf("pdf", "theme", "dark", "night", "system"),
+                sectionRes = R.string.appearance_section_theme,
             ) { breadcrumb ->
                 pdfPagesThemePreference(breadcrumb = breadcrumb)
             },
+
             switchEntry(
                 page = SettingsPage.APPEARANCE,
                 titleRes = R.string.quality,
@@ -101,6 +103,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 defaultValue = Preferences.highQualityDefault,
                 summaryRes = R.string.quality_summary,
                 keywords = listOf("rendering", "quality"),
+                sectionRes = R.string.appearance_section_rendering,
             ),
             switchEntry(
                 page = SettingsPage.APPEARANCE,
@@ -109,13 +112,16 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 defaultValue = Preferences.antiAliasingDefault,
                 summaryRes = R.string.anti_aliasing_summary,
                 keywords = listOf("rendering", "smooth"),
+                sectionRes = R.string.appearance_section_rendering,
             ),
+
             switchEntry(
                 page = SettingsPage.APPEARANCE,
                 titleRes = R.string.space_between_pages,
                 key = Preferences.spaceBetweenPagesKey,
                 defaultValue = Preferences.spaceBetweenPagesDefault,
                 keywords = listOf("spacing", "page gap"),
+                sectionRes = R.string.appearance_section_page,
             ),
             switchEntry(
                 page = SettingsPage.APPEARANCE,
@@ -124,6 +130,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 defaultValue = Preferences.alwaysHideMarginsDefault,
                 summaryRes = R.string.always_hide_margins_summary,
                 keywords = listOf("crop", "margin", "margins"),
+                sectionRes = R.string.appearance_section_page,
             ),
             switchEntry(
                 page = SettingsPage.APPEARANCE,
@@ -132,6 +139,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 defaultValue = Preferences.showScrollHandlePageCountDefault,
                 summaryRes = R.string.show_scroll_handle_page_count_summary,
                 keywords = listOf("scroll", "handle", "page count"),
+                sectionRes = R.string.appearance_section_page,
             ),
             switchEntry(
                 page = SettingsPage.APPEARANCE,
@@ -140,6 +148,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 defaultValue = Preferences.showAppBarPageCountDefault,
                 summaryRes = R.string.show_app_bar_page_count_summary,
                 keywords = listOf("app bar", "toolbar", "title", "page count"),
+                sectionRes = R.string.appearance_section_page,
             ),
             scrollingInfoCardEntry(),
         )
@@ -149,35 +158,12 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
         return listOf(
             switchEntry(
                 page = SettingsPage.READING,
-                titleRes = R.string.horizontal_scrolling_mode,
-                key = Preferences.horizontalScrollKey,
-                defaultValue = Preferences.horizontalScrollDefault,
-                summaryRes = R.string.horizontal_scrolling_summary,
-                keywords = listOf("landscape", "swipe"),
-            ),
-            switchEntry(
-                page = SettingsPage.READING,
-                titleRes = R.string.always_horizontal,
-                key = Preferences.alwaysHorizontalKey,
-                defaultValue = Preferences.alwaysHorizontalDefault,
-                summaryRes = R.string.always_horizontal_summary,
-                keywords = listOf("landscape", "orientation"),
-            ),
-            switchEntry(
-                page = SettingsPage.READING,
-                titleRes = R.string.dual_page_mode_title,
-                key = Preferences.dualPageModeKey,
-                defaultValue = Preferences.dualPageModeDefault,
-                summaryRes = R.string.dual_page_mode_summary,
-                keywords = listOf("two pages", "double", "spread", "facing", "side by side"),
-            ),
-            switchEntry(
-                page = SettingsPage.READING,
-                titleRes = R.string.dual_page_first_page_alone_title,
-                key = Preferences.dualPageFirstPageAloneKey,
-                defaultValue = Preferences.dualPageFirstPageAloneDefault,
-                summaryRes = R.string.dual_page_first_page_alone_summary,
-                keywords = listOf("cover", "first page", "spread", "book"),
+                titleRes = R.string.browser_scroll_mode_title,
+                key = Preferences.browserScrollModeKey,
+                defaultValue = Preferences.browserScrollModeDefault,
+                summaryRes = R.string.browser_scroll_mode_summary,
+                keywords = listOf("browser", "scroll", "pan", "lock", "diagonal"),
+                sectionRes = R.string.reading_section_scrolling,
             ),
             switchEntry(
                 page = SettingsPage.READING,
@@ -186,6 +172,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 defaultValue = Preferences.pageSnapDefault,
                 summaryRes = R.string.snap_summary,
                 keywords = listOf("page", "scroll"),
+                sectionRes = R.string.reading_section_scrolling,
             ),
             switchEntry(
                 page = SettingsPage.READING,
@@ -194,15 +181,46 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 defaultValue = Preferences.pageFlingDefault,
                 summaryRes = R.string.fling_summary,
                 keywords = listOf("page", "scroll", "swipe"),
+                sectionRes = R.string.reading_section_scrolling,
+            ),
+
+            switchEntry(
+                page = SettingsPage.READING,
+                titleRes = R.string.horizontal_scrolling_mode,
+                key = Preferences.horizontalScrollKey,
+                defaultValue = Preferences.horizontalScrollDefault,
+                summaryRes = R.string.horizontal_scrolling_summary,
+                keywords = listOf("landscape", "swipe"),
+                sectionRes = R.string.reading_section_layout,
             ),
             switchEntry(
                 page = SettingsPage.READING,
-                titleRes = R.string.browser_scroll_mode_title,
-                key = Preferences.browserScrollModeKey,
-                defaultValue = Preferences.browserScrollModeDefault,
-                summaryRes = R.string.browser_scroll_mode_summary,
-                keywords = listOf("browser", "scroll", "pan", "lock", "diagonal"),
+                titleRes = R.string.dual_page_mode_title,
+                key = Preferences.dualPageModeKey,
+                defaultValue = Preferences.dualPageModeDefault,
+                summaryRes = R.string.dual_page_mode_summary,
+                keywords = listOf("two pages", "double", "spread", "facing", "side by side"),
+                sectionRes = R.string.reading_section_layout,
             ),
+            switchEntry(
+                page = SettingsPage.READING,
+                titleRes = R.string.dual_page_first_page_alone_title,
+                key = Preferences.dualPageFirstPageAloneKey,
+                defaultValue = Preferences.dualPageFirstPageAloneDefault,
+                summaryRes = R.string.dual_page_first_page_alone_summary,
+                keywords = listOf("cover", "first page", "spread", "book"),
+                sectionRes = R.string.reading_section_layout,
+            ),
+            switchEntry(
+                page = SettingsPage.READING,
+                titleRes = R.string.always_horizontal,
+                key = Preferences.alwaysHorizontalKey,
+                defaultValue = Preferences.alwaysHorizontalDefault,
+                summaryRes = R.string.always_horizontal_summary,
+                keywords = listOf("landscape", "orientation"),
+                sectionRes = R.string.reading_section_layout,
+            ),
+
             switchEntry(
                 page = SettingsPage.READING,
                 titleRes = R.string.keep_screen_on,
@@ -210,6 +228,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 defaultValue = Preferences.screenOnDefault,
                 summaryRes = R.string.keep_screen_on_summary,
                 keywords = listOf("display", "sleep", "screen"),
+                sectionRes = R.string.reading_section_session,
             ),
             switchEntry(
                 page = SettingsPage.READING,
@@ -218,6 +237,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 defaultValue = Preferences.alwaysOpenAtFirstPageDefault,
                 summaryRes = R.string.always_open_first_page_summary,
                 keywords = listOf("first page", "page 1", "start", "resume", "position"),
+                sectionRes = R.string.reading_section_session,
             ),
         )
     }
@@ -338,6 +358,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 titleRes = R.string.translate_with_title,
                 summaryRes = R.string.translate_with_summary,
                 keywords = listOf("translate", "translation", "dictionary", "language", "apps", "web"),
+                sectionRes = R.string.translation_section_translation,
             ) { breadcrumb ->
                 translationModePreference(breadcrumb)
             },
@@ -348,6 +369,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                     "translate", "translation", "engine", "google", "deepl", "bing",
                     "lingva", "libretranslate", "custom", "url",
                 ),
+                sectionRes = R.string.translation_section_translation,
             ) { breadcrumb ->
                 translationEnginePreference(breadcrumb)
             },
@@ -355,13 +377,16 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 page = SettingsPage.TRANSLATION,
                 titleRes = R.string.translation_target_language_title,
                 keywords = listOf("translate", "translation", "language", "target"),
+                sectionRes = R.string.translation_section_translation,
             ) { breadcrumb ->
                 translationTargetLanguagePreference(breadcrumb)
             },
+
             SettingEntry(
                 page = SettingsPage.TRANSLATION,
                 titleRes = R.string.dictionary_title,
                 keywords = listOf("dictionary", "define", "definition", "offline", "wordnet", "download", "english"),
+                sectionRes = R.string.translation_section_dictionary,
             ) { breadcrumb ->
                 dictionaryPreference(breadcrumb)
             },
@@ -370,6 +395,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 titleRes = R.string.dictionary_define_words_title,
                 summaryRes = R.string.dictionary_define_words_summary,
                 keywords = listOf("dictionary", "define", "definition", "word", "lookup"),
+                sectionRes = R.string.translation_section_dictionary,
             ) { breadcrumb ->
                 dictionaryDefineWordsPreference(breadcrumb)
             },
@@ -385,6 +411,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 defaultValue = Preferences.historyEnabledDefault,
                 summaryRes = R.string.history_enabled_summary,
                 keywords = listOf("history", "privacy", "save", "recent", "remember", "positions"),
+                sectionRes = R.string.privacy_section_privacy,
             ),
             switchEntry(
                 page = SettingsPage.HISTORY_PRIVACY,
@@ -393,20 +420,24 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 defaultValue = Preferences.keepSharedCopiesDefault,
                 summaryRes = R.string.keep_shared_copies_summary,
                 keywords = listOf("copy", "share", "import", "temporary", "documents", "whatsapp", "telegram"),
+                sectionRes = R.string.privacy_section_privacy,
             ),
             SettingEntry(
                 page = SettingsPage.HISTORY_PRIVACY,
                 titleRes = R.string.reading_history,
                 summaryRes = R.string.reading_history_row_summary,
                 keywords = listOf("history", "recent", "view", "records", "privacy"),
+                sectionRes = R.string.privacy_section_privacy,
             ) { breadcrumb ->
                 readingHistoryPreference(breadcrumb)
             },
+
             SettingEntry(
                 page = SettingsPage.HISTORY_PRIVACY,
                 titleRes = R.string.clear_reading_history_title,
                 summaryRes = R.string.clear_reading_history_summary,
                 keywords = listOf("clear", "delete", "history", "recent", "positions", "privacy"),
+                sectionRes = R.string.privacy_section_clear,
             ) { breadcrumb ->
                 clearReadingHistoryPreference(breadcrumb)
             },
@@ -415,6 +446,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 titleRes = R.string.clear_saved_passwords_title,
                 summaryRes = R.string.clear_saved_passwords_summary,
                 keywords = listOf("clear", "delete", "passwords", "privacy"),
+                sectionRes = R.string.privacy_section_clear,
             ) { breadcrumb ->
                 clearSavedPasswordsPreference(breadcrumb)
             },
@@ -423,6 +455,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 titleRes = R.string.clear_bookmarks_title,
                 summaryRes = R.string.clear_bookmarks_summary,
                 keywords = listOf("clear", "delete", "bookmarks", "privacy"),
+                sectionRes = R.string.privacy_section_clear,
             ) { breadcrumb ->
                 clearBookmarksPreference(breadcrumb)
             },
@@ -431,6 +464,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 titleRes = R.string.clear_annotation_journals_title,
                 summaryRes = R.string.clear_annotation_journals_summary,
                 keywords = listOf("clear", "delete", "highlights", "signature", "recovery", "privacy"),
+                sectionRes = R.string.privacy_section_clear,
             ) { breadcrumb ->
                 clearAnnotationJournalsPreference(breadcrumb)
             },
@@ -524,6 +558,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             page = SettingsPage.APPEARANCE,
             titleRes = R.string.dark_theme_for_app,
             keywords = listOf("ui", "theme", "dark", "night", "system"),
+            sectionRes = R.string.appearance_section_theme,
         ) { breadcrumb ->
             interfaceThemePreference(breadcrumb = breadcrumb)
         }
@@ -557,6 +592,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             titleRes = R.string.scrolling_info_card,
             summaryRes = R.string.scrolling_info_card_summary,
             keywords = listOf("scrolling", "fullscreen", "info", "card", "time", "clock", "page", "percent", "progress", "title", "file"),
+            sectionRes = R.string.appearance_section_page,
         ) { breadcrumb ->
             scrollingInfoCardPreference(breadcrumb = breadcrumb)
         }
@@ -570,12 +606,14 @@ private fun switchEntry(
     defaultValue: Boolean,
     @StringRes summaryRes: Int? = null,
     keywords: List<String> = emptyList(),
+    @StringRes sectionRes: Int? = null,
 ): SettingEntry {
     return SettingEntry(
         page = page,
         titleRes = titleRes,
         summaryRes = summaryRes,
         keywords = keywords,
+        sectionRes = sectionRes,
     ) { breadcrumb ->
         switchPreference(
             titleRes = titleRes,
