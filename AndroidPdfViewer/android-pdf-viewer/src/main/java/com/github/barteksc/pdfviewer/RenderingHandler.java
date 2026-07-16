@@ -38,6 +38,8 @@ class RenderingHandler extends Handler {
      */
     static final int MSG_RENDER_TASK = 1;
 
+    static final int MSG_PREWARM_TASK = 2;
+
     private static final String TAG = RenderingHandler.class.getName();
 
     private PDFView pdfView;
@@ -58,12 +60,21 @@ class RenderingHandler extends Handler {
         sendMessage(msg);
     }
 
+    void requestPrewarm(int page) {
+        Message msg = obtainMessage(MSG_PREWARM_TASK, page);
+        sendMessage(msg);
+    }
+
     @Override
     public void handleMessage(Message message) {
-        RenderingTask task = (RenderingTask) message.obj;
         if (!running) {
             return;
         }
+        if (message.what == MSG_PREWARM_TASK) {
+            handlePrewarm((Integer) message.obj);
+            return;
+        }
+        RenderingTask task = (RenderingTask) message.obj;
         try {
             final PagePart part = proceed(task);
             if (part != null) {
@@ -88,6 +99,16 @@ class RenderingHandler extends Handler {
         } catch (RuntimeException ex) {
             Log.e(TAG, "handleMessage: rendering task failed", ex);
         }
+    }
+
+    private void handlePrewarm(int page) {
+        PdfFile pdfFile = pdfView.pdfFile;
+        if (pdfFile == null) {
+            return;
+        }
+        pdfView.onPrewarmStarted(page);
+        pdfFile.refillPageCaches(page);
+        pdfView.onPrewarmComplete(page);
     }
 
     private PagePart proceed(RenderingTask renderingTask) throws PageRenderingException {

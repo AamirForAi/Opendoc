@@ -19,7 +19,9 @@ import android.graphics.Bitmap;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.os.Looper;
 import android.os.ParcelFileDescriptor;
+import android.util.Log;
 import android.util.SparseBooleanArray;
 
 import com.github.barteksc.pdfviewer.exception.PageRenderingException;
@@ -43,7 +45,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 class PdfFile {
 
+    private static final String TAG = PdfFile.class.getSimpleName();
     private static final Object lock = new Object();
+    private static volatile boolean debugChecksEnabled = false;
     private PdfDocument pdfDocument;
     private PdfiumCore pdfiumCore;
     private volatile boolean disposed = false;
@@ -197,7 +201,7 @@ class PdfFile {
 
     public List<PdfDocument.FontInfo> getAllFonts(int maxPages) {
         List<PdfDocument.FontInfo> fonts = new ArrayList<>();
-        if (pdfiumCore == null || pdfDocument == null) {
+        if (disposed || pdfiumCore == null || pdfDocument == null) {
             return fonts;
         }
         int pagesToScan = Math.min(pagesCount, maxPages);
@@ -551,7 +555,7 @@ class PdfFile {
     }
 
     public void ensureTextPage(int pageIndex) {
-        if (pdfiumCore == null || pdfDocument == null) {
+        if (disposed || pdfiumCore == null || pdfDocument == null) {
             return;
         }
         int docPage = documentPage(pageIndex);
@@ -615,7 +619,7 @@ class PdfFile {
     }
 
     public int pageCharCount(int pageIndex) {
-        if (pdfiumCore == null || pdfDocument == null) {
+        if (disposed || pdfiumCore == null || pdfDocument == null) {
             return 0;
         }
         int docPage = documentPage(pageIndex);
@@ -626,7 +630,7 @@ class PdfFile {
     }
 
     public int charIndexAtPagePoint(int pageIndex, float pdfX, float pdfY, float tolerance) {
-        if (pdfiumCore == null || pdfDocument == null) {
+        if (disposed || pdfiumCore == null || pdfDocument == null) {
             return -1;
         }
         int docPage = documentPage(pageIndex);
@@ -637,7 +641,7 @@ class PdfFile {
     }
 
     public boolean looseCharBox(int pageIndex, int charIndex, float[] out4) {
-        if (pdfiumCore == null || pdfDocument == null) {
+        if (disposed || pdfiumCore == null || pdfDocument == null) {
             return false;
         }
         int docPage = documentPage(pageIndex);
@@ -648,7 +652,7 @@ class PdfFile {
     }
 
     public boolean tightCharBox(int pageIndex, int charIndex, float[] out4) {
-        if (pdfiumCore == null || pdfDocument == null) {
+        if (disposed || pdfiumCore == null || pdfDocument == null) {
             return false;
         }
         int docPage = documentPage(pageIndex);
@@ -659,7 +663,7 @@ class PdfFile {
     }
 
     public int charUnicode(int pageIndex, int charIndex) {
-        if (pdfiumCore == null || pdfDocument == null) {
+        if (disposed || pdfiumCore == null || pdfDocument == null) {
             return 0;
         }
         int docPage = documentPage(pageIndex);
@@ -670,7 +674,7 @@ class PdfFile {
     }
 
     public String textRange(int pageIndex, int start, int count) {
-        if (pdfiumCore == null || pdfDocument == null) {
+        if (disposed || pdfiumCore == null || pdfDocument == null) {
             return "";
         }
         int docPage = documentPage(pageIndex);
@@ -681,7 +685,7 @@ class PdfFile {
     }
 
     public float[] textRects(int pageIndex, int start, int count) {
-        if (pdfiumCore == null || pdfDocument == null) {
+        if (disposed || pdfiumCore == null || pdfDocument == null) {
             return new float[0];
         }
         int docPage = documentPage(pageIndex);
@@ -783,6 +787,7 @@ class PdfFile {
     }
 
     public void renderPageBitmap(Bitmap bitmap, int pageIndex, Rect bounds, boolean annotationRendering) {
+        throwIfMainThreadFill("renderPageBitmap");
         int docPage = documentPage(pageIndex);
         Rect renderBounds = mapCropRenderBoundsToFullPage(pageIndex, bounds.left, bounds.top, bounds.width(), bounds.height());
         synchronized (lock) {
@@ -820,20 +825,23 @@ class PdfFile {
     }
 
     public PdfDocument.Meta getMetaData() {
-        if (pdfDocument == null) {
+        if (disposed || pdfDocument == null) {
             return null;
         }
         return pdfiumCore.getDocumentMeta(pdfDocument);
     }
 
     public List<PdfDocument.Bookmark> getBookmarks() {
-        if (pdfDocument == null) {
+        if (disposed || pdfDocument == null) {
             return new ArrayList<>();
         }
         return pdfiumCore.getTableOfContents(pdfDocument);
     }
 
     public List<PdfDocument.Link> getPageLinks(int pageIndex) {
+        if (disposed || pdfDocument == null) {
+            return new ArrayList<>();
+        }
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return new ArrayList<>();
@@ -842,6 +850,9 @@ class PdfFile {
     }
 
     public String getPageText(int pageIndex) {
+        if (disposed || pdfDocument == null) {
+            return "";
+        }
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return "";
@@ -855,6 +866,9 @@ class PdfFile {
     }
 
     public String getPageRawText(int pageIndex) {
+        if (disposed || pdfDocument == null) {
+            return "";
+        }
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return "";
@@ -876,6 +890,9 @@ class PdfFile {
     }
 
     public Rect[] createHighlightText(int pageIndex, int start, int end, boolean padding) {
+        if (disposed || pdfDocument == null) {
+            return new Rect[0];
+        }
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return new Rect[0];
@@ -893,6 +910,9 @@ class PdfFile {
     public boolean createHighlightAnnotation(int pageIndex, List<RectF> pdfRects,
                                               int color, String contents, String groupKey,
                                               String creationDate) {
+        if (disposed || pdfDocument == null) {
+            return false;
+        }
         int docPage = documentPage(pageIndex);
         if (docPage < 0 || pdfRects == null || pdfRects.isEmpty()) {
             return false;
@@ -902,16 +922,15 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return false;
         }
-        boolean created = pdfiumCore.createHighlightAnnotation(pdfDocument, docPage, pdfRects, color,
+        return pdfiumCore.createHighlightAnnotation(pdfDocument, docPage, pdfRects, color,
                 contents, groupKey, creationDate);
-        if (created) {
-            invalidateHighlightAnnotationCache(pageIndex);
-        }
-        return created;
     }
 
     public boolean addSignature(int pageIndex, RectF pdfRect, float[][] normalizedStrokes,
                                 int color, float normalizedStrokeWidth) {
+        if (disposed || pdfDocument == null) {
+            return false;
+        }
         int docPage = documentPage(pageIndex);
         if (docPage < 0 || pdfRect == null || pdfRect.width() <= 0
                 || normalizedStrokes == null || normalizedStrokes.length == 0) {
@@ -943,6 +962,7 @@ class PdfFile {
         if (cached != null) {
             return cached;
         }
+        warnIfMainThreadFill("getHighlightAnnotations");
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return new ArrayList<>();
@@ -974,6 +994,59 @@ class PdfFile {
         }
     }
 
+    void refillPageCaches(int pageIndex) {
+        if (disposed || pdfDocument == null) {
+            return;
+        }
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return;
+        }
+        try {
+            openPage(pageIndex);
+        } catch (PageRenderingException e) {
+            return;
+        }
+        List<PdfDocument.HighlightAnnotation> annotations;
+        float[] rects;
+        synchronized (lock) {
+            if (disposed || pdfDocument == null) {
+                return;
+            }
+            annotations = pdfiumCore.getHighlightAnnotations(pdfDocument, docPage);
+            rects = pdfiumCore.getFormFieldRects(pdfDocument, docPage);
+        }
+        List<PdfDocument.HighlightAnnotation> snapshot = annotations == null
+                ? Collections.<PdfDocument.HighlightAnnotation>emptyList()
+                : Collections.unmodifiableList(annotations);
+        highlightAnnotationCache.put(pageIndex, snapshot);
+        formFieldRectCache.put(pageIndex, rects);
+    }
+
+    public List<PdfDocument.HighlightAnnotation> peekHighlightAnnotations(int pageIndex) {
+        return highlightAnnotationCache.get(pageIndex);
+    }
+
+    public float[] peekFormFieldRects(int pageIndex) {
+        return formFieldRectCache.get(pageIndex);
+    }
+
+    static void setDebugChecksEnabled(boolean enabled) {
+        debugChecksEnabled = enabled;
+    }
+
+    private static void throwIfMainThreadFill(String path) {
+        if (debugChecksEnabled && Looper.getMainLooper().isCurrentThread()) {
+            throw new IllegalStateException("pdfium fill on main thread: " + path);
+        }
+    }
+
+    private static void warnIfMainThreadFill(String path) {
+        if (debugChecksEnabled && Looper.getMainLooper().isCurrentThread()) {
+            Log.w(TAG, "pdfium fill on main thread: " + path, new Throwable());
+        }
+    }
+
     public void invalidateHighlightAnnotationCache(int pageIndex) {
         highlightAnnotationCache.remove(pageIndex);
     }
@@ -982,8 +1055,15 @@ class PdfFile {
         highlightAnnotationCache.clear();
     }
 
+    public void invalidateFormFieldRectCache(int pageIndex) {
+        formFieldRectCache.remove(pageIndex);
+    }
+
     public boolean setHighlightAnnotationColor(int pageIndex, int annotationIndex,
                                                String groupKey, int color) {
+        if (disposed || pdfDocument == null) {
+            return false;
+        }
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return false;
@@ -993,15 +1073,14 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return false;
         }
-        boolean updated = pdfiumCore.setHighlightAnnotationColor(pdfDocument, docPage, annotationIndex, groupKey, color);
-        if (updated) {
-            invalidateHighlightAnnotationCache(pageIndex);
-        }
-        return updated;
+        return pdfiumCore.setHighlightAnnotationColor(pdfDocument, docPage, annotationIndex, groupKey, color);
     }
 
     public boolean setHighlightAnnotationNote(int pageIndex, int annotationIndex,
                                               String groupKey, String note, String modifiedDate) {
+        if (disposed || pdfDocument == null) {
+            return false;
+        }
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return false;
@@ -1011,15 +1090,14 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return false;
         }
-        boolean updated = pdfiumCore.setHighlightAnnotationNote(pdfDocument, docPage, annotationIndex,
+        return pdfiumCore.setHighlightAnnotationNote(pdfDocument, docPage, annotationIndex,
                 groupKey, note, modifiedDate);
-        if (updated) {
-            invalidateHighlightAnnotationCache(pageIndex);
-        }
-        return updated;
     }
 
     public boolean removeHighlightAnnotation(int pageIndex, int annotationIndex, String groupKey) {
+        if (disposed || pdfDocument == null) {
+            return false;
+        }
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return false;
@@ -1029,11 +1107,7 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return false;
         }
-        boolean removed = pdfiumCore.removeHighlightAnnotation(pdfDocument, docPage, annotationIndex, groupKey);
-        if (removed) {
-            invalidateHighlightAnnotationCache(pageIndex);
-        }
-        return removed;
+        return pdfiumCore.removeHighlightAnnotation(pdfDocument, docPage, annotationIndex, groupKey);
     }
 
     public float[] getFormFieldRects(int pageIndex) {
@@ -1041,6 +1115,7 @@ class PdfFile {
         if (cached != null) {
             return cached;
         }
+        warnIfMainThreadFill("getFormFieldRects");
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return new float[0];
@@ -1062,6 +1137,9 @@ class PdfFile {
     }
 
     public PdfDocument.FormField getFormFieldAtPoint(int pageIndex, float pdfX, float pdfY, float tolerance) {
+        if (disposed || pdfDocument == null) {
+            return null;
+        }
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return null;
@@ -1075,6 +1153,9 @@ class PdfFile {
     }
 
     public boolean setFormFieldText(int pageIndex, int annotationIndex, String text) {
+        if (disposed || pdfDocument == null) {
+            return false;
+        }
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return false;
@@ -1088,6 +1169,9 @@ class PdfFile {
     }
 
     public boolean setFormFieldChecked(int pageIndex, int annotationIndex, boolean checked) {
+        if (disposed || pdfDocument == null) {
+            return false;
+        }
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return false;
@@ -1101,7 +1185,7 @@ class PdfFile {
     }
 
     public boolean saveAsCopy(File outputFile) throws IOException {
-        if (pdfDocument == null || outputFile == null) {
+        if (disposed || pdfDocument == null || outputFile == null) {
             return false;
         }
         ParcelFileDescriptor fd = ParcelFileDescriptor.open(outputFile,
@@ -1116,6 +1200,9 @@ class PdfFile {
     }
 
     public void clearSearchResultsAnnot(int pageIndex) {
+        if (disposed || pdfDocument == null) {
+            return;
+        }
         int docPage = documentPage(pageIndex);
         if (docPage >= 0) {
             pdfiumCore.clearSearchResultsAnnot(pdfDocument, docPage);
@@ -1125,6 +1212,9 @@ class PdfFile {
 
     public RectF mapRectToDevice(int pageIndex, int startX, int startY, int sizeX, int sizeY,
                                   RectF rect) {
+        if (disposed || pdfDocument == null) {
+            return null;
+        }
         int docPage = documentPage(pageIndex);
         Rect renderBounds = mapCropRenderBoundsToFullPage(pageIndex, startX, startY, sizeX, sizeY);
         RectF mapped = pdfiumCore.mapRectToDevice(pdfDocument, docPage,

@@ -237,8 +237,66 @@ public class PDFView extends RelativeLayout {
     }
 
     public void refreshPage(int pageIndex) {
-        cacheManager.invalidatePageParts(pageIndex);
+        pageContentChanged(pageIndex);
+    }
+
+    public void pageContentChanged(int page) {
+        if (pdfFile == null) {
+            return;
+        }
+        invalidatePageContent(page);
         loadPages();
+    }
+
+    private void invalidatePageContent(int page) {
+        bumpPageGeneration(page);
+        cacheManager.invalidatePageParts(page);
+        pdfFile.invalidateHighlightAnnotationCache(page);
+        pdfFile.invalidateFormFieldRectCache(page);
+        requestPrewarm(page);
+    }
+
+    public void overlayContentChanged(int page) {
+        if (pdfFile == null) {
+            return;
+        }
+        requestPrewarm(page);
+        invalidate();
+    }
+
+    private void bumpPageGeneration(int page) {
+        if (pageGenerations != null && page >= 0 && page < pageGenerations.length) {
+            pageGenerations[page]++;
+        }
+    }
+
+    public int getPageGeneration(int page) {
+        if (pageGenerations != null && page >= 0 && page < pageGenerations.length) {
+            return pageGenerations[page];
+        }
+        return 0;
+    }
+
+    void requestPrewarm(int page) {
+        if (renderingHandler == null || page < 0) {
+            return;
+        }
+        synchronized (prewarmPending) {
+            if (!prewarmPending.add(page)) {
+                return;
+            }
+        }
+        renderingHandler.requestPrewarm(page);
+    }
+
+    void onPrewarmStarted(int page) {
+        synchronized (prewarmPending) {
+            prewarmPending.remove(page);
+        }
+    }
+
+    void onPrewarmComplete(int page) {
+        postInvalidate();
     }
 
     /*
@@ -332,6 +390,12 @@ public class PDFView extends RelativeLayout {
     RenderingHandler renderingHandler;
 
     private PagesLoader pagesLoader;
+
+    private int[] pageGenerations;
+
+    private final Set<Integer> prewarmPending = new LinkedHashSet<>();
+
+    private final Set<Integer> searchMarkerPages = new LinkedHashSet<>();
 
     Callbacks callbacks = new Callbacks();
 
@@ -731,6 +795,7 @@ public class PDFView extends RelativeLayout {
         if (renderingHandler != null) {
             renderingHandler.stop();
             renderingHandler.removeMessages(RenderingHandler.MSG_RENDER_TASK);
+            renderingHandler.removeMessages(RenderingHandler.MSG_PREWARM_TASK);
         }
         if (decodingAsyncTask != null) {
             decodingAsyncTask.cancel(true);
@@ -762,6 +827,11 @@ public class PDFView extends RelativeLayout {
         currentXOffset = currentYOffset = 0;
         zoom = 1f;
         defaultViewState = null;
+        synchronized (prewarmPending) {
+            prewarmPending.clear();
+        }
+        searchMarkerPages.clear();
+        pageGenerations = null;
         recycled = true;
         callbacks = new Callbacks();
         state = State.DEFAULT;
@@ -1072,12 +1142,10 @@ public class PDFView extends RelativeLayout {
             if (page == null || page < 0 || page >= pdfFile.getPagesCount()) {
                 continue;
             }
-            float[] rects;
-            try {
-                rects = pdfFile.getFormFieldRects(page);
-            } catch (Throwable throwable) {
-                Log.e(TAG, "drawFormFieldIndicators: failed to read form fields", throwable);
-                return;
+            float[] rects = pdfFile.peekFormFieldRects(page);
+            if (rects == null) {
+                requestPrewarm(page);
+                continue;
             }
             for (int i = 0; i + 3 < rects.length; i += 4) {
                 RectF docRect = pdfFile.pdfRectToDocument(
@@ -1126,12 +1194,10 @@ public class PDFView extends RelativeLayout {
             if (page == null || page < 0 || page >= pdfFile.getPagesCount()) {
                 continue;
             }
-            List<PdfDocument.HighlightAnnotation> annotations;
-            try {
-                annotations = pdfFile.getHighlightAnnotations(page);
-            } catch (Throwable throwable) {
-                Log.e(TAG, "drawHighlightAnnotationOverlays: failed to read highlights", throwable);
-                return;
+            List<PdfDocument.HighlightAnnotation> annotations = pdfFile.peekHighlightAnnotations(page);
+            if (annotations == null) {
+                requestPrewarm(page);
+                continue;
             }
             Map<String, List<PdfDocument.HighlightAnnotation>> groups = new LinkedHashMap<>();
             for (PdfDocument.HighlightAnnotation annotation : annotations) {
@@ -1323,6 +1389,8 @@ public class PDFView extends RelativeLayout {
             Log.e(TAG, "loadComplete: pdfFile is nul!!");
             return;
         }
+
+        pageGenerations = new int[pdfFile.getPagesCount()];
 
         if (renderingHandlerThread == null) {
             renderingHandlerThread = new HandlerThread("PDF renderer");
@@ -1937,7 +2005,7 @@ public class PDFView extends RelativeLayout {
             boolean created = pdfFile.createHighlightAnnotation(pageIndex, pdfRects, color, contents,
                     groupKey, creationDate);
             if (created) {
-                invalidate();
+                overlayContentChanged(pageIndex);
             }
             return created;
         } catch (Throwable throwable) {
@@ -2055,7 +2123,7 @@ public class PDFView extends RelativeLayout {
             boolean created = pdfFile.addSignature(pageIndex, pdfRect, strokes, color,
                     normalizedStrokeWidth);
             if (created) {
-                refreshPage(pageIndex);
+                pageContentChanged(pageIndex);
             }
             return created;
         } catch (Throwable throwable) {
@@ -2311,7 +2379,7 @@ public class PDFView extends RelativeLayout {
                     color
             );
             if (updated) {
-                invalidate();
+                overlayContentChanged(annotation.pageIndex);
             }
             return updated;
         } catch (Throwable throwable) {
@@ -2333,7 +2401,7 @@ public class PDFView extends RelativeLayout {
                     modifiedDate
             );
             if (updated) {
-                invalidate();
+                overlayContentChanged(annotation.pageIndex);
             }
             return updated;
         } catch (Throwable throwable) {
@@ -2353,7 +2421,7 @@ public class PDFView extends RelativeLayout {
                     annotation.groupKey
             );
             if (removed) {
-                invalidate();
+                overlayContentChanged(annotation.pageIndex);
             }
             return removed;
         } catch (Throwable throwable) {
@@ -2398,7 +2466,7 @@ public class PDFView extends RelativeLayout {
         try {
             boolean updated = pdfFile.setFormFieldText(pageIndex, annotationIndex, text);
             if (updated) {
-                refreshPage(pageIndex);
+                pageContentChanged(pageIndex);
             }
             return updated;
         } catch (Throwable throwable) {
@@ -2414,7 +2482,7 @@ public class PDFView extends RelativeLayout {
         try {
             boolean updated = pdfFile.setFormFieldChecked(pageIndex, annotationIndex, checked);
             if (updated) {
-                refreshPage(pageIndex);
+                pageContentChanged(pageIndex);
             }
             return updated;
         } catch (Throwable throwable) {
@@ -2802,7 +2870,13 @@ public class PDFView extends RelativeLayout {
             return emptyArray;
         }
         try {
-            return pdfFile.createHighlightText(pageNumber - 1, start, end, padding);
+            int pageIndex = pageNumber - 1;
+            Rect[] result = pdfFile.createHighlightText(pageIndex, start, end, padding);
+            if (result != null && result.length > 0) {
+                searchMarkerPages.add(pageIndex);
+                pageContentChanged(pageIndex);
+            }
+            return result == null ? emptyArray : result;
         } catch (Throwable throwable) {
             Log.e(TAG, "createHighlightText: An error occurred while highlight search result", throwable);
             return emptyArray;
@@ -2810,9 +2884,21 @@ public class PDFView extends RelativeLayout {
     }
 
     public void clearSearchResultsHighlight(int pageNumber) {
-        if (pdfFile != null) {
-            pdfFile.clearSearchResultsAnnot(pageNumber - 1);
+        if (pdfFile == null) {
+            return;
         }
+        if (pageNumber - 1 >= 0) {
+            searchMarkerPages.add(pageNumber - 1);
+        }
+        if (searchMarkerPages.isEmpty()) {
+            return;
+        }
+        for (Integer page : searchMarkerPages) {
+            pdfFile.clearSearchResultsAnnot(page);
+            invalidatePageContent(page);
+        }
+        searchMarkerPages.clear();
+        loadPages();
     }
 
     /**
@@ -2959,6 +3045,8 @@ public class PDFView extends RelativeLayout {
         private boolean textSelectionEnabled = false;
 
         private int textSelectionColor = 0xFF3F51B5;
+
+        private boolean debugChecks = false;
 
         private Configurator(DocumentSource documentSource) {
             this.documentSource = documentSource;
@@ -3179,6 +3267,11 @@ public class PDFView extends RelativeLayout {
             return this;
         }
 
+        public Configurator debugChecks(boolean debugChecks) {
+            this.debugChecks = debugChecks;
+            return this;
+        }
+
         public Configurator disableLongpress() {
             PDFView.this.dragPinchManager.disableLongpress();
             return this;
@@ -3190,6 +3283,7 @@ public class PDFView extends RelativeLayout {
                 return;
             }
             PDFView.this.recycle();
+            PdfFile.setDebugChecksEnabled(debugChecks);
             PDFView.this.callbacks.setOnLoadComplete(onLoadCompleteListener);
             PDFView.this.callbacks.setOnError(onErrorListener);
             PDFView.this.callbacks.setOnDraw(onDrawListener);
