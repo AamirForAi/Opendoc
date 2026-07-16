@@ -555,6 +555,7 @@ class ReaderComposition(
             override fun onDocumentReset() {
                 inlineAnnotationActionController.hideActions()
                 signatureController.cancelPlacement()
+                annotationController.resetContentTags()
             }
 
             override fun onDocumentLoaded(event: DocumentLoadedEvent) {
@@ -570,6 +571,7 @@ class ReaderComposition(
     }
 
     fun wireViews() {
+        binding.pdfView.setPreviewTagSource(annotationController.previewTagSource)
         binding.exitFullScreenButton.setOnClickListener { fullscreenController.exitFullscreen() }
         autoScrollManager.setup()
         brightnessController.attachSeekbarListener()

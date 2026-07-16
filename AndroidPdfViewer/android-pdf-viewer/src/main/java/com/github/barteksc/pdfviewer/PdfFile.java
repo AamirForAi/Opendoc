@@ -42,12 +42,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 class PdfFile {
 
     private static final String TAG = PdfFile.class.getSimpleName();
     private static final Object lock = new Object();
     private static volatile boolean debugChecksEnabled = false;
+    private final ReentrantLock renderGate = new ReentrantLock(true);
+    private volatile AtomicBoolean activeRenderCancel = null;
+    private volatile boolean fenceRequested = false;
     private PdfDocument pdfDocument;
     private PdfiumCore pdfiumCore;
     private volatile boolean disposed = false;
@@ -193,6 +198,14 @@ class PdfFile {
             return new SizeF(0, 0);
         }
         return originalFullPagePointSizes.get(pageIndex);
+    }
+
+    public float fullPageAspectRatio(int pageIndex) {
+        Size full = getOriginalFullPageSize(pageIndex);
+        if (full.getWidth() <= 0) {
+            return 0f;
+        }
+        return (float) full.getHeight() / (float) full.getWidth();
     }
 
     public SizeF getPagePointSize(int pageIndex) {
@@ -769,6 +782,10 @@ class PdfFile {
         return cropMargins.forDocumentPage(docPage);
     }
 
+    public CropBounds getPageCropBounds(int pageIndex) {
+        return getCropBounds(pageIndex);
+    }
+
     private RectF clipToPageBounds(RectF rect, float pageOriginX, float pageOriginY, float width, float height) {
         float right = pageOriginX + width;
         float bottom = pageOriginY + height;
@@ -790,13 +807,81 @@ class PdfFile {
         throwIfMainThreadFill("renderPageBitmap");
         int docPage = documentPage(pageIndex);
         Rect renderBounds = mapCropRenderBoundsToFullPage(pageIndex, bounds.left, bounds.top, bounds.width(), bounds.height());
-        synchronized (lock) {
-            if (disposed || pdfDocument == null) {
-                return;
+        renderGate.lock();
+        try {
+            synchronized (lock) {
+                if (disposed || pdfDocument == null) {
+                    return;
+                }
+                pdfiumCore.renderPageBitmap(pdfDocument, bitmap, docPage,
+                        renderBounds.left, renderBounds.top, renderBounds.width(), renderBounds.height(), annotationRendering);
             }
-            pdfiumCore.renderPageBitmap(pdfDocument, bitmap, docPage,
-                    renderBounds.left, renderBounds.top, renderBounds.width(), renderBounds.height(), annotationRendering);
+        } finally {
+            renderGate.unlock();
         }
+    }
+
+    public boolean renderPageBitmapCancellable(Bitmap bitmap, int pageIndex, Rect bounds,
+                                               boolean annotationRendering, int extraFlags, AtomicBoolean cancel) {
+        throwIfMainThreadFill("renderPageBitmapCancellable");
+        int docPage = documentPage(pageIndex);
+        Rect renderBounds = mapCropRenderBoundsToFullPage(pageIndex, bounds.left, bounds.top, bounds.width(), bounds.height());
+        return renderChunked(bitmap, docPage, renderBounds, annotationRendering, extraFlags, cancel);
+    }
+
+    public boolean renderFullPageBitmapCancellable(Bitmap bitmap, int pageIndex,
+                                                   boolean annotationRendering, int extraFlags, AtomicBoolean cancel) {
+        throwIfMainThreadFill("renderFullPageBitmapCancellable");
+        int docPage = documentPage(pageIndex);
+        Rect renderBounds = new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight());
+        return renderChunked(bitmap, docPage, renderBounds, annotationRendering, extraFlags, cancel);
+    }
+
+    private boolean renderChunked(Bitmap bitmap, int docPage, Rect renderBounds,
+                                  boolean annotationRendering, int extraFlags, AtomicBoolean cancel) {
+        renderGate.lock();
+        activeRenderCancel = cancel;
+        long ctx = 0L;
+        try {
+            if (disposed || pdfDocument == null) {
+                return false;
+            }
+            ctx = pdfiumCore.renderPageBitmapChunkedStart(pdfDocument, bitmap, docPage,
+                    renderBounds.left, renderBounds.top, renderBounds.width(), renderBounds.height(),
+                    annotationRendering, extraFlags);
+            if (ctx == 0L) {
+                return false;
+            }
+            int status = pdfiumCore.renderPageBitmapChunkedStatus(ctx);
+            while (status == PdfiumCore.RENDER_STATUS_TO_BE_CONTINUED) {
+                if (cancel.get() || disposed || fenceRequested) {
+                    pdfiumCore.renderPageBitmapChunkedClose(pdfDocument, ctx, docPage, bitmap, true, true, false);
+                    ctx = 0L;
+                    return false;
+                }
+                status = pdfiumCore.renderPageBitmapChunkedContinue(pdfDocument, ctx, docPage);
+            }
+            boolean completed = status == PdfiumCore.RENDER_STATUS_DONE;
+            pdfiumCore.renderPageBitmapChunkedClose(pdfDocument, ctx, docPage, bitmap, true, true, completed);
+            ctx = 0L;
+            return completed;
+        } finally {
+            if (ctx != 0L) {
+                pdfiumCore.renderPageBitmapChunkedClose(pdfDocument, ctx, docPage, bitmap, true, true, false);
+            }
+            activeRenderCancel = null;
+            renderGate.unlock();
+        }
+    }
+
+    private void fenceRenders() {
+        fenceRequested = true;
+        AtomicBoolean cancel = activeRenderCancel;
+        if (cancel != null) {
+            cancel.set(true);
+        }
+        renderGate.lock();
+        fenceRequested = false;
     }
 
     private Rect mapCropRenderBoundsToFullPage(int pageIndex, int startX, int startY, int width, int height) {
@@ -897,14 +982,19 @@ class PdfFile {
         if (docPage < 0) {
             return new Rect[0];
         }
+        fenceRenders();
         try {
-            openPage(pageIndex);
-        } catch (PageRenderingException e) {
-            return new Rect[0];
+            try {
+                openPage(pageIndex);
+            } catch (PageRenderingException e) {
+                return new Rect[0];
+            }
+            Rect[] result = pdfiumCore.createHighlightText(pdfDocument, docPage, start, end, padding);
+            invalidateHighlightAnnotationCache(pageIndex);
+            return result;
+        } finally {
+            renderGate.unlock();
         }
-        Rect[] result = pdfiumCore.createHighlightText(pdfDocument, docPage, start, end, padding);
-        invalidateHighlightAnnotationCache(pageIndex);
-        return result;
     }
 
     public boolean createHighlightAnnotation(int pageIndex, List<RectF> pdfRects,
@@ -917,13 +1007,18 @@ class PdfFile {
         if (docPage < 0 || pdfRects == null || pdfRects.isEmpty()) {
             return false;
         }
+        fenceRenders();
         try {
-            openPage(pageIndex);
-        } catch (PageRenderingException e) {
-            return false;
+            try {
+                openPage(pageIndex);
+            } catch (PageRenderingException e) {
+                return false;
+            }
+            return pdfiumCore.createHighlightAnnotation(pdfDocument, docPage, pdfRects, color,
+                    contents, groupKey, creationDate);
+        } finally {
+            renderGate.unlock();
         }
-        return pdfiumCore.createHighlightAnnotation(pdfDocument, docPage, pdfRects, color,
-                contents, groupKey, creationDate);
     }
 
     public boolean addSignature(int pageIndex, RectF pdfRect, float[][] normalizedStrokes,
@@ -936,25 +1031,30 @@ class PdfFile {
                 || normalizedStrokes == null || normalizedStrokes.length == 0) {
             return false;
         }
+        fenceRenders();
         try {
-            openPage(pageIndex);
-        } catch (PageRenderingException e) {
-            return false;
-        }
-        float rectWidth = pdfRect.width();
-        float top = Math.max(pdfRect.top, pdfRect.bottom);
-        float[][] pdfStrokes = new float[normalizedStrokes.length][];
-        for (int i = 0; i < normalizedStrokes.length; i++) {
-            float[] stroke = normalizedStrokes[i];
-            float[] mapped = new float[stroke.length];
-            for (int k = 0; k + 1 < stroke.length; k += 2) {
-                mapped[k] = pdfRect.left + stroke[k] * rectWidth;
-                mapped[k + 1] = top - stroke[k + 1] * rectWidth;
+            try {
+                openPage(pageIndex);
+            } catch (PageRenderingException e) {
+                return false;
             }
-            pdfStrokes[i] = mapped;
+            float rectWidth = pdfRect.width();
+            float top = Math.max(pdfRect.top, pdfRect.bottom);
+            float[][] pdfStrokes = new float[normalizedStrokes.length][];
+            for (int i = 0; i < normalizedStrokes.length; i++) {
+                float[] stroke = normalizedStrokes[i];
+                float[] mapped = new float[stroke.length];
+                for (int k = 0; k + 1 < stroke.length; k += 2) {
+                    mapped[k] = pdfRect.left + stroke[k] * rectWidth;
+                    mapped[k + 1] = top - stroke[k + 1] * rectWidth;
+                }
+                pdfStrokes[i] = mapped;
+            }
+            float strokeWidthPts = normalizedStrokeWidth * rectWidth;
+            return pdfiumCore.addSignatureContent(pdfDocument, docPage, pdfStrokes, color, strokeWidthPts);
+        } finally {
+            renderGate.unlock();
         }
-        float strokeWidthPts = normalizedStrokeWidth * rectWidth;
-        return pdfiumCore.addSignatureContent(pdfDocument, docPage, pdfStrokes, color, strokeWidthPts);
     }
 
     public List<PdfDocument.HighlightAnnotation> getHighlightAnnotations(int pageIndex) {
@@ -1068,12 +1168,17 @@ class PdfFile {
         if (docPage < 0) {
             return false;
         }
+        fenceRenders();
         try {
-            openPage(pageIndex);
-        } catch (PageRenderingException e) {
-            return false;
+            try {
+                openPage(pageIndex);
+            } catch (PageRenderingException e) {
+                return false;
+            }
+            return pdfiumCore.setHighlightAnnotationColor(pdfDocument, docPage, annotationIndex, groupKey, color);
+        } finally {
+            renderGate.unlock();
         }
-        return pdfiumCore.setHighlightAnnotationColor(pdfDocument, docPage, annotationIndex, groupKey, color);
     }
 
     public boolean setHighlightAnnotationNote(int pageIndex, int annotationIndex,
@@ -1085,13 +1190,18 @@ class PdfFile {
         if (docPage < 0) {
             return false;
         }
+        fenceRenders();
         try {
-            openPage(pageIndex);
-        } catch (PageRenderingException e) {
-            return false;
+            try {
+                openPage(pageIndex);
+            } catch (PageRenderingException e) {
+                return false;
+            }
+            return pdfiumCore.setHighlightAnnotationNote(pdfDocument, docPage, annotationIndex,
+                    groupKey, note, modifiedDate);
+        } finally {
+            renderGate.unlock();
         }
-        return pdfiumCore.setHighlightAnnotationNote(pdfDocument, docPage, annotationIndex,
-                groupKey, note, modifiedDate);
     }
 
     public boolean removeHighlightAnnotation(int pageIndex, int annotationIndex, String groupKey) {
@@ -1102,12 +1212,17 @@ class PdfFile {
         if (docPage < 0) {
             return false;
         }
+        fenceRenders();
         try {
-            openPage(pageIndex);
-        } catch (PageRenderingException e) {
-            return false;
+            try {
+                openPage(pageIndex);
+            } catch (PageRenderingException e) {
+                return false;
+            }
+            return pdfiumCore.removeHighlightAnnotation(pdfDocument, docPage, annotationIndex, groupKey);
+        } finally {
+            renderGate.unlock();
         }
-        return pdfiumCore.removeHighlightAnnotation(pdfDocument, docPage, annotationIndex, groupKey);
     }
 
     public float[] getFormFieldRects(int pageIndex) {
@@ -1160,12 +1275,17 @@ class PdfFile {
         if (docPage < 0) {
             return false;
         }
+        fenceRenders();
         try {
-            openPage(pageIndex);
-        } catch (PageRenderingException e) {
-            return false;
+            try {
+                openPage(pageIndex);
+            } catch (PageRenderingException e) {
+                return false;
+            }
+            return pdfiumCore.setFormFieldText(pdfDocument, docPage, annotationIndex, text);
+        } finally {
+            renderGate.unlock();
         }
-        return pdfiumCore.setFormFieldText(pdfDocument, docPage, annotationIndex, text);
     }
 
     public boolean setFormFieldChecked(int pageIndex, int annotationIndex, boolean checked) {
@@ -1176,12 +1296,17 @@ class PdfFile {
         if (docPage < 0) {
             return false;
         }
+        fenceRenders();
         try {
-            openPage(pageIndex);
-        } catch (PageRenderingException e) {
-            return false;
+            try {
+                openPage(pageIndex);
+            } catch (PageRenderingException e) {
+                return false;
+            }
+            return pdfiumCore.setFormFieldChecked(pdfDocument, docPage, annotationIndex, checked);
+        } finally {
+            renderGate.unlock();
         }
-        return pdfiumCore.setFormFieldChecked(pdfDocument, docPage, annotationIndex, checked);
     }
 
     public boolean saveAsCopy(File outputFile) throws IOException {
@@ -1192,10 +1317,15 @@ class PdfFile {
                 ParcelFileDescriptor.MODE_CREATE
                         | ParcelFileDescriptor.MODE_TRUNCATE
                         | ParcelFileDescriptor.MODE_WRITE_ONLY);
+        fenceRenders();
         try {
             return pdfiumCore.saveAsCopy(pdfDocument, fd);
         } finally {
-            fd.close();
+            try {
+                fd.close();
+            } finally {
+                renderGate.unlock();
+            }
         }
     }
 
@@ -1205,8 +1335,13 @@ class PdfFile {
         }
         int docPage = documentPage(pageIndex);
         if (docPage >= 0) {
-            pdfiumCore.clearSearchResultsAnnot(pdfDocument, docPage);
-            invalidateHighlightAnnotationCache(pageIndex);
+            fenceRenders();
+            try {
+                pdfiumCore.clearSearchResultsAnnot(pdfDocument, docPage);
+                invalidateHighlightAnnotationCache(pageIndex);
+            } finally {
+                renderGate.unlock();
+            }
         }
     }
 
@@ -1248,26 +1383,31 @@ class PdfFile {
     }
 
     public void dispose() {
-        synchronized (lock) {
-            disposed = true;
-            if (pdfiumCore != null && pdfDocument != null) {
-                closeAllTextPages();
-                pdfiumCore.closeDocument(pdfDocument);
-            }
+        disposed = true;
+        fenceRenders();
+        try {
+            synchronized (lock) {
+                if (pdfiumCore != null && pdfDocument != null) {
+                    closeAllTextPages();
+                    pdfiumCore.closeDocument(pdfDocument);
+                }
 
-            pdfDocument = null;
-            originalUserPages = null;
-            originalFullPageSizes.clear();
-            originalFullPagePointSizes.clear();
-            openedPages.clear();
-            textOpenedPages.clear();
-            highlightAnnotationCache.clear();
-            formFieldRectCache.clear();
-            pageRowIndexes = new int[0];
-            rowFirstPages.clear();
-            rowOffsets.clear();
-            rowLengths.clear();
-            rowIndexesByOffset.clear();
+                pdfDocument = null;
+                originalUserPages = null;
+                originalFullPageSizes.clear();
+                originalFullPagePointSizes.clear();
+                openedPages.clear();
+                textOpenedPages.clear();
+                highlightAnnotationCache.clear();
+                formFieldRectCache.clear();
+                pageRowIndexes = new int[0];
+                rowFirstPages.clear();
+                rowOffsets.clear();
+                rowLengths.clear();
+                rowIndexesByOffset.clear();
+            }
+        } finally {
+            renderGate.unlock();
         }
     }
 

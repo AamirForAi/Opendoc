@@ -25,6 +25,11 @@ import java.util.Set;
 public class PdfiumCore {
     private static final String TAG = PdfiumCore.class.getName();
 
+    public static final int RENDER_STATUS_READY = 0;
+    public static final int RENDER_STATUS_TO_BE_CONTINUED = 1;
+    public static final int RENDER_STATUS_DONE = 2;
+    public static final int RENDER_STATUS_FAILED = 3;
+
     static {
         try {
             System.loadLibrary("c++_shared");
@@ -72,6 +77,18 @@ public class PdfiumCore {
                                                int startX, int startY,
                                                int drawSizeHor, int drawSizeVer,
                                                boolean renderAnnot);
+
+    private native long nativeRenderChunkedStart(long docPtr, long pagePtr, Bitmap bitmap,
+                                                 int startX, int startY,
+                                                 int drawSizeHor, int drawSizeVer,
+                                                 boolean renderAnnot, int extraFlags);
+
+    private native int nativeRenderChunkedStatus(long ctxPtr);
+
+    private native int nativeRenderChunkedContinue(long ctxPtr, long pagePtr);
+
+    private native void nativeRenderChunkedClose(long ctxPtr, long docPtr, long pagePtr, Bitmap bitmap,
+                                                 boolean drawForms, boolean pageAlive, boolean completed);
 
     private native String nativeGetDocumentMetaText(long docPtr, String tag);
 
@@ -560,6 +577,67 @@ public class PdfiumCore {
                         startX, startY, drawSizeX, drawSizeY, renderAnnot);
             } catch (Exception e) {
                 Log.e(TAG, "renderPageBitmap: exception thrown from native", e);
+            }
+        }
+    }
+
+    public long renderPageBitmapChunkedStart(PdfDocument doc, Bitmap bitmap, int pageIndex,
+                                             int startX, int startY, int drawSizeX, int drawSizeY,
+                                             boolean renderAnnot, int extraFlags) {
+        synchronized (lock) {
+            if (doc == null || doc.closed) {
+                return 0L;
+            }
+            Long pagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (pagePtr == null || pagePtr == 0L) {
+                Log.e(TAG, "renderPageBitmapChunkedStart: page " + pageIndex + " is not open");
+                return 0L;
+            }
+            try {
+                return nativeRenderChunkedStart(doc.mNativeDocPtr, pagePtr, bitmap,
+                        startX, startY, drawSizeX, drawSizeY, renderAnnot, extraFlags);
+            } catch (Exception e) {
+                Log.e(TAG, "renderPageBitmapChunkedStart: exception thrown from native", e);
+                return 0L;
+            }
+        }
+    }
+
+    public int renderPageBitmapChunkedStatus(long ctxPtr) {
+        synchronized (lock) {
+            return nativeRenderChunkedStatus(ctxPtr);
+        }
+    }
+
+    public int renderPageBitmapChunkedContinue(PdfDocument doc, long ctxPtr, int pageIndex) {
+        synchronized (lock) {
+            if (doc == null || doc.closed) {
+                return RENDER_STATUS_FAILED;
+            }
+            Long pagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (pagePtr == null || pagePtr == 0L) {
+                return RENDER_STATUS_FAILED;
+            }
+            try {
+                return nativeRenderChunkedContinue(ctxPtr, pagePtr);
+            } catch (Exception e) {
+                Log.e(TAG, "renderPageBitmapChunkedContinue: exception thrown from native", e);
+                return RENDER_STATUS_FAILED;
+            }
+        }
+    }
+
+    public void renderPageBitmapChunkedClose(PdfDocument doc, long ctxPtr, int pageIndex, Bitmap bitmap,
+                                             boolean drawForms, boolean pageAlive, boolean completed) {
+        synchronized (lock) {
+            long docPtr = doc == null ? 0L : doc.mNativeDocPtr;
+            Long pagePtr = doc == null ? null : doc.mNativePagesPtr.get(pageIndex);
+            long page = pagePtr == null ? 0L : pagePtr;
+            try {
+                nativeRenderChunkedClose(ctxPtr, docPtr, page, bitmap,
+                        drawForms, pageAlive && page != 0L, completed);
+            } catch (Exception e) {
+                Log.e(TAG, "renderPageBitmapChunkedClose: exception thrown from native", e);
             }
         }
     }

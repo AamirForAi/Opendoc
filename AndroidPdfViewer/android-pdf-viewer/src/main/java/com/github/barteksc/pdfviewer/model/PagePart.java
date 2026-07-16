@@ -34,6 +34,8 @@ public class PagePart {
 
     private boolean snapshot;
 
+    private int generation;
+
     public PagePart(int page, Bitmap renderedBitmap, RectF pageRelativeBounds, boolean thumbnail, int cacheOrder) {
         super();
         this.page = page;
@@ -81,6 +83,14 @@ public class PagePart {
 
     public boolean isSnapshot() {
         return snapshot;
+    }
+
+    public void setGeneration(int generation) {
+        this.generation = generation;
+    }
+
+    public int getGeneration() {
+        return generation;
     }
 
     @Override

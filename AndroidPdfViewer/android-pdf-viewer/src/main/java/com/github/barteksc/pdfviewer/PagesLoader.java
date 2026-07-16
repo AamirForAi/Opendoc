@@ -294,9 +294,11 @@ class PagesLoader {
 
         if (renderWidth > 0 && renderHeight > 0) {
             if (!pdfView.cacheManager.upPartIfContained(page, pageRelativeBounds, cacheOrder)) {
-                pdfView.renderingHandler.addRenderingTask(page, renderWidth, renderHeight,
-                        pageRelativeBounds, false, false, cacheOrder, pdfView.isBestQuality(),
-                        pdfView.isAnnotationRendering());
+                pdfView.renderScheduler.submit(RenderTask.tile(page,
+                        pageRelativeBounds.left, pageRelativeBounds.top,
+                        pageRelativeBounds.right, pageRelativeBounds.bottom,
+                        renderWidth, renderHeight, false, cacheOrder,
+                        pdfView.isBestQuality(), pdfView.isAnnotationRendering()));
             }
 
             cacheOrder++;
@@ -306,13 +308,19 @@ class PagesLoader {
     }
 
     private void loadThumbnail(int page) {
+        if (PDFView.USE_PREVIEW_STORE) {
+            if (pdfView.peekPreview(page) == null) {
+                pdfView.requestPreview(page);
+            }
+            return;
+        }
         SizeF pageSize = pdfView.pdfFile.getPageSize(page);
         float thumbnailWidth = pageSize.getWidth() * Constants.THUMBNAIL_RATIO;
         float thumbnailHeight = pageSize.getHeight() * Constants.THUMBNAIL_RATIO;
         if (!pdfView.cacheManager.containsThumbnail(page, thumbnailRect)) {
-            pdfView.renderingHandler.addRenderingTask(page,
-                    thumbnailWidth, thumbnailHeight, thumbnailRect,
-                    true, false, 0, pdfView.isBestQuality(), pdfView.isAnnotationRendering());
+            pdfView.renderScheduler.submit(RenderTask.thumbnail(page,
+                    thumbnailWidth, thumbnailHeight,
+                    pdfView.isBestQuality(), pdfView.isAnnotationRendering()));
         }
     }
 
@@ -352,9 +360,11 @@ class PagesLoader {
 
         RectF pageRelativeBounds = new RectF(relLeft, relTop, relRight, relBottom);
         if (!pdfView.cacheManager.upPartIfContained(range.page, pageRelativeBounds, cacheOrder)) {
-            pdfView.renderingHandler.addRenderingTask(range.page, renderWidth, renderHeight,
-                    pageRelativeBounds, false, true, cacheOrder, pdfView.isBestQuality(),
-                    pdfView.isAnnotationRendering());
+            pdfView.renderScheduler.submit(RenderTask.tile(range.page,
+                    pageRelativeBounds.left, pageRelativeBounds.top,
+                    pageRelativeBounds.right, pageRelativeBounds.bottom,
+                    renderWidth, renderHeight, true, cacheOrder,
+                    pdfView.isBestQuality(), pdfView.isAnnotationRendering()));
         }
         cacheOrder++;
     }

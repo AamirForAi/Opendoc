@@ -296,6 +296,7 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN:
                 pdfView.stopFling();
+                pdfView.setRenderInteractionActive(true);
                 handler.removeCallbacks(hidePageScrollerRunnable);
                 if (pdfView.isSwipeVertical()) {
                     currentPos = event.getRawY() - getY();
@@ -314,6 +315,7 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_POINTER_UP:
+                pdfView.setRenderInteractionActive(false);
                 pdfView.performPageSnap();
                 return true;
         }
