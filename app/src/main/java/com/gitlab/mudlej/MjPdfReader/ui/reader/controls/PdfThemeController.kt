@@ -67,7 +67,7 @@ class PdfThemeController(
             binding.pdfView.setBackgroundColor(Preferences.pdfLightBackgroundColor)
         }
         if (reloadPages) {
-            binding.pdfView.reloadPages()
+            binding.pdfView.invalidate()
         }
     }
 

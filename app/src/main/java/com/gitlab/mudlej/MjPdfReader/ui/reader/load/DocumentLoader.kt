@@ -10,6 +10,7 @@ import com.github.barteksc.pdfviewer.PDFView.Configurator
 import com.github.barteksc.pdfviewer.model.CropMargins
 import com.github.barteksc.pdfviewer.util.Constants
 import com.github.barteksc.pdfviewer.util.FitPolicy
+import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
@@ -326,6 +327,7 @@ class DocumentLoader(
             .enableAnnotationRendering(Preferences.annotationRenderingDefault)
             .enableAntialiasing(pref.getAntiAliasing())
             .renderDuringScale(true)
+            .debugChecks(BuildConfig.DEBUG)
             .spacing(spacing)
             .onError { exception: Throwable ->
                 state = if (exception is PdfPasswordException) LoadState.PasswordRequired else LoadState.Failed(exception)

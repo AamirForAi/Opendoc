@@ -136,7 +136,6 @@ class SearchNavigationController(
             return
         }
         reset()
-        binding.pdfView.reloadPages()
     }
 
     private fun dismissSnackbar() {
@@ -265,7 +264,6 @@ class SearchNavigationController(
         }
         else {
             activeHighlightPageNumber = hit.pageNumber
-            binding.pdfView.reloadPages()
             val targetZoom = if (pref.getSearchZoomToResult()) {
                 max(binding.pdfView.zoom, binding.pdfView.midZoom).coerceAtMost(binding.pdfView.maxZoom)
             } else {
