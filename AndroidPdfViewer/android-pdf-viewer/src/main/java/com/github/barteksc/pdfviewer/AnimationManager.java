@@ -88,6 +88,7 @@ class AnimationManager {
     public void startFlingAnimation(int startX, int startY, int velocityX, int velocityY, int minX, int maxX, int minY, int maxY) {
         stopAll();
         flinging = true;
+        notifyFlingState();
         scroller.fling(startX, startY, velocityX, velocityY, minX, maxX, minY, maxY);
     }
 
@@ -98,6 +99,7 @@ class AnimationManager {
             startXAnimation(pdfView.getCurrentXOffset(), targetOffset);
         }
         pageFlinging = true;
+        notifyFlingState();
     }
 
     void computeFling() {
@@ -106,6 +108,7 @@ class AnimationManager {
             pdfView.loadPageByOffset();
         } else if (flinging) { // fling finished
             flinging = false;
+            notifyFlingState();
             pdfView.loadPages();
             hideHandle();
             pdfView.performPageSnap();
@@ -122,11 +125,16 @@ class AnimationManager {
 
     public void stopFling() {
         flinging = false;
+        notifyFlingState();
         scroller.forceFinished(true);
     }
 
     public boolean isFlinging() {
         return flinging || pageFlinging;
+    }
+
+    private void notifyFlingState() {
+        pdfView.setRenderFlinging(isFlinging());
     }
 
     class XAnimation extends AnimatorListenerAdapter implements AnimatorUpdateListener {
@@ -142,6 +150,7 @@ class AnimationManager {
         public void onAnimationCancel(Animator animation) {
             pdfView.loadPages();
             pageFlinging = false;
+            notifyFlingState();
             hideHandle();
         }
 
@@ -149,6 +158,7 @@ class AnimationManager {
         public void onAnimationEnd(Animator animation) {
             pdfView.loadPages();
             pageFlinging = false;
+            notifyFlingState();
             hideHandle();
         }
     }
@@ -166,6 +176,7 @@ class AnimationManager {
         public void onAnimationCancel(Animator animation) {
             pdfView.loadPages();
             pageFlinging = false;
+            notifyFlingState();
             hideHandle();
         }
 
@@ -173,6 +184,7 @@ class AnimationManager {
         public void onAnimationEnd(Animator animation) {
             pdfView.loadPages();
             pageFlinging = false;
+            notifyFlingState();
             hideHandle();
         }
     }

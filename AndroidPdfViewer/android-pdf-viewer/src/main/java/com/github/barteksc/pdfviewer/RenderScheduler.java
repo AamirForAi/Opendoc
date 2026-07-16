@@ -1,0 +1,351 @@
+package com.github.barteksc.pdfviewer;
+
+import android.graphics.Bitmap;
+import android.graphics.Matrix;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.util.Log;
+
+import com.github.barteksc.pdfviewer.exception.PageRenderingException;
+import com.github.barteksc.pdfviewer.model.PagePart;
+
+class RenderScheduler {
+
+    private static final String TAG = RenderScheduler.class.getSimpleName();
+
+    interface RenderExecutor {
+        RenderResult execute(RenderTask task) throws PageRenderingException;
+    }
+
+    interface ResultSink {
+        void deliver(PagePart part);
+
+        void error(PageRenderingException ex);
+    }
+
+    static final class RenderResult {
+
+        static final RenderResult NONE = new RenderResult(null, false);
+
+        private final PagePart part;
+        private final boolean resubmittable;
+
+        private RenderResult(PagePart part, boolean resubmittable) {
+            this.part = part;
+            this.resubmittable = resubmittable;
+        }
+
+        static RenderResult delivered(PagePart part) {
+            return new RenderResult(part, false);
+        }
+
+        static RenderResult aborted() {
+            return new RenderResult(null, true);
+        }
+
+        PagePart getPart() {
+            return part;
+        }
+
+        boolean isResubmittable() {
+            return resubmittable;
+        }
+    }
+
+    private final RenderQueue queue;
+    private final RenderExecutor executor;
+    private final ResultSink sink;
+    private volatile boolean running = false;
+    private Thread thread;
+
+    RenderScheduler(PDFView pdfView, RenderExecutor executor) {
+        this(new RenderQueue(new PdfViewGenerationSource(pdfView)), executor, new PdfViewSink(pdfView));
+    }
+
+    RenderScheduler(RenderQueue queue, RenderExecutor executor, ResultSink sink) {
+        this.queue = queue;
+        this.executor = executor;
+        this.sink = sink;
+    }
+
+    void start() {
+        running = true;
+        thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                loop();
+            }
+        }, "PDF renderer");
+        thread.start();
+    }
+
+    void stop() {
+        running = false;
+        queue.stop();
+    }
+
+    void join() {
+        Thread current = thread;
+        if (current == null) {
+            return;
+        }
+        try {
+            current.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    void beginWave(RenderQueue.WaveKind kind) {
+        queue.beginWave(kind);
+    }
+
+    void endWave() {
+        queue.endWave();
+    }
+
+    void submit(RenderTask task) {
+        queue.submit(task);
+    }
+
+    void submitPrewarm(int page) {
+        queue.submit(RenderTask.prewarm(page));
+    }
+
+    void cancelPage(int page) {
+        queue.cancelPage(page);
+    }
+
+    void setInteractionActive(boolean active) {
+        queue.setInteractionActive(active);
+    }
+
+    void setFlinging(boolean value) {
+        queue.setFlinging(value);
+    }
+
+    void setIdleProducer(RenderQueue.IdleProducer producer) {
+        queue.setIdleProducer(producer);
+    }
+
+    private void loop() {
+        while (running) {
+            RenderTask task = queue.pollNext();
+            if (task == null) {
+                break;
+            }
+            runTask(task);
+        }
+    }
+
+    void runTask(RenderTask task) {
+        RenderResult result;
+        try {
+            result = executor.execute(task);
+        } catch (final PageRenderingException ex) {
+            queue.completed(task);
+            sink.error(ex);
+            return;
+        } catch (RuntimeException ex) {
+            queue.completed(task);
+            Log.e(TAG, "runTask: rendering task failed", ex);
+            return;
+        }
+        queue.completed(task);
+        if (result == null) {
+            return;
+        }
+        if (result.isResubmittable() && !task.isQueueCancelled() && running) {
+            queue.submit(task.copyForResubmit());
+            return;
+        }
+        PagePart part = result.getPart();
+        if (part != null) {
+            if (running) {
+                sink.deliver(part);
+            } else {
+                recyclePart(part);
+            }
+        }
+    }
+
+    private static void recyclePart(PagePart part) {
+        Bitmap bitmap = part.getRenderedBitmap();
+        if (bitmap != null) {
+            synchronized (bitmap) {
+                bitmap.recycle();
+            }
+        }
+    }
+
+    void runningForTest(boolean value) {
+        running = value;
+    }
+
+    static final class PdfExecutor implements RenderExecutor {
+
+        private final PDFView pdfView;
+        private final RectF renderBounds = new RectF();
+        private final Rect roundedRenderBounds = new Rect();
+        private final Matrix renderMatrix = new Matrix();
+
+        PdfExecutor(PDFView pdfView) {
+            this.pdfView = pdfView;
+        }
+
+        @Override
+        public RenderResult execute(RenderTask task) throws PageRenderingException {
+            PdfFile pdfFile = pdfView.pdfFile;
+            if (pdfFile == null) {
+                return RenderResult.NONE;
+            }
+
+            if (task.kind == RenderTask.Kind.PREWARM) {
+                pdfView.onPrewarmStarted(task.page);
+                pdfFile.refillPageCaches(task.page);
+                pdfView.onPrewarmComplete(task.page);
+                return RenderResult.NONE;
+            }
+
+            if (task.kind == RenderTask.Kind.PREVIEW) {
+                return executePreview(pdfFile, task);
+            }
+
+            pdfFile.openPage(task.page);
+
+            int w = Math.round(task.renderWidth);
+            int h = Math.round(task.renderHeight);
+            if (w == 0 || h == 0 || pdfFile.pageHasError(task.page)) {
+                return RenderResult.NONE;
+            }
+
+            Bitmap render;
+            try {
+                render = Bitmap.createBitmap(w, h, task.bestQuality ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565);
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, "Cannot create bitmap", e);
+                return RenderResult.NONE;
+            }
+            calculateBounds(w, h, task);
+
+            boolean completed;
+            if (task.kind == RenderTask.Kind.TILE) {
+                pdfFile.renderPageBitmap(render, task.page, roundedRenderBounds, task.annotationRendering);
+                completed = true;
+            } else {
+                completed = pdfFile.renderPageBitmapCancellable(render, task.page, roundedRenderBounds,
+                        task.annotationRendering, 0, task.cancel);
+            }
+
+            if (!completed) {
+                recyclePart(render);
+                return RenderResult.aborted();
+            }
+
+            pdfFile.prewarmPageCaches(task.page);
+
+            PagePart part = new PagePart(task.page, render,
+                    new RectF(task.boundsLeft, task.boundsTop, task.boundsRight, task.boundsBottom),
+                    task.thumbnail, task.cacheOrder);
+            if (task.snapshot) {
+                part.markSnapshot();
+            }
+            part.setGeneration(task.generation);
+            return RenderResult.delivered(part);
+        }
+
+        private RenderResult executePreview(PdfFile pdfFile, RenderTask task) throws PageRenderingException {
+            pdfView.onPreviewStarted(task.page);
+            pdfFile.openPage(task.page);
+
+            int w = Math.round(task.renderWidth);
+            int h = Math.round(task.renderHeight);
+            if (w <= 0 || h <= 0 || pdfFile.pageHasError(task.page)) {
+                return RenderResult.NONE;
+            }
+
+            Bitmap render;
+            try {
+                render = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, "Cannot create preview bitmap", e);
+                return RenderResult.NONE;
+            }
+
+            boolean completed = pdfFile.renderFullPageBitmapCancellable(render, task.page,
+                    task.annotationRendering, 0, task.cancel);
+            if (!completed) {
+                recyclePart(render);
+                return RenderResult.aborted();
+            }
+
+            pdfView.onPreviewRendered(task.page, render, task.generation);
+            return RenderResult.NONE;
+        }
+
+        private void calculateBounds(int width, int height, RenderTask task) {
+            renderMatrix.reset();
+            renderMatrix.postTranslate(-task.boundsLeft * width, -task.boundsTop * height);
+            renderMatrix.postScale(1 / (task.boundsRight - task.boundsLeft), 1 / (task.boundsBottom - task.boundsTop));
+
+            renderBounds.set(0, 0, width, height);
+            renderMatrix.mapRect(renderBounds);
+            renderBounds.round(roundedRenderBounds);
+        }
+
+        private static void recyclePart(Bitmap bitmap) {
+            if (bitmap != null) {
+                synchronized (bitmap) {
+                    bitmap.recycle();
+                }
+            }
+        }
+    }
+
+    static final class PdfViewSink implements ResultSink {
+
+        private final PDFView pdfView;
+
+        PdfViewSink(PDFView pdfView) {
+            this.pdfView = pdfView;
+        }
+
+        @Override
+        public void deliver(final PagePart part) {
+            pdfView.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (pdfView.isRecycled()) {
+                        recyclePart(part);
+                        return;
+                    }
+                    pdfView.onBitmapRendered(part);
+                }
+            });
+        }
+
+        @Override
+        public void error(final PageRenderingException ex) {
+            pdfView.post(new Runnable() {
+                @Override
+                public void run() {
+                    pdfView.onPageError(ex);
+                }
+            });
+        }
+    }
+
+    static final class PdfViewGenerationSource implements RenderQueue.GenerationSource {
+
+        private final PDFView pdfView;
+
+        PdfViewGenerationSource(PDFView pdfView) {
+            this.pdfView = pdfView;
+        }
+
+        @Override
+        public int generationOf(int page) {
+            return pdfView.getPageGeneration(page);
+        }
+    }
+}

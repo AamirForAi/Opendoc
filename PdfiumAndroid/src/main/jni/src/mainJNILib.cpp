@@ -26,6 +26,7 @@ using namespace android;
 #include <fpdf_formfill.h>
 #include <fpdf_edit.h>
 #include <fpdf_save.h>
+#include <fpdf_progressive.h>
 #include <string>
 
 #include <set>
@@ -1234,6 +1235,220 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
     (void) formsStartMs;
     (void) convertStartMs;
     (void) endMs;
+}
+
+static const double kChunkBudgetMs = 3.0;
+
+struct ChunkPauseState {
+    double chunkStartMs;
+    double budgetMs;
+};
+
+static FPDF_BOOL chunkNeedToPauseNow(IFSDK_PAUSE *pause) {
+    ChunkPauseState *state = reinterpret_cast<ChunkPauseState*>(pause->user);
+    if (state == NULL) {
+        return 0;
+    }
+    return (monotonicMillis() - state->chunkStartMs) > state->budgetMs ? 1 : 0;
+}
+
+struct ChunkRenderContext {
+    FPDF_BITMAP pdfBitmap;
+    void *tmp;
+    void *addr;
+    int format;
+    AndroidBitmapInfo info;
+    int canvasHorSize;
+    int canvasVerSize;
+    int sourceStride;
+    int startX;
+    int startY;
+    int drawSizeHor;
+    int drawSizeVer;
+    int flags;
+    double startMs;
+    double pageStartMs;
+    double maxChunkMs;
+    int chunkCount;
+    int status;
+    IFSDK_PAUSE pause;
+    ChunkPauseState pauseState;
+};
+
+JNI_FUNC(jlong, PdfiumCore, nativeRenderChunkedStart)(JNI_ARGS, jlong docPtr, jlong pagePtr, jobject bitmap,
+                                             jint startX, jint startY,
+                                             jint drawSizeHor, jint drawSizeVer,
+                                             jboolean renderAnnot, jint extraFlags){
+    (void) docPtr;
+
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+
+    if(page == NULL || bitmap == NULL){
+        LOGE("Render page pointers invalid");
+        return 0;
+    }
+
+    AndroidBitmapInfo info;
+    int ret;
+    if((ret = AndroidBitmap_getInfo(env, bitmap, &info)) < 0) {
+        LOGE("Fetching bitmap info failed: %s", strerror(ret * -1));
+        return 0;
+    }
+
+    int canvasHorSize = info.width;
+    int canvasVerSize = info.height;
+
+    if(info.format != ANDROID_BITMAP_FORMAT_RGBA_8888 && info.format != ANDROID_BITMAP_FORMAT_RGB_565){
+        LOGE("Bitmap format must be RGBA_8888 or RGB_565");
+        return 0;
+    }
+
+    void *addr;
+    if( (ret = AndroidBitmap_lockPixels(env, bitmap, &addr)) != 0 ){
+        LOGE("Locking bitmap failed: %s", strerror(ret * -1));
+        return 0;
+    }
+
+    double startMs = monotonicMillis();
+
+    void *tmp;
+    int format;
+    int sourceStride;
+    if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
+        tmp = malloc(canvasVerSize * canvasHorSize * sizeof(rgb));
+        sourceStride = canvasHorSize * sizeof(rgb);
+        format = FPDFBitmap_BGR;
+    } else {
+        tmp = addr;
+        sourceStride = info.stride;
+        format = FPDFBitmap_BGRA;
+    }
+
+    FPDF_BITMAP pdfBitmap = FPDFBitmap_CreateEx( canvasHorSize, canvasVerSize,
+                                                     format, tmp, sourceStride);
+
+    if(drawSizeHor < canvasHorSize || drawSizeVer < canvasVerSize){
+        FPDFBitmap_FillRect( pdfBitmap, 0, 0, canvasHorSize, canvasVerSize,
+                             0x848484FF);
+    }
+
+    int baseHorSize = (canvasHorSize < drawSizeHor)? canvasHorSize : (int)drawSizeHor;
+    int baseVerSize = (canvasVerSize < drawSizeVer)? canvasVerSize : (int)drawSizeVer;
+    int baseX = (startX < 0)? 0 : (int)startX;
+    int baseY = (startY < 0)? 0 : (int)startY;
+    int flags = FPDF_REVERSE_BYTE_ORDER;
+
+    if(renderAnnot) {
+    	flags |= FPDF_ANNOT;
+    }
+    flags |= extraFlags;
+
+    FPDFBitmap_FillRect( pdfBitmap, baseX, baseY, baseHorSize, baseVerSize,
+                         0xFFFFFFFF);
+
+    ChunkRenderContext *ctx = new ChunkRenderContext();
+    ctx->pdfBitmap = pdfBitmap;
+    ctx->tmp = (info.format == ANDROID_BITMAP_FORMAT_RGB_565) ? tmp : NULL;
+    ctx->addr = addr;
+    ctx->format = format;
+    ctx->info = info;
+    ctx->canvasHorSize = canvasHorSize;
+    ctx->canvasVerSize = canvasVerSize;
+    ctx->sourceStride = sourceStride;
+    ctx->startX = startX;
+    ctx->startY = startY;
+    ctx->drawSizeHor = drawSizeHor;
+    ctx->drawSizeVer = drawSizeVer;
+    ctx->flags = flags;
+    ctx->startMs = startMs;
+    ctx->chunkCount = 1;
+    ctx->pauseState.budgetMs = kChunkBudgetMs;
+    ctx->pause.version = 1;
+    ctx->pause.NeedToPauseNow = &chunkNeedToPauseNow;
+    ctx->pause.user = &ctx->pauseState;
+
+    ctx->pageStartMs = monotonicMillis();
+    ctx->pauseState.chunkStartMs = ctx->pageStartMs;
+    ctx->status = FPDF_RenderPageBitmap_Start(
+        pdfBitmap, page, startX, startY, (int)drawSizeHor, (int)drawSizeVer, 0, flags, &ctx->pause
+    );
+    ctx->maxChunkMs = monotonicMillis() - ctx->pauseState.chunkStartMs;
+
+    return reinterpret_cast<jlong>(ctx);
+}
+
+JNI_FUNC(jint, PdfiumCore, nativeRenderChunkedStatus)(JNI_ARGS, jlong ctxPtr){
+    ChunkRenderContext *ctx = reinterpret_cast<ChunkRenderContext*>(ctxPtr);
+    if (ctx == NULL) {
+        return FPDF_RENDER_FAILED;
+    }
+    return ctx->status;
+}
+
+JNI_FUNC(jint, PdfiumCore, nativeRenderChunkedContinue)(JNI_ARGS, jlong ctxPtr, jlong pagePtr){
+    ChunkRenderContext *ctx = reinterpret_cast<ChunkRenderContext*>(ctxPtr);
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (ctx == NULL || page == NULL) {
+        return FPDF_RENDER_FAILED;
+    }
+    ctx->pauseState.chunkStartMs = monotonicMillis();
+    ctx->status = FPDF_RenderPage_Continue(page, &ctx->pause);
+    double chunkMs = monotonicMillis() - ctx->pauseState.chunkStartMs;
+    if (chunkMs > ctx->maxChunkMs) {
+        ctx->maxChunkMs = chunkMs;
+    }
+    ctx->chunkCount++;
+    return ctx->status;
+}
+
+JNI_FUNC(void, PdfiumCore, nativeRenderChunkedClose)(JNI_ARGS, jlong ctxPtr, jlong docPtr, jlong pagePtr,
+                                             jobject bitmap, jboolean drawForms,
+                                             jboolean pageAlive, jboolean completed){
+    ChunkRenderContext *ctx = reinterpret_cast<ChunkRenderContext*>(ctxPtr);
+    if (ctx == NULL) {
+        return;
+    }
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+
+    double formsStartMs = monotonicMillis();
+    if (pageAlive && page != NULL) {
+        FPDF_RenderPage_Close(page);
+    }
+
+    if (completed && drawForms && pageAlive && page != NULL) {
+        DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+        FPDF_FORMHANDLE formHandle = ensureFormHandle(doc);
+        if (formHandle != NULL) {
+            FPDF_FFLDraw(
+                formHandle, ctx->pdfBitmap, page, ctx->startX, ctx->startY,
+                (int)ctx->drawSizeHor, (int)ctx->drawSizeVer, 0, ctx->flags
+            );
+        }
+    }
+
+    double convertStartMs = monotonicMillis();
+    FPDFBitmap_Destroy(ctx->pdfBitmap);
+    if (completed && ctx->info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
+        rgbBitmapTo565(ctx->tmp, ctx->sourceStride, ctx->addr, &ctx->info);
+    }
+    if (ctx->tmp != NULL) {
+        free(ctx->tmp);
+    }
+    if (bitmap != NULL) {
+        AndroidBitmap_unlockPixels(env, bitmap);
+    }
+
+    double endMs = monotonicMillis();
+    LOGD("renderPageBitmapChunked: %dx%d in %.1f ms (page %.1f, forms %.1f, convert %.1f, chunks %d, maxChunk %.1f)",
+         ctx->canvasHorSize, ctx->canvasVerSize,
+         endMs - ctx->startMs,
+         formsStartMs - ctx->pageStartMs,
+         convertStartMs - formsStartMs,
+         endMs - convertStartMs,
+         ctx->chunkCount,
+         ctx->maxChunkMs);
+
+    delete ctx;
 }
 
 int mapToDisplay(int dpi, int x) {

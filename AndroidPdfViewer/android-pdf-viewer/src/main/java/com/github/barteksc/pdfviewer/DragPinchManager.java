@@ -225,6 +225,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         }
 
         scrolling = true;
+        pdfView.setRenderInteractionActive(true);
         if (pdfView.isZooming() || pdfView.isSwipeEnabled()) {
             if (pdfView.isHorizontalSwipeDisabled()) distanceX = 0;
             if (pdfView.isFreeScrollMode()) distanceX = applyAxisLock(e1, e2, distanceX, distanceY);
@@ -259,6 +260,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
     }
 
     private void onScrollEnd(MotionEvent event) {
+        pdfView.setRenderInteractionActive(false);
         pdfView.loadPages();
         hideHandle();
         if (!animationManager.isFlinging()) {
@@ -373,12 +375,14 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         scaling = true;
         scaleRenderZoom = pdfView.getZoom();
         pdfView.cacheManager.setScaling(true);
+        pdfView.setRenderInteractionActive(true);
         return true;
     }
 
     @Override
     public void onScaleEnd(ScaleGestureDetector detector) {
         pdfView.cacheManager.setScaling(false);
+        pdfView.setRenderInteractionActive(false);
         pdfView.loadPages();
         hideHandle();
         scaling = false;

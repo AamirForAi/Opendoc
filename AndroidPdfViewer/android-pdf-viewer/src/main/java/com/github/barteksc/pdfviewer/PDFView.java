@@ -18,8 +18,11 @@ package com.github.barteksc.pdfviewer;
 import static com.github.barteksc.pdfviewer.util.Constants.Pinch.MAXIMUM_ZOOM;
 import static com.github.barteksc.pdfviewer.util.Constants.Pinch.MINIMUM_ZOOM;
 
+import android.content.ComponentCallbacks2;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorMatrix;
@@ -37,7 +40,6 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.os.HandlerThread;
 import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -62,8 +64,17 @@ import com.github.barteksc.pdfviewer.listener.OnPageScrollListener;
 import com.github.barteksc.pdfviewer.listener.OnRenderListener;
 import com.github.barteksc.pdfviewer.listener.OnTapListener;
 import com.github.barteksc.pdfviewer.listener.OnTextSelectionChangeListener;
+import com.github.barteksc.pdfviewer.model.CropBounds;
 import com.github.barteksc.pdfviewer.model.CropMargins;
 import com.github.barteksc.pdfviewer.model.PagePart;
+import com.github.barteksc.pdfviewer.preview.GenerationSource;
+import com.github.barteksc.pdfviewer.preview.PreviewBitmapAdapter;
+import com.github.barteksc.pdfviewer.preview.PreviewBitmapPool;
+import com.github.barteksc.pdfviewer.preview.PreviewCodec;
+import com.github.barteksc.pdfviewer.preview.PreviewStore;
+import com.github.barteksc.pdfviewer.preview.PreviewSweepCursor;
+import com.github.barteksc.pdfviewer.preview.TagSource;
+import com.github.barteksc.pdfviewer.preview.TransientPageFilter;
 import com.github.barteksc.pdfviewer.scroll.ScrollHandle;
 import com.github.barteksc.pdfviewer.source.AssetSource;
 import com.github.barteksc.pdfviewer.source.ByteArraySource;
@@ -81,6 +92,7 @@ import com.shockwave.pdfium.PdfiumCore;
 import com.shockwave.pdfium.util.Size;
 import com.shockwave.pdfium.util.SizeF;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -92,6 +104,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 
 /**
  * It supports animations, zoom, cache, and swipe.
@@ -245,6 +261,9 @@ public class PDFView extends RelativeLayout {
             return;
         }
         invalidatePageContent(page);
+        if (renderScheduler != null) {
+            renderScheduler.cancelPage(page);
+        }
         loadPages();
     }
 
@@ -253,6 +272,11 @@ public class PDFView extends RelativeLayout {
         cacheManager.invalidatePageParts(page);
         pdfFile.invalidateHighlightAnnotationCache(page);
         pdfFile.invalidateFormFieldRectCache(page);
+        PreviewStore<Bitmap> store = previewStore;
+        if (store != null) {
+            store.invalidatePage(page);
+        }
+        sweepCursor.reset(page);
         requestPrewarm(page);
     }
 
@@ -265,20 +289,20 @@ public class PDFView extends RelativeLayout {
     }
 
     private void bumpPageGeneration(int page) {
-        if (pageGenerations != null && page >= 0 && page < pageGenerations.length) {
-            pageGenerations[page]++;
+        if (pageGenerations != null && page >= 0 && page < pageGenerations.length()) {
+            pageGenerations.incrementAndGet(page);
         }
     }
 
     public int getPageGeneration(int page) {
-        if (pageGenerations != null && page >= 0 && page < pageGenerations.length) {
-            return pageGenerations[page];
+        if (pageGenerations != null && page >= 0 && page < pageGenerations.length()) {
+            return pageGenerations.get(page);
         }
         return 0;
     }
 
     void requestPrewarm(int page) {
-        if (renderingHandler == null || page < 0) {
+        if (renderScheduler == null || page < 0) {
             return;
         }
         synchronized (prewarmPending) {
@@ -286,7 +310,13 @@ public class PDFView extends RelativeLayout {
                 return;
             }
         }
-        renderingHandler.requestPrewarm(page);
+        renderScheduler.submitPrewarm(page);
+    }
+
+    public void setRenderInteractionActive(boolean active) {
+        if (renderScheduler != null) {
+            renderScheduler.setInteractionActive(active);
+        }
     }
 
     void onPrewarmStarted(int page) {
@@ -297,6 +327,219 @@ public class PDFView extends RelativeLayout {
 
     void onPrewarmComplete(int page) {
         postInvalidate();
+    }
+
+    void requestPreview(int page) {
+        if (!USE_PREVIEW_STORE) {
+            return;
+        }
+        final PreviewStore<Bitmap> store = previewStore;
+        if (store == null || pdfFile == null || page < 0 || page >= pdfFile.getPagesCount()) {
+            return;
+        }
+        synchronized (previewPending) {
+            if (!previewPending.add(page)) {
+                return;
+            }
+        }
+        final int requested = page;
+        store.requestDecode(page, new Runnable() {
+            @Override
+            public void run() {
+                clearPreviewPending(requested);
+                postInvalidate();
+            }
+        }, new Runnable() {
+            @Override
+            public void run() {
+                submitPreviewRender(requested);
+            }
+        });
+    }
+
+    private void submitPreviewRender(int page) {
+        RenderScheduler scheduler = renderScheduler;
+        RenderTask task = buildPreviewTask(page, RenderTask.P0);
+        if (scheduler == null || task == null) {
+            clearPreviewPending(page);
+            return;
+        }
+        scheduler.submit(task);
+    }
+
+    private RenderTask buildPreviewTask(int page, int priorityClass) {
+        if (pdfFile == null || page < 0 || page >= pdfFile.getPagesCount()) {
+            return null;
+        }
+        float width = previewBucket;
+        float height = width * pdfFile.fullPageAspectRatio(page);
+        if (width <= 0f || height <= 0f) {
+            return null;
+        }
+        return RenderTask.preview(page, width, height, annotationRendering, priorityClass);
+    }
+
+    private void clearPreviewPending(int page) {
+        synchronized (previewPending) {
+            previewPending.remove(page);
+        }
+    }
+
+    Bitmap peekPreview(int page) {
+        PreviewStore<Bitmap> store = previewStore;
+        return store == null ? null : store.peek(page);
+    }
+
+    void onPreviewStarted(int page) {
+        clearPreviewPending(page);
+    }
+
+    void onPreviewRendered(int page, Bitmap bitmap, int generation) {
+        PreviewStore<Bitmap> store = previewStore;
+        if (store != null && generation == getPageGeneration(page)) {
+            store.put(page, bitmap, generation);
+        } else if (bitmap != null) {
+            synchronized (bitmap) {
+                bitmap.recycle();
+            }
+        }
+        clearPreviewPending(page);
+        postInvalidate();
+    }
+
+    public void setPreviewTagSource(TagSource tagSource) {
+        this.previewTagSource = tagSource;
+    }
+
+    public void setRenderFlinging(boolean flinging) {
+        if (renderScheduler != null) {
+            renderScheduler.setFlinging(flinging);
+        }
+    }
+
+    public void attachPreviewDisk(File dir, String docKey) {
+        PreviewStore<Bitmap> store = previewStore;
+        if (store == null || dir == null || docKey == null) {
+            return;
+        }
+        store.attachDisk(dir, docKey);
+        sweepCursor.resetAll();
+    }
+
+    private void initPreviewStore(PdfFile file) {
+        previewBucket = Math.max(1, Math.round(Constants.THUMBNAIL_RATIO * file.getMaxPageWidth()));
+
+        previewEncoder = Executors.newSingleThreadExecutor(previewThreadFactory("pdf-preview-encode"));
+        previewDecoder = Executors.newFixedThreadPool(2, previewThreadFactory("pdf-preview-decode"));
+
+        AndroidPreviewBitmaps bitmaps = new AndroidPreviewBitmaps(previewBucket);
+        GenerationSource generationSource = new GenerationSource() {
+            @Override
+            public int generationOf(int page) {
+                return getPageGeneration(page);
+            }
+        };
+        TagSource tagSource = new TagSource() {
+            @Override
+            public int tagOf(int page) {
+                TagSource source = previewTagSource;
+                return source == null ? 0 : source.tagOf(page);
+            }
+        };
+        TransientPageFilter transientFilter = new TransientPageFilter() {
+            @Override
+            public boolean isTransient(int page) {
+                return isSearchMarkerPage(page);
+            }
+        };
+        long memoryBudget = Runtime.getRuntime().maxMemory() / 8;
+        long diskBudget = 96L * 1024L * 1024L;
+        previewStore = new PreviewStore<>(bitmaps, bitmaps, generationSource, tagSource, transientFilter,
+                previewEncoder, previewDecoder, memoryBudget, diskBudget, 4);
+        previewStore.setBucket(previewBucket);
+        bitmaps.attachPool(previewStore.getPool());
+
+        sweepCursor.ensureCapacity(file.getPagesCount());
+        sweepCursor.resetAll();
+        renderScheduler.setIdleProducer(createSweepProducer());
+        registerPreviewTrimCallbacks();
+    }
+
+    private RenderQueue.IdleProducer createSweepProducer() {
+        final PreviewSweepCursor.Coverage coverage = new PreviewSweepCursor.Coverage() {
+            @Override
+            public boolean covered(int page) {
+                PreviewStore<Bitmap> store = previewStore;
+                if (store == null) {
+                    return true;
+                }
+                return store.peek(page) != null || store.hasOnDisk(page);
+            }
+
+            @Override
+            public boolean pending(int page) {
+                synchronized (previewPending) {
+                    return previewPending.contains(page);
+                }
+            }
+        };
+        return new RenderQueue.IdleProducer() {
+            @Override
+            public RenderTask produce() {
+                PdfFile file = pdfFile;
+                if (file == null || previewStore == null) {
+                    return null;
+                }
+                int count = file.getPagesCount();
+                sweepCursor.ensureCapacity(count);
+                int page = sweepCursor.nextPage(currentPage, lastScrollDir, coverage);
+                if (page < 0) {
+                    return null;
+                }
+                return buildPreviewTask(page, RenderTask.P2);
+            }
+        };
+    }
+
+    private void registerPreviewTrimCallbacks() {
+        if (previewTrimCallbacks != null) {
+            return;
+        }
+        previewTrimCallbacks = new ComponentCallbacks2() {
+            @Override
+            public void onTrimMemory(int level) {
+                PreviewStore<Bitmap> store = previewStore;
+                if (store != null && (level >= TRIM_MEMORY_RUNNING_LOW || level == TRIM_MEMORY_UI_HIDDEN)) {
+                    store.dropMemory();
+                }
+            }
+
+            @Override
+            public void onConfigurationChanged(Configuration newConfig) {
+            }
+
+            @Override
+            public void onLowMemory() {
+            }
+        };
+        getContext().registerComponentCallbacks(previewTrimCallbacks);
+    }
+
+    private static ThreadFactory previewThreadFactory(final String name) {
+        return new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable runnable) {
+                Thread thread = new Thread(runnable, name);
+                thread.setPriority(Thread.NORM_PRIORITY);
+                return thread;
+            }
+        };
+    }
+
+    boolean isSearchMarkerPage(int page) {
+        synchronized (searchMarkerPages) {
+            return searchMarkerPages.contains(page);
+        }
     }
 
     /*
@@ -380,22 +623,37 @@ public class PDFView extends RelativeLayout {
      */
     private DecodingAsyncTask decodingAsyncTask;
 
-    /**
-     * The thread {@link #renderingHandler} will run on
-     */
-    private HandlerThread renderingHandlerThread;
-    /**
-     * Handler always waiting in the background and rendering tasks
-     */
-    RenderingHandler renderingHandler;
+    RenderScheduler renderScheduler;
 
     private PagesLoader pagesLoader;
 
-    private int[] pageGenerations;
+    private AtomicIntegerArray pageGenerations;
 
     private final Set<Integer> prewarmPending = new LinkedHashSet<>();
 
     private final Set<Integer> searchMarkerPages = new LinkedHashSet<>();
+
+    static final boolean USE_PREVIEW_STORE = true;
+
+    private volatile PreviewStore<Bitmap> previewStore;
+
+    private final Set<Integer> previewPending = new LinkedHashSet<>();
+
+    private volatile TagSource previewTagSource;
+
+    private int previewBucket;
+
+    private final PreviewSweepCursor sweepCursor = new PreviewSweepCursor();
+
+    private volatile int lastScrollDir = 1;
+
+    private ExecutorService previewEncoder;
+
+    private ExecutorService previewDecoder;
+
+    private ComponentCallbacks2 previewTrimCallbacks;
+
+    private final Set<Integer> previewVisiblePages = new LinkedHashSet<>();
 
     Callbacks callbacks = new Callbacks();
 
@@ -544,8 +802,6 @@ public class PDFView extends RelativeLayout {
      */
     public PDFView(Context context, AttributeSet set) {
         super(context, set);
-
-        renderingHandlerThread = new HandlerThread("PDF renderer");
 
         if (isInEditMode()) {
             return;
@@ -792,10 +1048,8 @@ public class PDFView extends RelativeLayout {
         dragPinchManager.disable();
 
         // Stop tasks
-        if (renderingHandler != null) {
-            renderingHandler.stop();
-            renderingHandler.removeMessages(RenderingHandler.MSG_RENDER_TASK);
-            renderingHandler.removeMessages(RenderingHandler.MSG_PREWARM_TASK);
+        if (renderScheduler != null) {
+            renderScheduler.stop();
         }
         if (decodingAsyncTask != null) {
             decodingAsyncTask.cancel(true);
@@ -821,7 +1075,6 @@ public class PDFView extends RelativeLayout {
             pdfFile = null;
         }
 
-        renderingHandler = null;
         scrollHandle = null;
         isScrollHandleInit = false;
         currentXOffset = currentYOffset = 0;
@@ -830,7 +1083,32 @@ public class PDFView extends RelativeLayout {
         synchronized (prewarmPending) {
             prewarmPending.clear();
         }
-        searchMarkerPages.clear();
+        synchronized (searchMarkerPages) {
+            searchMarkerPages.clear();
+        }
+
+        PreviewStore<Bitmap> store = previewStore;
+        previewStore = null;
+        if (store != null) {
+            store.close();
+        }
+        if (previewTrimCallbacks != null) {
+            getContext().unregisterComponentCallbacks(previewTrimCallbacks);
+            previewTrimCallbacks = null;
+        }
+        if (previewEncoder != null) {
+            previewEncoder.shutdownNow();
+            previewEncoder = null;
+        }
+        if (previewDecoder != null) {
+            previewDecoder.shutdownNow();
+            previewDecoder = null;
+        }
+        synchronized (previewPending) {
+            previewPending.clear();
+        }
+        sweepCursor.resetAll();
+
         pageGenerations = null;
         recycled = true;
         callbacks = new Callbacks();
@@ -941,13 +1219,9 @@ public class PDFView extends RelativeLayout {
 
     public void release() {
         recycle();
-        if (renderingHandlerThread != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                renderingHandlerThread.quitSafely();
-            } else {
-                renderingHandlerThread.quit();
-            }
-            renderingHandlerThread = null;
+        if (renderScheduler != null) {
+            renderScheduler.join();
+            renderScheduler = null;
         }
     }
 
@@ -1095,10 +1369,12 @@ public class PDFView extends RelativeLayout {
         canvas.translate(currentXOffset, currentYOffset);
         Set<Integer> visiblePages = new LinkedHashSet<>();
 
-        // Draws thumbnails
-        for (PagePart part : cacheManager.getThumbnails()) {
-            drawPart(canvas, part);
-
+        if (USE_PREVIEW_STORE) {
+            drawPreviews(canvas);
+        } else {
+            for (PagePart part : cacheManager.getThumbnails()) {
+                drawPart(canvas, part);
+            }
         }
 
         // Draws parts
@@ -1279,6 +1555,99 @@ public class PDFView extends RelativeLayout {
         }
     }
 
+    private void drawPreviews(Canvas canvas) {
+        PreviewStore<Bitmap> store = previewStore;
+        if (store == null || pdfFile == null) {
+            return;
+        }
+        previewVisiblePages.clear();
+        collectVisiblePages(previewVisiblePages);
+        for (Integer page : previewVisiblePages) {
+            Bitmap preview = store.peek(page);
+            if (preview == null) {
+                requestPreview(page);
+            } else {
+                drawPreview(canvas, page, preview);
+            }
+        }
+    }
+
+    private void collectVisiblePages(Set<Integer> out) {
+        if (pdfFile == null) {
+            return;
+        }
+        int count = pdfFile.getPagesCount();
+        if (count <= 0) {
+            return;
+        }
+        float offset = swipeVertical ? currentYOffset : currentXOffset;
+        float viewSize = swipeVertical ? getHeight() : getWidth();
+        float startDist = Math.max(0f, -offset);
+        float endDist = Math.max(0f, -offset + viewSize);
+        int first = pdfFile.getPageAtOffset(startDist, zoom);
+        int last = pdfFile.getPageAtOffset(endDist, zoom);
+        int from = Math.max(0, Math.min(first, last) - 1);
+        int to = Math.min(count - 1, Math.max(first, last) + 1);
+        for (int page = from; page <= to; page++) {
+            out.add(page);
+        }
+    }
+
+    private void drawPreview(Canvas canvas, int page, Bitmap bitmap) {
+        if (bitmap == null) {
+            return;
+        }
+        synchronized (bitmap) {
+            if (bitmap.isRecycled()) {
+                return;
+            }
+            int bitmapWidth = bitmap.getWidth();
+            int bitmapHeight = bitmap.getHeight();
+            if (bitmapWidth <= 0 || bitmapHeight <= 0) {
+                return;
+            }
+
+            SizeF size = pdfFile.getPageSize(page);
+            float localTranslationX;
+            float localTranslationY;
+            if (swipeVertical) {
+                localTranslationY = pdfFile.getPageOffset(page, zoom);
+                localTranslationX = pdfFile.getSecondaryPageOffset(page, zoom);
+            } else {
+                localTranslationX = pdfFile.getPageOffset(page, zoom);
+                localTranslationY = pdfFile.getSecondaryPageOffset(page, zoom);
+            }
+            canvas.translate(localTranslationX, localTranslationY);
+
+            float width = toCurrentScale(size.getWidth());
+            float height = toCurrentScale(size.getHeight());
+            RectF dstRect = new RectF(0, 0, (int) width, (int) height);
+
+            float translationX = currentXOffset + localTranslationX;
+            float translationY = currentYOffset + localTranslationY;
+            if (translationX + dstRect.left >= getWidth() || translationX + dstRect.right <= 0
+                    || translationY + dstRect.top >= getHeight() || translationY + dstRect.bottom <= 0) {
+                canvas.translate(-localTranslationX, -localTranslationY);
+                return;
+            }
+
+            CropBounds crop = pdfFile.getPageCropBounds(page);
+            int srcLeft = (int) (crop.getLeft() * bitmapWidth);
+            int srcTop = (int) (crop.getTop() * bitmapHeight);
+            int srcRight = (int) (crop.getRight() * bitmapWidth);
+            int srcBottom = (int) (crop.getBottom() * bitmapHeight);
+            if (srcRight <= srcLeft || srcBottom <= srcTop) {
+                canvas.translate(-localTranslationX, -localTranslationY);
+                return;
+            }
+
+            Rect srcRect = new Rect(srcLeft, srcTop, srcRight, srcBottom);
+            canvas.drawBitmap(bitmap, srcRect, dstRect, paint);
+
+            canvas.translate(-localTranslationX, -localTranslationY);
+        }
+    }
+
     /**
      * Draw a given PagePart on the canvas
      */
@@ -1351,15 +1720,21 @@ public class PDFView extends RelativeLayout {
      * the current page displayed
      */
     public void loadPages() {
-        if (pdfFile == null || renderingHandler == null) {
+        if (pdfFile == null || renderScheduler == null) {
             return;
         }
 
-        // Cancel all current tasks
-        renderingHandler.removeMessages(RenderingHandler.MSG_RENDER_TASK);
+        if (USE_PREVIEW_STORE) {
+            synchronized (previewPending) {
+                previewPending.clear();
+            }
+        }
+
+        renderScheduler.beginWave(RenderQueue.WaveKind.LOAD);
         cacheManager.makeANewSet();
 
         pagesLoader.loadPages();
+        renderScheduler.endWave();
         redraw();
     }
 
@@ -1369,12 +1744,13 @@ public class PDFView extends RelativeLayout {
      * refreshes during a pinch gesture.
      */
     void loadViewportSnapshot() {
-        if (pdfFile == null || renderingHandler == null) {
+        if (pdfFile == null || renderScheduler == null) {
             return;
         }
 
-        renderingHandler.removeMessages(RenderingHandler.MSG_RENDER_TASK);
+        renderScheduler.beginWave(RenderQueue.WaveKind.SNAPSHOT);
         pagesLoader.loadViewportSnapshot();
+        renderScheduler.endWave();
         redraw();
     }
 
@@ -1390,17 +1766,14 @@ public class PDFView extends RelativeLayout {
             return;
         }
 
-        pageGenerations = new int[pdfFile.getPagesCount()];
+        pageGenerations = new AtomicIntegerArray(pdfFile.getPagesCount());
 
-        if (renderingHandlerThread == null) {
-            renderingHandlerThread = new HandlerThread("PDF renderer");
-        }
+        renderScheduler = new RenderScheduler(this, new RenderScheduler.PdfExecutor(this));
+        renderScheduler.start();
 
-        if (!renderingHandlerThread.isAlive()) {
-            renderingHandlerThread.start();
+        if (USE_PREVIEW_STORE) {
+            initPreviewStore(pdfFile);
         }
-        renderingHandler = new RenderingHandler(renderingHandlerThread.getLooper(), this);
-        renderingHandler.start();
 
         if (scrollHandle != null) {
             scrollHandle.setupLayout(this);
@@ -1503,6 +1876,16 @@ public class PDFView extends RelativeLayout {
         if (state == State.LOADED) {
             state = State.SHOWN;
             callbacks.callOnRender(pdfFile.getPagesCount());
+        }
+
+        if (part.getGeneration() != getPageGeneration(part.getPage())) {
+            Bitmap bitmap = part.getRenderedBitmap();
+            if (bitmap != null) {
+                synchronized (bitmap) {
+                    bitmap.recycle();
+                }
+            }
+            return;
         }
 
         if (part.isThumbnail()) {
@@ -1625,6 +2008,12 @@ public class PDFView extends RelativeLayout {
             } else {
                 scrollDir = ScrollDir.NONE;
             }
+        }
+
+        if (scrollDir == ScrollDir.END) {
+            lastScrollDir = 1;
+        } else if (scrollDir == ScrollDir.START) {
+            lastScrollDir = -1;
         }
 
         currentXOffset = offsetX;
@@ -2873,7 +3262,9 @@ public class PDFView extends RelativeLayout {
             int pageIndex = pageNumber - 1;
             Rect[] result = pdfFile.createHighlightText(pageIndex, start, end, padding);
             if (result != null && result.length > 0) {
-                searchMarkerPages.add(pageIndex);
+                synchronized (searchMarkerPages) {
+                    searchMarkerPages.add(pageIndex);
+                }
                 pageContentChanged(pageIndex);
             }
             return result == null ? emptyArray : result;
@@ -2887,17 +3278,23 @@ public class PDFView extends RelativeLayout {
         if (pdfFile == null) {
             return;
         }
-        if (pageNumber - 1 >= 0) {
-            searchMarkerPages.add(pageNumber - 1);
+        List<Integer> pages;
+        synchronized (searchMarkerPages) {
+            if (pageNumber - 1 >= 0) {
+                searchMarkerPages.add(pageNumber - 1);
+            }
+            if (searchMarkerPages.isEmpty()) {
+                return;
+            }
+            pages = new ArrayList<>(searchMarkerPages);
         }
-        if (searchMarkerPages.isEmpty()) {
-            return;
-        }
-        for (Integer page : searchMarkerPages) {
+        for (Integer page : pages) {
             pdfFile.clearSearchResultsAnnot(page);
             invalidatePageContent(page);
         }
-        searchMarkerPages.clear();
+        synchronized (searchMarkerPages) {
+            searchMarkerPages.removeAll(pages);
+        }
         loadPages();
     }
 

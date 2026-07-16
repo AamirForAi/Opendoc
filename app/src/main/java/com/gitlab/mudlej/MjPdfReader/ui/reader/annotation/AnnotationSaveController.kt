@@ -11,6 +11,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.core.net.toUri
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
+import com.gitlab.mudlej.MjPdfReader.ui.reader.load.PreviewDiskCoordinator
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
@@ -271,6 +272,15 @@ class AnnotationSaveController(
                 pendingPostSaveAction = null
                 return@launch
             }
+            PreviewDiskCoordinator.attach(
+                pdfView = binding.pdfView,
+                cacheDir = activity.cacheDir,
+                fileHash = newHash,
+                pageCount = binding.pdfView.getPageCount(),
+                sizeBytes = saveResult.bytes.size.toLong(),
+                incognito = vm.incognito,
+                hasPassword = pdf.password != null,
+            )
             annotationController.setCurrentSaveDestination(destinationUri, durable = saveDestinationDurably)
             onDocumentSaved()
             activity.setTaskDescription(ActivityManager.TaskDescription(pdf.name))

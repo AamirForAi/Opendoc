@@ -2,7 +2,9 @@
 
 package com.gitlab.mudlej.MjPdfReader.ui.reader.load
 
+import android.content.ContentResolver
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.util.Log
 import androidx.core.net.toUri
 import com.github.barteksc.pdfviewer.PDFView
@@ -547,6 +549,7 @@ class DocumentLoader(
             if (hash != null) {
                 doc.fileHash = hash
                 emit { it.onFileHashComputed() }
+                attachPreviewDiskIfCurrent(hash, loadToken, documentUri)
                 if (historyPolicy.canRecord()) {
                     pdfRepository.setPageNumber(hash, pageNumber)
                 }
@@ -554,6 +557,42 @@ class DocumentLoader(
             else {
                 showFailedToComputeHashError()
             }
+        }
+    }
+
+    private suspend fun attachPreviewDiskIfCurrent(fileHash: String, loadToken: Long, documentUri: Uri?) {
+        val sizeBytes = resolveDocumentSize(doc.uri)
+        if (!vm.isCurrent(loadToken, documentUri)) {
+            return
+        }
+        PreviewDiskCoordinator.attach(
+            pdfView = binding.pdfView,
+            cacheDir = context.cacheDir,
+            fileHash = fileHash,
+            pageCount = binding.pdfView.getPageCount(),
+            sizeBytes = sizeBytes,
+            incognito = vm.incognito,
+            hasPassword = doc.password != null,
+        )
+    }
+
+    private suspend fun resolveDocumentSize(uri: Uri?): Long? {
+        if (uri == null) {
+            return null
+        }
+        PdfBytesHolder.bytesFor(uri.toString())?.let { return it.size.toLong() }
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                when (uri.scheme) {
+                    ContentResolver.SCHEME_CONTENT ->
+                        context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+                            val index = cursor.getColumnIndex(OpenableColumns.SIZE)
+                            if (cursor.moveToFirst() && index >= 0 && !cursor.isNull(index)) cursor.getLong(index) else null
+                        }
+                    ContentResolver.SCHEME_FILE -> uri.path?.let { path -> File(path).length().takeIf { it > 0 } }
+                    else -> null
+                }
+            }.getOrNull()
         }
     }
 

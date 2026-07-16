@@ -6,12 +6,14 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.github.barteksc.pdfviewer.PDFView
+import com.github.barteksc.pdfviewer.preview.TagSource
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationEdit
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationJournal
 import com.gitlab.mudlej.MjPdfReader.data.annotation.SourceKey
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -23,6 +25,10 @@ class AnnotationController(
 ) {
     private val journal = AnnotationJournal(context)
     private val pdf get() = vm.doc
+
+    private val pageContentTags = ConcurrentHashMap<Int, Int>()
+
+    val previewTagSource = TagSource { page -> pageContentTags[page] ?: 0 }
 
     val currentSaveDestinationUri: Uri?
         get() = vm.annotationSaveDestinationUri
@@ -52,11 +58,29 @@ class AnnotationController(
 
     fun recordEdit(edit: AnnotationEdit) {
         val uri = pdf.uri ?: return
+        applyContentTag(edit)
         if (historyPolicy.canRecord()) {
             journal.append(uri, edit)
         }
         vm.sessionOwnedAnnotationKeys.add(SourceKey.of(uri))
         vm.hasUnsavedAnnotations = true
+    }
+
+    fun resetContentTags() {
+        pageContentTags.clear()
+    }
+
+    private fun applyContentTag(edit: AnnotationEdit) {
+        val hash = renderAffectingHash(edit) ?: return
+        val previous = pageContentTags[edit.page] ?: 0
+        pageContentTags[edit.page] = 31 * previous + hash
+    }
+
+    private fun renderAffectingHash(edit: AnnotationEdit): Int? = when (edit) {
+        is AnnotationEdit.AddSignature,
+        is AnnotationEdit.SetFieldText,
+        is AnnotationEdit.SetFieldChecked -> edit.toJsonLine().hashCode()
+        else -> null
     }
 
     fun hasJournal(uri: Uri?): Boolean {
@@ -73,6 +97,7 @@ class AnnotationController(
 
     fun clearJournal(uri: Uri? = pdf.uri) {
         uri?.let(journal::delete)
+        pageContentTags.clear()
         vm.hasUnsavedAnnotations = false
     }
 
@@ -83,6 +108,7 @@ class AnnotationController(
             return false
         }
         withContext(Dispatchers.Main) {
+            pageContentTags.clear()
             edits.forEach(::applyEdit)
         }
         markSessionOwned(uri)
@@ -91,6 +117,7 @@ class AnnotationController(
     }
 
     private fun applyEdit(edit: AnnotationEdit) {
+        applyContentTag(edit)
         val pdfView = binding.pdfView
         val applied = when (edit) {
             is AnnotationEdit.Add ->
