@@ -246,7 +246,6 @@ class DocumentLoader(
     }
 
     fun applyTileRenderingPreferences() {
-        Constants.THUMBNAIL_RATIO = pref.getThumbnailRation()
         val partSize = pref.getPartSize()
         Constants.PART_SIZE = partSize
         val tilePixels = partSize * partSize

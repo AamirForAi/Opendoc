@@ -18,6 +18,7 @@ package com.github.barteksc.pdfviewer;
 import static com.github.barteksc.pdfviewer.util.Constants.Pinch.MAXIMUM_ZOOM;
 import static com.github.barteksc.pdfviewer.util.Constants.Pinch.MINIMUM_ZOOM;
 
+import android.app.ActivityManager;
 import android.content.ComponentCallbacks2;
 import android.content.Context;
 import android.content.res.Configuration;
@@ -330,9 +331,6 @@ public class PDFView extends RelativeLayout {
     }
 
     void requestPreview(int page) {
-        if (!USE_PREVIEW_STORE) {
-            return;
-        }
         final PreviewStore<Bitmap> store = previewStore;
         if (store == null || pdfFile == null || page < 0 || page >= pdfFile.getPagesCount()) {
             return;
@@ -426,8 +424,42 @@ public class PDFView extends RelativeLayout {
         sweepCursor.resetAll();
     }
 
+    private boolean isPreviewLowTier() {
+        Boolean cached = previewLowTierCache;
+        if (cached != null) {
+            return cached;
+        }
+        boolean low = computePreviewLowTier(getContext());
+        previewLowTierCache = low;
+        return low;
+    }
+
+    private static boolean computePreviewLowTier(Context context) {
+        if (context == null) {
+            return false;
+        }
+        try {
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am == null) {
+                return false;
+            }
+            if (am.isLowRamDevice() || am.getMemoryClass() <= 128) {
+                return true;
+            }
+            ActivityManager.MemoryInfo info = new ActivityManager.MemoryInfo();
+            am.getMemoryInfo(info);
+            return info.totalMem <= (7L * 1024L * 1024L * 1024L) / 2L;
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    int previewExtraFlags() {
+        return isPreviewLowTier() ? PdfiumCore.RENDER_FLAG_NO_SMOOTHIMAGE : 0;
+    }
+
     private void initPreviewStore(PdfFile file) {
-        previewBucket = Math.max(1, Math.round(Constants.THUMBNAIL_RATIO * file.getMaxPageWidth()));
+        previewBucket = PreviewBucketPolicy.bucketFor(file.getMaxPageWidth(), isPreviewLowTier());
 
         previewEncoder = Executors.newSingleThreadExecutor(previewThreadFactory("pdf-preview-encode"));
         previewDecoder = Executors.newFixedThreadPool(2, previewThreadFactory("pdf-preview-decode"));
@@ -542,16 +574,6 @@ public class PDFView extends RelativeLayout {
         }
     }
 
-    /*
-        // MUDLEJ
-        // this could be used for an advanced Go To page, but I think it should use PagingSource to be smooth
-        val thumbnails = binding.pdfView.thumbnails ?: return true
-        val images  = thumbnails.filter { it.isThumbnail }.map { it.renderedBitmap }
-    */
-    public List<PagePart> getThumbnails() {
-        return cacheManager.getThumbnails();
-    }
-
     /**
      * START - scrolling in first page direction
      * END - scrolling in last page direction
@@ -633,7 +655,7 @@ public class PDFView extends RelativeLayout {
 
     private final Set<Integer> searchMarkerPages = new LinkedHashSet<>();
 
-    static final boolean USE_PREVIEW_STORE = true;
+    private static volatile Boolean previewLowTierCache;
 
     private volatile PreviewStore<Bitmap> previewStore;
 
@@ -1369,13 +1391,7 @@ public class PDFView extends RelativeLayout {
         canvas.translate(currentXOffset, currentYOffset);
         Set<Integer> visiblePages = new LinkedHashSet<>();
 
-        if (USE_PREVIEW_STORE) {
-            drawPreviews(canvas);
-        } else {
-            for (PagePart part : cacheManager.getThumbnails()) {
-                drawPart(canvas, part);
-            }
-        }
+        drawPreviews(canvas);
 
         // Draws parts
         for (PagePart part : cacheManager.getPageParts()) {
@@ -1724,10 +1740,8 @@ public class PDFView extends RelativeLayout {
             return;
         }
 
-        if (USE_PREVIEW_STORE) {
-            synchronized (previewPending) {
-                previewPending.clear();
-            }
+        synchronized (previewPending) {
+            previewPending.clear();
         }
 
         renderScheduler.beginWave(RenderQueue.WaveKind.LOAD);
@@ -1771,9 +1785,7 @@ public class PDFView extends RelativeLayout {
         renderScheduler = new RenderScheduler(this, new RenderScheduler.PdfExecutor(this));
         renderScheduler.start();
 
-        if (USE_PREVIEW_STORE) {
-            initPreviewStore(pdfFile);
-        }
+        initPreviewStore(pdfFile);
 
         if (scrollHandle != null) {
             scrollHandle.setupLayout(this);
@@ -1888,11 +1900,7 @@ public class PDFView extends RelativeLayout {
             return;
         }
 
-        if (part.isThumbnail()) {
-            cacheManager.cacheThumbnail(part);
-        } else {
-            cacheManager.cachePart(part);
-        }
+        cacheManager.cachePart(part);
         redraw();
     }
 
@@ -3681,6 +3689,7 @@ public class PDFView extends RelativeLayout {
             }
             PDFView.this.recycle();
             PdfFile.setDebugChecksEnabled(debugChecks);
+            PdfiumCore.setTimingLogsEnabled(debugChecks);
             PDFView.this.callbacks.setOnLoadComplete(onLoadCompleteListener);
             PDFView.this.callbacks.setOnError(onErrorListener);
             PDFView.this.callbacks.setOnDraw(onDrawListener);

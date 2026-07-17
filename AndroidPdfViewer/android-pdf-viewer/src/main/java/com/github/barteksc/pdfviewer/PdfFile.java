@@ -821,14 +821,6 @@ class PdfFile {
         }
     }
 
-    public boolean renderPageBitmapCancellable(Bitmap bitmap, int pageIndex, Rect bounds,
-                                               boolean annotationRendering, int extraFlags, AtomicBoolean cancel) {
-        throwIfMainThreadFill("renderPageBitmapCancellable");
-        int docPage = documentPage(pageIndex);
-        Rect renderBounds = mapCropRenderBoundsToFullPage(pageIndex, bounds.left, bounds.top, bounds.width(), bounds.height());
-        return renderChunked(bitmap, docPage, renderBounds, annotationRendering, extraFlags, cancel);
-    }
-
     public boolean renderFullPageBitmapCancellable(Bitmap bitmap, int pageIndex,
                                                    boolean annotationRendering, int extraFlags, AtomicBoolean cancel) {
         throwIfMainThreadFill("renderFullPageBitmapCancellable");

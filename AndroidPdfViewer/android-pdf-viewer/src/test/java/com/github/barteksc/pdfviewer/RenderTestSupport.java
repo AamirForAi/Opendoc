@@ -1,3 +1,4 @@
+// Written by Mudlej. License is GPLv3.
 package com.github.barteksc.pdfviewer;
 
 import java.util.HashMap;
@@ -29,7 +30,7 @@ final class RenderTestSupport {
 
     static RenderTask tile(int page, int priorityClass) {
         return new RenderTask(RenderTask.Kind.TILE, page, true, 0f, 0f, 1f, 1f,
-                10f, 10f, false, false, 0, false, false, priorityClass);
+                10f, 10f, false, 0, false, false, priorityClass);
     }
 
     static RenderTask preview(int page, int priorityClass) {

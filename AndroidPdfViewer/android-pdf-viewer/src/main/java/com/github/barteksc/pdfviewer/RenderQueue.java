@@ -1,3 +1,4 @@
+// Written by Mudlej. License is GPLv3.
 package com.github.barteksc.pdfviewer;
 
 import java.util.ArrayList;

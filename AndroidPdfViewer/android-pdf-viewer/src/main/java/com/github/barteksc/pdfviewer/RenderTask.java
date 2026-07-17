@@ -1,10 +1,11 @@
+// Written by Mudlej. License is GPLv3.
 package com.github.barteksc.pdfviewer;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
 class RenderTask {
 
-    enum Kind { TILE, THUMBNAIL, PREWARM, PREVIEW }
+    enum Kind { TILE, PREWARM, PREVIEW }
 
     static final int P0 = 0;
     static final int P1 = 1;
@@ -19,7 +20,6 @@ class RenderTask {
     final float boundsBottom;
     final float renderWidth;
     final float renderHeight;
-    final boolean thumbnail;
     final boolean snapshot;
     final int cacheOrder;
     final boolean bestQuality;
@@ -36,7 +36,7 @@ class RenderTask {
 
     RenderTask(Kind kind, int page, boolean hasBounds,
                float boundsLeft, float boundsTop, float boundsRight, float boundsBottom,
-               float renderWidth, float renderHeight, boolean thumbnail, boolean snapshot,
+               float renderWidth, float renderHeight, boolean snapshot,
                int cacheOrder, boolean bestQuality, boolean annotationRendering, int priorityClass) {
         this.kind = kind;
         this.page = page;
@@ -47,7 +47,6 @@ class RenderTask {
         this.boundsBottom = boundsBottom;
         this.renderWidth = renderWidth;
         this.renderHeight = renderHeight;
-        this.thumbnail = thumbnail;
         this.snapshot = snapshot;
         this.cacheOrder = cacheOrder;
         this.bestQuality = bestQuality;
@@ -59,29 +58,23 @@ class RenderTask {
                            float renderWidth, float renderHeight, boolean snapshot,
                            int cacheOrder, boolean bestQuality, boolean annotationRendering) {
         return new RenderTask(Kind.TILE, page, true, left, top, right, bottom,
-                renderWidth, renderHeight, false, snapshot, cacheOrder, bestQuality, annotationRendering, P0);
-    }
-
-    static RenderTask thumbnail(int page, float renderWidth, float renderHeight,
-                                boolean bestQuality, boolean annotationRendering) {
-        return new RenderTask(Kind.THUMBNAIL, page, true, 0f, 0f, 1f, 1f,
-                renderWidth, renderHeight, true, false, 0, bestQuality, annotationRendering, P0);
+                renderWidth, renderHeight, snapshot, cacheOrder, bestQuality, annotationRendering, P0);
     }
 
     static RenderTask prewarm(int page) {
         return new RenderTask(Kind.PREWARM, page, false, 0f, 0f, 0f, 0f,
-                0f, 0f, false, false, 0, false, false, P0);
+                0f, 0f, false, 0, false, false, P0);
     }
 
     static RenderTask preview(int page, float renderWidth, float renderHeight,
                               boolean annotationRendering, int priorityClass) {
         return new RenderTask(Kind.PREVIEW, page, true, 0f, 0f, 1f, 1f,
-                renderWidth, renderHeight, false, false, 0, false, annotationRendering, priorityClass);
+                renderWidth, renderHeight, false, 0, false, annotationRendering, priorityClass);
     }
 
     RenderTask copyForResubmit() {
         return new RenderTask(kind, page, hasBounds, boundsLeft, boundsTop, boundsRight, boundsBottom,
-                renderWidth, renderHeight, thumbnail, snapshot, cacheOrder, bestQuality, annotationRendering, priorityClass);
+                renderWidth, renderHeight, snapshot, cacheOrder, bestQuality, annotationRendering, priorityClass);
     }
 
     void cancelFromQueue() {

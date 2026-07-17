@@ -30,6 +30,8 @@ public class PdfiumCore {
     public static final int RENDER_STATUS_DONE = 2;
     public static final int RENDER_STATUS_FAILED = 3;
 
+    public static final int RENDER_FLAG_NO_SMOOTHIMAGE = 0x2000;
+
     static {
         try {
             System.loadLibrary("c++_shared");
@@ -89,6 +91,8 @@ public class PdfiumCore {
 
     private native void nativeRenderChunkedClose(long ctxPtr, long docPtr, long pagePtr, Bitmap bitmap,
                                                  boolean drawForms, boolean pageAlive, boolean completed);
+
+    private static native void nativeSetTimingLogsEnabled(boolean enabled);
 
     private native String nativeGetDocumentMetaText(long docPtr, String tag);
 
@@ -640,6 +644,10 @@ public class PdfiumCore {
                 Log.e(TAG, "renderPageBitmapChunkedClose: exception thrown from native", e);
             }
         }
+    }
+
+    public static void setTimingLogsEnabled(boolean enabled) {
+        nativeSetTimingLogsEnabled(enabled);
     }
 
     /** Release native resources and opened file */

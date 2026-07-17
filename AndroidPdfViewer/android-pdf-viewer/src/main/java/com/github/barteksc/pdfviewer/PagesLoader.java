@@ -38,7 +38,6 @@ class PagesLoader {
     private float pageRelativePartHeight;
     private float partRenderWidth;
     private float partRenderHeight;
-    private final RectF thumbnailRect = new RectF(0, 0, 1, 1);
     private final int preloadOffset;
 
     private class Holder {
@@ -244,7 +243,7 @@ class PagesLoader {
         List<RenderRange> rangeList = getRenderRangeList(firstXOffset, firstYOffset, lastXOffset, lastYOffset);
 
         for (RenderRange range : rangeList) {
-            loadThumbnail(range.page);
+            loadPreview(range.page);
         }
 
         for (RenderRange range : rangeList) {
@@ -307,20 +306,9 @@ class PagesLoader {
         return false;
     }
 
-    private void loadThumbnail(int page) {
-        if (PDFView.USE_PREVIEW_STORE) {
-            if (pdfView.peekPreview(page) == null) {
-                pdfView.requestPreview(page);
-            }
-            return;
-        }
-        SizeF pageSize = pdfView.pdfFile.getPageSize(page);
-        float thumbnailWidth = pageSize.getWidth() * Constants.THUMBNAIL_RATIO;
-        float thumbnailHeight = pageSize.getHeight() * Constants.THUMBNAIL_RATIO;
-        if (!pdfView.cacheManager.containsThumbnail(page, thumbnailRect)) {
-            pdfView.renderScheduler.submit(RenderTask.thumbnail(page,
-                    thumbnailWidth, thumbnailHeight,
-                    pdfView.isBestQuality(), pdfView.isAnnotationRendering()));
+    private void loadPreview(int page) {
+        if (pdfView.peekPreview(page) == null) {
+            pdfView.requestPreview(page);
         }
     }
 
@@ -340,7 +328,7 @@ class PagesLoader {
         float lastYOffset = -yOffset - pdfView.getHeight() - preloadOffset;
 
         for (RenderRange range : getRenderRangeList(firstXOffset, firstYOffset, lastXOffset, lastYOffset)) {
-            loadThumbnail(range.page);
+            loadPreview(range.page);
             loadSnapshotPart(range);
         }
     }
