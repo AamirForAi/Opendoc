@@ -17,7 +17,6 @@ package com.github.barteksc.pdfviewer;
 
 import static com.github.barteksc.pdfviewer.util.Constants.Cache.CACHE_SIZE;
 import static com.github.barteksc.pdfviewer.util.Constants.Cache.SNAPSHOTS_CACHE_SIZE;
-import static com.github.barteksc.pdfviewer.util.Constants.Cache.THUMBNAILS_CACHE_SIZE;
 
 import android.graphics.Bitmap;
 import android.graphics.RectF;
@@ -40,8 +39,6 @@ class CacheManager {
 
     private final PriorityQueue<PagePart> activeCache;
 
-    private final List<PagePart> thumbnails;
-
     private final Object passiveActiveLock = new Object();
 
     private final PagePartComparator orderComparator = new PagePartComparator();
@@ -51,7 +48,6 @@ class CacheManager {
     public CacheManager() {
         activeCache = new PriorityQueue<>(CACHE_SIZE, orderComparator);
         passiveCache = new PriorityQueue<>(CACHE_SIZE, orderComparator);
-        thumbnails = new ArrayList<>();
     }
 
     public void cachePart(PagePart part) {
@@ -129,9 +125,6 @@ class CacheManager {
             markPageStale(passiveCache, page);
             markPageStale(activeCache, page);
         }
-        synchronized (thumbnails) {
-            markPageStale(thumbnails, page);
-        }
     }
 
     private static void markPageStale(Collection<PagePart> parts, int page) {
@@ -194,21 +187,8 @@ class CacheManager {
         }
     }
 
-    public void cacheThumbnail(PagePart part) {
-        synchronized (thumbnails) {
-            // Add thumbnail first so a duplicate doesn't evict a live one
-            addWithoutDuplicates(thumbnails, part);
-
-            // If cache too big, remove and recycle
-            while (thumbnails.size() > THUMBNAILS_CACHE_SIZE) {
-                recycleBitmap(thumbnails.remove(0));
-            }
-        }
-
-    }
-
     public boolean upPartIfContained(int page, RectF pageRelativeBounds, int toOrder) {
-        PagePart fakePart = new PagePart(page, null, pageRelativeBounds, false, 0);
+        PagePart fakePart = new PagePart(page, null, pageRelativeBounds, 0);
 
         PagePart found;
         synchronized (passiveActiveLock) {
@@ -225,42 +205,6 @@ class CacheManager {
             found = find(activeCache, fakePart);
             return found != null && !found.isStale();
         }
-    }
-
-    /**
-     * Return true if already contains the described PagePart
-     */
-    public boolean containsThumbnail(int page, RectF pageRelativeBounds) {
-        PagePart fakePart = new PagePart(page, null, pageRelativeBounds, true, 0);
-        synchronized (thumbnails) {
-            for (PagePart part : thumbnails) {
-                if (part.equals(fakePart)) {
-                    return !part.isStale();
-                }
-            }
-            return false;
-        }
-    }
-
-    /**
-     * Add part if it doesn't exist, recycle bitmap otherwise.
-     * A stale duplicate is replaced by the new part instead.
-     */
-    private void addWithoutDuplicates(Collection<PagePart> collection, PagePart newPart) {
-        Iterator<PagePart> iterator = collection.iterator();
-        while (iterator.hasNext()) {
-            PagePart part = iterator.next();
-            if (part.equals(newPart)) {
-                if (!part.isStale()) {
-                    recycleBitmap(newPart);
-                    return;
-                }
-                iterator.remove();
-                recycleBitmap(part);
-                break;
-            }
-        }
-        collection.add(newPart);
     }
 
     @Nullable
@@ -282,12 +226,6 @@ class CacheManager {
         }
     }
 
-    public List<PagePart> getThumbnails() {
-        synchronized (thumbnails) {
-            return new ArrayList<>(thumbnails);
-        }
-    }
-
     public void recycle() {
         scaling = false;
         synchronized (passiveActiveLock) {
@@ -299,12 +237,6 @@ class CacheManager {
                 recycleBitmap(part);
             }
             activeCache.clear();
-        }
-        synchronized (thumbnails) {
-            for (PagePart part : thumbnails) {
-                recycleBitmap(part);
-            }
-            thumbnails.clear();
         }
     }
 

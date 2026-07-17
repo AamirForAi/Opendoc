@@ -36,6 +36,8 @@ static Mutex sLibraryLock;
 
 static int sLibraryReferenceCount = 0;
 
+static volatile bool timingLogsEnabled = false;
+
 static double monotonicMillis() {
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
@@ -1225,12 +1227,14 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
     AndroidBitmap_unlockPixels(env, bitmap);
 
     double endMs = monotonicMillis();
-    LOGD("renderPageBitmap: %dx%d in %.1f ms (page %.1f, forms %.1f, convert %.1f)",
-         canvasHorSize, canvasVerSize,
-         endMs - startMs,
-         formsStartMs - pageStartMs,
-         convertStartMs - formsStartMs,
-         endMs - convertStartMs);
+    if (timingLogsEnabled) {
+        LOGD("renderPageBitmap: %dx%d in %.1f ms (page %.1f, forms %.1f, convert %.1f)",
+             canvasHorSize, canvasVerSize,
+             endMs - startMs,
+             formsStartMs - pageStartMs,
+             convertStartMs - formsStartMs,
+             endMs - convertStartMs);
+    }
     (void) pageStartMs;
     (void) formsStartMs;
     (void) convertStartMs;
@@ -1439,16 +1443,22 @@ JNI_FUNC(void, PdfiumCore, nativeRenderChunkedClose)(JNI_ARGS, jlong ctxPtr, jlo
     }
 
     double endMs = monotonicMillis();
-    LOGD("renderPageBitmapChunked: %dx%d in %.1f ms (page %.1f, forms %.1f, convert %.1f, chunks %d, maxChunk %.1f)",
-         ctx->canvasHorSize, ctx->canvasVerSize,
-         endMs - ctx->startMs,
-         formsStartMs - ctx->pageStartMs,
-         convertStartMs - formsStartMs,
-         endMs - convertStartMs,
-         ctx->chunkCount,
-         ctx->maxChunkMs);
+    if (timingLogsEnabled) {
+        LOGD("renderPageBitmapChunked: %dx%d in %.1f ms (page %.1f, forms %.1f, convert %.1f, chunks %d, maxChunk %.1f)",
+             ctx->canvasHorSize, ctx->canvasVerSize,
+             endMs - ctx->startMs,
+             formsStartMs - ctx->pageStartMs,
+             convertStartMs - formsStartMs,
+             endMs - convertStartMs,
+             ctx->chunkCount,
+             ctx->maxChunkMs);
+    }
 
     delete ctx;
+}
+
+JNI_FUNC(void, PdfiumCore, nativeSetTimingLogsEnabled)(JNI_ARGS, jboolean enabled){
+    timingLogsEnabled = enabled;
 }
 
 int mapToDisplay(int dpi, int x) {

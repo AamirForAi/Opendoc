@@ -1,3 +1,4 @@
+// Written by Mudlej. License is GPLv3.
 package com.github.barteksc.pdfviewer;
 
 import static com.github.barteksc.pdfviewer.RenderTestSupport.tile;
@@ -27,7 +28,7 @@ public class RenderSchedulerTest {
                 if (executions[0] == 1) {
                     return RenderScheduler.RenderResult.aborted();
                 }
-                return RenderScheduler.RenderResult.delivered(new PagePart(task.page, null, null, false, 0));
+                return RenderScheduler.RenderResult.delivered(new PagePart(task.page, null, null, 0));
             }
         };
 

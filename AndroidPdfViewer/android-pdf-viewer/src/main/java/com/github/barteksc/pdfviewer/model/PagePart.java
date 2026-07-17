@@ -26,8 +26,6 @@ public class PagePart {
 
     private RectF pageRelativeBounds;
 
-    private boolean thumbnail;
-
     private int cacheOrder;
 
     private boolean stale;
@@ -36,12 +34,11 @@ public class PagePart {
 
     private int generation;
 
-    public PagePart(int page, Bitmap renderedBitmap, RectF pageRelativeBounds, boolean thumbnail, int cacheOrder) {
+    public PagePart(int page, Bitmap renderedBitmap, RectF pageRelativeBounds, int cacheOrder) {
         super();
         this.page = page;
         this.renderedBitmap = renderedBitmap;
         this.pageRelativeBounds = pageRelativeBounds;
-        this.thumbnail = thumbnail;
         this.cacheOrder = cacheOrder;
     }
 
@@ -59,10 +56,6 @@ public class PagePart {
 
     public RectF getPageRelativeBounds() {
         return pageRelativeBounds;
-    }
-
-    public boolean isThumbnail() {
-        return thumbnail;
     }
 
     public void setCacheOrder(int cacheOrder) {

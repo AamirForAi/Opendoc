@@ -61,7 +61,6 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val spaceBetweenPagesKey = "spaceBetweenPages"
         const val hideDelayKey = "hideDelay"
         const val partSizeKey = "partSize"
-        const val thumbnailRatioKey = "thumbnailRatio"
         const val maxZoomKey = "maxZoom"
         const val inlineTextSelectionKey = "inlineTextSelection"
         const val detectExistingHighlightsKey = "detectExistingHighlights"
@@ -145,7 +144,6 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val midZoomDefault = 2.0f
         const val maxZoomDefault = 10.0f
         const val partSizeDefault = 512f
-        const val thumbnailRatioDefault = 0.45f
         const val goToPageGridColumnsDefault = 3
         const val autoBackupEnabledDefault = false
         const val autoBackupHourDefault = 2
@@ -240,7 +238,6 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getSpaceBetweenPages() = prefMan.getBoolean(spaceBetweenPagesKey, spaceBetweenPagesDefault)
     fun getHideDelay() = prefMan.getInt(hideDelayKey, hideDelayDefault)
     fun getPartSize() = prefMan.getFloat(partSizeKey, partSizeDefault)
-    fun getThumbnailRation() = prefMan.getFloat(thumbnailRatioKey, thumbnailRatioDefault)
 
     fun getGoToPageGridColumns() = prefMan.getInt(goToPageGridColumnsKey, goToPageGridColumnsDefault)
 
@@ -385,7 +382,6 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setSpaceBetweenPages(value: Boolean) = prefMan.edit().putBoolean(spaceBetweenPagesKey, value).apply()
     fun setHideDelay(value: Int) = prefMan.edit().putInt(hideDelayKey, value).apply()
     fun setPartSize(value: Float) = prefMan.edit().putFloat(partSizeKey, value).apply()
-    fun setThumbnailRatio(value: Float) = prefMan.edit().putFloat(thumbnailRatioKey, value).apply()
 
     fun setGoToPageGridColumns(value: Int) = prefMan.edit().putInt(goToPageGridColumnsKey, value).apply()
 

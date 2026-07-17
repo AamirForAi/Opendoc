@@ -1,3 +1,4 @@
+// Written by Mudlej. License is GPLv3.
 package com.github.barteksc.pdfviewer;
 
 import static com.github.barteksc.pdfviewer.RenderTestSupport.preview;

@@ -1,3 +1,4 @@
+// Written by Mudlej. License is GPLv3.
 package com.github.barteksc.pdfviewer;
 
 import android.graphics.Bitmap;
@@ -228,25 +229,13 @@ class RenderScheduler {
             }
             calculateBounds(w, h, task);
 
-            boolean completed;
-            if (task.kind == RenderTask.Kind.TILE) {
-                pdfFile.renderPageBitmap(render, task.page, roundedRenderBounds, task.annotationRendering);
-                completed = true;
-            } else {
-                completed = pdfFile.renderPageBitmapCancellable(render, task.page, roundedRenderBounds,
-                        task.annotationRendering, 0, task.cancel);
-            }
-
-            if (!completed) {
-                recyclePart(render);
-                return RenderResult.aborted();
-            }
+            pdfFile.renderPageBitmap(render, task.page, roundedRenderBounds, task.annotationRendering);
 
             pdfFile.prewarmPageCaches(task.page);
 
             PagePart part = new PagePart(task.page, render,
                     new RectF(task.boundsLeft, task.boundsTop, task.boundsRight, task.boundsBottom),
-                    task.thumbnail, task.cacheOrder);
+                    task.cacheOrder);
             if (task.snapshot) {
                 part.markSnapshot();
             }
@@ -273,7 +262,7 @@ class RenderScheduler {
             }
 
             boolean completed = pdfFile.renderFullPageBitmapCancellable(render, task.page,
-                    task.annotationRendering, 0, task.cancel);
+                    task.annotationRendering, pdfView.previewExtraFlags(), task.cancel);
             if (!completed) {
                 recyclePart(render);
                 return RenderResult.aborted();
