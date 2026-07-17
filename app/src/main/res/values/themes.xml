@@ -123,6 +123,7 @@
     </style>
 
     <style name="FullScreenOverlayButton" parent="@style/CustomMaterialButton">
+        <item name="android:gravity">start|center_vertical</item>
         <item name="strokeWidth">0dp</item>
         <item name="elevation">0dp</item>
         <item name="android:elevation">0dp</item>

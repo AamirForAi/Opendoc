@@ -40,12 +40,17 @@ class TextModeControlsController(
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    fun setControlsTouchListeners() {
-        val listener = View.OnTouchListener { _, event ->
+    fun setControlsTouchListeners(onSliderGestureCancelled: () -> Unit) {
+        val listener = View.OnTouchListener { view, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> keepVisible()
-                MotionEvent.ACTION_UP,
-                MotionEvent.ACTION_CANCEL -> scheduleHide()
+                MotionEvent.ACTION_UP -> scheduleHide()
+                MotionEvent.ACTION_CANCEL -> {
+                    if (view === binding.pageSlider) {
+                        onSliderGestureCancelled()
+                    }
+                    scheduleHide()
+                }
             }
             false
         }

@@ -71,8 +71,8 @@ class TextModeActivity : AppCompatActivity() {
     private var fileHash: String? = null
     private var pageCount = 0
     private var currentPageIndex = 0
-    private var pendingScrollTarget = RecyclerView.NO_POSITION
     private var sliderTracking = false
+    private var sliderGestureCancelled = false
     private var resultPrepared = false
     private var settings = TextModeSettings()
     private var joinParagraphsOverride: Boolean? = null
@@ -202,12 +202,6 @@ class TextModeActivity : AppCompatActivity() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 updateCurrentPageFromScroll()
             }
-
-            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
-                    pendingScrollTarget = RecyclerView.NO_POSITION
-                }
-            }
         })
         binding.textPagesRecyclerView.addOnChildAttachStateChangeListener(
             object : RecyclerView.OnChildAttachStateChangeListener {
@@ -255,11 +249,17 @@ class TextModeActivity : AppCompatActivity() {
         binding.pageSlider.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
             override fun onStartTrackingTouch(slider: Slider) {
                 sliderTracking = true
+                sliderGestureCancelled = false
             }
 
             override fun onStopTrackingTouch(slider: Slider) {
                 sliderTracking = false
-                scrollToPage(slider.value.toInt() - 1)
+                if (sliderGestureCancelled) {
+                    sliderGestureCancelled = false
+                    updatePageControls()
+                    return
+                }
+                scrollToPage(currentPageIndex)
             }
         })
         binding.pageSlider.addOnChangeListener { _, value, fromUser ->
@@ -268,7 +268,7 @@ class TextModeActivity : AppCompatActivity() {
             }
         }
         updatePageControls()
-        controlsController.setControlsTouchListeners()
+        controlsController.setControlsTouchListeners { sliderGestureCancelled = true }
         controlsController.showTemporarily()
     }
 
@@ -358,8 +358,16 @@ class TextModeActivity : AppCompatActivity() {
         if (pageCount <= 0) return
 
         currentPageIndex = pageIndex.coerceIn(0, pageCount - 1)
-        pendingScrollTarget = currentPageIndex
         binding.textPagesRecyclerView.stopScroll()
+        val anchoredView = layoutManager.findViewByPosition(currentPageIndex)
+        if (anchoredView != null &&
+            layoutManager.findFirstVisibleItemPosition() == currentPageIndex &&
+            anchoredView.top == binding.textPagesRecyclerView.paddingTop
+        ) {
+            updatePageControls()
+            saveCurrentPage()
+            return
+        }
         layoutManager.scrollToPositionWithOffset(currentPageIndex, 0)
         contentLoader.loadTargetWindow(currentPageIndex)
         binding.textPagesRecyclerView.doOnNextLayout { contentLoader.loadVisiblePages() }
@@ -379,18 +387,6 @@ class TextModeActivity : AppCompatActivity() {
         if (firstVisiblePage == RecyclerView.NO_POSITION) return
 
         contentLoader.loadVisiblePages()
-
-        val pending = pendingScrollTarget
-        if (pending != RecyclerView.NO_POSITION) {
-            val lastVisiblePage = layoutManager.findLastVisibleItemPosition()
-            val pendingAtTop = firstVisiblePage == pending
-            val pendingClampedAtEnd = pending in firstVisiblePage..lastVisiblePage &&
-                !binding.textPagesRecyclerView.canScrollVertically(1)
-            if (pendingAtTop || pendingClampedAtEnd) {
-                pendingScrollTarget = RecyclerView.NO_POSITION
-            }
-            return
-        }
 
         if (binding.textPagesRecyclerView.scrollState == RecyclerView.SCROLL_STATE_IDLE) return
         if (firstVisiblePage == currentPageIndex) return
