@@ -4,11 +4,15 @@ package com.gitlab.mudlej.MjPdfReader.data
 
 import android.content.Context
 import androidx.preference.PreferenceManager
+import androidx.work.BackoffPolicy
 import androidx.work.CoroutineWorker
-import androidx.work.OneTimeWorkRequest
-import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequest
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.WorkRequest
 import androidx.work.WorkerParameters
+import com.gitlab.mudlej.MjPdfReader.R
 import kotlinx.coroutines.CancellationException
 import java.io.IOException
 import java.time.Duration
@@ -17,26 +21,37 @@ import java.util.concurrent.TimeUnit
 
 object AutoBackupScheduler {
 
-    private const val workTag = "autoBackupWork"
+    private const val workName = "autoBackupWork"
+    private const val legacyWorkTag = "autoBackupWork"
+
+    fun ensureScheduled(context: Context, hour: Int, minute: Int) {
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            workName,
+            ExistingPeriodicWorkPolicy.KEEP,
+            periodicRequest(hour, minute),
+        )
+    }
 
     fun schedule(context: Context, hour: Int, minute: Int) {
         val workManager = WorkManager.getInstance(context)
-        workManager.cancelAllWorkByTag(workTag)
-        workManager.enqueue(nextRequest(hour, minute))
-    }
-
-    fun scheduleNext(context: Context, hour: Int, minute: Int) {
-        WorkManager.getInstance(context).enqueue(nextRequest(hour, minute))
+        workManager.cancelAllWorkByTag(legacyWorkTag)
+        workManager.enqueueUniquePeriodicWork(
+            workName,
+            ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
+            periodicRequest(hour, minute),
+        )
     }
 
     fun cancel(context: Context) {
-        WorkManager.getInstance(context).cancelAllWorkByTag(workTag)
+        val workManager = WorkManager.getInstance(context)
+        workManager.cancelAllWorkByTag(legacyWorkTag)
+        workManager.cancelUniqueWork(workName)
     }
 
-    private fun nextRequest(hour: Int, minute: Int): OneTimeWorkRequest {
-        return OneTimeWorkRequestBuilder<AutoBackupWorker>()
+    private fun periodicRequest(hour: Int, minute: Int): PeriodicWorkRequest {
+        return PeriodicWorkRequestBuilder<AutoBackupWorker>(24, TimeUnit.HOURS)
             .setInitialDelay(millisUntilNext(hour, minute), TimeUnit.MILLISECONDS)
-            .addTag(workTag)
+            .setBackoffCriteria(BackoffPolicy.LINEAR, WorkRequest.MIN_BACKOFF_MILLIS, TimeUnit.MILLISECONDS)
             .build()
     }
 
@@ -60,17 +75,23 @@ class AutoBackupWorker(
         if (!preferences.getAutoBackupEnabled()) {
             return Result.success()
         }
+        val folder = BackupFolder.resolve(applicationContext, preferences.getBackupFolderTreeUri())
+        if (folder == null) {
+            preferences.setAutoBackupLastResult(
+                System.currentTimeMillis(),
+                applicationContext.getString(R.string.backup_error_folder_unavailable),
+            )
+            return Result.success()
+        }
         try {
-            val folder = BackupFolder.resolve(applicationContext, preferences.getBackupFolderTreeUri())
-                ?: throw IOException("The backup folder is unavailable")
-            val file = folder.createFile("application/json", BackupFolder.newBackupFileName())
-                ?: throw IOException("Cannot create a file in the backup folder")
+            BackupFolder.sweepStaleTmpFiles(folder)
             val backupManager = BackupManager(
                 applicationContext,
                 PdfRepository(AppDatabase.getInstance(applicationContext)),
             )
             backupManager.export(
-                file.uri,
+                folder,
+                BackupFolder.newAutoBackupFileName(),
                 BackupExportOptions(includeSettings = true, includeHistory = true, includePasswords = false),
             )
             BackupFolder.enforceRetention(folder)
@@ -78,16 +99,12 @@ class AutoBackupWorker(
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (exception: Exception) {
+            if ((exception is IOException || exception is BackupException) && runAttemptCount < 3) {
+                return Result.retry()
+            }
             preferences.setAutoBackupLastResult(
                 System.currentTimeMillis(),
-                exception.localizedMessage ?: exception.javaClass.simpleName,
-            )
-        }
-        if (preferences.getAutoBackupEnabled()) {
-            AutoBackupScheduler.scheduleNext(
-                applicationContext,
-                preferences.getAutoBackupHour(),
-                preferences.getAutoBackupMinute(),
+                BackupException.render(applicationContext, exception),
             )
         }
         return Result.success()

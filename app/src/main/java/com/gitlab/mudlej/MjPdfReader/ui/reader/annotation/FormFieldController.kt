@@ -42,12 +42,18 @@ class FormFieldController(
     private fun showTextFieldDialog(field: PDFView.FormField) {
         val input = createFieldInput(field)
         MaterialAlertDialogBuilder(activity)
-            .setTitle(field.name.ifBlank { activity.getString(R.string.form_field) })
+            .setTitle(fieldTitle(field))
             .setView(createDialogContainer(input))
             .setPositiveButton(R.string.ok) { _, _ -> applyText(field, input.text.toString()) }
             .setNegativeButton(R.string.cancel, null)
             .show()
         input.requestFocus()
+    }
+
+    private fun fieldTitle(field: PDFView.FormField): String {
+        field.alternateName.trim().takeIf { it.isNotEmpty() }?.let { return it }
+        val leaf = field.name.substringAfterLast('.').replace(FIELD_INDEX_REGEX, "").trim()
+        return leaf.ifBlank { activity.getString(R.string.form_field) }
     }
 
     private fun createFieldInput(field: PDFView.FormField): EditText {
@@ -103,5 +109,6 @@ class FormFieldController(
 
     private companion object {
         const val DIALOG_PADDING_DP = 24f
+        val FIELD_INDEX_REGEX = Regex("\\[[^]]*]")
     }
 }

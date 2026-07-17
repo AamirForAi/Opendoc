@@ -27,7 +27,9 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
+import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.core.debug.MainThreadStallWatchdog
 import com.gitlab.mudlej.MjPdfReader.core.ui.confirmDialog
 import com.gitlab.mudlej.MjPdfReader.data.*
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
@@ -45,6 +47,8 @@ import com.gitlab.mudlej.MjPdfReader.core.ui.showOptionalIcons
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.pdf.PdfPropertiesSummary
 import com.gitlab.mudlej.MjPdfReader.ui.reader.load.DocumentUnreachableException
+import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
+import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsPage
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.shockwave.pdfium.PdfPasswordException
@@ -73,6 +77,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     private var doubleBackToExitPressedOnce = false
     private var savingProgressVisible = false
     private var taskDescriptionName: String? = null
+    private val stallWatchdog by lazy { MainThreadStallWatchdog() }
 
     private val annotationController get() = reader.annotationController
     private val annotationSaveController get() = reader.annotationSaveController
@@ -388,6 +393,53 @@ class MainActivity : AppCompatActivity(), ReaderUi {
 
         // restore the full screen mode if was toggled On
         fullscreenController.restoreFullScreenIfNeeded()
+
+        if (pref.getHomeDisabled()) {
+            showBackupNoticesIfNeeded()
+        }
+
+        if (BuildConfig.DEBUG) {
+            stallWatchdog.start()
+        }
+    }
+
+    private fun showBackupNoticesIfNeeded() {
+        pref.getImportResultPending()?.let { message ->
+            pref.setImportResultPending(null)
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.backup_import_title)
+                .setMessage(message)
+                .setPositiveButton(R.string.ok, null)
+                .show()
+        }
+        val failure = BackupNotices.shouldShowFailureNotice(pref)
+        if (!failure && !BackupNotices.shouldShowStaleNotice(pref)) {
+            return
+        }
+        val messageRes = if (failure) R.string.auto_backup_failure_notice else R.string.auto_backup_stale_notice
+        val snackbar = AppSnackbar.make(binding.root, messageRes, Snackbar.LENGTH_INDEFINITE)
+        snackbar.setAction(R.string.auto_backup_notice_action) {
+            BackupNotices.acknowledge(pref)
+            startActivity(
+                Intent(this, SettingsActivity::class.java)
+                    .putExtra(SettingsActivity.EXTRA_PAGE, SettingsPage.BACKUP.name)
+            )
+        }
+        snackbar.addCallback(object : Snackbar.Callback() {
+            override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                if (event == DISMISS_EVENT_SWIPE) {
+                    BackupNotices.acknowledge(pref)
+                }
+            }
+        })
+        snackbar.show()
+    }
+
+    override fun onPause() {
+        if (BuildConfig.DEBUG) {
+            stallWatchdog.stop()
+        }
+        super.onPause()
     }
 
     internal fun shareFile(uri: Uri?, asImage: Boolean = false) {

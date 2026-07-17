@@ -2,8 +2,16 @@
 
 package com.gitlab.mudlej.MjPdfReader.ui.reader.actions
 
+import android.os.Looper
+import android.os.SystemClock
+import android.util.Log
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.view.doOnPreDraw
+import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
+
+private const val PREWARM_ICON_BATCH = 6
 
 class ReaderMenu(
     private val activity: MainActivity,
@@ -12,8 +20,36 @@ class ReaderMenu(
     private val toggleSecondBar: () -> Unit,
 ) {
 
+    private var iconsPrewarmed = false
+
     fun show() {
-        showReaderActionsDialog(activity, menuContent())
+        val startMs = if (BuildConfig.DEBUG) SystemClock.uptimeMillis() else 0L
+        val dialog = showReaderActionsDialog(activity, menuContent())
+        if (BuildConfig.DEBUG) {
+            dialog.window!!.decorView.doOnPreDraw {
+                Log.d("MjPdfPerf", "menu open: ${SystemClock.uptimeMillis() - startMs}ms")
+            }
+        }
+    }
+
+    fun prewarmIcons() {
+        if (iconsPrewarmed) {
+            return
+        }
+        iconsPrewarmed = true
+        val icons = menuContent().sections.flatMap { it.actions }.map { it.iconRes }.distinct()
+        if (icons.isEmpty()) {
+            return
+        }
+        var index = 0
+        Looper.getMainLooper().queue.addIdleHandler {
+            val end = minOf(index + PREWARM_ICON_BATCH, icons.size)
+            while (index < end) {
+                AppCompatResources.getDrawable(activity, icons[index])
+                index++
+            }
+            index < icons.size
+        }
     }
 
     private fun menuContent(): ReaderMenuContent {

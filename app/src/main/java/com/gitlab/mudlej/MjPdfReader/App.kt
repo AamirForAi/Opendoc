@@ -22,7 +22,7 @@ class App : Application() {
         if (!ACRA.isACRASenderServiceProcess()) {
             val preferences = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
             if (preferences.getAutoBackupEnabled()) {
-                AutoBackupScheduler.schedule(this, preferences.getAutoBackupHour(), preferences.getAutoBackupMinute())
+                AutoBackupScheduler.ensureScheduled(this, preferences.getAutoBackupHour(), preferences.getAutoBackupMinute())
             }
         }
     }
