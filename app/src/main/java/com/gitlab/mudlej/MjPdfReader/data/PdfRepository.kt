@@ -2,6 +2,7 @@
 
 package com.gitlab.mudlej.MjPdfReader.data
 
+import androidx.room.withTransaction
 import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfAnnotationSaveDestination
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
@@ -240,6 +241,20 @@ class PdfRepository(private val database: AppDatabase) {
     suspend fun removeAllRecords(): Int {
         return withContext(Dispatchers.IO) {
             database.pdfRecordDao().deleteAll()
+        }
+    }
+
+    suspend fun replaceAllHistory(records: List<PdfRecord>, bookmarks: List<UserBookmark>) {
+        database.withTransaction {
+            database.pdfRecordDao().deleteAll()
+            database.userBookmarkDao().deleteAll()
+            database.pdfAnnotationSaveDestinationDao().deleteAll()
+            if (records.isNotEmpty()) {
+                database.pdfRecordDao().insertAll(records)
+            }
+            if (bookmarks.isNotEmpty()) {
+                database.userBookmarkDao().upsertAll(bookmarks)
+            }
         }
     }
 

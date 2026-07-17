@@ -236,14 +236,16 @@ public class PdfDocument {
         private final int type;
         private final int flags;
         private final String name;
+        private final String alternateName;
         private final String value;
         private final boolean checked;
 
-        public FormField(int annotationIndex, int type, int flags, String name, String value, boolean checked) {
+        public FormField(int annotationIndex, int type, int flags, String name, String alternateName, String value, boolean checked) {
             this.annotationIndex = annotationIndex;
             this.type = type;
             this.flags = flags;
             this.name = name == null ? "" : name;
+            this.alternateName = alternateName == null ? "" : alternateName;
             this.value = value == null ? "" : value;
             this.checked = checked;
         }
@@ -258,6 +260,10 @@ public class PdfDocument {
 
         public String getName() {
             return name;
+        }
+
+        public String getAlternateName() {
+            return alternateName;
         }
 
         public String getValue() {

@@ -572,6 +572,7 @@ class ReaderComposition(
 
     fun wireViews() {
         binding.pdfView.setPreviewTagSource(annotationController.previewTagSource)
+        binding.pdfView.setOnStampPlacementDiscardListener { signatureController.cancelPlacement() }
         binding.exitFullScreenButton.setOnClickListener { fullscreenController.exitFullscreen() }
         autoScrollManager.setup()
         brightnessController.attachSeekbarListener()
@@ -587,6 +588,7 @@ class ReaderComposition(
         }
         fullScreenButtonController.configure()
         showPendingIncognitoNotice()
+        binding.root.post { readerMenu.prewarmIcons() }
     }
 
     private fun showPendingIncognitoNotice() {

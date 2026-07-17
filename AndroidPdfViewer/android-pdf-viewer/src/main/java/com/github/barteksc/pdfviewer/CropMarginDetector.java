@@ -34,6 +34,7 @@ final class CropMarginDetector {
     private static final float MIN_SAVINGS = 0.02f;
     private static final float PARITY_COLLAPSE_EPSILON = 0.015f;
     private static final float EXCLUSION_TOLERANCE = 0.004f;
+    private static final float MIN_PAGE_TIGHTEN = 0.05f;
 
     private CropMarginDetector() {
     }
@@ -110,8 +111,8 @@ final class CropMarginDetector {
                                             int minThreshold, int minRowRun, int minColumnRun,
                                             float minContentArea, float maxContentArea,
                                             int[] strongRowInkCounts, int[] strongColumnInkCounts) {
-        boolean[] contentRows = thresholdContentLines(rowInkCounts, Math.max(minThreshold, Math.round(width * rowThresholdRatio)));
-        boolean[] contentColumns = thresholdContentLines(columnInkCounts, Math.max(minThreshold, Math.round(height * columnThresholdRatio)));
+        boolean[] contentRows = thresholdContentLines(rowInkCounts, height, Math.max(minThreshold, Math.round(width * rowThresholdRatio)));
+        boolean[] contentColumns = thresholdContentLines(columnInkCounts, width, Math.max(minThreshold, Math.round(height * columnThresholdRatio)));
         CropBounds cropBounds = null;
         if (strongRowInkCounts != null && strongColumnInkCounts != null) {
             boolean[] trimmedContentRows = contentRows.clone();
@@ -251,19 +252,45 @@ final class CropMarginDetector {
                                                               CropMargins cropMargins) {
         Map<Integer, CropBounds> pageCrops = new LinkedHashMap<>();
         for (Sample sample : samples) {
-            if (!excludedPages.contains(sample.documentPage)) {
+            CropBounds documentCrop = cropMargins.forDocumentPage(sample.documentPage);
+            if (excludedPages.contains(sample.documentPage)) {
+                CropBounds pageCrop = pageCropOverride(sample);
+                if (pageCrop == null) {
+                    pageCrop = CropBounds.fullPage();
+                }
+                if (!pageCrop.isSimilarTo(documentCrop, PARITY_COLLAPSE_EPSILON)) {
+                    pageCrops.put(sample.documentPage, pageCrop);
+                }
                 continue;
             }
-            CropBounds pageCrop = pageCropOverride(sample);
-            if (pageCrop == null) {
-                pageCrop = CropBounds.fullPage();
-            }
-            CropBounds documentCrop = cropMargins.forDocumentPage(sample.documentPage);
-            if (!pageCrop.isSimilarTo(documentCrop, PARITY_COLLAPSE_EPSILON)) {
-                pageCrops.put(sample.documentPage, pageCrop);
+            CropBounds tightened = tightenedOverride(sample, documentCrop);
+            if (tightened != null) {
+                pageCrops.put(sample.documentPage, tightened);
             }
         }
         return pageCrops;
+    }
+
+    private static CropBounds tightenedOverride(Sample sample, CropBounds documentCrop) {
+        if (sample.bounds == null || documentCrop.isFullPage()) {
+            return null;
+        }
+        CropBounds pageCrop = pad(pageCropBounds(sample));
+        float left = Math.max(documentCrop.getLeft(), pageCrop.getLeft());
+        float top = Math.max(documentCrop.getTop(), pageCrop.getTop());
+        float right = Math.min(documentCrop.getRight(), pageCrop.getRight());
+        float bottom = Math.min(documentCrop.getBottom(), pageCrop.getBottom());
+        float tightening = Math.max(
+                Math.max(left - documentCrop.getLeft(), documentCrop.getRight() - right),
+                Math.max(top - documentCrop.getTop(), documentCrop.getBottom() - bottom));
+        if (tightening < MIN_PAGE_TIGHTEN) {
+            return null;
+        }
+        CropBounds tightened = CropBounds.of(left, top, right, bottom);
+        if (tightened.isFullPage() || tightened.isSimilarTo(documentCrop, PARITY_COLLAPSE_EPSILON)) {
+            return null;
+        }
+        return tightened;
     }
 
     private static CropBounds pageCropOverride(Sample sample) {
@@ -349,9 +376,9 @@ final class CropMarginDetector {
         return crop;
     }
 
-    private static boolean[] thresholdContentLines(int[] inkCounts, int threshold) {
-        boolean[] content = new boolean[inkCounts.length];
-        for (int i = 0; i < inkCounts.length; i++) {
+    private static boolean[] thresholdContentLines(int[] inkCounts, int lineCount, int threshold) {
+        boolean[] content = new boolean[lineCount];
+        for (int i = 0; i < lineCount; i++) {
             content[i] = inkCounts[i] > threshold;
         }
         return content;

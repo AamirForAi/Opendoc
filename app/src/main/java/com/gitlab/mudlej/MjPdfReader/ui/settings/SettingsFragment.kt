@@ -19,11 +19,12 @@ import androidx.preference.PreferenceScreen
 import android.widget.Toast
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
-import com.gitlab.mudlej.MjPdfReader.core.io.restartApplication
 import com.gitlab.mudlej.MjPdfReader.data.AutoBackupScheduler
 import com.gitlab.mudlej.MjPdfReader.data.BackupData
+import com.gitlab.mudlej.MjPdfReader.data.BackupException
 import com.gitlab.mudlej.MjPdfReader.data.BackupExportOptions
 import com.gitlab.mudlej.MjPdfReader.data.BackupFolder
+import com.gitlab.mudlej.MjPdfReader.data.BackupImportPipeline
 import com.gitlab.mudlej.MjPdfReader.data.BackupManager
 import com.gitlab.mudlej.MjPdfReader.data.HistoryCleaner
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
@@ -45,7 +46,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.IOException
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 class SettingsFragment : PreferenceFragmentCompat() {
 
@@ -244,6 +248,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
     }
 
     private fun enableAutoBackup() {
+        appPreferences.setAutoBackupEnabledAt(System.currentTimeMillis())
         AutoBackupScheduler.schedule(
             requireContext(),
             appPreferences.getAutoBackupHour(),
@@ -428,13 +433,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 return@launch
             }
             val result = try {
-                Result.success(withContext(NonCancellable + Dispatchers.IO) {
+                Result.success(withContext(Dispatchers.IO) {
                     val fileName = BackupFolder.newBackupFileName()
-                    val file = folder.createFile("application/json", fileName)
-                        ?: throw IOException("Cannot create a file in the backup folder")
-                    val summary = backupManager.export(file.uri, options)
+                    val summary = backupManager.export(folder, fileName, options)
                     BackupFolder.enforceRetention(folder)
-                    summary to (file.name ?: fileName)
+                    summary to fileName
                 })
             } catch (cancellation: CancellationException) {
                 throw cancellation
@@ -460,7 +463,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 onFailure = { error ->
                     showBackupResultDialog(
                         R.string.backup_export_title,
-                        getString(R.string.backup_export_failed, error.localizedMessage.orEmpty()),
+                        getString(R.string.backup_export_failed, BackupException.render(requireContext(), error)),
                     )
                 },
             )
@@ -477,7 +480,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 if (isAdded) {
                     showBackupResultDialog(
                         R.string.backup_import_title,
-                        getString(R.string.backup_import_failed, exception.localizedMessage.orEmpty()),
+                        getString(R.string.backup_import_failed, BackupException.render(requireContext(), exception)),
                     )
                 }
                 return@launch
@@ -489,6 +492,38 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 showImportWipeWarning { applyImport(data) }
             } else {
                 applyImport(data)
+            }
+        }
+    }
+
+    fun startSafetyRestore() {
+        val newest = BackupFolder.listSafetySnapshots(requireContext()).firstOrNull() ?: return
+        val snapshotDate = Instant.ofEpochMilli(newest.lastModified())
+            .atZone(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT))
+        confirmDialog(
+            requireContext(),
+            R.string.backup_restore_snapshot_title,
+            getString(R.string.backup_restore_snapshot_message, snapshotDate),
+            R.string.backup_restore_snapshot_action,
+        ) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                val data = try {
+                    backupManager.parse(android.net.Uri.fromFile(newest))
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (exception: Exception) {
+                    if (isAdded) {
+                        showBackupResultDialog(
+                            R.string.backup_restore_snapshot_title,
+                            getString(R.string.backup_import_failed, BackupException.render(requireContext(), exception)),
+                        )
+                    }
+                    return@launch
+                }
+                if (isAdded) {
+                    runImportPipeline(data, createSafety = false)
+                }
             }
         }
     }
@@ -522,31 +557,37 @@ class SettingsFragment : PreferenceFragmentCompat() {
     }
 
     private fun applyImport(data: BackupData) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val result = try {
-                Result.success(withContext(NonCancellable + Dispatchers.IO) {
-                    backupManager.importReplace(data, historyCleaner)
-                })
-            } catch (cancellation: CancellationException) {
-                throw cancellation
-            } catch (exception: Exception) {
-                Result.failure(exception)
-            }
-            if (!isAdded) {
-                return@launch
-            }
-            result.fold(
-                onSuccess = {
-                    AutoBackupScheduler.cancel(requireContext())
-                    restartApplication(requireActivity())
-                },
-                onFailure = { error ->
-                    showBackupResultDialog(
-                        R.string.backup_import_title,
-                        getString(R.string.backup_import_failed, error.localizedMessage.orEmpty()),
-                    )
-                },
+        runImportPipeline(data, createSafety = true)
+    }
+
+    private fun runImportPipeline(data: BackupData, createSafety: Boolean) {
+        val density = resources.displayMetrics.density
+        val progressIndicator = LinearProgressIndicator(requireContext()).apply {
+            isIndeterminate = true
+        }
+        val container = FrameLayout(requireContext()).apply {
+            setPadding((24 * density).toInt(), (24 * density).toInt(), (24 * density).toInt(), 0)
+            addView(
+                progressIndicator,
+                FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT),
             )
+        }
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.backup_import_running)
+            .setView(container)
+            .setCancelable(false)
+            .create()
+        dialog.show()
+        val appContext = requireContext().applicationContext
+        val started = BackupImportPipeline.start(appContext, data, createSafety) { message ->
+            if (isAdded) {
+                dialog.dismiss()
+                showBackupResultDialog(R.string.backup_import_title, message)
+            }
+        }
+        if (!started) {
+            dialog.dismiss()
+            Toast.makeText(requireContext(), R.string.backup_import_already_running, Toast.LENGTH_SHORT).show()
         }
     }
 

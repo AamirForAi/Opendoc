@@ -490,6 +490,30 @@ internal class SettingsPreferenceFactory(
         }
     }
 
+    fun backupRestoreSnapshotPreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val newest = BackupFolder.listSafetySnapshots(context).firstOrNull()
+        val detail = newest?.let { snapshot ->
+            fragment.getString(
+                R.string.backup_restore_snapshot_summary,
+                Instant.ofEpochMilli(snapshot.lastModified())
+                    .atZone(ZoneId.systemDefault())
+                    .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)),
+            )
+        }
+        return Preference(context).apply {
+            title = getString(R.string.backup_restore_snapshot_title)
+            key = "backupRestoreSnapshot"
+            summary = formatSummary(breadcrumb, detail)
+            isVisible = newest != null
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                host?.startSafetyRestore()
+                true
+            }
+        }
+    }
+
     fun highlightColorsPreference(breadcrumb: String?): Preference {
         return Preference(context).apply {
             title = getString(R.string.highlight_colors)

@@ -2,6 +2,24 @@
 
 package com.gitlab.mudlej.MjPdfReader.data
 
+import android.content.Context
+import androidx.annotation.StringRes
+
+class BackupException(@StringRes val messageRes: Int, vararg val formatArgs: Any) : Exception() {
+
+    fun render(context: Context): String = context.getString(messageRes, *formatArgs)
+
+    companion object {
+        fun render(context: Context, error: Throwable): String {
+            return if (error is BackupException) {
+                error.render(context)
+            } else {
+                error.localizedMessage ?: error.javaClass.simpleName
+            }
+        }
+    }
+}
+
 data class BackupData(
     val schemaVersion: Int = 0,
     val appVersionCode: Long? = null,
@@ -61,4 +79,11 @@ data class ExportSummary(
     val settingsCount: Int,
     val recordsCount: Int,
     val bookmarksCount: Int,
+)
+
+data class ImportSummary(
+    val settingsCount: Int,
+    val recordsCount: Int,
+    val bookmarksCount: Int,
+    val skippedSettingsCount: Int,
 )

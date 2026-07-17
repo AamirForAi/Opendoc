@@ -43,17 +43,22 @@ data class TextModeSettings(
         private const val READABLE_LINE_LENGTH_KEY = "textModeReadableLineLength"
 
         fun load(preferences: SharedPreferences): TextModeSettings {
+            val defaults = TextModeSettings()
             return TextModeSettings(
-                fontSize = preferences.getFloat(FONT_SIZE_KEY, DEFAULT_FONT_SIZE),
-                lineSpacing = preferences.getFloat(LINE_SPACING_KEY, DEFAULT_LINE_SPACING),
-                horizontalMargin = preferences.getInt(HORIZONTAL_MARGIN_KEY, DEFAULT_HORIZONTAL_MARGIN),
-                theme = preferences.getString(THEME_KEY, ReaderTheme.SYSTEM.name)
+                fontSize = runCatching { preferences.getFloat(FONT_SIZE_KEY, defaults.fontSize) }
+                    .getOrDefault(defaults.fontSize),
+                lineSpacing = runCatching { preferences.getFloat(LINE_SPACING_KEY, defaults.lineSpacing) }
+                    .getOrDefault(defaults.lineSpacing),
+                horizontalMargin = runCatching { preferences.getInt(HORIZONTAL_MARGIN_KEY, defaults.horizontalMargin) }
+                    .getOrDefault(defaults.horizontalMargin),
+                theme = runCatching { preferences.getString(THEME_KEY, null) }.getOrNull()
                     ?.let { runCatching { ReaderTheme.valueOf(it) }.getOrNull() }
-                    ?: ReaderTheme.SYSTEM,
-                fontFamily = preferences.getString(FONT_FAMILY_KEY, ReaderFontFamily.SANS.name)
+                    ?: defaults.theme,
+                fontFamily = runCatching { preferences.getString(FONT_FAMILY_KEY, null) }.getOrNull()
                     ?.let { runCatching { ReaderFontFamily.valueOf(it) }.getOrNull() }
-                    ?: ReaderFontFamily.SANS,
-                readableLineLength = preferences.getBoolean(READABLE_LINE_LENGTH_KEY, DEFAULT_READABLE_LINE_LENGTH),
+                    ?: defaults.fontFamily,
+                readableLineLength = runCatching { preferences.getBoolean(READABLE_LINE_LENGTH_KEY, defaults.readableLineLength) }
+                    .getOrDefault(defaults.readableLineLength),
             )
         }
     }

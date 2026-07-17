@@ -27,9 +27,71 @@ class Preferences(private val prefMan: SharedPreferences) {
         }
         val editor = prefMan.edit()
         if (!prefMan.contains(key)) {
-            editor.putBoolean(key, prefMan.getBoolean(legacyKey, false))
+            editor.putBoolean(key, safeGetBoolean(legacyKey, false))
         }
         editor.remove(legacyKey).apply()
+    }
+
+    private fun safeGetBoolean(key: String, default: Boolean): Boolean {
+        return try {
+            prefMan.getBoolean(key, default)
+        } catch (exception: ClassCastException) {
+            prefMan.edit().remove(key).apply()
+            default
+        }
+    }
+
+    private fun safeGetInt(key: String, default: Int): Int {
+        return try {
+            prefMan.getInt(key, default)
+        } catch (exception: ClassCastException) {
+            prefMan.edit().remove(key).apply()
+            default
+        }
+    }
+
+    private fun safeGetLong(key: String, default: Long): Long {
+        return try {
+            prefMan.getLong(key, default)
+        } catch (exception: ClassCastException) {
+            prefMan.edit().remove(key).apply()
+            default
+        }
+    }
+
+    private fun safeGetFloat(key: String, default: Float): Float {
+        return try {
+            prefMan.getFloat(key, default)
+        } catch (exception: ClassCastException) {
+            prefMan.edit().remove(key).apply()
+            default
+        }
+    }
+
+    private fun safeGetString(key: String, default: String?): String? {
+        return try {
+            prefMan.getString(key, default)
+        } catch (exception: ClassCastException) {
+            prefMan.edit().remove(key).apply()
+            default
+        }
+    }
+
+    private fun safeGetStringSet(key: String, default: Set<String>?): Set<String>? {
+        return try {
+            prefMan.getStringSet(key, default)
+        } catch (exception: ClassCastException) {
+            prefMan.edit().remove(key).apply()
+            default
+        }
+    }
+
+    private inline fun <reified T : Enum<T>> safeGetEnum(key: String, defaultName: String): T {
+        val stored = safeGetString(key, defaultName) ?: defaultName
+        return runCatching { enumValueOf<T>(stored) }.getOrElse {
+            prefMan.edit().remove(key).apply()
+            enumValueOf(defaultName)
+        }
     }
 
     companion object {
@@ -106,6 +168,9 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val autoBackupMinuteKey = "autoBackupMinute"
         const val autoBackupLastRunKey = "autoBackupLastRun"
         const val autoBackupLastErrorKey = "autoBackupLastError"
+        const val autoBackupErrorAcknowledgedRunKey = "autoBackupErrorAcknowledgedRun"
+        const val autoBackupEnabledAtKey = "autoBackupEnabledAt"
+        const val importResultPendingKey = "importResultPending"
         const val homeSortKey = "homeSort"
         const val historyEnabledKey = "historyEnabled"
         const val keepSharedCopiesKey = "keepSharedCopies"
@@ -209,66 +274,130 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val minPartSize = 5f
         const val maxPartSize = 1000f
         const val AUTO_SCROLL_UNIT = 0.1
+
+        const val kindBoolean = "boolean"
+        const val kindInt = "int"
+        const val kindLong = "long"
+        const val kindFloat = "float"
+        const val kindString = "string"
+        const val kindStringSet = "stringSet"
+
+        val backupSettingKinds: Map<String, String> = buildMap {
+            listOf(
+                firstInstallKey, showFeaturesDialogKey, highQualityKey, antiAliasingKey,
+                horizontalScrollKey, dualPageModeKey, dualPageFirstPageAloneKey, pageSnapKey,
+                pageFlingKey, browserScrollModeKey, turnPageByMouseButtonsKey, pdfDarkThemeKey,
+                appFollowSystemThemeKey, pdfFollowSystemThemeKey, enableReloadButtonKey, screenOnKey,
+                spaceBetweenPagesKey, inlineTextSelectionKey, detectExistingHighlightsKey,
+                searchIgnoreAccentsKey, searchZoomToResultKey, defaultTextModeKey,
+                turnPageByVolumeButtonsKey, showScrollHandlePageCountKey, showAppBarPageCountKey,
+                alwaysHideMarginsKey, secondBarEnabledKey, hideButtonsLabelsKey,
+                fullScreenInfoShowTimeKey, fullScreenInfoShowPdfNameKey,
+                fullScreenInfoShowPageNumberKey, fullScreenInfoShowReadingPercentageKey,
+                doubleTapToExitEnabledKey, alwaysOpenAtFirstPageKey, autoFullScreenKey,
+                alwaysHorizontalKey, homeDisabledKey, homeShowPdfTitleKey, homeFolderFlatKey,
+                homeBadgePagesKey, homeBadgeProgressKey, homeBadgeLastOpenedKey,
+                homeBadgeFileSizeKey, homeBadgeStatusKey, historyEnabledKey, keepSharedCopiesKey,
+                dictionaryDefineWordsKey, autoBackupEnabledKey,
+            ).forEach { put(it, kindBoolean) }
+            listOf(
+                hideDelayKey, goToPageGridColumnsKey, scrollSpeedKey, homeListTitleLinesKey,
+                homeGridTitleLinesKey, autoBackupHourKey, autoBackupMinuteKey,
+            ).forEach { put(it, kindInt) }
+            listOf(
+                autoBackupLastRunKey, autoBackupErrorAcknowledgedRunKey, autoBackupEnabledAtKey,
+            ).forEach { put(it, kindLong) }
+            listOf(partSizeKey, maxZoomKey).forEach { put(it, kindFloat) }
+            listOf(
+                interfaceThemeKey, pdfPagesThemeKey, primaryButtonActionKey,
+                secondaryButtonActionKey, fullScreenOverlayActionOrderKey, shortcutBarActionOrderKey,
+                highlightColorsKey, listFilterKey, homeTabKey, homeViewModeKey, homeProgressStyleKey,
+                homeGridSizeKey, homeTitleEllipsizeKey, homeSortKey, scanModeKey,
+                backupFolderTreeUriKey, autoBackupLastErrorKey, translationModeKey,
+                translationEngineKey, translationTargetLanguageKey, translationCustomUrlKey,
+                importResultPendingKey,
+            ).forEach { put(it, kindString) }
+            listOf(
+                fullScreenOverlayActionsKey, shortcutBarActionsKey, scanLocationsKey,
+            ).forEach { put(it, kindStringSet) }
+        }
+
+        val backupSettingEnumDomains: Map<String, Set<String>> = mapOf(
+            listFilterKey to ListFilter.entries.map { it.name }.toSet(),
+            homeTabKey to HomeTab.entries.map { it.name }.toSet(),
+            homeViewModeKey to HomeViewMode.entries.map { it.name }.toSet(),
+            homeProgressStyleKey to HomeProgressStyle.entries.map { it.name }.toSet(),
+            homeGridSizeKey to HomeGridSize.entries.map { it.name }.toSet(),
+            homeTitleEllipsizeKey to HomeTitleEllipsize.entries.map { it.name }.toSet(),
+            homeSortKey to HomeSortOrder.entries.map { it.name }.toSet(),
+            scanModeKey to ScanMode.entries.map { it.name }.toSet(),
+        )
     }
 
     // get values saved in Shared Preferences or return the default values
-    fun getFirstInstall() = prefMan.getBoolean(firstInstallKey, firstInstallDefault)
-    fun getShowFeaturesDialog() = prefMan.getBoolean(showFeaturesDialogKey, showFeaturesDialogDefault)
-    fun getHighQuality() = prefMan.getBoolean(highQualityKey, highQualityDefault)
-    fun getAntiAliasing() = prefMan.getBoolean(antiAliasingKey, antiAliasingDefault)
-    fun getHorizontalScroll() = prefMan.getBoolean(horizontalScrollKey, horizontalScrollDefault)
-    fun getDualPageMode() = prefMan.getBoolean(dualPageModeKey, dualPageModeDefault)
-    fun getDualPageFirstPageAlone() = prefMan.getBoolean(dualPageFirstPageAloneKey, dualPageFirstPageAloneDefault)
-    fun getPageSnap() = prefMan.getBoolean(pageSnapKey, pageSnapDefault)
-    fun getPageFling() = prefMan.getBoolean(pageFlingKey, pageFlingDefault)
-    fun getBrowserScrollMode() = prefMan.getBoolean(browserScrollModeKey, browserScrollModeDefault)
-    fun getTurnPageByMouseButtons() = prefMan.getBoolean(turnPageByMouseButtonsKey, turnPageByMouseButtonsDefault)
-    fun getPdfDarkTheme() = prefMan.getBoolean(pdfDarkThemeKey, pdfDarkThemeDefault)
-    fun getAppFollowSystemTheme() = prefMan.getBoolean(appFollowSystemThemeKey, appFollowSystemThemeDefault)
-    fun getPdfFollowSystemTheme() = prefMan.getBoolean(pdfFollowSystemThemeKey, pdfFollowSystemThemeDefault)
+    fun getFirstInstall() = safeGetBoolean(firstInstallKey, firstInstallDefault)
+    fun getShowFeaturesDialog() = safeGetBoolean(showFeaturesDialogKey, showFeaturesDialogDefault)
+    fun getHighQuality() = safeGetBoolean(highQualityKey, highQualityDefault)
+    fun getAntiAliasing() = safeGetBoolean(antiAliasingKey, antiAliasingDefault)
+    fun getHorizontalScroll() = safeGetBoolean(horizontalScrollKey, horizontalScrollDefault)
+    fun getDualPageMode() = safeGetBoolean(dualPageModeKey, dualPageModeDefault)
+    fun getDualPageFirstPageAlone() = safeGetBoolean(dualPageFirstPageAloneKey, dualPageFirstPageAloneDefault)
+    fun getPageSnap() = safeGetBoolean(pageSnapKey, pageSnapDefault)
+    fun getPageFling() = safeGetBoolean(pageFlingKey, pageFlingDefault)
+    fun getBrowserScrollMode() = safeGetBoolean(browserScrollModeKey, browserScrollModeDefault)
+    fun getTurnPageByMouseButtons() = safeGetBoolean(turnPageByMouseButtonsKey, turnPageByMouseButtonsDefault)
+    fun getPdfDarkTheme() = safeGetBoolean(pdfDarkThemeKey, pdfDarkThemeDefault)
+    fun getAppFollowSystemTheme() = safeGetBoolean(appFollowSystemThemeKey, appFollowSystemThemeDefault)
+    fun getPdfFollowSystemTheme() = safeGetBoolean(pdfFollowSystemThemeKey, pdfFollowSystemThemeDefault)
     fun getInterfaceTheme(): String {
-        return prefMan.getString(interfaceThemeKey, null)
+        return safeGetString(interfaceThemeKey, null)
             ?: if (getAppFollowSystemTheme()) themeSystem else themeLight
     }
     fun getPdfPagesTheme(): String {
-        return prefMan.getString(pdfPagesThemeKey, null)
+        return safeGetString(pdfPagesThemeKey, null)
             ?: if (getPdfFollowSystemTheme()) themeSystem else if (getPdfDarkTheme()) themeDark else themeLight
     }
-    fun getScreenOn() = prefMan.getBoolean(screenOnKey, screenOnDefault)
-    fun getSpaceBetweenPages() = prefMan.getBoolean(spaceBetweenPagesKey, spaceBetweenPagesDefault)
-    fun getHideDelay() = prefMan.getInt(hideDelayKey, hideDelayDefault)
-    fun getPartSize() = prefMan.getFloat(partSizeKey, partSizeDefault)
+    fun getScreenOn() = safeGetBoolean(screenOnKey, screenOnDefault)
+    fun getSpaceBetweenPages() = safeGetBoolean(spaceBetweenPagesKey, spaceBetweenPagesDefault)
+    fun getHideDelay() = safeGetInt(hideDelayKey, hideDelayDefault)
+    fun getPartSize() = safeGetFloat(partSizeKey, partSizeDefault)
 
-    fun getGoToPageGridColumns() = prefMan.getInt(goToPageGridColumnsKey, goToPageGridColumnsDefault)
+    fun getGoToPageGridColumns() = safeGetInt(goToPageGridColumnsKey, goToPageGridColumnsDefault)
 
-    fun getBackupFolderTreeUri(): String? = prefMan.getString(backupFolderTreeUriKey, null)
+    fun getBackupFolderTreeUri(): String? = safeGetString(backupFolderTreeUriKey, null)
 
-    fun getAutoBackupEnabled() = prefMan.getBoolean(autoBackupEnabledKey, autoBackupEnabledDefault)
+    fun getAutoBackupEnabled() = safeGetBoolean(autoBackupEnabledKey, autoBackupEnabledDefault)
 
-    fun getAutoBackupHour() = prefMan.getInt(autoBackupHourKey, autoBackupHourDefault)
+    fun getAutoBackupHour() = safeGetInt(autoBackupHourKey, autoBackupHourDefault)
 
-    fun getAutoBackupMinute() = prefMan.getInt(autoBackupMinuteKey, autoBackupMinuteDefault)
+    fun getAutoBackupMinute() = safeGetInt(autoBackupMinuteKey, autoBackupMinuteDefault)
 
-    fun getAutoBackupLastRun() = prefMan.getLong(autoBackupLastRunKey, 0L)
+    fun getAutoBackupLastRun() = safeGetLong(autoBackupLastRunKey, 0L)
 
-    fun getAutoBackupLastError(): String? = prefMan.getString(autoBackupLastErrorKey, null)
+    fun getAutoBackupLastError(): String? = safeGetString(autoBackupLastErrorKey, null)
 
-    fun getTranslationMode() = prefMan.getString(translationModeKey, translationModeDefault) ?: translationModeDefault
+    fun getAutoBackupErrorAcknowledgedRun() = safeGetLong(autoBackupErrorAcknowledgedRunKey, 0L)
 
-    fun getTranslationEngine() = prefMan.getString(translationEngineKey, translationEngineDefault) ?: translationEngineDefault
+    fun getAutoBackupEnabledAt() = safeGetLong(autoBackupEnabledAtKey, 0L)
 
-    fun getTranslationTargetLanguage() = prefMan.getString(translationTargetLanguageKey, translationTargetLanguageDefault)
+    fun getImportResultPending(): String? = safeGetString(importResultPendingKey, null)
+
+    fun getTranslationMode() = safeGetString(translationModeKey, translationModeDefault) ?: translationModeDefault
+
+    fun getTranslationEngine() = safeGetString(translationEngineKey, translationEngineDefault) ?: translationEngineDefault
+
+    fun getTranslationTargetLanguage() = safeGetString(translationTargetLanguageKey, translationTargetLanguageDefault)
         ?: translationTargetLanguageDefault
 
-    fun getTranslationCustomUrl() = prefMan.getString(translationCustomUrlKey, translationCustomUrlDefault)
+    fun getTranslationCustomUrl() = safeGetString(translationCustomUrlKey, translationCustomUrlDefault)
         ?: translationCustomUrlDefault
 
-    fun getDictionaryDefineWords() = prefMan.getBoolean(dictionaryDefineWordsKey, dictionaryDefineWordsDefault)
-    fun getMaxZoom() = prefMan.getFloat(maxZoomKey, maxZoomDefault)
-    fun getInlineTextSelection() = prefMan.getBoolean(inlineTextSelectionKey, inlineTextSelectionDefault)
-    fun getDetectExistingHighlights() = prefMan.getBoolean(detectExistingHighlightsKey, detectExistingHighlightsDefault)
+    fun getDictionaryDefineWords() = safeGetBoolean(dictionaryDefineWordsKey, dictionaryDefineWordsDefault)
+    fun getMaxZoom() = safeGetFloat(maxZoomKey, maxZoomDefault)
+    fun getInlineTextSelection() = safeGetBoolean(inlineTextSelectionKey, inlineTextSelectionDefault)
+    fun getDetectExistingHighlights() = safeGetBoolean(detectExistingHighlightsKey, detectExistingHighlightsDefault)
     fun getHighlightColors(): List<Int> {
-        val stored = prefMan.getString(highlightColorsKey, null)
+        val stored = safeGetString(highlightColorsKey, null)
             ?.split(",")
             ?.mapNotNull(HighlightPalette::fromName)
             ?: HighlightPalette.defaultSelection
@@ -278,79 +407,79 @@ class Preferences(private val prefMan: SharedPreferences) {
             .take(highlightColorsCount)
             .map { it.colorValue }
     }
-    fun getSearchIgnoreAccents() = prefMan.getBoolean(searchIgnoreAccentsKey, searchIgnoreAccentsDefault)
-    fun getSearchZoomToResult() = prefMan.getBoolean(searchZoomToResultKey, searchZoomToResultDefault)
-    fun getDefaultTextMode() = prefMan.getBoolean(defaultTextModeKey, defaultTextModeDefault)
-    fun getTurnPageByVolumeButtons() = prefMan.getBoolean(turnPageByVolumeButtonsKey, turnPageByVolumeButtonsDefault)
-    fun getShowScrollHandlePageCount() = prefMan.getBoolean(showScrollHandlePageCountKey, showScrollHandlePageCountDefault)
-    fun getShowAppBarPageCount() = prefMan.getBoolean(showAppBarPageCountKey, showAppBarPageCountDefault)
-    fun getAlwaysHideMargins() = prefMan.getBoolean(alwaysHideMarginsKey, alwaysHideMarginsDefault)
-    fun getSecondBarEnabled() = prefMan.getBoolean(secondBarEnabledKey, secondBarEnabledDefault)
-    fun getHideButtonsLabels() = prefMan.getBoolean(hideButtonsLabelsKey, hideButtonsLabelsDefault)
-    fun getFullScreenInfoShowTime() = prefMan.getBoolean(fullScreenInfoShowTimeKey, fullScreenInfoShowTimeDefault)
-    fun getFullScreenInfoShowPdfName() = prefMan.getBoolean(fullScreenInfoShowPdfNameKey, fullScreenInfoShowPdfNameDefault)
-    fun getFullScreenInfoShowPageNumber() = prefMan.getBoolean(fullScreenInfoShowPageNumberKey, fullScreenInfoShowPageNumberDefault)
-    fun getFullScreenInfoShowReadingPercentage() = prefMan.getBoolean(fullScreenInfoShowReadingPercentageKey, fullScreenInfoShowReadingPercentageDefault)
-    fun getDoubleTapToExitEnabled() = prefMan.getBoolean(doubleTapToExitEnabledKey, doubleTapToExitEnabledDefault)
+    fun getSearchIgnoreAccents() = safeGetBoolean(searchIgnoreAccentsKey, searchIgnoreAccentsDefault)
+    fun getSearchZoomToResult() = safeGetBoolean(searchZoomToResultKey, searchZoomToResultDefault)
+    fun getDefaultTextMode() = safeGetBoolean(defaultTextModeKey, defaultTextModeDefault)
+    fun getTurnPageByVolumeButtons() = safeGetBoolean(turnPageByVolumeButtonsKey, turnPageByVolumeButtonsDefault)
+    fun getShowScrollHandlePageCount() = safeGetBoolean(showScrollHandlePageCountKey, showScrollHandlePageCountDefault)
+    fun getShowAppBarPageCount() = safeGetBoolean(showAppBarPageCountKey, showAppBarPageCountDefault)
+    fun getAlwaysHideMargins() = safeGetBoolean(alwaysHideMarginsKey, alwaysHideMarginsDefault)
+    fun getSecondBarEnabled() = safeGetBoolean(secondBarEnabledKey, secondBarEnabledDefault)
+    fun getHideButtonsLabels() = safeGetBoolean(hideButtonsLabelsKey, hideButtonsLabelsDefault)
+    fun getFullScreenInfoShowTime() = safeGetBoolean(fullScreenInfoShowTimeKey, fullScreenInfoShowTimeDefault)
+    fun getFullScreenInfoShowPdfName() = safeGetBoolean(fullScreenInfoShowPdfNameKey, fullScreenInfoShowPdfNameDefault)
+    fun getFullScreenInfoShowPageNumber() = safeGetBoolean(fullScreenInfoShowPageNumberKey, fullScreenInfoShowPageNumberDefault)
+    fun getFullScreenInfoShowReadingPercentage() = safeGetBoolean(fullScreenInfoShowReadingPercentageKey, fullScreenInfoShowReadingPercentageDefault)
+    fun getDoubleTapToExitEnabled() = safeGetBoolean(doubleTapToExitEnabledKey, doubleTapToExitEnabledDefault)
 
-    fun getAlwaysOpenAtFirstPage() = prefMan.getBoolean(alwaysOpenAtFirstPageKey, alwaysOpenAtFirstPageDefault)
-    fun getAutoFullScreen() = prefMan.getBoolean(autoFullScreenKey, autoFullScreenDefault)
-    fun getAlwaysHorizontal() = prefMan.getBoolean(alwaysHorizontalKey, alwaysHorizontalDefault)
-    fun getEnableReloadButton() = prefMan.getBoolean(enableReloadButtonKey, enableReloadButtonDefault)
-    fun getPrimaryButtonAction() = prefMan.getString(
+    fun getAlwaysOpenAtFirstPage() = safeGetBoolean(alwaysOpenAtFirstPageKey, alwaysOpenAtFirstPageDefault)
+    fun getAutoFullScreen() = safeGetBoolean(autoFullScreenKey, autoFullScreenDefault)
+    fun getAlwaysHorizontal() = safeGetBoolean(alwaysHorizontalKey, alwaysHorizontalDefault)
+    fun getEnableReloadButton() = safeGetBoolean(enableReloadButtonKey, enableReloadButtonDefault)
+    fun getPrimaryButtonAction() = safeGetString(
         primaryButtonActionKey,
         primaryButtonActionDefault,
     ) ?: primaryButtonActionDefault
     fun getSecondaryButtonAction(): String {
         if (prefMan.contains(secondaryButtonActionKey)) {
-            return prefMan.getString(secondaryButtonActionKey, secondaryButtonActionDefault) ?: secondaryButtonActionDefault
+            return safeGetString(secondaryButtonActionKey, secondaryButtonActionDefault) ?: secondaryButtonActionDefault
         }
         return if (getEnableReloadButton()) ConfigurableAction.RELOAD.id else secondaryButtonActionDefault
     }
     fun getFullScreenOverlayActions(): Set<String> {
-        return prefMan.getStringSet(fullScreenOverlayActionsKey, fullScreenOverlayActionsDefault)?.toSet()
+        return safeGetStringSet(fullScreenOverlayActionsKey, fullScreenOverlayActionsDefault)?.toSet()
             ?: fullScreenOverlayActionsDefault
     }
     fun getFullScreenOverlayActionOrder(): List<String> {
-        return prefMan.getString(fullScreenOverlayActionOrderKey, null)
+        return safeGetString(fullScreenOverlayActionOrderKey, null)
             ?.split(",")
             ?.filter { it.isNotBlank() }
             ?: ConfigurableAction.defaultFullScreenOverlayOrder.map { it.id }
     }
     fun getShortcutBarActions(): Set<String> {
-        return prefMan.getStringSet(shortcutBarActionsKey, shortcutBarActionsDefault)?.toSet()
+        return safeGetStringSet(shortcutBarActionsKey, shortcutBarActionsDefault)?.toSet()
             ?: shortcutBarActionsDefault
     }
     fun getShortcutBarActionOrder(): List<String> {
-        return prefMan.getString(shortcutBarActionOrderKey, null)
+        return safeGetString(shortcutBarActionOrderKey, null)
             ?.split(",")
             ?.filter { it.isNotBlank() }
             ?: ConfigurableAction.defaultShortcutBarOrder.map { it.id }
     }
-    fun getScrollSpeed() = prefMan.getInt(scrollSpeedKey, scrollSpeedDefault)
-    fun getListFilter() = ListFilter.valueOf(prefMan.getString(listFilterKey, listFilterDefault) as String)
-    fun getHomeDisabled() = prefMan.getBoolean(homeDisabledKey, homeDisabledDefault)
-    fun getHomeShowPdfTitle() = prefMan.getBoolean(homeShowPdfTitleKey, homeShowPdfTitleDefault)
-    fun getHomeTab() = HomeTab.valueOf(prefMan.getString(homeTabKey, homeTabDefault) as String)
-    fun getHomeFolderFlat() = prefMan.getBoolean(homeFolderFlatKey, homeFolderFlatDefault)
-    fun getHomeViewMode() = HomeViewMode.valueOf(prefMan.getString(homeViewModeKey, homeViewModeDefault) as String)
-    fun getHomeProgressStyle() = HomeProgressStyle.valueOf(prefMan.getString(homeProgressStyleKey, homeProgressStyleDefault) as String)
-    fun getHomeGridSize() = HomeGridSize.valueOf(prefMan.getString(homeGridSizeKey, homeGridSizeDefault) as String)
-    fun getHomeListTitleLines() = prefMan.getInt(homeListTitleLinesKey, homeListTitleLinesDefault)
-    fun getHomeGridTitleLines() = prefMan.getInt(homeGridTitleLinesKey, homeGridTitleLinesDefault)
-    fun getHomeTitleEllipsize() = HomeTitleEllipsize.valueOf(prefMan.getString(homeTitleEllipsizeKey, homeTitleEllipsizeDefault) as String)
-    fun getHomeBadgePages() = prefMan.getBoolean(homeBadgePagesKey, homeBadgeDefault)
-    fun getHomeBadgeProgress() = prefMan.getBoolean(homeBadgeProgressKey, homeBadgeDefault)
-    fun getHomeBadgeLastOpened() = prefMan.getBoolean(homeBadgeLastOpenedKey, homeBadgeDefault)
-    fun getHomeBadgeFileSize() = prefMan.getBoolean(homeBadgeFileSizeKey, homeBadgeDefault)
-    fun getHomeBadgeStatus() = prefMan.getBoolean(homeBadgeStatusKey, homeBadgeDefault)
-    fun getHomeSort() = HomeSortOrder.valueOf(prefMan.getString(homeSortKey, homeSortDefault) as String)
-    fun getHistoryEnabled() = prefMan.getBoolean(historyEnabledKey, historyEnabledDefault)
+    fun getScrollSpeed() = safeGetInt(scrollSpeedKey, scrollSpeedDefault)
+    fun getListFilter() = safeGetEnum<ListFilter>(listFilterKey, listFilterDefault)
+    fun getHomeDisabled() = safeGetBoolean(homeDisabledKey, homeDisabledDefault)
+    fun getHomeShowPdfTitle() = safeGetBoolean(homeShowPdfTitleKey, homeShowPdfTitleDefault)
+    fun getHomeTab() = safeGetEnum<HomeTab>(homeTabKey, homeTabDefault)
+    fun getHomeFolderFlat() = safeGetBoolean(homeFolderFlatKey, homeFolderFlatDefault)
+    fun getHomeViewMode() = safeGetEnum<HomeViewMode>(homeViewModeKey, homeViewModeDefault)
+    fun getHomeProgressStyle() = safeGetEnum<HomeProgressStyle>(homeProgressStyleKey, homeProgressStyleDefault)
+    fun getHomeGridSize() = safeGetEnum<HomeGridSize>(homeGridSizeKey, homeGridSizeDefault)
+    fun getHomeListTitleLines() = safeGetInt(homeListTitleLinesKey, homeListTitleLinesDefault)
+    fun getHomeGridTitleLines() = safeGetInt(homeGridTitleLinesKey, homeGridTitleLinesDefault)
+    fun getHomeTitleEllipsize() = safeGetEnum<HomeTitleEllipsize>(homeTitleEllipsizeKey, homeTitleEllipsizeDefault)
+    fun getHomeBadgePages() = safeGetBoolean(homeBadgePagesKey, homeBadgeDefault)
+    fun getHomeBadgeProgress() = safeGetBoolean(homeBadgeProgressKey, homeBadgeDefault)
+    fun getHomeBadgeLastOpened() = safeGetBoolean(homeBadgeLastOpenedKey, homeBadgeDefault)
+    fun getHomeBadgeFileSize() = safeGetBoolean(homeBadgeFileSizeKey, homeBadgeDefault)
+    fun getHomeBadgeStatus() = safeGetBoolean(homeBadgeStatusKey, homeBadgeDefault)
+    fun getHomeSort() = safeGetEnum<HomeSortOrder>(homeSortKey, homeSortDefault)
+    fun getHistoryEnabled() = safeGetBoolean(historyEnabledKey, historyEnabledDefault)
 
-    fun getKeepSharedCopies() = prefMan.getBoolean(keepSharedCopiesKey, keepSharedCopiesDefault)
-    fun getScanMode() = ScanMode.valueOf(prefMan.getString(scanModeKey, scanModeDefault) as String)
+    fun getKeepSharedCopies() = safeGetBoolean(keepSharedCopiesKey, keepSharedCopiesDefault)
+    fun getScanMode() = safeGetEnum<ScanMode>(scanModeKey, scanModeDefault)
     fun getScanLocations(): Set<String> {
-        return prefMan.getStringSet(scanLocationsKey, scanLocationsDefault)?.toSet()
+        return safeGetStringSet(scanLocationsKey, scanLocationsDefault)?.toSet()
             ?: scanLocationsDefault
     }
 
@@ -398,6 +527,19 @@ class Preferences(private val prefMan: SharedPreferences) {
         .putLong(autoBackupLastRunKey, runAt)
         .putString(autoBackupLastErrorKey, error)
         .apply()
+
+    fun setAutoBackupErrorAcknowledgedRun(value: Long) = prefMan.edit()
+        .putLong(autoBackupErrorAcknowledgedRunKey, value)
+        .apply()
+
+    fun setAutoBackupEnabledAt(value: Long) = prefMan.edit()
+        .putLong(autoBackupEnabledAtKey, value)
+        .apply()
+
+    @Suppress("ApplySharedPref")
+    fun setImportResultPending(value: String?) {
+        prefMan.edit().putString(importResultPendingKey, value).commit()
+    }
 
     fun setTranslationMode(value: String) = prefMan.edit().putString(translationModeKey, value).apply()
 

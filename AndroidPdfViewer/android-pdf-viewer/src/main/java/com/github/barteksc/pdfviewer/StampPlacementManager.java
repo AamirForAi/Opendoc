@@ -17,6 +17,10 @@ final class StampPlacementManager {
     private static final int ACCENT_COLOR = 0xFF3F51B5;
     private static final float HANDLE_RADIUS_DP = 6f;
     private static final float HANDLE_TOUCH_RADIUS_DP = 22f;
+    private static final float DISCARD_RADIUS_DP = 9f;
+    private static final float DISCARD_TOUCH_RADIUS_DP = 22f;
+    private static final float DISCARD_GLYPH_STROKE_DP = 1.6f;
+    private static final float DISCARD_GLYPH_EXTENT_FRACTION = 0.42f;
     private static final float BORDER_STROKE_WIDTH_DP = 1.5f;
     private static final float BORDER_DASH_LENGTH_DP = 6f;
     private static final float BORDER_GAP_LENGTH_DP = 4f;
@@ -24,16 +28,20 @@ final class StampPlacementManager {
     private static final int FLOATS_PER_SEGMENT = 6;
     private static final int COLOR_CHANNEL_MAX = 255;
 
-    private enum DragMode { NONE, MOVE, RESIZE_TL, RESIZE_TR, RESIZE_BL, RESIZE_BR }
+    private enum DragMode { NONE, MOVE, RESIZE_TL, RESIZE_BL, RESIZE_BR }
 
     private final PDFView pdfView;
     private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint handlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint discardFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint discardGlyphPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Matrix matrix = new Matrix();
     private final Path scratchPath = new Path();
     private final float handleRadius;
     private final float handleTouchRadius;
+    private final float discardRadius;
+    private final float discardTouchRadius;
 
     private boolean active;
     private int pageIndex = -1;
@@ -52,6 +60,8 @@ final class StampPlacementManager {
         float density = pdfView.getResources().getDisplayMetrics().density;
         handleRadius = HANDLE_RADIUS_DP * density;
         handleTouchRadius = HANDLE_TOUCH_RADIUS_DP * density;
+        discardRadius = DISCARD_RADIUS_DP * density;
+        discardTouchRadius = DISCARD_TOUCH_RADIUS_DP * density;
         strokePaint.setStyle(Paint.Style.STROKE);
         strokePaint.setStrokeCap(Paint.Cap.ROUND);
         strokePaint.setStrokeJoin(Paint.Join.ROUND);
@@ -62,6 +72,12 @@ final class StampPlacementManager {
                 new float[]{BORDER_DASH_LENGTH_DP * density, BORDER_GAP_LENGTH_DP * density}, 0));
         handlePaint.setStyle(Paint.Style.FILL);
         handlePaint.setColor(ACCENT_COLOR);
+        discardFillPaint.setStyle(Paint.Style.FILL);
+        discardFillPaint.setColor(ACCENT_COLOR);
+        discardGlyphPaint.setStyle(Paint.Style.STROKE);
+        discardGlyphPaint.setColor(Color.WHITE);
+        discardGlyphPaint.setStrokeCap(Paint.Cap.ROUND);
+        discardGlyphPaint.setStrokeWidth(DISCARD_GLYPH_STROKE_DP * density);
     }
 
     void start(int pageIndex, RectF rect, float[][] strokes, int color, float normalizedStrokeWidth) {
@@ -130,9 +146,16 @@ final class StampPlacementManager {
         drawStamp(canvas, normalizedPath, docRect, aspect, normalizedStrokeWidth, color);
         canvas.drawRect(docRect, borderPaint);
         canvas.drawCircle(docRect.left, docRect.top, handleRadius, handlePaint);
-        canvas.drawCircle(docRect.right, docRect.top, handleRadius, handlePaint);
         canvas.drawCircle(docRect.left, docRect.bottom, handleRadius, handlePaint);
         canvas.drawCircle(docRect.right, docRect.bottom, handleRadius, handlePaint);
+        drawDiscardBadge(canvas, docRect.right, docRect.top);
+    }
+
+    private void drawDiscardBadge(Canvas canvas, float cx, float cy) {
+        canvas.drawCircle(cx, cy, discardRadius, discardFillPaint);
+        float extent = discardRadius * DISCARD_GLYPH_EXTENT_FRACTION;
+        canvas.drawLine(cx - extent, cy - extent, cx + extent, cy + extent, discardGlyphPaint);
+        canvas.drawLine(cx - extent, cy + extent, cx + extent, cy - extent, discardGlyphPaint);
     }
 
     private void drawStamp(Canvas canvas, Path path, RectF docRect, float stampAspect,
@@ -185,10 +208,12 @@ final class StampPlacementManager {
         if (docRect == null || docRect.width() <= 0) {
             return false;
         }
+        if (hitsDiscard(docX, docY, docRect.right, docRect.top)) {
+            pdfView.notifyStampPlacementDiscard();
+            return true;
+        }
         if (hitsCorner(docX, docY, docRect.left, docRect.top)) {
             dragMode = DragMode.RESIZE_TL;
-        } else if (hitsCorner(docX, docY, docRect.right, docRect.top)) {
-            dragMode = DragMode.RESIZE_TR;
         } else if (hitsCorner(docX, docY, docRect.left, docRect.bottom)) {
             dragMode = DragMode.RESIZE_BL;
         } else if (hitsCorner(docX, docY, docRect.right, docRect.bottom)) {
@@ -207,6 +232,12 @@ final class StampPlacementManager {
         float dx = docX - cornerX;
         float dy = docY - cornerY;
         return dx * dx + dy * dy <= handleTouchRadius * handleTouchRadius;
+    }
+
+    private boolean hitsDiscard(float docX, float docY, float cornerX, float cornerY) {
+        float dx = docX - cornerX;
+        float dy = docY - cornerY;
+        return dx * dx + dy * dy <= discardTouchRadius * discardTouchRadius;
     }
 
     private void moveDrag(float docX, float docY) {
@@ -252,13 +283,6 @@ final class StampPlacementManager {
                 maxWidth = Math.min(pdfRect.right, (pageHeight - pdfRect.bottom) / aspect);
                 newWidth = clamp(newWidth, minWidth, maxWidth);
                 pdfRect.left = pdfRect.right - newWidth;
-                pdfRect.top = pdfRect.bottom + newWidth * aspect;
-                break;
-            case RESIZE_TR:
-                newWidth = width + dxPdf;
-                maxWidth = Math.min(pageWidth - pdfRect.left, (pageHeight - pdfRect.bottom) / aspect);
-                newWidth = clamp(newWidth, minWidth, maxWidth);
-                pdfRect.right = pdfRect.left + newWidth;
                 pdfRect.top = pdfRect.bottom + newWidth * aspect;
                 break;
             case RESIZE_BL:

@@ -1127,6 +1127,10 @@ class PdfFile {
         debugChecksEnabled = enabled;
     }
 
+    static boolean isDebugChecksEnabled() {
+        return debugChecksEnabled;
+    }
+
     private static void throwIfMainThreadFill(String path) {
         if (debugChecksEnabled && Looper.getMainLooper().isCurrentThread()) {
             throw new IllegalStateException("pdfium fill on main thread: " + path);

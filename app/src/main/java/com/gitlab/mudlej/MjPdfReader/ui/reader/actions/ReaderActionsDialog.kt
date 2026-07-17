@@ -13,6 +13,7 @@ import android.widget.ScrollView
 import android.widget.Space
 import android.widget.TextView
 import androidx.annotation.StringRes
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.content.res.AppCompatResources
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
@@ -57,7 +58,7 @@ private class TileStyle(
     val density: Float,
 )
 
-fun showReaderActionsDialog(activity: MainActivity, content: ReaderMenuContent) {
+fun showReaderActionsDialog(activity: MainActivity, content: ReaderMenuContent): AlertDialog {
     val density = activity.resources.displayMetrics.density
     val textColor = MaterialColors.getColor(activity, R.attr.colorOnSurface, COLOR_FALLBACK)
     val rippleValue = TypedValue().also {
@@ -89,6 +90,7 @@ fun showReaderActionsDialog(activity: MainActivity, content: ReaderMenuContent) 
         .create()
     dismiss = { dialog.dismiss() }
     dialog.show()
+    return dialog
 }
 
 private fun createSectionDivider(activity: MainActivity, density: Float): View {

@@ -1983,6 +1983,8 @@ static jobject buildFormFieldObject(JNIEnv* env, FPDF_FORMHANDLE formHandle,
     jboolean checked = FPDFAnnot_IsChecked(formHandle, annot);
     jstring nameString = wideToJString(env,
             getFormFieldWideString(&FPDFAnnot_GetFormFieldName, formHandle, annot));
+    jstring alternateNameString = wideToJString(env,
+            getFormFieldWideString(&FPDFAnnot_GetFormFieldAlternateName, formHandle, annot));
     jstring valueString = wideToJString(env,
             getFormFieldWideString(&FPDFAnnot_GetFormFieldValue, formHandle, annot));
 
@@ -1990,13 +1992,14 @@ static jobject buildFormFieldObject(JNIEnv* env, FPDF_FORMHANDLE formHandle,
     jclass fieldClass = env->FindClass("com/shockwave/pdfium/PdfDocument$FormField");
     if (fieldClass != NULL) {
         jmethodID fieldConstructor = env->GetMethodID(fieldClass, "<init>",
-                "(IIILjava/lang/String;Ljava/lang/String;Z)V");
+                "(IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V");
         if (fieldConstructor != NULL) {
             fieldObject = env->NewObject(fieldClass, fieldConstructor,
                     static_cast<jint>(annotIndex),
                     static_cast<jint>(fieldType),
                     static_cast<jint>(fieldFlags),
                     nameString,
+                    alternateNameString,
                     valueString,
                     checked);
         }
@@ -2004,6 +2007,9 @@ static jobject buildFormFieldObject(JNIEnv* env, FPDF_FORMHANDLE formHandle,
     }
     if (nameString != NULL) {
         env->DeleteLocalRef(nameString);
+    }
+    if (alternateNameString != NULL) {
+        env->DeleteLocalRef(alternateNameString);
     }
     if (valueString != NULL) {
         env->DeleteLocalRef(valueString);

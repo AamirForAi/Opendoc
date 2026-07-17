@@ -33,6 +33,7 @@ class SettingsActivity : AppCompatActivity(), SettingsFragment.Navigation {
         setupScreenChrome()
 
         currentPage = savedInstanceState?.getString(CURRENT_PAGE_KEY)?.let(SettingsPage::valueOf)
+            ?: intent.getStringExtra(EXTRA_PAGE)?.let { name -> SettingsPage.entries.firstOrNull { it.name == name } }
         searchQuery = savedInstanceState?.getString(SEARCH_QUERY_KEY).orEmpty()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -157,9 +158,10 @@ class SettingsActivity : AppCompatActivity(), SettingsFragment.Navigation {
         return supportFragmentManager.findFragmentByTag(ROOT_FRAGMENT_TAG) as? SettingsFragment
     }
 
-    private companion object {
-        const val CURRENT_PAGE_KEY = "currentSettingsPage"
-        const val SEARCH_QUERY_KEY = "settingsSearchQuery"
-        const val ROOT_FRAGMENT_TAG = "rootSettingsFragment"
+    companion object {
+        const val EXTRA_PAGE = "settingsPageExtra"
+        private const val CURRENT_PAGE_KEY = "currentSettingsPage"
+        private const val SEARCH_QUERY_KEY = "settingsSearchQuery"
+        private const val ROOT_FRAGMENT_TAG = "rootSettingsFragment"
     }
 }

@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.os.SystemClock;
 import android.util.Log;
 
 import com.github.barteksc.pdfviewer.exception.PageRenderingException;
@@ -244,6 +245,7 @@ class RenderScheduler {
         }
 
         private RenderResult executePreview(PdfFile pdfFile, RenderTask task) throws PageRenderingException {
+            long startMs = SystemClock.uptimeMillis();
             pdfView.onPreviewStarted(task.page);
             pdfFile.openPage(task.page);
 
@@ -268,7 +270,11 @@ class RenderScheduler {
                 return RenderResult.aborted();
             }
 
-            pdfView.onPreviewRendered(task.page, render, task.generation);
+            boolean repainted = pdfView.onPreviewRendered(task.page, render, task.generation);
+            if (PdfFile.isDebugChecksEnabled()) {
+                Log.d("MjPdfPerf", "preview p" + task.page + " " + (SystemClock.uptimeMillis() - startMs) + "ms "
+                        + (repainted ? "repaint" : "skipped-repaint"));
+            }
             return RenderResult.NONE;
         }
 

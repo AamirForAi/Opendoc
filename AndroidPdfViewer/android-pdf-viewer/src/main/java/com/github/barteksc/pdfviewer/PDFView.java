@@ -192,6 +192,7 @@ public class PDFView extends RelativeLayout {
         public final int annotationIndex;
         public final int type;
         public final String name;
+        public final String alternateName;
         public final String value;
         public final boolean checked;
         public final boolean readOnly;
@@ -202,6 +203,7 @@ public class PDFView extends RelativeLayout {
             this.annotationIndex = field.getAnnotationIndex();
             this.type = field.getType();
             this.name = field.getName();
+            this.alternateName = field.getAlternateName();
             this.value = field.getValue();
             this.checked = field.isChecked();
             this.readOnly = field.isReadOnly();
@@ -392,7 +394,7 @@ public class PDFView extends RelativeLayout {
         clearPreviewPending(page);
     }
 
-    void onPreviewRendered(int page, Bitmap bitmap, int generation) {
+    boolean onPreviewRendered(int page, Bitmap bitmap, int generation) {
         PreviewStore<Bitmap> store = previewStore;
         if (store != null && generation == getPageGeneration(page)) {
             store.put(page, bitmap, generation);
@@ -402,7 +404,11 @@ public class PDFView extends RelativeLayout {
             }
         }
         clearPreviewPending(page);
-        postInvalidate();
+        boolean repaint = isPageInPreviewRange(page);
+        if (repaint) {
+            postInvalidate();
+        }
+        return repaint;
     }
 
     public void setPreviewTagSource(TagSource tagSource) {
@@ -603,6 +609,8 @@ public class PDFView extends RelativeLayout {
     private TextSelectionManager textSelectionManager;
 
     private StampPlacementManager stampPlacementManager;
+
+    private Runnable onStampPlacementDiscardListener;
 
     PdfFile pdfFile;
 
@@ -1589,12 +1597,31 @@ public class PDFView extends RelativeLayout {
     }
 
     private void collectVisiblePages(Set<Integer> out) {
-        if (pdfFile == null) {
+        long range = visiblePageRange();
+        if (range < 0L) {
             return;
+        }
+        int to = (int) range;
+        for (int page = (int) (range >>> 32); page <= to; page++) {
+            out.add(page);
+        }
+    }
+
+    private boolean isPageInPreviewRange(int page) {
+        long range = visiblePageRange();
+        if (range < 0L) {
+            return false;
+        }
+        return page >= (int) (range >>> 32) && page <= (int) range;
+    }
+
+    private long visiblePageRange() {
+        if (pdfFile == null) {
+            return -1L;
         }
         int count = pdfFile.getPagesCount();
         if (count <= 0) {
-            return;
+            return -1L;
         }
         float offset = swipeVertical ? currentYOffset : currentXOffset;
         float viewSize = swipeVertical ? getHeight() : getWidth();
@@ -1604,9 +1631,7 @@ public class PDFView extends RelativeLayout {
         int last = pdfFile.getPageAtOffset(endDist, zoom);
         int from = Math.max(0, Math.min(first, last) - 1);
         int to = Math.min(count - 1, Math.max(first, last) + 1);
-        for (int page = from; page <= to; page++) {
-            out.add(page);
-        }
+        return ((long) from << 32) | (to & 0xFFFFFFFFL);
     }
 
     private void drawPreview(Canvas canvas, int page, Bitmap bitmap) {
@@ -2480,6 +2505,16 @@ public class PDFView extends RelativeLayout {
         }
         stampPlacementManager.cancel();
         invalidate();
+    }
+
+    public void setOnStampPlacementDiscardListener(Runnable listener) {
+        this.onStampPlacementDiscardListener = listener;
+    }
+
+    void notifyStampPlacementDiscard() {
+        if (onStampPlacementDiscardListener != null) {
+            onStampPlacementDiscardListener.run();
+        }
     }
 
     public boolean hasPendingStampPlacement() {

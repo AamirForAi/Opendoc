@@ -13,7 +13,7 @@ import java.util.TreeMap;
  */
 public final class CropMargins {
 
-    public static final int STORAGE_VERSION = 4;
+    public static final int STORAGE_VERSION = 6;
 
     private static final String PART_SEPARATOR = ";";
     private static final String PAGE_CROP_SEPARATOR = "|";

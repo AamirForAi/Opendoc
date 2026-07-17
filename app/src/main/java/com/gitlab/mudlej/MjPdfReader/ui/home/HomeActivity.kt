@@ -22,21 +22,26 @@ import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityHomeBinding
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
+import com.gitlab.mudlej.MjPdfReader.data.BackupNotices
 import com.gitlab.mudlej.MjPdfReader.data.HistoryCleaner
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationJournal
 import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
 import com.gitlab.mudlej.MjPdfReader.core.PermissionManager
+import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.ui.about.WhatsNewActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.intro.MainIntroActivity
+import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
+import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsPage
 import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
 import com.gitlab.mudlej.MjPdfReader.core.text.StringUtil.formatEnumToTitle
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.search.SearchView
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayoutMediator
 import java.io.File
 import java.time.LocalDateTime
@@ -344,6 +349,39 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         searchResultsAdapter.applyTitleStyle()
         libraryScanner.refresh()
         refresh()
+        showBackupNoticesIfNeeded()
+    }
+
+    private fun showBackupNoticesIfNeeded() {
+        pref.getImportResultPending()?.let { message ->
+            pref.setImportResultPending(null)
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.backup_import_title)
+                .setMessage(message)
+                .setPositiveButton(R.string.ok, null)
+                .show()
+        }
+        val failure = BackupNotices.shouldShowFailureNotice(pref)
+        if (!failure && !BackupNotices.shouldShowStaleNotice(pref)) {
+            return
+        }
+        val messageRes = if (failure) R.string.auto_backup_failure_notice else R.string.auto_backup_stale_notice
+        val snackbar = AppSnackbar.make(binding.root, messageRes, Snackbar.LENGTH_INDEFINITE)
+        snackbar.setAction(R.string.auto_backup_notice_action) {
+            BackupNotices.acknowledge(pref)
+            startActivity(
+                Intent(this, SettingsActivity::class.java)
+                    .putExtra(SettingsActivity.EXTRA_PAGE, SettingsPage.BACKUP.name)
+            )
+        }
+        snackbar.addCallback(object : Snackbar.Callback() {
+            override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                if (event == DISMISS_EVENT_SWIPE) {
+                    BackupNotices.acknowledge(pref)
+                }
+            }
+        })
+        snackbar.show()
     }
 
     private fun setupSearch() {

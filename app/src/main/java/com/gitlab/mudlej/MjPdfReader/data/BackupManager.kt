@@ -6,16 +6,24 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
+import androidx.documentfile.provider.DocumentFile
 import androidx.preference.PreferenceManager
+import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationJournal
 import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.data.entity.UserBookmark
+import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
+import com.gitlab.mudlej.MjPdfReader.ui.home.CoverCache
 import com.google.gson.GsonBuilder
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
-import java.io.IOException
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
 
 class BackupManager(
     private val context: Context,
@@ -24,7 +32,11 @@ class BackupManager(
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
-    suspend fun export(uri: Uri, options: BackupExportOptions): ExportSummary = withContext(Dispatchers.IO) {
+    suspend fun export(
+        folder: DocumentFile,
+        fileName: String,
+        options: BackupExportOptions,
+    ): ExportSummary = withContext(NonCancellable + Dispatchers.IO) {
         val settings = if (options.includeSettings) collectSettings() else null
         val records = if (options.includeHistory) {
             pdfRepository.findAllRecords().map { it.toBackup(options.includePasswords) }
@@ -39,48 +51,135 @@ class BackupManager(
         val data = BackupData(
             schemaVersion = SCHEMA_VERSION,
             appVersionCode = appVersionCode(),
-            exportedAt = LocalDateTime.now().toString(),
+            exportedAt = OffsetDateTime.now().toString(),
             settings = settings,
             pdfRecords = records,
             userBookmarks = bookmarks,
         )
         val json = gson.toJson(data)
-        val output = runCatching { context.contentResolver.openOutputStream(uri, "wt") }.getOrNull()
-            ?: context.contentResolver.openOutputStream(uri, "w")
-            ?: throw IOException("Cannot open the selected file for writing")
-        output.use { stream ->
-            stream.write(json.toByteArray(Charsets.UTF_8))
+        val tmpFile = folder.createFile(TMP_MIME_TYPE, "$fileName.tmp")
+            ?: throw BackupException(R.string.backup_error_create_file)
+        try {
+            writeAndVerify(tmpFile, data, json)
+        } catch (exception: Exception) {
+            tmpFile.delete()
+            throw exception
+        }
+        if (!tmpFile.renameTo(fileName)) {
+            finalizeWithoutRename(folder, fileName, data, json, tmpFile)
         }
         ExportSummary(settings?.size ?: 0, records?.size ?: 0, bookmarks?.size ?: 0)
     }
 
-    suspend fun parse(uri: Uri): BackupData = withContext(Dispatchers.IO) {
-        val json = context.contentResolver.openInputStream(uri)?.use { stream ->
-            stream.readBytes().toString(Charsets.UTF_8)
-        } ?: throw IOException("Cannot open the selected file for reading")
-        val data = try {
-            gson.fromJson(json, BackupData::class.java)
-        } catch (exception: Exception) {
-            null
-        } ?: throw IOException("The selected file is not a valid backup")
-        if (data.schemaVersion < 1) {
-            throw IOException("The selected file is not a valid backup")
+    private fun finalizeWithoutRename(
+        folder: DocumentFile,
+        fileName: String,
+        data: BackupData,
+        json: String,
+        tmpFile: DocumentFile,
+    ) {
+        val finalFile = folder.createFile("application/json", fileName)
+        if (finalFile == null) {
+            tmpFile.delete()
+            throw BackupException(R.string.backup_error_finalize_failed)
         }
-        if (data.schemaVersion > SCHEMA_VERSION) {
-            throw IOException("The backup was created by a newer app version")
+        try {
+            writeAndVerify(finalFile, data, json)
+        } catch (exception: Exception) {
+            finalFile.delete()
+            tmpFile.delete()
+            throw exception
+        }
+        if (!tmpFile.delete()) {
+            throw BackupException(R.string.backup_error_cleanup_failed)
+        }
+    }
+
+    private fun writeAndVerify(file: DocumentFile, data: BackupData, json: String) {
+        val output = runCatching { context.contentResolver.openOutputStream(file.uri, "wt") }.getOrNull()
+            ?: context.contentResolver.openOutputStream(file.uri, "w")
+            ?: throw BackupException(R.string.backup_error_open_write)
+        output.use { stream ->
+            stream.write(json.toByteArray(Charsets.UTF_8))
+            stream.flush()
+        }
+        val written = readAndParse(file.uri)
+        val matches = written.schemaVersion == data.schemaVersion &&
+            written.settings?.size == data.settings?.size &&
+            written.pdfRecords?.size == data.pdfRecords?.size &&
+            written.userBookmarks?.size == data.userBookmarks?.size
+        if (!matches) {
+            throw BackupException(R.string.backup_error_verification_failed)
+        }
+    }
+
+    suspend fun parse(uri: Uri): BackupData = withContext(Dispatchers.IO) {
+        val data = readAndParse(uri)
+        if (data.settings == null && !data.includesHistory) {
+            throw BackupException(R.string.backup_error_nothing_to_import)
         }
         data
     }
 
-    suspend fun importReplace(data: BackupData, historyCleaner: HistoryCleaner) = withContext(Dispatchers.IO) {
-        data.settings?.let { replaceSettings(it) }
-        if (data.includesHistory) {
-            historyCleaner.clearReadingHistory()
-            historyCleaner.clearBookmarks()
-            historyCleaner.clearAnnotationJournalsAndSignature()
-            insertRecords(data.pdfRecords.orEmpty())
-            insertBookmarks(data.userBookmarks.orEmpty())
+    private fun readAndParse(uri: Uri): BackupData {
+        val input = context.contentResolver.openInputStream(uri)
+            ?: throw BackupException(R.string.backup_error_open_read)
+        val json = input.use { stream -> readBounded(stream) }.toString(Charsets.UTF_8)
+        val data = try {
+            gson.fromJson(json, BackupData::class.java)
+        } catch (exception: Exception) {
+            null
+        } ?: throw BackupException(R.string.backup_error_not_valid)
+        if (data.schemaVersion < 1) {
+            throw BackupException(R.string.backup_error_not_valid)
         }
+        if (data.schemaVersion > SCHEMA_VERSION) {
+            throw BackupException(R.string.backup_error_newer_version)
+        }
+        return data
+    }
+
+    private fun readBounded(stream: InputStream): ByteArray {
+        val output = ByteArrayOutputStream()
+        val chunk = ByteArray(64 * 1024)
+        var total = 0L
+        while (true) {
+            val read = stream.read(chunk)
+            if (read < 0) {
+                break
+            }
+            total += read
+            if (total > MAX_BACKUP_BYTES) {
+                throw BackupException(R.string.backup_error_too_large)
+            }
+            output.write(chunk, 0, read)
+        }
+        return output.toByteArray()
+    }
+
+    suspend fun importReplace(data: BackupData): ImportSummary = withContext(Dispatchers.IO) {
+        var recordsCount = 0
+        var bookmarksCount = 0
+        if (data.includesHistory) {
+            val records = toRecords(data.pdfRecords.orEmpty())
+            val bookmarks = toBookmarks(data.userBookmarks.orEmpty())
+            pdfRepository.replaceAllHistory(records, bookmarks)
+            recordsCount = records.size
+            bookmarksCount = bookmarks.size
+        }
+        var settingsCount = 0
+        var skippedSettingsCount = 0
+        data.settings?.let { settings ->
+            val (applied, skipped) = replaceSettings(settings)
+            settingsCount = applied
+            skippedSettingsCount = skipped
+        }
+        if (data.includesHistory) {
+            CoverCache.getInstance(context).clearAll()
+            AnnotationJournal(context).deleteAll()
+            SignatureStore(context).delete()
+        }
+        ImportSummary(settingsCount, recordsCount, bookmarksCount, skippedSettingsCount)
     }
 
     private fun collectSettings(): List<BackupSetting> {
@@ -90,38 +189,65 @@ class BackupManager(
                 return@mapNotNull null
             }
             when (value) {
-                is Boolean -> BackupSetting(key, "boolean", value.toString())
-                is Int -> BackupSetting(key, "int", value.toString())
-                is Long -> BackupSetting(key, "long", value.toString())
-                is Float -> BackupSetting(key, "float", value.toString())
-                is String -> BackupSetting(key, "string", value)
-                is Set<*> -> BackupSetting(key, "stringSet", null, value.filterIsInstance<String>())
+                is Boolean -> BackupSetting(key, Preferences.kindBoolean, value.toString())
+                is Int -> BackupSetting(key, Preferences.kindInt, value.toString())
+                is Long -> BackupSetting(key, Preferences.kindLong, value.toString())
+                is Float -> BackupSetting(key, Preferences.kindFloat, value.toString())
+                is String -> BackupSetting(key, Preferences.kindString, value)
+                is Set<*> -> BackupSetting(key, Preferences.kindStringSet, null, value.filterIsInstance<String>())
                 else -> null
             }
         }.sortedBy { it.key }
     }
 
-    private fun replaceSettings(settings: List<BackupSetting>) {
+    private fun replaceSettings(settings: List<BackupSetting>): Pair<Int, Int> {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val preserved = prefs.all.filterKeys { it in excludedSettingKeys }
         val editor = prefs.edit().clear()
         preserved.forEach { (key, value) -> putSetting(editor, key, value) }
+        var applied = 0
+        var skipped = 0
         settings.forEach { setting ->
             val key = setting.key ?: return@forEach
             if (key in excludedSettingKeys) {
                 return@forEach
             }
-            when (setting.type) {
-                "boolean" -> setting.value?.toBooleanStrictOrNull()?.let { editor.putBoolean(key, it) }
-                "int" -> setting.value?.toIntOrNull()?.let { editor.putInt(key, it) }
-                "long" -> setting.value?.toLongOrNull()?.let { editor.putLong(key, it) }
-                "float" -> setting.value?.toFloatOrNull()?.let { editor.putFloat(key, it) }
-                "string" -> setting.value?.let { editor.putString(key, it) }
-                "stringSet" -> setting.values?.let { editor.putStringSet(key, it.toSet()) }
+            val expectedKind = Preferences.backupSettingKinds[key]
+            if (expectedKind != null && expectedKind != setting.type) {
+                skipped++
+                return@forEach
+            }
+            val enumDomain = Preferences.backupSettingEnumDomains[key]
+            if (enumDomain != null && setting.value !in enumDomain) {
+                skipped++
+                return@forEach
+            }
+            val wrote = when (setting.type) {
+                Preferences.kindBoolean -> setting.value?.toBooleanStrictOrNull()
+                    ?.also { editor.putBoolean(key, it) } != null
+                Preferences.kindInt -> setting.value?.toIntOrNull()
+                    ?.also { editor.putInt(key, it) } != null
+                Preferences.kindLong -> setting.value?.toLongOrNull()
+                    ?.also { editor.putLong(key, it) } != null
+                Preferences.kindFloat -> setting.value?.toFloatOrNull()
+                    ?.also { editor.putFloat(key, it) } != null
+                Preferences.kindString -> setting.value
+                    ?.also { editor.putString(key, it) } != null
+                Preferences.kindStringSet -> setting.values
+                    ?.also { editor.putStringSet(key, it.toSet()) } != null
+                else -> false
+            }
+            if (wrote) {
+                applied++
+            } else {
+                skipped++
             }
         }
         @Suppress("ApplySharedPref")
-        editor.commit()
+        if (!editor.commit()) {
+            throw BackupException(R.string.backup_error_settings_write_failed)
+        }
+        return applied to skipped
     }
 
     private fun putSetting(editor: SharedPreferences.Editor, key: String, value: Any?) {
@@ -135,8 +261,8 @@ class BackupManager(
         }
     }
 
-    private suspend fun insertRecords(records: List<BackupPdfRecord>) {
-        val toSave = records.mapNotNull { backup ->
+    private fun toRecords(records: List<BackupPdfRecord>): List<PdfRecord> {
+        return records.mapNotNull { backup ->
             val hash = backup.hash?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
             PdfRecord(
                 hash = hash,
@@ -160,13 +286,10 @@ class BackupManager(
                 hidden = backup.hidden,
             )
         }
-        if (toSave.isNotEmpty()) {
-            pdfRepository.upsertRecords(toSave)
-        }
     }
 
-    private suspend fun insertBookmarks(bookmarks: List<BackupUserBookmark>) {
-        val toSave = bookmarks.mapNotNull { backup ->
+    private fun toBookmarks(bookmarks: List<BackupUserBookmark>): List<UserBookmark> {
+        return bookmarks.mapNotNull { backup ->
             val hash = backup.fileHash?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
             if (backup.pageIndex < 0) {
                 return@mapNotNull null
@@ -178,9 +301,6 @@ class BackupManager(
                 createdAt = parseDate(backup.createdAt) ?: LocalDateTime.now(),
                 sortOrder = backup.sortOrder.takeIf { it >= 0 } ?: backup.pageIndex,
             )
-        }
-        if (toSave.isNotEmpty()) {
-            pdfRepository.upsertUserBookmarks(toSave)
         }
     }
 
@@ -244,12 +364,18 @@ class BackupManager(
     companion object {
         const val SCHEMA_VERSION = 1
 
+        private const val MAX_BACKUP_BYTES = 32L * 1024L * 1024L
+        private const val TMP_MIME_TYPE = "application/octet-stream"
+
         private val excludedSettingKeys = setOf(
             Preferences.firstInstallKey,
             Preferences.showFeaturesDialogKey,
             Preferences.backupFolderTreeUriKey,
             Preferences.autoBackupLastRunKey,
             Preferences.autoBackupLastErrorKey,
+            Preferences.autoBackupErrorAcknowledgedRunKey,
+            Preferences.autoBackupEnabledAtKey,
+            Preferences.importResultPendingKey,
         )
     }
 }

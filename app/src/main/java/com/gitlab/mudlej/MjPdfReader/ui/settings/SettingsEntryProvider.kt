@@ -513,6 +513,13 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
             ) { breadcrumb ->
                 backupImportPreference(breadcrumb)
             },
+            SettingEntry(
+                page = SettingsPage.BACKUP,
+                titleRes = R.string.backup_restore_snapshot_title,
+                keywords = listOf("backup", "restore", "snapshot", "import", "undo", "recover"),
+            ) { breadcrumb ->
+                backupRestoreSnapshotPreference(breadcrumb)
+            },
         )
     }
 
