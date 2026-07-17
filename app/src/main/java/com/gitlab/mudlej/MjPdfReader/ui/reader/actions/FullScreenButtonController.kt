@@ -98,7 +98,7 @@ class FullScreenButtonController(
             val paddingEnd = resources.getDimensionPixelSize(R.dimen.fs_button_padding_end)
 
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
             ).apply {
                 setMargins(0, margin, 0, margin)

@@ -395,7 +395,7 @@
                 <com.google.android.material.button.MaterialButton
                     style="@style/FullScreenOverlayButton"
                     android:id="@+id/exitFullScreenButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/exit_fullscreen_button"
                     android:padding="@dimen/fs_button_padding"
@@ -410,7 +410,7 @@
                 <com.google.android.material.button.MaterialButton
                     style="@style/FullScreenOverlayButton"
                     android:id="@+id/rotateScreenButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/rotate_screen"
                     android:padding="@dimen/fs_button_padding"
@@ -425,7 +425,7 @@
                 <com.google.android.material.button.MaterialButton
                     style="@style/FullScreenOverlayButton"
                     android:id="@+id/brightnessButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/brightness"
                     android:padding="@dimen/fs_button_padding"
@@ -442,7 +442,7 @@
                 <com.google.android.material.button.MaterialButton
                     style="@style/FullScreenOverlayButton"
                     android:id="@+id/autoScrollButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/auto_scroll"
                     android:padding="@dimen/fs_button_padding"
@@ -459,7 +459,7 @@
                 <com.google.android.material.button.MaterialButton
                     style="@style/FullScreenOverlayButton"
                     android:id="@+id/toggleHorizontalSwipeButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/horizontal_lock"
                     android:padding="@dimen/fs_button_padding"
@@ -476,7 +476,7 @@
                 <com.google.android.material.button.MaterialButton
                     style="@style/FullScreenOverlayButton"
                     android:id="@+id/toggleZoomLockButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/zoom_lock"
                     android:padding="@dimen/fs_button_padding"
@@ -493,7 +493,7 @@
                 <com.google.android.material.button.MaterialButton
                     style="@style/FullScreenOverlayButton"
                     android:id="@+id/screenshotButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/screenshot"
                     android:padding="@dimen/fs_button_padding"
@@ -508,7 +508,7 @@
                 <com.google.android.material.button.MaterialButton
                     style="@style/FullScreenOverlayButton"
                     android:id="@+id/toggleLabelButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/hide_labels"
                     android:padding="@dimen/fs_button_padding"
