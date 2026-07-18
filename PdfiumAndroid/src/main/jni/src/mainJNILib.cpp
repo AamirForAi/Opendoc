@@ -842,6 +842,9 @@ static jboolean saveDocumentToFd(DocumentFile *doc, jint fd, int flags){
     for (std::vector<FPDF_PAGE>::const_iterator it = unhiddenPages.begin();
          it != unhiddenPages.end(); ++it) {
         setAppHighlightsHidden(*it, true);
+        if (doc->formHandle != NULL) {
+            FORM_OnBeforeClosePage(*it, doc->formHandle);
+        }
         FPDF_ClosePage(*it);
     }
 
@@ -882,8 +885,12 @@ static jlong loadPageInternal(JNIEnv *env, DocumentFile *doc, int pageIndex){
     }
 }
 
-static void closePageInternal(jlong pagePtr) {
-    FPDF_ClosePage(reinterpret_cast<FPDF_PAGE>(pagePtr));
+static void closePageInternal(DocumentFile *doc, jlong pagePtr) {
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (doc != NULL && doc->formHandle != NULL) {
+        FORM_OnBeforeClosePage(page, doc->formHandle);
+    }
+    FPDF_ClosePage(page);
 }
 
 JNI_FUNC(jlong, PdfiumCore, nativeLoadPage)(JNI_ARGS, jlong docPtr, jint pageIndex){
@@ -915,8 +922,9 @@ JNI_FUNC(jlongArray, PdfiumCore, nativeLoadPages)(JNI_ARGS, jlong docPtr, jint f
     return javaPages;
 }
 
-JNI_FUNC(void, PdfiumCore, nativeClosePage)(JNI_ARGS, jlong pagePtr) {
-    closePageInternal(pagePtr);
+JNI_FUNC(void, PdfiumCore, nativeClosePage)(JNI_ARGS, jlong docPtr, jlong pagePtr) {
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+    closePageInternal(doc, pagePtr);
 }
 
 JNI_FUNC(jint, PdfiumCore, nativeGetPageWidthPixel)(JNI_ARGS, jlong pagePtr, jint dpi) {

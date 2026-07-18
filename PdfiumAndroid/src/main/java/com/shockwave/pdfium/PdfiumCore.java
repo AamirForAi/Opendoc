@@ -63,7 +63,7 @@ public class PdfiumCore {
 
     private native long[] nativeLoadPages(long docPtr, int fromIndex, int toIndex);
 
-    private native void nativeClosePage(long pagePtr);
+    private native void nativeClosePage(long docPtr, long pagePtr);
 
     private native int nativeGetPageWidthPixel(long pagePtr, int dpi);
 
@@ -294,7 +294,7 @@ public class PdfiumCore {
             }
             Long pagePtr = doc.mNativePagesPtr.remove(pageIndex);
             if (pagePtr != null && pagePtr != 0L) {
-                nativeClosePage(pagePtr);
+                nativeClosePage(doc.mNativeDocPtr, pagePtr);
             }
         }
     }
@@ -675,7 +675,7 @@ public class PdfiumCore {
             for (Integer index : doc.mNativePagesPtr.keySet()) {
                 Long pagePtr = doc.mNativePagesPtr.get(index);
                 if (pagePtr != null && pagePtr != 0L) {
-                    nativeClosePage(pagePtr);
+                    nativeClosePage(doc.mNativeDocPtr, pagePtr);
                 }
             }
             doc.mNativePagesPtr.clear();

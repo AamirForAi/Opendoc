@@ -53,6 +53,12 @@ class AnnotationJournal(private val context: Context) {
         }
     }
 
+    fun deleteAllBlocking() {
+        onJournalThread {
+            journalDir().listFiles()?.forEach { it.delete() }
+        }
+    }
+
     private fun <T> onJournalThread(action: () -> T): T {
         return executor.submit(Callable(action)).get()
     }

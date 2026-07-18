@@ -96,6 +96,11 @@ class CoverCache private constructor(private val context: Context) {
         }
     }
 
+    fun clearAllBlocking() {
+        memoryCache.evictAll()
+        coverDir.listFiles()?.forEach { it.delete() }
+    }
+
     private fun loadFromDiskOrRender(hash: String, uri: Uri, bucket: Int, cacheKey: String): Bitmap? {
         val file = coverFile(hash, bucket)
         if (file.exists()) {

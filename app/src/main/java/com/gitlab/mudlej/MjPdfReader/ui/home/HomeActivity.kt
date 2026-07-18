@@ -16,6 +16,7 @@ import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.viewpager2.widget.ViewPager2
+import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
@@ -115,6 +116,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         if (launchIntro) {
             pref.setFirstInstall(false)
             pref.setShowFeaturesDialog(true)
+            pref.setLastSeenVersionCode(BuildConfig.VERSION_CODE)
             introLauncher.launch(Intent(this, MainIntroActivity::class.java))
         }
 
@@ -263,6 +265,10 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         }
 
         if (!launchIntro) {
+            if (pref.getLastSeenVersionCode() < BuildConfig.VERSION_CODE) {
+                pref.setShowFeaturesDialog(true)
+                pref.setLastSeenVersionCode(BuildConfig.VERSION_CODE)
+            }
             showWhatsNewOnFirstRun()
         }
         handleRelocateIntent(intent)

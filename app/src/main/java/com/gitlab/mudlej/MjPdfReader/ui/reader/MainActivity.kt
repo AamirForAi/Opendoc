@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.StrictMode
 import android.util.Log
+import android.util.Patterns
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
@@ -136,6 +137,11 @@ class MainActivity : AppCompatActivity(), ReaderUi {
             if (intentUri == null) {
                 if (intent.getBooleanExtra(HomeActivity.EXTRA_OPEN_ONLINE_DIALOG, false)) {
                     onlinePdfController.showOpenOnlinePdfDialog()
+                } else if (intent.action == Intent.ACTION_SEND) {
+                    if (!openSharedTextLink()) {
+                        AppSnackbar.make(binding.root, R.string.share_text_no_link, Snackbar.LENGTH_LONG).show()
+                        reader.pickFile()
+                    }
                 } else {
                     reader.pickFile()
                 }
@@ -145,6 +151,33 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         }
 
         displayFromUri(pdf.uri, true)
+    }
+
+    private fun openSharedTextLink(): Boolean {
+        val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return false
+        val trimChars = charArrayOf(
+            '<', '>', '(', ')', '[', ']', '{', '}', '"', '\'', '.', ',', ';', ':', '!', '?',
+        )
+        val link = sharedText
+            .split(Regex("\\s+"))
+            .map { it.trim(*trimChars) }
+            .firstOrNull { token ->
+                (token.startsWith("http://", ignoreCase = true)
+                        || token.startsWith("https://", ignoreCase = true))
+                        && Patterns.WEB_URL.matcher(token).matches()
+            } ?: return false
+        downloadOrShowDownloadedFile(Uri.parse(link))
+        return true
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.action == Intent.ACTION_SEND) {
+            if (!openSharedTextLink()) {
+                AppSnackbar.make(binding.root, R.string.share_text_no_link, Snackbar.LENGTH_LONG).show()
+            }
+        }
     }
 
     fun isDisplayingUri(uri: String): Boolean {
@@ -607,6 +640,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
             reader.autoScrollSpeedStore.flushPendingSave()
             cropMarginsController.cancel()
             reader.inlineAnnotationActionController.hideActions()
+            reader.onActivityDestroyed()
         }
         if (isFinishing) {
             OnlineDocumentStore.sweepIncognito(this)

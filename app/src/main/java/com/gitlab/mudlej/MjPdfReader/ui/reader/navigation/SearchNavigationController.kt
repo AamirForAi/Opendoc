@@ -52,6 +52,8 @@ class SearchNavigationController(
     private var activeHighlightPageNumber: Int? = null
     private var snackbar: Snackbar? = null
     private var counterView: TextView? = null
+    private var messageView: TextView? = null
+    private var pendingLabelRestore: Runnable? = null
     private var previousButton: ImageButton? = null
     private var nextButton: ImageButton? = null
 
@@ -139,9 +141,11 @@ class SearchNavigationController(
     }
 
     private fun dismissSnackbar() {
+        cancelPendingLabelRestore()
         snackbar?.dismiss()
         snackbar = null
         counterView = null
+        messageView = null
         previousButton = null
         nextButton = null
     }
@@ -160,8 +164,11 @@ class SearchNavigationController(
             override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
                 if (snackbar === transientBottomBar) {
                     unsubscribeFromActiveSearch()
+                    clearHighlight()
+                    cancelPendingLabelRestore()
                     snackbar = null
                     counterView = null
+                    messageView = null
                     previousButton = null
                     nextButton = null
                 }
@@ -170,6 +177,7 @@ class SearchNavigationController(
         val textView = bar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
         textView.paintFlags = textView.paintFlags or Paint.UNDERLINE_TEXT_FLAG
         textView.setOnClickListener { openResultsList() }
+        messageView = textView
         val density = activity.resources.displayMetrics.density
         val onSurface = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOnSurface)
         val highlight = ColorStateList.valueOf(
@@ -250,6 +258,7 @@ class SearchNavigationController(
     }
 
     private fun showCurrentHit() {
+        cancelPendingLabelRestore()
         val hit = hits.getOrNull(currentPosition) ?: return
         clearHighlight()
         val matchLength = if (hit.matchLength > 0) hit.matchLength else query.length
@@ -259,7 +268,7 @@ class SearchNavigationController(
         val highlightCount = rawRange?.let { it.last + 1 - it.first } ?: matchLength
         val textBounds = binding.pdfView.createHighlightText(hit.pageNumber, highlightStart, highlightCount, true)
         if (textBounds.isEmpty()) {
-            AppSnackbar.make(binding.root, R.string.failed_to_highlight_search_result, Snackbar.LENGTH_SHORT).show()
+            showFailedToHighlightMessage()
             binding.pdfView.jumpUsingPageNumber(hit.pageNumber)
         }
         else {
@@ -277,6 +286,29 @@ class SearchNavigationController(
             positionSnackbar(screenRect)
         }
         updateControls()
+    }
+
+    private fun showFailedToHighlightMessage() {
+        val bar = snackbar
+        val message = messageView
+        if (bar == null || message == null) {
+            AppSnackbar.make(binding.root, R.string.failed_to_highlight_search_result, Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        message.text = activity.getString(R.string.failed_to_highlight_search_result)
+        val restore = Runnable {
+            pendingLabelRestore = null
+            messageView?.text = activity.getString(R.string.results)
+        }
+        pendingLabelRestore = restore
+        bar.view.postDelayed(restore, FAILED_HIGHLIGHT_LABEL_MILLIS)
+    }
+
+    private fun cancelPendingLabelRestore() {
+        val restore = pendingLabelRestore ?: return
+        pendingLabelRestore = null
+        snackbar?.view?.removeCallbacks(restore)
+        messageView?.text = activity.getString(R.string.results)
     }
 
     private fun unionPdfRect(bounds: Array<Rect>): RectF {
@@ -343,5 +375,6 @@ class SearchNavigationController(
 
     companion object {
         private const val BOTTOM_AREA_START = 0.6f
+        private const val FAILED_HIGHLIGHT_LABEL_MILLIS = 1600L
     }
 }

@@ -57,17 +57,23 @@ class RenderScheduler {
     private final RenderQueue queue;
     private final RenderExecutor executor;
     private final ResultSink sink;
+    private final int schedulerEpoch;
     private volatile boolean running = false;
     private Thread thread;
 
-    RenderScheduler(PDFView pdfView, RenderExecutor executor) {
-        this(new RenderQueue(new PdfViewGenerationSource(pdfView)), executor, new PdfViewSink(pdfView));
+    RenderScheduler(PDFView pdfView, RenderExecutor executor, int epoch) {
+        this(new RenderQueue(new PdfViewGenerationSource(pdfView)), executor, new PdfViewSink(pdfView, epoch), epoch);
     }
 
     RenderScheduler(RenderQueue queue, RenderExecutor executor, ResultSink sink) {
+        this(queue, executor, sink, 0);
+    }
+
+    RenderScheduler(RenderQueue queue, RenderExecutor executor, ResultSink sink, int epoch) {
         this.queue = queue;
         this.executor = executor;
         this.sink = sink;
+        this.schedulerEpoch = epoch;
     }
 
     void start() {
@@ -191,12 +197,14 @@ class RenderScheduler {
     static final class PdfExecutor implements RenderExecutor {
 
         private final PDFView pdfView;
+        private final int schedulerEpoch;
         private final RectF renderBounds = new RectF();
         private final Rect roundedRenderBounds = new Rect();
         private final Matrix renderMatrix = new Matrix();
 
-        PdfExecutor(PDFView pdfView) {
+        PdfExecutor(PDFView pdfView, int epoch) {
             this.pdfView = pdfView;
+            this.schedulerEpoch = epoch;
         }
 
         @Override
@@ -274,6 +282,11 @@ class RenderScheduler {
                 return RenderResult.aborted();
             }
 
+            if (schedulerEpoch != pdfView.getCurrentRenderEpoch()) {
+                recyclePart(render);
+                return RenderResult.aborted();
+            }
+
             boolean repainted = pdfView.onPreviewRendered(task.page, render, task.generation);
             if (PdfFile.isDebugChecksEnabled()) {
                 Log.d("MjPdfPerf", "preview p" + task.page + " " + (SystemClock.uptimeMillis() - startMs) + "ms "
@@ -304,9 +317,11 @@ class RenderScheduler {
     static final class PdfViewSink implements ResultSink {
 
         private final PDFView pdfView;
+        private final int schedulerEpoch;
 
-        PdfViewSink(PDFView pdfView) {
+        PdfViewSink(PDFView pdfView, int epoch) {
             this.pdfView = pdfView;
+            this.schedulerEpoch = epoch;
         }
 
         @Override
@@ -314,7 +329,7 @@ class RenderScheduler {
             pdfView.post(new Runnable() {
                 @Override
                 public void run() {
-                    if (pdfView.isRecycled()) {
+                    if (pdfView.isRecycled() || schedulerEpoch != pdfView.getCurrentRenderEpoch()) {
                         recyclePart(part);
                         return;
                     }

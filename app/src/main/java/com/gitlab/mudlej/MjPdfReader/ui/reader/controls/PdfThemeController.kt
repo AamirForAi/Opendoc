@@ -26,11 +26,7 @@ class PdfThemeController(
 
         applyPdfThemeToView(effectivePdfDarkTheme(), reloadPages = false)
 
-        val appNightMode = when (pref.getInterfaceTheme()) {
-            Preferences.themeSystem -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-            Preferences.themeDark -> AppCompatDelegate.MODE_NIGHT_YES
-            else -> AppCompatDelegate.MODE_NIGHT_NO
-        }
+        val appNightMode = interfaceNightMode(pref)
         if (AppCompatDelegate.getDefaultNightMode() != appNightMode) {
             AppCompatDelegate.setDefaultNightMode(appNightMode)
         }
@@ -77,6 +73,14 @@ class PdfThemeController(
                 Preferences.themeSystem -> isSystemDarkTheme(context)
                 Preferences.themeDark -> true
                 else -> false
+            }
+        }
+
+        fun interfaceNightMode(pref: Preferences): Int {
+            return when (pref.getInterfaceTheme()) {
+                Preferences.themeSystem -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+                Preferences.themeDark -> AppCompatDelegate.MODE_NIGHT_YES
+                else -> AppCompatDelegate.MODE_NIGHT_NO
             }
         }
 

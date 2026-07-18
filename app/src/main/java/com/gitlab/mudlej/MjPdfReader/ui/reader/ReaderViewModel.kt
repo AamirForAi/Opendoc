@@ -11,6 +11,7 @@ import com.github.barteksc.pdfviewer.PDFView
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.data.annotation.SourceKey
 import com.gitlab.mudlej.MjPdfReader.pdf.ReadingDirection
+import com.gitlab.mudlej.MjPdfReader.ui.reader.annotation.SaveOutcome
 
 class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
 
@@ -35,6 +36,7 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
     var hasUnsavedAnnotations = false
     var isSavingAnnotations = false
     val sessionOwnedAnnotationKeys = mutableSetOf<String>()
+    var onSaveComplete: ((SaveOutcome) -> Unit)? = null
 
     val bookmarkedPages = mutableSetOf<Int>()
     var bookmarksLoadedForHash: String? = null

@@ -98,6 +98,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         // Preferences keys
         const val firstInstallKey = "firstInstall"
         const val showFeaturesDialogKey = "showFeaturesDialog"
+        const val lastSeenVersionCodeKey = "lastSeenVersionCode"
         const val highQualityKey = "highQuality"
         const val antiAliasingKey = "antiAliasing"
         const val horizontalScrollKey = "horizontalScroll"
@@ -302,7 +303,7 @@ class Preferences(private val prefMan: SharedPreferences) {
             ).forEach { put(it, kindBoolean) }
             listOf(
                 hideDelayKey, goToPageGridColumnsKey, scrollSpeedKey, homeListTitleLinesKey,
-                homeGridTitleLinesKey, autoBackupHourKey, autoBackupMinuteKey,
+                homeGridTitleLinesKey, autoBackupHourKey, autoBackupMinuteKey, lastSeenVersionCodeKey,
             ).forEach { put(it, kindInt) }
             listOf(
                 autoBackupLastRunKey, autoBackupErrorAcknowledgedRunKey, autoBackupEnabledAtKey,
@@ -337,6 +338,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     // get values saved in Shared Preferences or return the default values
     fun getFirstInstall() = safeGetBoolean(firstInstallKey, firstInstallDefault)
     fun getShowFeaturesDialog() = safeGetBoolean(showFeaturesDialogKey, showFeaturesDialogDefault)
+    fun getLastSeenVersionCode() = safeGetInt(lastSeenVersionCodeKey, 0)
     fun getHighQuality() = safeGetBoolean(highQualityKey, highQualityDefault)
     fun getAntiAliasing() = safeGetBoolean(antiAliasingKey, antiAliasingDefault)
     fun getHorizontalScroll() = safeGetBoolean(horizontalScrollKey, horizontalScrollDefault)
@@ -486,6 +488,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     // put values in Shared Preferences
     fun setFirstInstall(value: Boolean) = prefMan.edit().putBoolean(firstInstallKey, value).apply()
     fun setShowFeaturesDialog(value: Boolean) = prefMan.edit().putBoolean(showFeaturesDialogKey, value).apply()
+    fun setLastSeenVersionCode(value: Int) = prefMan.edit().putInt(lastSeenVersionCodeKey, value).apply()
     fun setHighQuality(value: Boolean) = prefMan.edit().putBoolean(highQualityKey, value).apply()
     fun setAntiAliasing(value: Boolean) = prefMan.edit().putBoolean(antiAliasingKey, value).apply()
     fun setHorizontalScroll(value: Boolean) = prefMan.edit().putBoolean(horizontalScrollKey, value).apply()

@@ -4,11 +4,13 @@ package com.gitlab.mudlej.MjPdfReader
 
 import android.app.Application
 import android.content.Context
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.PreferenceManager
 import com.gitlab.mudlej.MjPdfReader.data.AutoBackupScheduler
 import com.gitlab.mudlej.MjPdfReader.data.OnlineDocumentStore
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.PrintController
+import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.PdfThemeController
 import com.google.android.material.color.DynamicColors
 import org.acra.ACRA
 import org.acra.ReportField
@@ -23,6 +25,7 @@ class App : Application() {
         super.onCreate()
         if (!ACRA.isACRASenderServiceProcess()) {
             val preferences = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
+            AppCompatDelegate.setDefaultNightMode(PdfThemeController.interfaceNightMode(preferences))
             if (preferences.getAutoBackupEnabled()) {
                 AutoBackupScheduler.ensureScheduled(this, preferences.getAutoBackupHour(), preferences.getAutoBackupMinute())
             }
