@@ -259,7 +259,7 @@
     <string name="features_custom_toolbar_body">Pick the two actions that sit in the reader toolbar with Primary and Secondary Toolbar Button.\nAny action can go there, from Screenshot to Incognito.</string>
     <string name="features_custom_shortcut_title">Shortcut bar</string>
     <string name="features_custom_shortcut_body">An optional second bar under the toolbar.\nChoose and order its actions with Shortcut Bar Actions.</string>
-    <string name="features_custom_fullscreen_title">Fullscreen Actions</string>
+    <string name="features_custom_fullscreen_title">Fullscreen Buttons</string>
     <string name="features_custom_fullscreen_body">Choose which buttons the fullscreen overlay shows.\nHide their labels if you prefer icons only.</string>
     <string name="features_custom_per_document_title">Per document memory</string>
     <string name="features_custom_per_document_body">Remembered separately for every document:\nReading position and zoom.\nReading direction and hidden margins.\nAuto scroll speed.\nText Mode options.</string>
@@ -753,7 +753,7 @@
     <string name="enable_reload_summary">Swiftly refreshes your content, ensuring that any updates to documents are immediately visible.</string>
     <string name="primary_button_action">Primary Toolbar Button</string>
     <string name="secondary_button_action">Secondary Toolbar Button</string>
-    <string name="fullscreen_buttons">Fullscreen Actions</string>
+    <string name="fullscreen_buttons">Fullscreen Buttons</string>
     <string name="fullscreen_buttons_summary">Choose which actions appear in fullscreen mode.</string>
     <string name="shortcut_bar_buttons">Shortcut Bar Actions</string>
     <string name="shortcut_bar_buttons_summary">Choose which actions appear in the shortcut bar.</string>
