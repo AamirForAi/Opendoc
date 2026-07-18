@@ -140,7 +140,7 @@
     * Noisy page edges are handled safely.
     * A global option always hides margins for all PDFs.
     * Applying or removing the crop keeps your reading position.
-    * Hide and Show Margins are available as reader and fullscreen actions.
+    * Hide and Show Margins are available as reader and fullscreen buttons.
   * Auto Scroll:
     * Auto scroll moves by real elapsed time, so speed is consistent on every device.
     * It ticks on the display's frame clock instead of a timer loop.
