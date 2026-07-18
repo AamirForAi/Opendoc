@@ -13,7 +13,6 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.ui.reader.load.PreviewDiskCoordinator
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
-import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
@@ -50,7 +49,7 @@ class AnnotationSaveController(
     private val beforeSave: () -> Boolean,
     private val onDocumentSaved: () -> Unit,
 ) {
-    private data class SaveBytes(val bytes: ByteArray, val hash: String)
+    private data class SaveResult(val hash: String, val sizeBytes: Long)
 
     private var pendingSourceUri: Uri? = null
     private var pendingPostSaveAction: (() -> Unit)? = null
@@ -238,7 +237,6 @@ class AnnotationSaveController(
                 pdf.uri = destinationUri
                 pdf.name = destinationName
                 pdf.fileHash = newHash
-                PdfBytesHolder.set(destinationUri.toString(), saveResult.bytes)
             }
 
             if (historyPolicy.canRecord()) {
@@ -277,7 +275,7 @@ class AnnotationSaveController(
                 cacheDir = activity.cacheDir,
                 fileHash = newHash,
                 pageCount = binding.pdfView.getPageCount(),
-                sizeBytes = saveResult.bytes.size.toLong(),
+                sizeBytes = saveResult.sizeBytes,
                 incognito = vm.incognito,
                 hasPassword = pdf.password != null,
             )
@@ -291,14 +289,14 @@ class AnnotationSaveController(
         }
     }
 
-    private suspend fun writeDocumentToSaf(destinationUri: Uri): SaveBytes? = withContext(Dispatchers.IO) {
+    private suspend fun writeDocumentToSaf(destinationUri: Uri): SaveResult? = withContext(Dispatchers.IO) {
         val tmp = File(activity.cacheDir, "annotation-save-${System.currentTimeMillis()}.pdf")
         try {
             if (!runCatching { binding.pdfView.saveAsCopy(tmp) }.getOrDefault(false)) {
                 return@withContext null
             }
-            val bytes = runCatching { tmp.readBytes() }.getOrNull() ?: return@withContext null
-            val hash = computeHash(bytes) ?: return@withContext null
+            val sizeBytes = tmp.length()
+            val hash = computeHash(tmp) ?: return@withContext null
             val wrote = runCatching {
                 activity.contentResolver.openOutputStream(destinationUri, "wt")?.use { output ->
                     tmp.inputStream().use { input -> input.copyTo(output) }
@@ -307,7 +305,7 @@ class AnnotationSaveController(
             if (!wrote) {
                 return@withContext null
             }
-            SaveBytes(bytes, hash)
+            SaveResult(hash, sizeBytes)
         } finally {
             tmp.delete()
         }

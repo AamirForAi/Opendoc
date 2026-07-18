@@ -281,6 +281,9 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         if (!pdfView.isSwipeEnabled()) {
             return false;
         }
+        if (pdfView.pdfFile == null) {
+            return false;
+        }
         if (pdfView.isHorizontalSwipeDisabled()) velocityX = 0;
         if (pdfView.isFreeScrollMode() && axisLock != AxisLock.FREE) velocityX = 0;
         //if (pdfView.isVerticalSwipeDisabled()) velocityX = 0;
@@ -317,6 +320,9 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         int yOffset = (int) pdfView.getCurrentYOffset();
 
         PdfFile pdfFile = pdfView.pdfFile;
+        if (pdfFile == null) {
+            return;
+        }
 
         int row = pdfFile.getRowOfPage(pdfView.getCurrentPage());
         float pageStart = -pdfFile.getRowOffset(row, pdfView.getZoom());

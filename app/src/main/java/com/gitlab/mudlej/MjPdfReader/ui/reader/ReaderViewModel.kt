@@ -9,7 +9,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import com.github.barteksc.pdfviewer.PDFView
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
-import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.data.annotation.SourceKey
 import com.gitlab.mudlej.MjPdfReader.pdf.ReadingDirection
 
@@ -85,7 +84,6 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
         signatureDirtyBeforePlacement = false
         pendingSignaturePage = -1
         pendingSignatureRect = null
-        PdfBytesHolder.clear()
     }
 
     fun resetAnnotationsForDocument(uri: Uri?) {

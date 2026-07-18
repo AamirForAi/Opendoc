@@ -32,6 +32,10 @@ public class PdfiumCore {
 
     public static final int RENDER_FLAG_NO_SMOOTHIMAGE = 0x2000;
 
+    private static final int MAX_BOOKMARK_DEPTH = 64;
+
+    private static final int FPDF_SAVE_REMOVE_SECURITY = 3;
+
     static {
         try {
             System.loadLibrary("c++_shared");
@@ -51,6 +55,7 @@ public class PdfiumCore {
     private native void nativeCloseDocument(long docPtr);
 
     private native boolean nativeSaveAsCopy(long docPtr, int fd);
+    private native boolean nativeSaveAsCopyWithFlags(long docPtr, int fd, int flags);
 
     private native int nativeGetPageCount(long docPtr);
 
@@ -251,6 +256,15 @@ public class PdfiumCore {
                 return false;
             }
             return nativeSaveAsCopy(doc.mNativeDocPtr, getNumFd(fd));
+        }
+    }
+
+    public boolean saveDecryptedCopy(PdfDocument doc, ParcelFileDescriptor fd) {
+        synchronized (lock) {
+            if (doc == null || fd == null || doc.closed) {
+                return false;
+            }
+            return nativeSaveAsCopyWithFlags(doc.mNativeDocPtr, getNumFd(fd), FPDF_SAVE_REMOVE_SECURITY);
         }
     }
 
@@ -708,14 +722,17 @@ public class PdfiumCore {
             }
             Long first = nativeGetFirstChildBookmark(doc.mNativeDocPtr, null);
             if (first != null) {
-                recursiveGetBookmark(topLevel, doc, first, new HashSet<Long>());
+                recursiveGetBookmark(topLevel, doc, first, new HashSet<Long>(), 0);
             }
             return topLevel;
         }
     }
 
     private void recursiveGetBookmark(List<PdfDocument.Bookmark> tree, PdfDocument doc, long bookmarkPtr,
-                                      Set<Long> visited) {
+                                      Set<Long> visited, int depth) {
+        if (depth > MAX_BOOKMARK_DEPTH) {
+            return;
+        }
         Long currentPtr = bookmarkPtr;
         while (currentPtr != null && visited.add(currentPtr)) {
             PdfDocument.Bookmark bookmark = new PdfDocument.Bookmark();
@@ -726,7 +743,7 @@ public class PdfiumCore {
 
             Long child = nativeGetFirstChildBookmark(doc.mNativeDocPtr, currentPtr);
             if (child != null) {
-                recursiveGetBookmark(bookmark.getChildren(), doc, child, visited);
+                recursiveGetBookmark(bookmark.getChildren(), doc, child, visited, depth + 1);
             }
 
             currentPtr = nativeGetSiblingBookmark(doc.mNativeDocPtr, currentPtr);

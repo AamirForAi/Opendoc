@@ -23,7 +23,7 @@ object BackupImportPipeline {
         appContext: Context,
         data: BackupData,
         createSafety: Boolean,
-        onRejected: (String) -> Unit,
+        onRejected: (String) -> Boolean,
     ): Boolean {
         if (running) {
             return false
@@ -32,16 +32,33 @@ object BackupImportPipeline {
         val preferences = Preferences(PreferenceManager.getDefaultSharedPreferences(appContext))
         val backupManager = BackupManager(appContext, PdfRepository(AppDatabase.getInstance(appContext)))
         scope.launch {
+            val plan = try {
+                backupManager.prepareImport(data)
+            } catch (exception: Exception) {
+                val message = appContext.getString(
+                    R.string.backup_import_failed_before_changes,
+                    BackupException.render(appContext, exception),
+                )
+                running = false
+                val handled = withContext(Dispatchers.Main) { onRejected(message) }
+                if (!handled) {
+                    preferences.setImportResultPending(message)
+                }
+                return@launch
+            }
             if (createSafety) {
                 val safetyError = writeSafetySnapshot(appContext, backupManager)
                 if (safetyError != null) {
                     running = false
-                    withContext(Dispatchers.Main) { onRejected(safetyError) }
+                    val handled = withContext(Dispatchers.Main) { onRejected(safetyError) }
+                    if (!handled) {
+                        preferences.setImportResultPending(safetyError)
+                    }
                     return@launch
                 }
             }
             try {
-                val summary = backupManager.importReplace(data)
+                val summary = backupManager.applyImport(plan)
                 preferences.setImportResultPending(renderSummary(appContext, data, summary))
             } catch (exception: Exception) {
                 preferences.setImportResultPending(

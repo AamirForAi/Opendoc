@@ -152,6 +152,10 @@ class RenderScheduler {
             queue.completed(task);
             Log.e(TAG, "runTask: rendering task failed", ex);
             return;
+        } catch (OutOfMemoryError ex) {
+            queue.completed(task);
+            Log.e(TAG, "runTask: out of memory while rendering", ex);
+            return;
         }
         queue.completed(task);
         if (result == null) {
@@ -224,7 +228,7 @@ class RenderScheduler {
             Bitmap render;
             try {
                 render = Bitmap.createBitmap(w, h, task.bestQuality ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565);
-            } catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException | OutOfMemoryError e) {
                 Log.e(TAG, "Cannot create bitmap", e);
                 return RenderResult.NONE;
             }
@@ -258,7 +262,7 @@ class RenderScheduler {
             Bitmap render;
             try {
                 render = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
-            } catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException | OutOfMemoryError e) {
                 Log.e(TAG, "Cannot create preview bitmap", e);
                 return RenderResult.NONE;
             }

@@ -466,7 +466,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
             startActivity(sharingIntent)
         }
         catch (e: Throwable) {
-            AppSnackbar.make(binding.root, "Error sharing the file. (${e.message})", Snackbar.LENGTH_LONG).show()
+            AppSnackbar.make(binding.root, R.string.share_failed, Snackbar.LENGTH_LONG).show()
         }
     }
 
@@ -592,12 +592,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     }
 
     internal fun downloadOrShowDownloadedFile(uri: Uri) {
-        onlinePdfController.downloadOrShowDownloadedFile(uri, lastCustomNonConfigurationInstance)
-    }
-
-    @Deprecated("Use a {@link androidx.lifecycle.ViewModel} to store non config state.")
-    override fun onRetainCustomNonConfigurationInstance(): Any {
-        return onlinePdfController.retainSnapshot()
+        onlinePdfController.downloadOrShowDownloadedFile(uri)
     }
 
     override fun onStop() {
@@ -613,6 +608,9 @@ class MainActivity : AppCompatActivity(), ReaderUi {
             cropMarginsController.cancel()
             reader.inlineAnnotationActionController.hideActions()
         }
+        if (isFinishing) {
+            OnlineDocumentStore.sweepIncognito(this)
+        }
         super.onDestroy()
     }
 
@@ -623,6 +621,9 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     }
 
     private fun askForPdfPassword() {
+        if (isFinishing || isDestroyed) {
+            return
+        }
         val dialogBinding = PasswordDialogBinding.inflate(layoutInflater)
         showAskForPasswordDialog(this, pdf, dialogBinding, ::displayFromUri)
     }
@@ -696,9 +697,9 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         if (uri == null) {
             return null
         }
-        val heldBytes = PdfBytesHolder.bytesFor(uri.toString())
-        if (heldBytes != null) {
-            return heldBytes.size.toLong()
+        val heldFile = OnlineDocumentStore.fileFor(this, uri.toString())
+        if (heldFile != null) {
+            return heldFile.length()
         }
         return runCatching {
             contentResolver.openFileDescriptor(uri, "r")?.use { fd ->

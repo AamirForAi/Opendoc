@@ -406,7 +406,16 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     private fun runClearAction(action: suspend () -> Int?) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val count = withContext(NonCancellable) { action() }
+            val count = try {
+                withContext(NonCancellable) { action() }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (isAdded) {
+                    Toast.makeText(requireContext(), R.string.clear_data_failed, Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
             if (!isAdded) {
                 return@launch
             }
@@ -583,6 +592,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
             if (isAdded) {
                 dialog.dismiss()
                 showBackupResultDialog(R.string.backup_import_title, message)
+                true
+            } else {
+                false
             }
         }
         if (!started) {

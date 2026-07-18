@@ -16,11 +16,9 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.gitlab.mudlej.MjPdfReader.R
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.InputStream
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
@@ -73,24 +71,16 @@ fun decodeNameFromUrl(encodedUrl: String): String {
     }
 }
 @Throws(IOException::class)
-fun writeBytesToFile(directory: File, fileName: String, fileContent: ByteArray?) {
-    val file = File(directory, fileName)
-    FileOutputStream(file).use { stream -> stream.write(fileContent) }
+fun copyFileToDirectory(source: File, directory: File, fileName: String) {
+    val target = File(directory, fileName)
+    source.inputStream().use { input ->
+        FileOutputStream(target).use { output -> input.copyTo(output) }
+    }
 }
 fun canWriteToDownloadFolder(context: Context): Boolean =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) true
     else ContextCompat.checkSelfPermission(context,
         Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
-@Throws(IOException::class)
-fun readBytesToEnd(inputStream: InputStream): ByteArray? {
-    val output = ByteArrayOutputStream()
-    val buffer = ByteArray(8 * 1024)
-    var bytesRead: Int
-    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-        output.write(buffer, 0, bytesRead)
-    }
-    return output.toByteArray()
-}
 val File.size get() = if (!exists()) 0.0 else length().toDouble()
 val File.sizeInKb get() = size / 1024
 val File.sizeInMb get() = sizeInKb / 1024

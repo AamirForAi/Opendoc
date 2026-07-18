@@ -11,16 +11,16 @@ import android.view.View
 import androidx.core.net.toUri
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
-import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
+import com.gitlab.mudlej.MjPdfReader.data.OnlineDocumentStore
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.io.canWriteToDownloadFolder
-import com.gitlab.mudlej.MjPdfReader.core.io.readBytesToEnd
-import com.gitlab.mudlej.MjPdfReader.core.io.writeBytesToFile
+import com.gitlab.mudlej.MjPdfReader.core.io.copyFileToDirectory
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
+import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -35,19 +35,18 @@ class OnlinePdfController(
     private val binding: ActivityMainBinding,
     private val pdf: DocumentState,
     private val scope: CoroutineScope,
+    private val isIncognito: () -> Boolean,
     private val requestSaveToDownloadPermission: () -> Unit,
-    private val loadFromBytes: (ByteArray?) -> Unit,
+    private val loadFromFile: (File) -> Unit,
     private val openConfirmedLink: (Uri) -> Unit,
 ) {
 
     private sealed class DownloadResult {
-        class Success(val bytes: ByteArray?) : DownloadResult()
+        class Success(val file: File?) : DownloadResult()
         data object HttpError : DownloadResult()
         data object SslError : DownloadResult()
         data object GenericError : DownloadResult()
     }
-
-    data class RetainedPdfBytes(val uri: String?, val bytes: ByteArray?)
 
     fun showOpenOnlinePdfDialog() {
         val inputLayout = activity.layoutInflater.inflate(R.layout.input_layout, null) as TextInputLayout
@@ -98,24 +97,12 @@ class OnlinePdfController(
         return equals("http", ignoreCase = true) || equals("https", ignoreCase = true)
     }
 
-    fun retainSnapshot(): RetainedPdfBytes {
-        val held = PdfBytesHolder.snapshot()
-        return RetainedPdfBytes(held?.uri, held?.bytes)
-    }
-
-    fun downloadOrShowDownloadedFile(uri: Uri, retainedState: Any?) {
-        if (PdfBytesHolder.snapshot() == null) {
-            val retained = retainedState as? RetainedPdfBytes
-            if (retained?.uri == uri.toString()) {
-                PdfBytesHolder.set(retained.uri, retained.bytes)
-            }
-        }
-        val bytes = PdfBytesHolder.bytesFor(uri.toString())
-        if (bytes != null) {
-            loadFromBytes(bytes)
+    fun downloadOrShowDownloadedFile(uri: Uri) {
+        val file = OnlineDocumentStore.fileFor(activity, uri.toString())
+        if (file != null) {
+            loadFromFile(file)
         }
         else {
-            PdfBytesHolder.clear()
             startDownload(uri.toString())
         }
     }
@@ -131,12 +118,8 @@ class OnlinePdfController(
             }
             when (result) {
                 is DownloadResult.Success -> {
-                    val bytes = result.bytes
-                    if (bytes != null) {
-                        saveToFileAndDisplay(bytes)
-                    } else {
-                        showDownloadError(R.string.toast_generic_download_error)
-                    }
+                    binding.progressBar.isIndeterminate = true
+                    saveToFileAndDisplay(result.file)
                 }
                 is DownloadResult.HttpError -> showDownloadError(R.string.toast_http_code_error)
                 is DownloadResult.SslError -> showDownloadError(R.string.toast_ssl_error)
@@ -152,7 +135,29 @@ class OnlinePdfController(
             connection.connect()
             val responseCode = connection.responseCode
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                DownloadResult.Success(readBytesToEnd(connection.inputStream))
+                val contentLength = connection.contentLengthLong
+                if (contentLength > 0) {
+                    binding.progressBar.post {
+                        binding.progressBar.isIndeterminate = false
+                        binding.progressBar.max = 100
+                    }
+                }
+                var lastPercent = -1
+                val file = OnlineDocumentStore.write(
+                    activity,
+                    url,
+                    isIncognito(),
+                    connection.inputStream,
+                ) { totalBytes ->
+                    if (contentLength > 0) {
+                        val percent = ((totalBytes * 100) / contentLength).toInt()
+                        if (percent != lastPercent) {
+                            lastPercent = percent
+                            binding.progressBar.post { binding.progressBar.progress = percent }
+                        }
+                    }
+                }
+                DownloadResult.Success(file)
             } else {
                 Log.e(TAG, "Error during http request, response code : $responseCode")
                 DownloadResult.HttpError
@@ -161,6 +166,9 @@ class OnlinePdfController(
             Log.e(TAG, "Error cannot get file at URL : $url", e)
             DownloadResult.SslError
         } catch (e: IOException) {
+            Log.e(TAG, "Error cannot get file at URL : $url", e)
+            DownloadResult.GenericError
+        } catch (e: Exception) {
             Log.e(TAG, "Error cannot get file at URL : $url", e)
             DownloadResult.GenericError
         } finally {
@@ -173,40 +181,44 @@ class OnlinePdfController(
         AppSnackbar.make(binding.root, messageRes, Snackbar.LENGTH_LONG).show()
     }
 
-    fun saveToFileAndDisplay(pdfFileContent: ByteArray?) {
-        PdfBytesHolder.set(pdf.uri?.toString(), pdfFileContent)
-        saveToDownloadFolderIfAllowed(pdfFileContent)
-        loadFromBytes(pdfFileContent)
+    fun saveToFileAndDisplay(file: File?) {
+        if (file == null) {
+            showDownloadError(R.string.toast_generic_download_error)
+            return
+        }
+        if (!isIncognito()) {
+            saveToDownloadFolderIfAllowed(file)
+        }
+        loadFromFile(file)
     }
 
     fun saveDownloadedFileAfterPermissionRequest(isPermissionGranted: Boolean) {
-        if (isPermissionGranted) {
-            val bytes = PdfBytesHolder.bytesFor(pdf.uri?.toString())
-            if (bytes != null) {
-                trySaveToDownloads(bytes, true)
-            } else {
-                AppSnackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
-            }
+        if (isIncognito()) {
+            return
+        }
+        val file = OnlineDocumentStore.fileFor(activity, pdf.uri?.toString())
+        if (isPermissionGranted && file != null) {
+            trySaveToDownloads(file, true)
         }
         else {
             AppSnackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
         }
     }
 
-    private fun saveToDownloadFolderIfAllowed(fileContent: ByteArray?) {
+    private fun saveToDownloadFolderIfAllowed(file: File) {
         if (canWriteToDownloadFolder(activity)) {
-            trySaveToDownloads(fileContent, false)
+            trySaveToDownloads(file, false)
         }
         else {
             requestSaveToDownloadPermission()
         }
     }
 
-    private fun trySaveToDownloads(fileContent: ByteArray?, showSuccessMessage: Boolean) {
+    private fun trySaveToDownloads(file: File, showSuccessMessage: Boolean) {
         try {
             val downloadDirectory =
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            writeBytesToFile(downloadDirectory, pdf.name, fileContent)
+            copyFileToDirectory(file, downloadDirectory, pdf.name)
             if (showSuccessMessage) {
                 AppSnackbar.make(binding.root, R.string.saved_to_download, Snackbar.LENGTH_SHORT).show()
             }

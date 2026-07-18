@@ -12,7 +12,8 @@ import com.github.barteksc.pdfviewer.PDFView.Configurator
 import com.github.barteksc.pdfviewer.model.CropMargins
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
-import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
+import android.os.ParcelFileDescriptor
+import com.gitlab.mudlej.MjPdfReader.data.OnlineDocumentStore
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
@@ -185,17 +186,17 @@ class CropMarginsController(
     private fun openDocument(documentUri: Uri): OpenedDocument? {
         val pdfiumCore = PdfiumCore(activity)
         val password = pdf.password
-        val bytes = PdfBytesHolder.bytesFor(documentUri.toString())
-        val document: PdfDocument = if (bytes != null) {
-            pdfiumCore.newDocument(bytes, password)
+        val heldFile = OnlineDocumentStore.fileFor(activity, documentUri.toString())
+        val fileDescriptor = if (heldFile != null) {
+            ParcelFileDescriptor.open(heldFile, ParcelFileDescriptor.MODE_READ_ONLY)
         } else {
-            val fileDescriptor = activity.contentResolver.openFileDescriptor(documentUri, "r") ?: return null
-            try {
-                pdfiumCore.newDocument(fileDescriptor, password)
-            } catch (throwable: Throwable) {
-                runCatching { fileDescriptor.close() }
-                throw throwable
-            }
+            activity.contentResolver.openFileDescriptor(documentUri, "r") ?: return null
+        }
+        val document: PdfDocument = try {
+            pdfiumCore.newDocument(fileDescriptor, password)
+        } catch (throwable: Throwable) {
+            runCatching { fileDescriptor.close() }
+            throw throwable
         }
         return OpenedDocument(pdfiumCore, document)
     }
@@ -209,9 +210,9 @@ class CropMarginsController(
     }
 
     private fun currentConfigurator(uri: Uri): Configurator? {
-        val bytes = PdfBytesHolder.bytesFor(uri.toString())
-        return if (bytes != null) {
-            binding.pdfView.fromBytes(bytes)
+        val file = OnlineDocumentStore.fileFor(activity, uri.toString())
+        return if (file != null) {
+            binding.pdfView.fromFile(file)
         } else {
             binding.pdfView.fromUri(uri)
         }

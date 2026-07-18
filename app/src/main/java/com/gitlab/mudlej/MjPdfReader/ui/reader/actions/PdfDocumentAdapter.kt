@@ -12,12 +12,14 @@ import android.print.PrintAttributes
 import android.print.PrintDocumentAdapter
 import android.print.PrintDocumentInfo
 import android.util.Log
+import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.Executors
 
 class PdfDocumentAdapter(
     private val context: Context,
     private val documentUri: Uri?,
+    private val deleteOnFinish: File? = null,
 ) : PrintDocumentAdapter() {
 
     private val executor = Executors.newSingleThreadExecutor()
@@ -78,6 +80,7 @@ class PdfDocumentAdapter(
 
     override fun onFinish() {
         executor.shutdown()
+        deleteOnFinish?.delete()
         super.onFinish()
     }
 
