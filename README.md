@@ -36,6 +36,8 @@
 More screenshots are in the [MJ PDF Gallery](http://mudlej.com/projects/mj-pdf/supplements/gallery/).
 
 ## What's new in 3.0
+Check MJ PDF v3.0.0's [**Official Release Page**](http://mudlej.com/projects/mj-pdf/supplements/v3.0.0-release/)
+
 Version 3.0 is the biggest update in MJ PDF's history, closer to a rewrite of the app. The short version:
 
 - A new Home screen with a library, reading statuses, recent files, and a real folder browser.
