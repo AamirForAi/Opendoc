@@ -42,10 +42,21 @@ data class HomeItem(
 
     companion object {
 
-        fun from(record: PdfRecord, showPdfTitle: Boolean, availability: Availability): HomeItem {
+        private const val ANNOTATED_SUFFIX = "-annotated"
+
+        fun from(
+            record: PdfRecord,
+            showPdfTitle: Boolean,
+            availability: Availability,
+            annotatedTitleFormat: String,
+        ): HomeItem {
             val documentTitle = record.documentTitle
             val title = if (showPdfTitle && !documentTitle.isNullOrBlank()) {
-                documentTitle
+                if (record.fileName.endsWith(ANNOTATED_SUFFIX)) {
+                    annotatedTitleFormat.format(documentTitle)
+                } else {
+                    documentTitle
+                }
             } else {
                 record.fileName
             }

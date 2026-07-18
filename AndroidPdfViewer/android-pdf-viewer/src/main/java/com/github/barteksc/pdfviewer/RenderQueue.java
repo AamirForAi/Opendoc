@@ -66,7 +66,7 @@ class RenderQueue {
         }
         task.generation = generationSource.generationOf(task.page);
 
-        if (inFlight != null && inFlight.equivalentTo(task)) {
+        if (inFlight != null && task.kind != RenderTask.Kind.PREWARM && inFlight.equivalentTo(task)) {
             inFlight.waveId = liveWaveId;
             inFlightOrphanPending = false;
             return;

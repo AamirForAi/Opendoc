@@ -425,10 +425,16 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         retVal = gestureDetector.onTouchEvent(event) || retVal;
 
         int action = event.getActionMasked();
-        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+        if (action == MotionEvent.ACTION_UP) {
             if (scrolling) {
                 scrolling = false;
                 onScrollEnd(event);
+            }
+        } else if (action == MotionEvent.ACTION_CANCEL) {
+            if (scrolling) {
+                scrolling = false;
+                pdfView.setRenderInteractionActive(false);
+                pdfView.loadPages();
             }
         }
         return retVal;

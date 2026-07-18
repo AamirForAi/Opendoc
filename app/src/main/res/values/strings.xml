@@ -266,7 +266,7 @@
     <string name="features_custom_languages_title">Languages</string>
     <string name="features_custom_languages_body">The interface is available in 15 languages.</string>
     <string name="done">DONE</string>
-    <string name="results">SEARCH RESULTS</string>
+    <string name="results">All Results</string>
     <string name="ok">OK</string>
 
     <string name="libs">Open Source Libraries</string>
@@ -917,6 +917,7 @@
     <string name="settings_home_summary">Home library screen and its behavior</string>
     <string name="home_show_pdf_title_title">Show PDF Titles</string>
     <string name="home_show_pdf_title_summary">Use the title from the PDF metadata when available instead of the file name.</string>
+    <string name="home_title_annotated">%1$s (annotated)</string>
     <string name="home_grid_title_lines_title">Grid Title Lines</string>
     <string name="home_grid_title_lines_summary">How many lines the file name can use on grid cards before it is shortened.</string>
     <string name="home_list_title_lines_title">List Title Lines</string>

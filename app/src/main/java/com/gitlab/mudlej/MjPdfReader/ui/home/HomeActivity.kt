@@ -438,7 +438,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
 
     private suspend fun renderTabs() {
         val probe = AvailabilityProbe(applicationContext, permissionManager.hasFullAccess())
-        allRecordItems = libraryController.loadLibrary(probe)
+        allRecordItems = libraryController.loadLibrary(probe, getString(R.string.home_title_annotated))
         allItems = allRecordItems.filter { it.availability != Availability.MISSING }
         val scanIndex = libraryScanner.index.value
         recentTab.render(allItems)

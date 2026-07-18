@@ -111,6 +111,7 @@ class OnlinePdfController(
         binding.progressBar.isIndeterminate = true
         binding.progressBar.progress = 0
         binding.progressBar.visibility = View.VISIBLE
+        binding.pickFileButton.visibility = View.GONE
         scope.launch {
             val result = withContext(Dispatchers.IO) { download(url) }
             if (!activity.isDisplayingUri(url)) {
@@ -129,48 +130,75 @@ class OnlinePdfController(
     }
 
     private fun download(url: String): DownloadResult {
+        var currentUrl = URL(url)
+        var redirects = 0
         var connection: HttpURLConnection? = null
-        return try {
-            connection = URL(url).openConnection() as HttpURLConnection
-            connection.connect()
-            val responseCode = connection.responseCode
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                val contentLength = connection.contentLengthLong
-                if (contentLength > 0) {
-                    binding.progressBar.post {
-                        binding.progressBar.isIndeterminate = false
-                        binding.progressBar.max = 100
-                    }
+        try {
+            while (true) {
+                val conn = (currentUrl.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    instanceFollowRedirects = false
+                    connectTimeout = CONNECT_TIMEOUT_MS
+                    readTimeout = READ_TIMEOUT_MS
+                    setRequestProperty("User-Agent", USER_AGENT)
                 }
-                var lastPercent = -1
-                val file = OnlineDocumentStore.write(
-                    activity,
-                    url,
-                    isIncognito(),
-                    connection.inputStream,
-                ) { totalBytes ->
-                    if (contentLength > 0) {
-                        val percent = ((totalBytes * 100) / contentLength).toInt()
-                        if (percent != lastPercent) {
-                            lastPercent = percent
-                            binding.progressBar.post { binding.progressBar.progress = percent }
+                connection = conn
+                conn.connect()
+                when (val responseCode = conn.responseCode) {
+                    HttpURLConnection.HTTP_OK -> {
+                        val contentLength = conn.contentLengthLong
+                        if (contentLength > 0) {
+                            binding.progressBar.post {
+                                binding.progressBar.isIndeterminate = false
+                                binding.progressBar.max = 100
+                            }
                         }
+                        var lastPercent = -1
+                        val file = OnlineDocumentStore.write(
+                            activity,
+                            url,
+                            isIncognito(),
+                            conn.inputStream,
+                        ) { totalBytes ->
+                            if (contentLength > 0) {
+                                val percent = ((totalBytes * 100) / contentLength).toInt()
+                                if (percent != lastPercent) {
+                                    lastPercent = percent
+                                    binding.progressBar.post { binding.progressBar.progress = percent }
+                                }
+                            }
+                        }
+                        return DownloadResult.Success(file)
+                    }
+                    HttpURLConnection.HTTP_MOVED_PERM,
+                    HttpURLConnection.HTTP_MOVED_TEMP,
+                    HttpURLConnection.HTTP_SEE_OTHER,
+                    HTTP_TEMPORARY_REDIRECT,
+                    HTTP_PERMANENT_REDIRECT -> {
+                        val location = conn.getHeaderField("Location")
+                        if (location == null || redirects >= MAX_REDIRECTS) {
+                            Log.e(TAG, "Redirect could not be followed for URL : $url")
+                            return DownloadResult.HttpError
+                        }
+                        redirects++
+                        currentUrl = URL(currentUrl, location)
+                        conn.disconnect()
+                    }
+                    else -> {
+                        Log.e(TAG, "Error during http request, response code : $responseCode")
+                        return DownloadResult.HttpError
                     }
                 }
-                DownloadResult.Success(file)
-            } else {
-                Log.e(TAG, "Error during http request, response code : $responseCode")
-                DownloadResult.HttpError
             }
         } catch (e: SSLException) {
             Log.e(TAG, "Error cannot get file at URL : $url", e)
-            DownloadResult.SslError
+            return DownloadResult.SslError
         } catch (e: IOException) {
             Log.e(TAG, "Error cannot get file at URL : $url", e)
-            DownloadResult.GenericError
+            return DownloadResult.GenericError
         } catch (e: Exception) {
             Log.e(TAG, "Error cannot get file at URL : $url", e)
-            DownloadResult.GenericError
+            return DownloadResult.GenericError
         } finally {
             connection?.disconnect()
         }
@@ -178,6 +206,9 @@ class OnlinePdfController(
 
     private fun showDownloadError(messageRes: Int) {
         activity.hideProgress()
+        if (binding.pdfView.pageCount == 0) {
+            binding.pickFileButton.visibility = View.VISIBLE
+        }
         AppSnackbar.make(binding.root, messageRes, Snackbar.LENGTH_LONG).show()
     }
 
@@ -252,5 +283,12 @@ class OnlinePdfController(
 
     private companion object {
         const val TAG = "OnlinePdfController"
+        const val USER_AGENT =
+            "Mozilla/5.0 (Linux; Android) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
+        const val CONNECT_TIMEOUT_MS = 20_000
+        const val READ_TIMEOUT_MS = 30_000
+        const val MAX_REDIRECTS = 5
+        const val HTTP_TEMPORARY_REDIRECT = 307
+        const val HTTP_PERMANENT_REDIRECT = 308
     }
 }

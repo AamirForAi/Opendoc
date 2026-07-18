@@ -333,6 +333,9 @@ public class PDFView extends RelativeLayout {
     }
 
     void onPrewarmComplete(int page) {
+        synchronized (prewarmPending) {
+            prewarmPending.remove(page);
+        }
         postInvalidate();
     }
 
@@ -2647,6 +2650,7 @@ public class PDFView extends RelativeLayout {
         }
         List<PdfDocument.HighlightAnnotation> annotations;
         try {
+            pdfFile.invalidateHighlightAnnotationCache(pageIndex);
             annotations = pdfFile.getHighlightAnnotations(pageIndex);
         } catch (Throwable throwable) {
             Log.e(TAG, "findHighlightPdfBounds: failed to read highlights", throwable);
@@ -2658,7 +2662,7 @@ public class PDFView extends RelativeLayout {
         if (groupKey != null && !groupKey.isEmpty()) {
             for (PdfDocument.HighlightAnnotation candidate : annotations) {
                 if (groupKey.equals(candidate.getGroupKey())) {
-                    return unionGroupBounds(annotations, groupKey, candidate.getBounds());
+                    return candidate.getBounds();
                 }
             }
         }
