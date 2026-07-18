@@ -757,7 +757,7 @@
     <string name="home_chip_completed">Tamamlandı</string>
     <string name="home_chip_abandoned">Bırakıldı</string>
     <string name="home_chip_all_files">Tüm Dosyalar</string>
-    <string name="home_hero_progress_template">%1$d%% · %2$d sayfa</string>
+    <string name="home_hero_progress_template">%1$d%% · %2$d/%3$d</string>
     <string name="home_scanning_progress">Taranıyor… %1$d PDF bulundu</string>
     <string name="home_menu_title">Kitaplık Menüsü</string>
     <string name="home_menu_view">Görünüm</string>

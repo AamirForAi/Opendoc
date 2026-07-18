@@ -757,7 +757,7 @@
     <string name="home_chip_completed">पूर्ण</string>
     <string name="home_chip_abandoned">छोड़ दिया</string>
     <string name="home_chip_all_files">सभी फ़ाइलें</string>
-    <string name="home_hero_progress_template">%1$d%% · %2$d पेज</string>
+    <string name="home_hero_progress_template">%1$d%% · %2$d/%3$d</string>
     <string name="home_scanning_progress">स्कैन हो रहा है… %1$d PDF मिलीं</string>
     <string name="home_menu_title">लाइब्रेरी मेनू</string>
     <string name="home_menu_view">दृश्य</string>
