@@ -3,6 +3,10 @@ package com.github.barteksc.pdfviewer;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 
 import com.github.barteksc.pdfviewer.preview.PreviewBitmapAdapter;
 import com.github.barteksc.pdfviewer.preview.PreviewBitmapPool;
@@ -17,8 +21,12 @@ final class AndroidPreviewBitmaps implements PreviewBitmapAdapter<Bitmap>, Previ
     private final int bucketWidth;
     private volatile PreviewBitmapPool<Bitmap> pool;
 
+    private final Paint srcPaint = new Paint();
+    private Bitmap encodeScratch;
+
     AndroidPreviewBitmaps(int bucketWidth) {
         this.bucketWidth = bucketWidth;
+        srcPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC));
     }
 
     void attachPool(PreviewBitmapPool<Bitmap> pool) {
@@ -47,30 +55,35 @@ final class AndroidPreviewBitmaps implements PreviewBitmapAdapter<Bitmap>, Previ
         if (bitmap == null) {
             return null;
         }
-        Bitmap copy;
-        try {
-            synchronized (bitmap) {
-                if (bitmap.isRecycled()) {
+        synchronized (bitmap) {
+            if (bitmap.isRecycled()) {
+                return null;
+            }
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            Bitmap.Config config = bitmap.getConfig();
+            if (config == null) {
+                config = Bitmap.Config.RGB_565;
+            }
+            if (encodeScratch == null || encodeScratch.isRecycled()
+                    || encodeScratch.getWidth() != width
+                    || encodeScratch.getHeight() != height
+                    || encodeScratch.getConfig() != config) {
+                if (encodeScratch != null) {
+                    encodeScratch.recycle();
+                    encodeScratch = null;
+                }
+                try {
+                    encodeScratch = Bitmap.createBitmap(width, height, config);
+                } catch (OutOfMemoryError e) {
                     return null;
                 }
-                Bitmap.Config config = bitmap.getConfig();
-                if (config == null) {
-                    config = Bitmap.Config.RGB_565;
-                }
-                copy = bitmap.copy(config, false);
             }
-        } catch (OutOfMemoryError e) {
-            return null;
-        }
-        if (copy == null) {
-            return null;
+            Canvas canvas = new Canvas(encodeScratch);
+            canvas.drawBitmap(bitmap, 0, 0, srcPaint);
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            copy.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out);
-        } finally {
-            copy.recycle();
-        }
+        encodeScratch.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out);
         return out.toByteArray();
     }
 

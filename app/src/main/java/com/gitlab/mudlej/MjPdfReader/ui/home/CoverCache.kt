@@ -8,6 +8,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.LruCache
 import android.widget.ImageView
+import com.gitlab.mudlej.MjPdfReader.data.OnlineDocumentStore
 import com.shockwave.pdfium.PdfiumCore
 import java.io.File
 import java.io.FileOutputStream
@@ -126,7 +127,12 @@ class CoverCache private constructor(private val context: Context) {
 
     private fun renderCover(uri: Uri, bucket: Int): Bitmap? {
         return try {
-            val fd = context.contentResolver.openFileDescriptor(uri, "r") ?: return null
+            val resolvedUri = if (uri.scheme == "http" || uri.scheme == "https") {
+                OnlineDocumentStore.fileFor(context, uri.toString())?.let { Uri.fromFile(it) } ?: return null
+            } else {
+                uri
+            }
+            val fd = context.contentResolver.openFileDescriptor(resolvedUri, "r") ?: return null
             val document = try {
                 pdfium.newDocument(fd)
             } catch (throwable: Throwable) {

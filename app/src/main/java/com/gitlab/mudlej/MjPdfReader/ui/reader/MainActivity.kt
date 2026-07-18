@@ -138,10 +138,11 @@ class MainActivity : AppCompatActivity(), ReaderUi {
                 if (intent.getBooleanExtra(HomeActivity.EXTRA_OPEN_ONLINE_DIALOG, false)) {
                     onlinePdfController.showOpenOnlinePdfDialog()
                 } else if (intent.action == Intent.ACTION_SEND) {
-                    if (!openSharedTextLink()) {
-                        AppSnackbar.make(binding.root, R.string.share_text_no_link, Snackbar.LENGTH_LONG).show()
-                        reader.pickFile()
+                    if (openSharedTextLink()) {
+                        return
                     }
+                    AppSnackbar.make(binding.root, R.string.share_text_no_link, Snackbar.LENGTH_LONG).show()
+                    reader.pickFile()
                 } else {
                     reader.pickFile()
                 }
@@ -166,7 +167,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
                         || token.startsWith("https://", ignoreCase = true))
                         && Patterns.WEB_URL.matcher(token).matches()
             } ?: return false
-        downloadOrShowDownloadedFile(Uri.parse(link))
+        displayFromUri(Uri.parse(link), true)
         return true
     }
 

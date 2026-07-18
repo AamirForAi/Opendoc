@@ -14,13 +14,13 @@ class HomeLibraryController(
     private val pref: Preferences,
 ) {
 
-    suspend fun loadLibrary(availabilityProbe: AvailabilityProbe): List<HomeItem> {
+    suspend fun loadLibrary(availabilityProbe: AvailabilityProbe, annotatedTitleFormat: String): List<HomeItem> {
         val showPdfTitle = pref.getHomeShowPdfTitle()
         val records = pdfRepository.findAllRecords()
         val items = withContext(Dispatchers.IO) {
             records
                 .filter { it.fileName.isNotEmpty() }
-                .map { HomeItem.from(it, showPdfTitle, availabilityProbe.availabilityOf(it.uri)) }
+                .map { HomeItem.from(it, showPdfTitle, availabilityProbe.availabilityOf(it.uri), annotatedTitleFormat) }
         }
         return sort(items)
     }

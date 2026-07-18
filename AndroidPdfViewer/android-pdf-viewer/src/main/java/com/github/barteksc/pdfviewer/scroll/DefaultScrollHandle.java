@@ -47,6 +47,7 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
     boolean permanentHidden = false;
     private int topReachLimit = 0;
     private View.OnTouchListener customOnTouchListener;
+    private boolean dragging;
 
     public DefaultScrollHandle(Context context) {
         this(context, false, true);
@@ -164,12 +165,23 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
         } else {
             handler.removeCallbacks(hidePageScrollerRunnable);
         }
-        if (pdfView != null) {
-            setPosition((pdfView.isSwipeVertical() ? pdfView.getHeight() : pdfView.getWidth()) * position);
+        if (pdfView == null || dragging) {
+            return;
         }
+        float pdfViewSize = pdfView.isSwipeVertical() ? pdfView.getHeight() : pdfView.getWidth();
+        float minPos = pdfView.isSwipeVertical() ? topReachLimit : 0;
+        float maxPos = pdfViewSize - Util.getDP(context, HANDLE_SHORT);
+        if (maxPos <= minPos) {
+            return;
+        }
+        setPositionAbsolute(minPos + position * (maxPos - minPos));
     }
 
     private void setPosition(float pos) {
+        setPositionAbsolute(pos - relativeHandlerMiddle);
+    }
+
+    private void setPositionAbsolute(float pos) {
         if (Float.isInfinite(pos) || Float.isNaN(pos)) {
             return;
         }
@@ -179,8 +191,6 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
         } else {
             pdfViewSize = pdfView.getWidth();
         }
-        pos -= relativeHandlerMiddle;
-
         float minPos = pdfView.isSwipeVertical() ? topReachLimit : 0;
         if (pos < minPos) {
             pos = minPos;
@@ -295,6 +305,7 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN:
+                dragging = true;
                 pdfView.stopFling();
                 pdfView.setRenderInteractionActive(true);
                 handler.removeCallbacks(hidePageScrollerRunnable);
@@ -315,6 +326,7 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_POINTER_UP:
+                dragging = false;
                 pdfView.setRenderInteractionActive(false);
                 pdfView.performPageSnap();
                 return true;
