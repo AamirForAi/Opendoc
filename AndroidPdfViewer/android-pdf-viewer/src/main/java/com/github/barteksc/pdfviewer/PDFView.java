@@ -304,6 +304,10 @@ public class PDFView extends RelativeLayout {
         return 0;
     }
 
+    int getCurrentRenderEpoch() {
+        return currentRenderEpoch;
+    }
+
     void requestPrewarm(int page) {
         if (renderScheduler == null || page < 0) {
             return;
@@ -642,6 +646,8 @@ public class PDFView extends RelativeLayout {
      * True if the PDFView has been recycled
      */
     private boolean recycled = true;
+
+    private volatile int currentRenderEpoch;
 
     /**
      * Current state of the view
@@ -1141,6 +1147,7 @@ public class PDFView extends RelativeLayout {
 
         pageGenerations = null;
         recycled = true;
+        currentRenderEpoch++;
         callbacks = new Callbacks();
         state = State.DEFAULT;
     }
@@ -1807,7 +1814,9 @@ public class PDFView extends RelativeLayout {
 
         pageGenerations = new AtomicIntegerArray(pdfFile.getPagesCount());
 
-        renderScheduler = new RenderScheduler(this, new RenderScheduler.PdfExecutor(this));
+        currentRenderEpoch++;
+        int epoch = currentRenderEpoch;
+        renderScheduler = new RenderScheduler(this, new RenderScheduler.PdfExecutor(this, epoch), epoch);
         renderScheduler.start();
 
         initPreviewStore(pdfFile);

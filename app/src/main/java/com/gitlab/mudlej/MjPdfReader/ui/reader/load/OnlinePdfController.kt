@@ -186,10 +186,10 @@ class OnlinePdfController(
             showDownloadError(R.string.toast_generic_download_error)
             return
         }
+        loadFromFile(file)
         if (!isIncognito()) {
             saveToDownloadFolderIfAllowed(file)
         }
-        loadFromFile(file)
     }
 
     fun saveDownloadedFileAfterPermissionRequest(isPermissionGranted: Boolean) {
@@ -215,17 +215,38 @@ class OnlinePdfController(
     }
 
     private fun trySaveToDownloads(file: File, showSuccessMessage: Boolean) {
-        try {
-            val downloadDirectory =
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            copyFileToDirectory(file, downloadDirectory, pdf.name)
-            if (showSuccessMessage) {
-                AppSnackbar.make(binding.root, R.string.saved_to_download, Snackbar.LENGTH_SHORT).show()
+        val finalName = pdf.name
+        scope.launch {
+            val saved = withContext(Dispatchers.IO) {
+                val downloadDirectory =
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                val target = File(downloadDirectory, finalName)
+                val part = File(downloadDirectory, "$finalName.${System.currentTimeMillis()}.part")
+                try {
+                    copyFileToDirectory(file, downloadDirectory, part.name)
+                    if (part.renameTo(target)) {
+                        true
+                    } else {
+                        target.delete()
+                        part.renameTo(target)
+                    }
+                }
+                catch (e: IOException) {
+                    Log.e(TAG, activity.getString(R.string.save_to_download_failed), e)
+                    false
+                }
+                finally {
+                    part.delete()
+                }
             }
-        }
-        catch (e: IOException) {
-            Log.e(TAG, activity.getString(R.string.save_to_download_failed), e)
-            AppSnackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
+            if (saved) {
+                if (showSuccessMessage) {
+                    AppSnackbar.make(binding.root, R.string.saved_to_download, Snackbar.LENGTH_SHORT).show()
+                }
+            }
+            else {
+                AppSnackbar.make(binding.root, R.string.save_to_download_failed, Snackbar.LENGTH_SHORT).show()
+            }
         }
     }
 

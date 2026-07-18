@@ -7,6 +7,7 @@ import android.app.ActivityManager
 import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
+import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
 import androidx.core.net.toUri
 import com.gitlab.mudlej.MjPdfReader.R
@@ -27,11 +28,30 @@ import com.gitlab.mudlej.MjPdfReader.core.io.getFileName
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
+import java.io.FileOutputStream
 import java.time.LocalDateTime
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+sealed interface SaveOutcome {
+    data class Success(
+        val destinationUri: Uri,
+        val destinationName: String,
+        val newHash: String,
+        val sizeBytes: Long,
+        val isCurrent: Boolean,
+        val saveDestinationDurable: Boolean,
+    ) : SaveOutcome
+
+    data class Failure(
+        val rescueFileName: String?,
+        val unconfirmed: Boolean,
+    ) : SaveOutcome
+}
 
 class AnnotationSaveController(
     private val activity: Activity,
@@ -42,6 +62,7 @@ class AnnotationSaveController(
     private val historyPolicy: HistoryPolicy,
     private val vm: ReaderViewModel,
     private val scope: CoroutineScope,
+    private val backgroundSaveScope: CoroutineScope,
     private val updateDestinationLauncher: ActivityResultLauncher<Intent>,
     private val createDestinationLauncher: ActivityResultLauncher<Intent>,
     private val clearActiveSearchResultHighlight: () -> Unit,
@@ -49,7 +70,10 @@ class AnnotationSaveController(
     private val beforeSave: () -> Boolean,
     private val onDocumentSaved: () -> Unit,
 ) {
-    private data class SaveResult(val hash: String, val sizeBytes: Long)
+    private sealed interface WriteResult {
+        data class Success(val hash: String, val sizeBytes: Long) : WriteResult
+        data class Failure(val rescueFileName: String?, val unconfirmed: Boolean) : WriteResult
+    }
 
     private var pendingSourceUri: Uri? = null
     private var pendingPostSaveAction: (() -> Unit)? = null
@@ -217,103 +241,230 @@ class AnnotationSaveController(
         annotationController.setSaving(true)
         updateDirtyUi()
         val loadToken = vm.currentLoadToken
+        val oldHash = pdf.fileHash
 
-        scope.launch {
-            val oldHash = pdf.fileHash
-            val saveResult = writeDocumentToSaf(destinationUri)
-
-            if (saveResult == null) {
-                annotationController.setSaving(false)
-                pendingPostSaveAction = null
-                updateDirtyUi()
-                showSaveFailed()
-                return@launch
-            }
-
-            val destinationName = getFileName(activity, destinationUri)
-            val newHash = saveResult.hash
-            val isCurrent = vm.isCurrent(loadToken, sourceUri)
-            if (isCurrent) {
-                pdf.uri = destinationUri
-                pdf.name = destinationName
-                pdf.fileHash = newHash
-            }
-
-            if (historyPolicy.canRecord()) {
-                if (oldHash != null) {
-                    pdfRepository.copyOrUpdateRecordIdentity(
-                        oldHash,
-                        newHash,
-                        sourceUri,
-                        destinationUri,
-                        destinationName.removeSuffix(".pdf"),
+        backgroundSaveScope.launch {
+            var outcome: SaveOutcome = SaveOutcome.Failure(rescueFileName = null, unconfirmed = false)
+            try {
+                val writeResult = writeDocumentToSaf(destinationUri)
+                if (writeResult is WriteResult.Success) {
+                    val destinationName = getFileName(activity, destinationUri)
+                    val newHash = writeResult.hash
+                    val isCurrent = vm.isCurrent(loadToken, sourceUri)
+                    if (historyPolicy.canRecord()) {
+                        if (oldHash != null) {
+                            pdfRepository.copyOrUpdateRecordIdentity(
+                                oldHash,
+                                newHash,
+                                sourceUri,
+                                destinationUri,
+                                destinationName.removeSuffix(".pdf"),
+                            )
+                        } else if (isCurrent) {
+                            pdfRepository.saveRecordInBackground(
+                                pdf.toPdfRecord(newHash, pdf.password).copy(
+                                    uri = destinationUri,
+                                    fileName = destinationName.removeSuffix(".pdf"),
+                                )
+                            )
+                        }
+                        if (saveDestinationDurably) {
+                            pdfRepository.saveAnnotationSaveDestination(
+                                PdfAnnotationSaveDestination(
+                                    sourceKey = AnnotationController.sourceKey(sourceUri),
+                                    destinationUri = destinationUri.toString(),
+                                    lastSavedHash = newHash,
+                                    lastSavedAt = LocalDateTime.now(),
+                                )
+                            )
+                        }
+                    }
+                    annotationController.clearJournal(sourceUri)
+                    outcome = SaveOutcome.Success(
+                        destinationUri = destinationUri,
+                        destinationName = destinationName,
+                        newHash = newHash,
+                        sizeBytes = writeResult.sizeBytes,
+                        isCurrent = isCurrent,
+                        saveDestinationDurable = saveDestinationDurably,
                     )
-                } else if (isCurrent) {
-                    pdfRepository.saveRecordInBackground(pdf.toPdfRecord(newHash, pdf.password))
+                } else if (writeResult is WriteResult.Failure) {
+                    outcome = SaveOutcome.Failure(writeResult.rescueFileName, writeResult.unconfirmed)
                 }
-                if (saveDestinationDurably) {
-                    pdfRepository.saveAnnotationSaveDestination(
-                        PdfAnnotationSaveDestination(
-                            sourceKey = AnnotationController.sourceKey(sourceUri),
-                            destinationUri = destinationUri.toString(),
-                            lastSavedHash = newHash,
-                            lastSavedAt = LocalDateTime.now(),
-                        )
-                    )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to save annotations", e)
+            } finally {
+                withContext(NonCancellable + Dispatchers.Main) {
+                    annotationController.setSaving(false)
+                    vm.onSaveComplete?.invoke(outcome)
                 }
             }
-
-            annotationController.clearJournal(sourceUri)
-            annotationController.setSaving(false)
-            updateDirtyUi()
-            if (!isCurrent) {
-                pendingPostSaveAction = null
-                return@launch
-            }
-            PreviewDiskCoordinator.attach(
-                pdfView = binding.pdfView,
-                cacheDir = activity.cacheDir,
-                fileHash = newHash,
-                pageCount = binding.pdfView.getPageCount(),
-                sizeBytes = saveResult.sizeBytes,
-                incognito = vm.incognito,
-                hasPassword = pdf.password != null,
-            )
-            annotationController.setCurrentSaveDestination(destinationUri, durable = saveDestinationDurably)
-            onDocumentSaved()
-            activity.setTaskDescription(ActivityManager.TaskDescription(pdf.name))
-            AppSnackbar.make(binding.root, R.string.highlights_saved, Snackbar.LENGTH_SHORT).show()
-            val postSaveAction = pendingPostSaveAction
-            pendingPostSaveAction = null
-            postSaveAction?.invoke()
         }
     }
 
-    private suspend fun writeDocumentToSaf(destinationUri: Uri): SaveResult? = withContext(Dispatchers.IO) {
+    fun deliverSaveOutcome(outcome: SaveOutcome) {
+        updateDirtyUi()
+        when (outcome) {
+            is SaveOutcome.Success -> onSaveSucceeded(outcome)
+            is SaveOutcome.Failure -> {
+                pendingPostSaveAction = null
+                showSaveFailed(outcome)
+            }
+        }
+    }
+
+    private fun onSaveSucceeded(outcome: SaveOutcome.Success) {
+        if (!outcome.isCurrent) {
+            pendingPostSaveAction = null
+            return
+        }
+        pdf.uri = outcome.destinationUri
+        pdf.name = outcome.destinationName
+        pdf.fileHash = outcome.newHash
+        PreviewDiskCoordinator.attach(
+            pdfView = binding.pdfView,
+            cacheDir = activity.cacheDir,
+            fileHash = outcome.newHash,
+            pageCount = binding.pdfView.getPageCount(),
+            sizeBytes = outcome.sizeBytes,
+            incognito = vm.incognito,
+            hasPassword = pdf.password != null,
+        )
+        annotationController.setCurrentSaveDestination(outcome.destinationUri, durable = outcome.saveDestinationDurable)
+        onDocumentSaved()
+        activity.setTaskDescription(ActivityManager.TaskDescription(pdf.name))
+        AppSnackbar.make(binding.root, R.string.highlights_saved, Snackbar.LENGTH_SHORT).show()
+        val postSaveAction = pendingPostSaveAction
+        pendingPostSaveAction = null
+        postSaveAction?.invoke()
+    }
+
+    private suspend fun writeDocumentToSaf(destinationUri: Uri): WriteResult = withContext(Dispatchers.IO) {
         val tmp = File(activity.cacheDir, "annotation-save-${System.currentTimeMillis()}.pdf")
         try {
             if (!runCatching { binding.pdfView.saveAsCopy(tmp) }.getOrDefault(false)) {
-                return@withContext null
+                return@withContext WriteResult.Failure(rescueFileName = null, unconfirmed = false)
             }
             val sizeBytes = tmp.length()
-            val hash = computeHash(tmp) ?: return@withContext null
-            val wrote = runCatching {
-                activity.contentResolver.openOutputStream(destinationUri, "wt")?.use { output ->
-                    tmp.inputStream().use { input -> input.copyTo(output) }
-                } != null
-            }.getOrDefault(false)
-            if (!wrote) {
-                return@withContext null
+            val hash = computeHash(tmp)
+                ?: return@withContext WriteResult.Failure(rescueFileName = null, unconfirmed = false)
+            if (destinationUri.scheme == "file") {
+                writeToFileDestination(destinationUri, tmp, hash, sizeBytes)
+            } else {
+                writeToContentDestination(destinationUri, tmp, hash, sizeBytes)
             }
-            SaveResult(hash, sizeBytes)
         } finally {
             tmp.delete()
         }
     }
 
-    private fun showSaveFailed() {
-        AppSnackbar.make(binding.root, R.string.highlight_save_failed, Snackbar.LENGTH_LONG)
-            .setAction(R.string.choose) { showSaveDestinationSheet() }
+    private fun writeToFileDestination(destinationUri: Uri, tmp: File, hash: String, sizeBytes: Long): WriteResult {
+        val target = destinationUri.path?.let { File(it) }
+        val parent = target?.parentFile
+        if (target == null || parent == null) {
+            return failure(tmp, unconfirmed = false)
+        }
+        val sibling = File(parent, "${target.name}.saving")
+        val wrote = runCatching {
+            FileOutputStream(sibling).use { output ->
+                tmp.inputStream().use { input -> input.copyTo(output) }
+                output.fd.sync()
+            }
+            true
+        }.getOrDefault(false)
+        if (!wrote || sibling.length() != sizeBytes || computeHash(sibling) != hash) {
+            sibling.delete()
+            return failure(tmp, unconfirmed = false)
+        }
+        if (!sibling.renameTo(target)) {
+            sibling.delete()
+            return failure(tmp, unconfirmed = false)
+        }
+        return WriteResult.Success(hash, sizeBytes)
+    }
+
+    private suspend fun writeToContentDestination(destinationUri: Uri, tmp: File, hash: String, sizeBytes: Long): WriteResult {
+        var wrote = attemptContentWrite(destinationUri, tmp)
+        if (wrote.isFailure) {
+            wrote = attemptContentWrite(destinationUri, tmp)
+        }
+        if (!wrote.getOrDefault(false)) {
+            return failure(tmp, unconfirmed = false)
+        }
+        val confirmed = runCatching { computeHash(activity, destinationUri) }.getOrNull() == hash &&
+                destinationSizeMatches(destinationUri, sizeBytes)
+        return if (confirmed) {
+            WriteResult.Success(hash, sizeBytes)
+        } else {
+            failure(tmp, unconfirmed = true)
+        }
+    }
+
+    private fun attemptContentWrite(destinationUri: Uri, tmp: File): Result<Boolean> = runCatching {
+        activity.contentResolver.openOutputStream(destinationUri, "wt")?.use { output ->
+            tmp.inputStream().use { input -> input.copyTo(output) }
+        } != null
+    }
+
+    private fun destinationSizeMatches(destinationUri: Uri, expected: Long): Boolean {
+        val size = runCatching {
+            activity.contentResolver.openFileDescriptor(destinationUri, "r")?.use { it.statSize } ?: -1L
+        }.getOrDefault(-1L)
+        return size < 0 || size == expected
+    }
+
+    private fun failure(tmp: File, unconfirmed: Boolean): WriteResult.Failure {
+        val rescueFileName = if (!vm.incognito && pdf.password == null) writeRescueCopy(tmp) else null
+        return WriteResult.Failure(rescueFileName = rescueFileName, unconfirmed = unconfirmed)
+    }
+
+    private fun writeRescueCopy(tmp: File): String? = runCatching {
+        val dir = File(activity.filesDir, RESCUE_DIR).apply { mkdirs() }
+        val displayName = suggestedAnnotatedFileName()
+        val rescue = File(dir, "${System.currentTimeMillis()}-$displayName")
+        tmp.inputStream().use { input ->
+            FileOutputStream(rescue).use { output ->
+                input.copyTo(output)
+                output.fd.sync()
+            }
+        }
+        dir.listFiles()
+            ?.sortedByDescending { it.lastModified() }
+            ?.drop(RESCUE_KEEP)
+            ?.forEach { it.delete() }
+        displayName
+    }.getOrNull()
+
+    private fun showSaveFailed(outcome: SaveOutcome.Failure) {
+        val titleRes: Int
+        val message: CharSequence
+        when {
+            outcome.unconfirmed -> {
+                titleRes = R.string.annotation_save_unconfirmed_title
+                message = activity.getString(R.string.annotation_save_unconfirmed_message)
+            }
+            outcome.rescueFileName != null -> {
+                titleRes = R.string.annotation_save_failed_title
+                message = activity.getString(R.string.annotation_save_failed_rescue_message, outcome.rescueFileName)
+            }
+            else -> {
+                titleRes = R.string.annotation_save_failed_title
+                message = activity.getString(R.string.annotation_save_failed_message)
+            }
+        }
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(titleRes)
+            .setMessage(message)
+            .setPositiveButton(R.string.annotation_save_copy_action) { _, _ -> launchCreateDestinationPicker() }
+            .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    private companion object {
+        const val TAG = "AnnotationSaveController"
+        const val RESCUE_DIR = "annotation-rescue"
+        const val RESCUE_KEEP = 2
     }
 }

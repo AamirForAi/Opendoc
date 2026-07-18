@@ -183,8 +183,8 @@ class BackupManager(
         }
         plan.settingsPuts?.let { puts -> applySettings(puts) }
         if (plan.includesHistory) {
-            CoverCache.getInstance(context).clearAll()
-            AnnotationJournal(context).deleteAll()
+            CoverCache.getInstance(context).clearAllBlocking()
+            AnnotationJournal(context).deleteAllBlocking()
             SignatureStore(context).delete()
         }
         ImportSummary(
@@ -395,6 +395,7 @@ class BackupManager(
         private val excludedSettingKeys = setOf(
             Preferences.firstInstallKey,
             Preferences.showFeaturesDialogKey,
+            Preferences.lastSeenVersionCodeKey,
             Preferences.backupFolderTreeUriKey,
             Preferences.autoBackupLastRunKey,
             Preferences.autoBackupLastErrorKey,

@@ -55,8 +55,13 @@ abstract class AppDatabase : RoomDatabase() {
             INSTANCE?.let { return it }
             synchronized(this) {
                 INSTANCE?.let { return it }
-                moveDatabaseOutOfCacheDir(context)
-                val created = Room.databaseBuilder(context, AppDatabase::class.java, DATABASE_NAME)
+                val moved = moveDatabaseOutOfCacheDir(context)
+                val databaseName = if (moved) {
+                    DATABASE_NAME
+                } else {
+                    File(context.cacheDir, DATABASE_NAME).absolutePath
+                }
+                val created = Room.databaseBuilder(context, AppDatabase::class.java, databaseName)
                     .addMigrations(AppDatabaseMigrations.MIGRATION_7_TO_8)
                     .addMigrations(AppDatabaseMigrations.MIGRATION_10_TO_11)
                     .build()
@@ -65,12 +70,12 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private fun moveDatabaseOutOfCacheDir(context: Context) {
+        private fun moveDatabaseOutOfCacheDir(context: Context): Boolean {
             val newDbFile = context.getDatabasePath(DATABASE_NAME)
-            val newDbDir = newDbFile.parentFile ?: return
+            val newDbDir = newDbFile.parentFile ?: return true
             val oldDbFile = File(context.cacheDir, DATABASE_NAME)
             if (!oldDbFile.exists() || newDbFile.exists()) {
-                return
+                return true
             }
 
             val copied = runCatching {
@@ -90,6 +95,7 @@ abstract class AppDatabase : RoomDatabase() {
                     File(newDbDir, DATABASE_NAME + suffix).delete()
                 }
             }
+            return copied
         }
     }
 

@@ -47,12 +47,29 @@ final class AndroidPreviewBitmaps implements PreviewBitmapAdapter<Bitmap>, Previ
         if (bitmap == null) {
             return null;
         }
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        synchronized (bitmap) {
-            if (bitmap.isRecycled()) {
-                return null;
+        Bitmap copy;
+        try {
+            synchronized (bitmap) {
+                if (bitmap.isRecycled()) {
+                    return null;
+                }
+                Bitmap.Config config = bitmap.getConfig();
+                if (config == null) {
+                    config = Bitmap.Config.RGB_565;
+                }
+                copy = bitmap.copy(config, false);
             }
-            bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out);
+        } catch (OutOfMemoryError e) {
+            return null;
+        }
+        if (copy == null) {
+            return null;
+        }
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            copy.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out);
+        } finally {
+            copy.recycle();
         }
         return out.toByteArray();
     }

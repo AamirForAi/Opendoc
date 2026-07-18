@@ -12,9 +12,6 @@ import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.annotation.StringRes
-import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
-import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
 import androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -32,6 +29,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.history.ReadingHistoryActivity
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeProgressStyle
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeTitleEllipsize
 import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableAction
+import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.PdfThemeController
 import com.gitlab.mudlej.MjPdfReader.core.ui.SegmentedButtonStyler
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -87,13 +85,7 @@ internal class SettingsPreferenceFactory(
             initialSelectedMode = appPreferences.getInterfaceTheme(),
         ) { mode ->
             appPreferences.setInterfaceTheme(mode)
-            setDefaultNightMode(
-                when (mode) {
-                    Preferences.themeSystem -> MODE_NIGHT_FOLLOW_SYSTEM
-                    Preferences.themeDark -> MODE_NIGHT_YES
-                    else -> MODE_NIGHT_NO
-                }
-            )
+            setDefaultNightMode(PdfThemeController.interfaceNightMode(appPreferences))
         }
     }
 

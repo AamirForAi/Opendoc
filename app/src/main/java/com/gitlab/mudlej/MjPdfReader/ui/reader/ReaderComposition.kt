@@ -288,6 +288,7 @@ class ReaderComposition(
         historyPolicy,
         vm,
         scope,
+        backgroundSaveScope,
         updateAnnotationDestinationLauncher,
         createAnnotationDestinationLauncher,
         { readerNavigationController.clearActiveSearchResultHighlight() },
@@ -446,7 +447,18 @@ class ReaderComposition(
 
     init {
         inlineAnnotationActionController.configure { annotationSaveController.saveHighlights() }
+        vm.onSaveComplete = { outcome ->
+            if (!activity.isFinishing && !activity.isDestroyed) {
+                annotationSaveController.deliverSaveOutcome(outcome)
+            }
+        }
         subscribeDocumentListeners()
+    }
+
+    fun onActivityDestroyed() {
+        if (activity.isFinishing) {
+            vm.onSaveComplete = null
+        }
     }
 
     private fun decorateConfigurator(configurator: Configurator): Configurator {

@@ -424,7 +424,8 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         boolean retVal = scaleGestureDetector.onTouchEvent(event);
         retVal = gestureDetector.onTouchEvent(event) || retVal;
 
-        if (event.getAction() == MotionEvent.ACTION_UP) {
+        int action = event.getActionMasked();
+        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
             if (scrolling) {
                 scrolling = false;
                 onScrollEnd(event);
