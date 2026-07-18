@@ -757,7 +757,7 @@
     <string name="home_chip_completed">Завершено</string>
     <string name="home_chip_abandoned">Заброшено</string>
     <string name="home_chip_all_files">Все файлы</string>
-    <string name="home_hero_progress_template">%1$d%% · %2$d стр.</string>
+    <string name="home_hero_progress_template">%1$d%% · %2$d/%3$d</string>
     <string name="home_scanning_progress">Сканирование… найдено PDF: %1$d</string>
     <string name="home_menu_title">Меню библиотеки</string>
     <string name="home_menu_view">Вид</string>

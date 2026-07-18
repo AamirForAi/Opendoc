@@ -757,7 +757,7 @@
     <string name="home_chip_completed">مكتمل</string>
     <string name="home_chip_abandoned">مهجور</string>
     <string name="home_chip_all_files">كل الملفات</string>
-    <string name="home_hero_progress_template">%1$d%% · %2$d صفحات</string>
+    <string name="home_hero_progress_template">%1$d%% · %2$d/%3$d</string>
     <string name="home_scanning_progress">جارٍ الفحص… تم العثور على %1$d ملف PDF</string>
     <string name="home_menu_title">قائمة المكتبة</string>
     <string name="home_menu_view">العرض</string>

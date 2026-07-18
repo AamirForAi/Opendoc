@@ -757,7 +757,7 @@
     <string name="home_chip_completed">Voltooid</string>
     <string name="home_chip_abandoned">Gestaakt</string>
     <string name="home_chip_all_files">Alle bestanden</string>
-    <string name="home_hero_progress_template">%1$d%% · %2$d pagina\'s</string>
+    <string name="home_hero_progress_template">%1$d%% · %2$d/%3$d</string>
     <string name="home_scanning_progress">Scannen… %1$d PDF\'s gevonden</string>
     <string name="home_menu_title">Bibliotheekmenu</string>
     <string name="home_menu_view">Weergave</string>

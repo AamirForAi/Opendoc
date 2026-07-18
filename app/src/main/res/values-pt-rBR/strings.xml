@@ -757,7 +757,7 @@
     <string name="home_chip_completed">Concluído</string>
     <string name="home_chip_abandoned">Abandonado</string>
     <string name="home_chip_all_files">Todos os Arquivos</string>
-    <string name="home_hero_progress_template">%1$d%% · %2$d páginas</string>
+    <string name="home_hero_progress_template">%1$d%% · %2$d/%3$d</string>
     <string name="home_scanning_progress">Buscando… %1$d PDFs encontrados</string>
     <string name="home_menu_title">Menu da Biblioteca</string>
     <string name="home_menu_view">Visualização</string>
