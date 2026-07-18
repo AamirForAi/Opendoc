@@ -6,7 +6,9 @@ import android.app.Application
 import android.content.Context
 import androidx.preference.PreferenceManager
 import com.gitlab.mudlej.MjPdfReader.data.AutoBackupScheduler
+import com.gitlab.mudlej.MjPdfReader.data.OnlineDocumentStore
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.PrintController
 import com.google.android.material.color.DynamicColors
 import org.acra.ACRA
 import org.acra.ReportField
@@ -24,6 +26,8 @@ class App : Application() {
             if (preferences.getAutoBackupEnabled()) {
                 AutoBackupScheduler.ensureScheduled(this, preferences.getAutoBackupHour(), preferences.getAutoBackupMinute())
             }
+            OnlineDocumentStore.sweepIncognito(this)
+            PrintController.sweepStaging(this)
         }
     }
 

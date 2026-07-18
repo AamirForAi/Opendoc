@@ -234,7 +234,7 @@ class ReaderComposition(
     val pdfThemeController = PdfThemeController(activity, binding, pref)
     val volumeKeyPager = VolumeKeyPager(binding, doc, pref)
     val mousePager = MousePager(binding, doc, pref)
-    val printController = PrintController(activity, binding, doc, scope)
+    val printController = PrintController(activity, binding, doc, scope) { activity.shareFile(doc.uri) }
     val pageTextCopier = PageTextCopier(activity, binding, doc, scope)
     val screenshotController: ScreenshotController = ScreenshotController(
         activity,
@@ -316,8 +316,9 @@ class ReaderComposition(
         binding,
         doc,
         scope,
+        { vm.incognito },
         { saveToDownloadPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE) },
-        { bytes -> documentLoader.initPdfViewAndLoad(binding.pdfView.fromBytes(bytes)) },
+        { file -> documentLoader.initPdfViewAndLoad(binding.pdfView.fromFile(file)) },
         { uri -> ui.runAfterDirtyAnnotationPrompt { activity.displayFromUri(uri, savePassword = true) } },
     )
 

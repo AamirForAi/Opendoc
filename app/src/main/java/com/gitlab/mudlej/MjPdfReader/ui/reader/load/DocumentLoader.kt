@@ -14,7 +14,7 @@ import com.github.barteksc.pdfviewer.util.Constants
 import com.github.barteksc.pdfviewer.util.FitPolicy
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
+import com.gitlab.mudlej.MjPdfReader.data.OnlineDocumentStore
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
@@ -77,6 +77,7 @@ class DocumentLoader(
         state = LoadState.Idle
         emit { it.onDocumentReset() }
         vm.beginNewDocument(uri, pref.getAlwaysHideMargins())
+        OnlineDocumentStore.sweepIncognito(context)
         ui.updateDirtyUi()
     }
 
@@ -115,9 +116,9 @@ class DocumentLoader(
 
     fun loadCurrentDocument(savePassword: Boolean = false) {
         val uri = doc.uri ?: return
-        val bytes = PdfBytesHolder.bytesFor(uri.toString())
-        val configurator = if (bytes != null) {
-            binding.pdfView.fromBytes(bytes)
+        val file = OnlineDocumentStore.fileFor(context, uri.toString())
+        val configurator = if (file != null) {
+            binding.pdfView.fromFile(file)
         } else {
             binding.pdfView.fromUri(uri)
         }
@@ -579,8 +580,8 @@ class DocumentLoader(
         if (uri == null) {
             return null
         }
-        PdfBytesHolder.bytesFor(uri.toString())?.let { return it.size.toLong() }
         return withContext(Dispatchers.IO) {
+            OnlineDocumentStore.fileFor(context, uri.toString())?.let { return@withContext it.length() }
             runCatching {
                 when (uri.scheme) {
                     ContentResolver.SCHEME_CONTENT ->

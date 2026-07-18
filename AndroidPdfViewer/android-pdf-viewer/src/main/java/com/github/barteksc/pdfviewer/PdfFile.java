@@ -1325,6 +1325,26 @@ class PdfFile {
         }
     }
 
+    public boolean saveDecryptedCopy(File outputFile) throws IOException {
+        if (disposed || pdfDocument == null || outputFile == null) {
+            return false;
+        }
+        ParcelFileDescriptor fd = ParcelFileDescriptor.open(outputFile,
+                ParcelFileDescriptor.MODE_CREATE
+                        | ParcelFileDescriptor.MODE_TRUNCATE
+                        | ParcelFileDescriptor.MODE_WRITE_ONLY);
+        fenceRenders();
+        try {
+            return pdfiumCore.saveDecryptedCopy(pdfDocument, fd);
+        } finally {
+            try {
+                fd.close();
+            } finally {
+                renderGate.unlock();
+            }
+        }
+    }
+
     public void clearSearchResultsAnnot(int pageIndex) {
         if (disposed || pdfDocument == null) {
             return;

@@ -4,7 +4,7 @@ package com.gitlab.mudlej.MjPdfReader.core.io
 
 import android.content.Context
 import android.net.Uri
-import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
+import com.gitlab.mudlej.MjPdfReader.data.OnlineDocumentStore
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -45,13 +45,10 @@ fun computeHash(file: File): String? {
 
 suspend fun computeHash(context: Context, uri: Uri?): String? {
     if (uri == null) return null
-    val cachedBytes = PdfBytesHolder.bytesFor(uri.toString())
-    if (cachedBytes != null) {
-        return computeHash(cachedBytes)
-    }
     return try {
         val digester = MessageDigest.getInstance("MD5")
         withContext(Dispatchers.IO) {
+            OnlineDocumentStore.fileFor(context, uri.toString())?.let { return@withContext computeHash(it) }
             val inputStream = context.contentResolver.openInputStream(uri) ?: return@withContext null
             inputStream.use { stream ->
                 val buffer = ByteArray(PDF.HASH_SIZE)

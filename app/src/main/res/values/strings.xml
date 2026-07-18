@@ -275,6 +275,9 @@
     <string name="share">Share</string>
     <string name="share_file">Share</string>
     <string name="print_file">Print</string>
+    <string name="print_cannot_print">Couldn\'t prepare this PDF for printing.</string>
+    <string name="print_failed">Couldn\'t print this PDF.</string>
+    <string name="share_failed">Couldn\'t share the file.</string>
     <string name="full_screen">Full Screen</string>
     <string name="none">None</string>
     <string name="app_info">App Info</string>
@@ -470,6 +473,7 @@
     <string name="backup_import_done_history">Restored %1$d files and %2$d bookmarks.</string>
     <string name="backup_import_skipped_settings">Skipped %1$d settings that do not fit this app version.</string>
     <string name="backup_import_failed_after_wipe">The import did not finish: %1$s\nThe data from before the import can be brought back with the pre-import snapshot on the backup settings page.</string>
+    <string name="backup_import_failed_before_changes">The backup could not be read. Nothing on this device was changed: %1$s</string>
     <string name="backup_restore_snapshot_title">Restore Pre-Import Snapshot</string>
     <string name="backup_restore_snapshot_summary">Bring back the data saved automatically before the last import. Newest snapshot: %1$s.</string>
     <string name="backup_restore_snapshot_message">This replaces the current settings, reading history, and bookmarks with the snapshot from %1$s. The app restarts when it finishes.</string>
@@ -965,5 +969,6 @@
     <string name="clear_annotation_journals_message">Delete all unsaved highlight recovery data and the stored signature? Highlights already saved into files are not affected.</string>
     <string name="cleared_entries">%1$d entries deleted</string>
     <string name="cleared_done">Done</string>
+    <string name="clear_data_failed">Couldn\'t clear the data.</string>
 
 </resources>

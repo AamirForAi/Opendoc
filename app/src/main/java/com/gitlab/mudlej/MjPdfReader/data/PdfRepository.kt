@@ -2,6 +2,7 @@
 
 package com.gitlab.mudlej.MjPdfReader.data
 
+import android.util.Log
 import androidx.room.withTransaction
 import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfAnnotationSaveDestination
@@ -9,11 +10,24 @@ import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.data.entity.ScannedPdfEntry
 import com.gitlab.mudlej.MjPdfReader.data.entity.TextModeReflowOverride
 import com.gitlab.mudlej.MjPdfReader.data.entity.UserBookmark
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
 class PdfRepository(private val database: AppDatabase) {
+
+    private suspend fun safeWrite(block: () -> Unit) {
+        withContext(Dispatchers.IO) {
+            try {
+                block()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Database write failed", e)
+            }
+        }
+    }
 
     suspend fun findAllRecords(): List<PdfRecord> {
         return withContext(Dispatchers.IO) {
@@ -22,7 +36,7 @@ class PdfRepository(private val database: AppDatabase) {
     }
 
     suspend fun upsertRecords(records: List<PdfRecord>) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().insertAll(records)
         }
     }
@@ -40,7 +54,7 @@ class PdfRepository(private val database: AppDatabase) {
     }
 
     suspend fun addUserBookmark(bookmark: UserBookmark) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             val dao = database.userBookmarkDao()
             val orderedBookmark = if (bookmark.sortOrder < 0) {
                 bookmark.copy(sortOrder = dao.nextSortOrder(bookmark.fileHash))
@@ -52,25 +66,25 @@ class PdfRepository(private val database: AppDatabase) {
     }
 
     suspend fun upsertUserBookmarks(bookmarks: List<UserBookmark>) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.userBookmarkDao().upsertAll(bookmarks)
         }
     }
 
     suspend fun removeUserBookmark(fileHash: String, pageIndex: Int) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.userBookmarkDao().delete(fileHash, pageIndex)
         }
     }
 
     suspend fun setUserBookmarkLabel(fileHash: String, pageIndex: Int, label: String?) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.userBookmarkDao().updateLabel(fileHash, pageIndex, label)
         }
     }
 
     suspend fun setUserBookmarkOrder(bookmarks: List<UserBookmark>) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             val dao = database.userBookmarkDao()
             bookmarks.forEach { bookmark ->
                 dao.updateSortOrder(bookmark.fileHash, bookmark.pageIndex, bookmark.sortOrder)
@@ -90,7 +104,7 @@ class PdfRepository(private val database: AppDatabase) {
         fileName: String,
         lastOpened: LocalDateTime,
     ) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updateIdentity(fileHash, uri, fileName, lastOpened)
         }
     }
@@ -102,7 +116,7 @@ class PdfRepository(private val database: AppDatabase) {
     }
 
     suspend fun setRecordSourceUri(fileHash: String, sourceUri: String?) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updateSourceUri(fileHash, sourceUri)
         }
     }
@@ -126,13 +140,13 @@ class PdfRepository(private val database: AppDatabase) {
     }
 
     suspend fun saveAnnotationSaveDestination(destination: PdfAnnotationSaveDestination) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfAnnotationSaveDestinationDao().upsert(destination)
         }
     }
 
     suspend fun saveRecordInBackground(pdfRecord: PdfRecord) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().insert(pdfRecord)
         }
     }
@@ -144,7 +158,7 @@ class PdfRepository(private val database: AppDatabase) {
         destinationUri: android.net.Uri,
         fileName: String,
     ) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             val dao = database.pdfRecordDao()
             val now = LocalDateTime.now()
             val replacingSourceFile = sourceUri.toString() == destinationUri.toString()
@@ -152,7 +166,7 @@ class PdfRepository(private val database: AppDatabase) {
                 if (replacingSourceFile) {
                     dao.updateIdentity(oldHash, destinationUri, fileName, now)
                 }
-                return@withContext
+                return@safeWrite
             }
 
             val source = dao.findByHash(oldHash)
@@ -209,7 +223,7 @@ class PdfRepository(private val database: AppDatabase) {
     }
 
     suspend fun setPageNumber(fileHash: String, page: Int) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updatePageNumber(fileHash, page)
         }
     }
@@ -221,19 +235,19 @@ class PdfRepository(private val database: AppDatabase) {
     }
 
     suspend fun setLastOpened(fileHash: String, lastOpened: LocalDateTime) {
-        return withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updateLastOpened(fileHash, lastOpened)
         }
     }
 
     suspend fun removeRecord(record: PdfRecord) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().delete(record)
         }
     }
 
     suspend fun removeRecords(fileHashes: List<String>) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().deleteByHashes(fileHashes)
         }
     }
@@ -265,7 +279,7 @@ class PdfRepository(private val database: AppDatabase) {
     }
 
     suspend fun removeUserBookmarksByFileHash(fileHash: String) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.userBookmarkDao().deleteByFileHash(fileHash)
         }
     }
@@ -277,13 +291,13 @@ class PdfRepository(private val database: AppDatabase) {
     }
 
     suspend fun removeAnnotationSaveDestinationBySourceKey(sourceKey: String) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfAnnotationSaveDestinationDao().deleteBySourceKey(sourceKey)
         }
     }
 
     suspend fun removeAnnotationSaveDestinationByLastSavedHash(hash: String) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfAnnotationSaveDestinationDao().deleteByLastSavedHash(hash)
         }
     }
@@ -295,31 +309,31 @@ class PdfRepository(private val database: AppDatabase) {
     }
 
     suspend fun setFavorite(fileHash: String, favorite: Boolean) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updateFavorite(fileHash, favorite)
         }
     }
 
     suspend fun setFavoriteBatch(fileHashes: List<String>, favorite: Boolean) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updateFavoriteBatch(fileHashes, favorite)
         }
     }
 
     suspend fun setHidden(fileHash: String, hidden: Boolean) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updateHidden(fileHash, hidden)
         }
     }
 
     suspend fun setReading(fileHash: String, readingStatus: ReadingStatus) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updateReading(fileHash, readingStatus)
         }
     }
 
     suspend fun setReadingBatch(fileHashes: List<String>, readingStatus: ReadingStatus) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updateReadingBatch(fileHashes, readingStatus)
         }
     }
@@ -337,55 +351,55 @@ class PdfRepository(private val database: AppDatabase) {
     }
 
     suspend fun upsertScannedPdfs(entries: List<ScannedPdfEntry>) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.scannedPdfEntryDao().upsertAll(entries)
         }
     }
 
     suspend fun pruneScannedPdfs(paths: List<String>) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.scannedPdfEntryDao().deleteByPaths(paths)
         }
     }
 
     suspend fun updateScannedPdfPath(oldPath: String, newPath: String) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.scannedPdfEntryDao().updatePath(oldPath, newPath)
         }
     }
 
     suspend fun setPassword(fileHash: String, password: String) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updatePassword(fileHash, password)
         }
     }
 
     suspend fun setDocumentTitle(fileHash: String, title: String?) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updateDocumentTitle(fileHash, title)
         }
     }
 
     suspend fun setCropMargins(fileHash: String, cropMargins: String, version: Int) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updateCropMargins(fileHash, cropMargins, version)
         }
     }
 
     suspend fun setAutoScrollSpeed(fileHash: String, speed: Int) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updateAutoScrollSpeed(fileHash, speed)
         }
     }
 
     suspend fun setReadingDirectionOverride(fileHash: String, direction: String?) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updateReadingDirectionOverride(fileHash, direction)
         }
     }
 
     suspend fun setDetectedReadingDirection(fileHash: String, direction: String) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updateDetectedReadingDirection(fileHash, direction)
         }
     }
@@ -397,9 +411,12 @@ class PdfRepository(private val database: AppDatabase) {
     }
 
     suspend fun setTextModeReflow(fileHash: String, joinParagraphs: Boolean?, detectHeadings: Boolean?, codeBlocks: Boolean?) {
-        withContext(Dispatchers.IO) {
+        safeWrite {
             database.pdfRecordDao().updateTextModeReflow(fileHash, joinParagraphs, detectHeadings, codeBlocks)
         }
     }
 
+    private companion object {
+        const val TAG = "PdfRepository"
+    }
 }

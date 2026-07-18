@@ -11,7 +11,6 @@ import com.gitlab.mudlej.MjPdfReader.core.io.DurableCopyStore
 import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
 import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
-import com.gitlab.mudlej.MjPdfReader.data.PdfBytesHolder
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import java.io.File
@@ -34,9 +33,6 @@ class TemporaryCopyImporter(
         }
         val (uri, name) = currentDocument()
         if (uri == null || uri.scheme != "content") {
-            return
-        }
-        if (PdfBytesHolder.bytesFor(uri.toString()) != null) {
             return
         }
         val authority = uri.authority ?: return

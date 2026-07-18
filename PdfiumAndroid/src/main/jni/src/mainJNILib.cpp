@@ -817,8 +817,7 @@ JNI_FUNC(void, PdfiumCore, nativeCloseDocument)(JNI_ARGS, jlong documentPtr){
     delete doc;
 }
 
-JNI_FUNC(jboolean, PdfiumCore, nativeSaveAsCopy)(JNI_ARGS, jlong documentPtr, jint fd){
-    DocumentFile *doc = reinterpret_cast<DocumentFile*>(documentPtr);
+static jboolean saveDocumentToFd(DocumentFile *doc, jint fd, int flags){
     if (doc == NULL || doc->pdfDocument == NULL || fd < 0) {
         return false;
     }
@@ -838,7 +837,7 @@ JNI_FUNC(jboolean, PdfiumCore, nativeSaveAsCopy)(JNI_ARGS, jlong documentPtr, ji
     writer.fileWrite.version = 1;
     writer.fileWrite.WriteBlock = &writeBlockToFd;
     writer.fd = fd;
-    jboolean saved = FPDF_SaveAsCopy(doc->pdfDocument, &writer.fileWrite, FPDF_INCREMENTAL);
+    jboolean saved = FPDF_SaveAsCopy(doc->pdfDocument, &writer.fileWrite, flags);
 
     for (std::vector<FPDF_PAGE>::const_iterator it = unhiddenPages.begin();
          it != unhiddenPages.end(); ++it) {
@@ -847,6 +846,14 @@ JNI_FUNC(jboolean, PdfiumCore, nativeSaveAsCopy)(JNI_ARGS, jlong documentPtr, ji
     }
 
     return saved;
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeSaveAsCopy)(JNI_ARGS, jlong documentPtr, jint fd){
+    return saveDocumentToFd(reinterpret_cast<DocumentFile*>(documentPtr), fd, FPDF_INCREMENTAL);
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeSaveAsCopyWithFlags)(JNI_ARGS, jlong documentPtr, jint fd, jint flags){
+    return saveDocumentToFd(reinterpret_cast<DocumentFile*>(documentPtr), fd, (int)flags);
 }
 
 static jlong loadPageInternal(JNIEnv *env, DocumentFile *doc, int pageIndex){

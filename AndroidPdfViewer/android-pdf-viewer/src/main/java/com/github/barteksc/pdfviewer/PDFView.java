@@ -2930,6 +2930,13 @@ public class PDFView extends RelativeLayout {
         return pdfFile.saveAsCopy(outputFile);
     }
 
+    public boolean saveDecryptedCopy(File outputFile) throws IOException {
+        if (pdfFile == null || outputFile == null) {
+            return false;
+        }
+        return pdfFile.saveDecryptedCopy(outputFile);
+    }
+
     public void clearTextSelection() {
         if (textSelectionManager != null) {
             textSelectionManager.clear();
