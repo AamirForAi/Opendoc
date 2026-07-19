@@ -19,8 +19,13 @@ public class Constants {
 
     public static boolean DEBUG_MODE = false;
 
-    /** Between 0 and 1, the thumbnails quality (default 0.3). Increasing this value may cause performance decrease */
-    public static float THUMBNAIL_RATIO = 0.3f;
+    public static final float PREVIEW_BUCKET_RATIO_NORMAL = 0.45f;
+
+    public static final float PREVIEW_BUCKET_RATIO_LOW = 0.32f;
+
+    public static final int PREVIEW_BUCKET_MIN_PX = 240;
+
+    public static final int PREVIEW_BUCKET_MAX_PX = 720;
 
     /**
      * The size of the rendered parts (default 256)
@@ -37,7 +42,8 @@ public class Constants {
         /** The size of the cache (number of bitmaps kept) */
         public static int CACHE_SIZE = 120;
 
-        public static int THUMBNAILS_CACHE_SIZE = 8;
+        /** Viewport snapshots kept at once: one previous per page, this many overall */
+        public static int SNAPSHOTS_CACHE_SIZE = 8;
     }
 
     public static class Pinch {
@@ -45,6 +51,9 @@ public class Constants {
         public static float MAXIMUM_ZOOM = 100;
 
         public static float MINIMUM_ZOOM = 0.5f;
+
+        /** Zoom ratio change during a pinch gesture that triggers a re-render of visible parts */
+        public static float RENDER_DURING_SCALE_STEP = 1.25f;
 
     }
 

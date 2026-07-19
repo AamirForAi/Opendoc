@@ -1,3 +1,5 @@
+// Written by Mudlej. License is GPLv3.
+
 package com.gitlab.mudlej.MjPdfReader.ui.about
 
 import android.app.Dialog
@@ -42,12 +44,6 @@ class OpenSourceLibrariesDialog : DialogFragment() {
                 "https://gitlab.com/mudlej_android/mj_pdf_reader/-/tree/main/PdfiumAndroid"
             ),
             LibraryAttribution(
-                "AppIntro",
-                "Copyright 2018 Paolo Rotolo",
-                "Apache License",
-                "https://github.com/paolorotolo/AppIntro"
-            ),
-            LibraryAttribution(
                 "Android Open Source Project",
                 "Copyright 2016 The Android Open Source Project",
                 "Apache License",
@@ -64,12 +60,6 @@ class OpenSourceLibrariesDialog : DialogFragment() {
                 "Copyright 2014, Austin Andrews",
                 "SIL Open Font",
                 "https://materialdesignicons.com/"
-            ),
-            LibraryAttribution(
-                "ColorPicker",
-                "Copyright 2018 Hong Duan",
-                "Apache License",
-                "https://github.com/duanhong169/ColorPicker"
             )
         )
     }

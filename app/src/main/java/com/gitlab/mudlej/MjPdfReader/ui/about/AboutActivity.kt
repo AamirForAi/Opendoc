@@ -1,159 +1,139 @@
-/*
- *   MJ PDF
- *   Copyright (C) 2023 Mudlej
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *  --------------------------
- *  This code was previously licensed under
- *
- *  MIT License
- *
- *  Copyright (c) 2018 Gokul Swaminathan
- *  Copyright (c) 2023 Mudlej
- *
- *  Permission is hereby granted, free of charge, to any person obtaining a copy
- *  of this software and associated documentation files (the "Software"), to deal
- *  in the Software without restriction, including without limitation the rights
- *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *  copies of the Software, and to permit persons to whom the Software is
- *  furnished to do so, subject to the following conditions:
- *
- *  The above copyright notice and this permission notice shall be included in all
- *  copies or substantial portions of the Software.
- *
- *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- *  SOFTWARE.
- */
+// Written by Mudlej. License is GPLv3.
 
 package com.gitlab.mudlej.MjPdfReader.ui.about
 
-import android.R
-import android.app.Dialog
 import android.content.ActivityNotFoundException
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.DialogFragment
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
+import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.core.io.emailIntent
+import com.gitlab.mudlej.MjPdfReader.core.io.linkIntent
+import com.gitlab.mudlej.MjPdfReader.core.io.navIntent
+import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
+import com.gitlab.mudlej.MjPdfReader.core.ui.copyToClipboard
+import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
+import com.gitlab.mudlej.MjPdfReader.databinding.AboutRowItemBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityAboutBinding
-import com.gitlab.mudlej.MjPdfReader.ui.main.MainIntroActivity
-import com.gitlab.mudlej.MjPdfReader.ui.showAppFeaturesDialog
-import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
-import com.gitlab.mudlej.MjPdfReader.util.emailIntent
-import com.gitlab.mudlej.MjPdfReader.util.getAppVersion
-import com.gitlab.mudlej.MjPdfReader.util.linkIntent
-import com.gitlab.mudlej.MjPdfReader.util.navIntent
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.gitlab.mudlej.MjPdfReader.ui.intro.MainIntroActivity
 import com.google.android.material.snackbar.Snackbar
 
 class AboutActivity : AppCompatActivity() {
+
     private lateinit var binding: ActivityAboutBinding
-    
-    private val APP_VERSION_RELEASE = "Version " + getAppVersion()
-    private val APP_VERSION_DEBUG = "Version " + getAppVersion() + "-debug"
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityAboutBinding.inflate(
-            layoutInflater
-        )
+        binding = ActivityAboutBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        initUi()
+        setupScreenChrome()
+        bindHeader()
+        bindRows()
     }
 
-    private fun initUi() {
-        setVersionText()
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        ColorUtil.colorize(this, window, supportActionBar)
+    private fun bindHeader() {
+        val version = versionText()
+        binding.versionChip.text = version
+        binding.versionChip.setOnClickListener {
+            copyToClipboard(this, getString(R.string.mj_app_name), version)
+            AppSnackbar.make(binding.root, getString(R.string.copied), Snackbar.LENGTH_SHORT).show()
+        }
+        binding.featuredCard.setOnClickListener { openLink(OFFICIAL_SITE_URL) }
     }
 
-    private fun setVersionText() {
-        // check if app is debug
-        if (BuildConfig.DEBUG) {
-            binding.versionTextView.text = APP_VERSION_DEBUG
-        } else {   //if app is release
-            binding.versionTextView.text = APP_VERSION_RELEASE
+    private fun bindRows() {
+        bindRow(binding.whatsNewRow, R.drawable.log_icon, R.string.whats_new_title) {
+            startActivity(navIntent(applicationContext, WhatsNewActivity::class.java))
+        }
+        bindRow(binding.appFeaturesRow, R.drawable.ic_awesome, R.string.features_title) {
+            startActivity(navIntent(applicationContext, AppFeaturesActivity::class.java))
+        }
+        bindRow(binding.replayIntroRow, R.drawable.replay_icon, R.string.intro) {
+            startActivity(navIntent(applicationContext, MainIntroActivity::class.java))
+        }
+        bindRow(binding.privacyRow, R.drawable.privacy_icon, R.string.privacy) {
+            PrivacyInfoDialog().show(supportFragmentManager, PrivacyInfoDialog.TAG)
+        }
+        bindRow(binding.licenseRow, R.drawable.license_icon, R.string.myLicense) {
+            openLink(LICENSE_URL)
+        }
+        bindRow(binding.sourceCodeRow, R.drawable.code_icon, R.string.code) {
+            openLink(REPO_URL)
+        }
+        bindRow(binding.librariesRow, R.drawable.lib_icon, R.string.libs) {
+            OpenSourceLibrariesDialog().show(supportFragmentManager, OpenSourceLibrariesDialog.TAG)
+        }
+        bindRow(binding.websiteRow, R.drawable.ic_web, R.string.about_website, AUTHOR_SITE_NAME) {
+            openLink(AUTHOR_SITE_URL)
+        }
+        bindRow(binding.emailRow, R.drawable.email_icon, R.string.about_email, EMAIL_ADDRESS) {
+            sendEmail()
+        }
+        bindRow(binding.gitlabRow, R.drawable.ic_gitlab, R.string.gitlab) {
+            openLink(GITLAB_URL)
+        }
+        bindRow(binding.githubRow, R.drawable.ic_github, R.string.github) {
+            openLink(GITHUB_URL)
         }
     }
 
-    fun replayIntro(v: View?) {
-        //navigate to intro class (replay the intro)
-        startActivity(navIntent(applicationContext, MainIntroActivity::class.java))
+    private fun bindRow(
+        row: AboutRowItemBinding,
+        @DrawableRes iconRes: Int,
+        @StringRes titleRes: Int,
+        subtitle: String? = null,
+        onClick: () -> Unit,
+    ) {
+        row.rowIcon.setImageResource(iconRes)
+        row.rowTitle.setText(titleRes)
+        if (subtitle != null) {
+            row.rowSubtitle.text = subtitle
+            row.rowSubtitle.visibility = View.VISIBLE
+        }
+        row.root.setOnClickListener { onClick() }
     }
 
-    fun showLog(v: View?) {
-        showAppFeaturesDialog(this)
+    private fun versionText(): String {
+        val suffix = if (BuildConfig.DEBUG) "-debug" else ""
+        return "Version ${BuildConfig.VERSION_NAME}$suffix"
     }
 
-    fun showPrivacy(v: View?) {
-        PrivacyInfoDialog().show(supportFragmentManager, "privacy_dialog")
-    }
-
-    fun showLicense(v: View?) {
-        startActivity(
-            linkIntent("https://gitlab.com/mudlej_android/mj_pdf_reader/-/blob/main/LICENSE")
-        )
-    }
-
-    fun showLibraries(v: View?) {
-        OpenSourceLibrariesDialog().show(supportFragmentManager, OpenSourceLibrariesDialog.TAG)
-    }
-
-    fun emailDev(v: View?) {
-        val email = "mudlej@proton.me"
+    private fun openLink(url: String) {
         try {
-            startActivity(emailIntent(
-                email,
-                getString(com.gitlab.mudlej.MjPdfReader.R.string.mj_app_name),
-                APP_VERSION_RELEASE
-            ))
+            startActivity(linkIntent(url))
         } catch (e: ActivityNotFoundException) {
-            //Toast.makeText(this, email, Toast.LENGTH_SHORT).show()
-            Snackbar.make(binding.root, email, Snackbar.LENGTH_SHORT).show()
+            AppSnackbar.make(binding.root, url, Snackbar.LENGTH_SHORT).show()
         }
     }
 
-    fun navToGit(v: View?) {
-        startActivity(linkIntent("https://gitlab.com/mudlej"))
-    }
-
-    fun navToSourceCode(v: View?) {
-        startActivity(linkIntent("https://gitlab.com/mudlej_android/mj_pdf_reader"))
+    private fun sendEmail() {
+        try {
+            startActivity(emailIntent(EMAIL_ADDRESS, getString(R.string.mj_app_name), versionText()))
+        } catch (e: ActivityNotFoundException) {
+            AppSnackbar.make(binding.root, EMAIL_ADDRESS, Snackbar.LENGTH_SHORT).show()
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.home) {
-            onBackPressed()
+        if (item.itemId == android.R.id.home) {
+            finish()
             return true
         }
-        return false
+        return super.onOptionsItemSelected(item)
     }
 
-    class PrivacyInfoDialog : DialogFragment() {
-        override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-            val builder = MaterialAlertDialogBuilder(requireContext())
-            return builder.setTitle(com.gitlab.mudlej.MjPdfReader.R.string.privacy)
-                .setMessage(com.gitlab.mudlej.MjPdfReader.R.string.privacy_info)
-                .setPositiveButton(com.gitlab.mudlej.MjPdfReader.R.string.ok) { dialog, _ -> dialog.dismiss() }
-                .setIcon(com.gitlab.mudlej.MjPdfReader.R.drawable.privacy_icon)
-                .create()
-        }
+    companion object {
+        private const val EMAIL_ADDRESS = "mudlej@proton.me"
+        private const val AUTHOR_SITE_NAME = "mudlej.com"
+        private const val OFFICIAL_SITE_URL = "https://mudlej.com/projects/mj-pdf/"
+        private const val AUTHOR_SITE_URL = "https://mudlej.com"
+        private const val REPO_URL = "https://gitlab.com/mudlej_android/mj_pdf_reader"
+        private const val GITLAB_URL = "https://gitlab.com/mudlej"
+        private const val GITHUB_URL = "https://github.com/mudlej"
+        private const val LICENSE_URL = "https://gitlab.com/mudlej_android/mj_pdf_reader/-/blob/main/LICENSE"
     }
 }

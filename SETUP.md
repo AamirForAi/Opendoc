@@ -92,3 +92,25 @@ The APK will be generated at:
 ```text
 app/build/outputs/apk/debug/app-debug.apk
 ```
+
+## 7. Build the Release APKs
+
+From the project root:
+
+```bash
+./gradlew :app:assembleRelease
+```
+
+This produces one APK per architecture plus a universal one under:
+
+```text
+app/build/outputs/apk/release/
+```
+
+The release APKs are unsigned. Sign each APK you distribute with your release keystore:
+
+```bash
+apksigner sign --ks your-keystore.jks --out mj-pdf.apk app-arm64-v8a-release-unsigned.apk
+```
+
+`apksigner` is in the SDK's `build-tools` directory.

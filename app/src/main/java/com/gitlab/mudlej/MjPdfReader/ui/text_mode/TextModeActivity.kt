@@ -1,430 +1,510 @@
+// Written by Mudlej. License is GPLv3.
+
 package com.gitlab.mudlej.MjPdfReader.ui.text_mode
 
-import android.content.SharedPreferences
-import android.graphics.Color
-import android.graphics.Typeface
+import android.app.Activity
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.text.Spannable
-import android.text.SpannableString
-import android.text.style.ForegroundColorSpan
-import android.text.style.StyleSpan
-import android.text.style.UnderlineSpan
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
-import android.widget.ScrollView
-import android.widget.TextView
+import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.SearchView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnNextLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
-import com.gitlab.mudlej.MjPdfReader.data.PDF
+import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
+import com.gitlab.mudlej.MjPdfReader.pdf.PDF
+import com.gitlab.mudlej.MjPdfReader.pdf.grantPdfReadAccess
+import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
+import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityTextModeBinding
-import com.gitlab.mudlej.MjPdfReader.manager.extractor.PdfExtractor
-import com.gitlab.mudlej.MjPdfReader.ui.showGoToPageDialog
-import com.gitlab.mudlej.MjPdfReader.util.ColorUtil
-import com.gitlab.mudlej.MjPdfReader.util.createPdfExtractor
-import com.gitlab.mudlej.MjPdfReader.util.getFileName
-import com.gitlab.mudlej.MjPdfReader.util.indexesOf
-import com.gitlab.mudlej.MjPdfReader.util.newColorPicker
-import com.gitlab.mudlej.MjPdfReader.util.showOptionalIcons
+import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
+import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
+import com.gitlab.mudlej.MjPdfReader.ui.gotopage.GoToPageActivity
+import com.gitlab.mudlej.MjPdfReader.ui.gotopage.showGoToPageDialog
+import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsActivity
+import com.gitlab.mudlej.MjPdfReader.ui.tableofcontents.TableOfContentsState
+import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
+import com.gitlab.mudlej.MjPdfReader.core.ui.ColorUtil
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoNightModeFromIntent
+import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoOverlayFromIntent
+import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
+import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import top.defaults.colorpicker.ColorPickerPopup.ColorPickerObserver
 
+class TextModeActivity : AppCompatActivity() {
 
-class TextModeActivity  : AppCompatActivity() {
     private lateinit var binding: ActivityTextModeBinding
-    private lateinit var pdfExtractor: PdfExtractor
-    private lateinit var prefManager: SharedPreferences
+    private lateinit var adapter: TextModePageAdapter
+    private lateinit var layoutManager: LinearLayoutManager
+    private lateinit var pdfRepository: PdfRepository
+    private lateinit var historyPolicy: HistoryPolicy
+    private lateinit var contentLoader: TextModeContentLoader
+    private lateinit var controlsController: TextModeControlsController
     private lateinit var pdfUri: Uri
+
+    private val typographyController = TextModeTypographyController(
+        this,
+        { settings },
+        ::updateSettings,
+        ReflowControls(
+            getJoinParagraphs = { joinParagraphsEnabled },
+            getDetectHeadings = { detectHeadingsEnabled },
+            getCodeBlocks = { codeBlocksEnabled },
+            onJoinParagraphsChanged = ::setJoinParagraphs,
+            onDetectHeadingsChanged = ::setDetectHeadings,
+            onCodeBlocksChanged = ::setCodeBlocks,
+            onReset = ::resetReflowOverrides,
+        ),
+    )
+
     private var pdfPassword: String? = null
+    private var fileHash: String? = null
+    private var pageCount = 0
+    private var currentPageIndex = 0
+    private var sliderTracking = false
+    private var sliderGestureCancelled = false
+    private var resultPrepared = false
+    private var settings = TextModeSettings()
+    private var joinParagraphsOverride: Boolean? = null
+    private var detectHeadingsOverride: Boolean? = null
+    private var codeBlocksOverride: Boolean? = null
+    private var tableOfContentsState = TableOfContentsState()
+    private var savedPageIndex = -1
+    private var setupJob: Job? = null
 
-    private var textSize = DEFAULT_FONT_SIZE
-    private var textColor = DEFAULT_TEXT_COLOR
-    private var backgroundColor = DEFAULT_BACKGROUND_COLOR
-    private var buttonColor = DEFAULT_BUTTON_COLOR
+    private val tableOfContentsLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        result.data?.let { tableOfContentsState = TableOfContentsState.from(it) }
+        if (result.resultCode == PDF.TABLE_OF_CONTENTS_RESULT_OK) {
+            val pageIndex = result.data?.getIntExtra(PDF.chosenTableOfContentsEntryKey, currentPageIndex)
+                ?: return@registerForActivityResult
+            scrollToPage(pageIndex)
+        }
+    }
 
-    private var pdfLength = -1
-    private var pageNumber = DEFAULT_PAGE_NUMBER
-    private var pageText = ""
-    private var searchQuery = ""
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivityTextModeBinding.inflate(layoutInflater)
-        prefManager = PreferenceManager.getDefaultSharedPreferences(this)
-        setContentView(binding.root)
-
-        initPdfProperties()
-
-        lifecycleScope.launch {
-            initPdfExtractor()
-            if (::pdfExtractor.isInitialized) {
-                loadPref()
-                initActionBar()
-                initData()
-                initUi()
-            } else {
-                finish()
+    private val goToPageGridLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == PDF.GO_TO_PAGE_RESULT_OK) {
+            val pageIndex = result.data?.getIntExtra(PDF.chosenPageIndexKey, -1) ?: -1
+            if (pageIndex >= 0) {
+                scrollToPage(pageIndex)
             }
         }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        applyIncognitoNightModeFromIntent()
+        super.onCreate(savedInstanceState)
+        applyIncognitoOverlayFromIntent()
+        binding = ActivityTextModeBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        ColorUtil.colorize(this, window, supportActionBar)
+        ColorUtil.enterFullscreen(window)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.readerControlsCard) { view, insets ->
+            val bottomInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            val params = view.layoutParams as ViewGroup.MarginLayoutParams
+            val margin = (12 * resources.displayMetrics.density).toInt() + bottomInset
+            if (params.bottomMargin != margin) {
+                params.bottomMargin = margin
+                view.layoutParams = params
+            }
+            insets
+        }
+
+        pdfRepository = PdfRepository(AppDatabase.getInstance(applicationContext))
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        settings = TextModeSettings.load(sharedPreferences)
+        val preferences = Preferences(sharedPreferences)
+        historyPolicy = HistoryPolicy(preferences) { intent.getBooleanExtra(PDF.incognitoKey, false) }
+        val hideDelayMillis = preferences.getHideDelay().toLong() + CONTROLS_EXTRA_HIDE_DELAY_MS
+        contentLoader = TextModeContentLoader(
+            this,
+            binding.textPagesRecyclerView,
+            { joinParagraphsEnabled },
+            { detectHeadingsEnabled },
+            { codeBlocksEnabled },
+        )
+        controlsController = TextModeControlsController(binding, hideDelayMillis)
+        restoreState(savedInstanceState)
+        initPdfProperties()
+        if (!::pdfUri.isInitialized) return
+
+        setupJob = lifecycleScope.launch {
+            showLoading()
+            if (!contentLoader.open(pdfUri, pdfPassword)) {
+                if (!contentLoader.closing) {
+                    badFileExit()
+                }
+                return@launch
+            }
+            pageCount = contentLoader.pageCount
+            if (pageCount <= 0) {
+                badFileExit()
+                return@launch
+            }
+            if (fileHash == null) {
+                fileHash = computeHash(this@TextModeActivity, pdfUri)
+            }
+            fileHash?.let { hash ->
+                pdfRepository.findTextModeReflow(hash)?.let { override ->
+                    joinParagraphsOverride = override.textModeJoinParagraphs
+                    detectHeadingsOverride = override.textModeDetectHeadings
+                    codeBlocksOverride = override.textModeCodeBlocks
+                }
+            }
+            currentPageIndex = currentPageIndex.coerceIn(0, pageCount - 1)
+            initReader()
+            hideLoading()
+        }
+    }
+
+    private fun restoreState(savedInstanceState: Bundle?) {
+        tableOfContentsState = savedInstanceState?.let { TableOfContentsState.from(it) } ?: TableOfContentsState.from(intent)
+        currentPageIndex = savedInstanceState?.getInt(CURRENT_PAGE_KEY)
+            ?: intent.getIntExtra(PDF.pageNumberKey, 0)
+        fileHash = savedInstanceState?.getString(PDF.fileHashKey)
+            ?: intent.getStringExtra(PDF.fileHashKey)
     }
 
     private fun initPdfProperties() {
         val pdfPath = intent.getStringExtra(PDF.filePathKey)
-        if (pdfPath.isNullOrEmpty()) {
+        if (pdfPath.isNullOrBlank()) {
             badFileExit()
             return
         }
+
         pdfUri = Uri.parse(pdfPath)
         pdfPassword = intent.getStringExtra(PDF.passwordKey)
     }
 
-    private fun initPdfExtractor() {
-        try {
-            pdfExtractor = createPdfExtractor(this, pdfUri, pdfPassword)
-        }
-        catch (throwable: Throwable) {
-            Toast.makeText(
-                this@TextModeActivity,
-                "Failed to read text (file move or deleted?)",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
-
-    private fun initActionBar() {
-        val pdfTitle = getFileName(this, pdfUri).removeSuffix(".pdf")
-        val actionBar = supportActionBar
-        // Disable the default and enable the custom
-        actionBar?.setDisplayShowTitleEnabled(false)
-        actionBar?.setDisplayShowCustomEnabled(true)
-
-        val customView: View = layoutInflater.inflate(R.layout.actionbar_title, null)
-        val appTitle = customView.findViewById<TextView>(R.id.actionbarTitle)
-        appTitle.text = pdfTitle
-        appTitle.typeface = Typeface.SERIF
-        appTitle.setOnClickListener {
-            if (pdfTitle.isNotBlank()) {
-                //Toast.makeText(this, pdfTitle, Toast.LENGTH_LONG).show()
-                Snackbar.make(binding.root, pdfTitle, Snackbar.LENGTH_LONG).show()
-            }
-        }
-
-        actionBar?.customView = customView
-    }
-
-    private fun updatePageText() {
-        pageText = pdfExtractor.getPageText(pageNumber)
-        binding.pageTextView.text = pageText
-        binding.pageTextView.textSize = textSize
-
-        if (searchQuery.isNotEmpty()) {
-            showQueryResultsInPage()
-        }
-    }
-
-    private fun initData() {
-        updatePageText()
-        pdfLength = pdfExtractor.getPageCount()
-        if (pdfLength == -1) {
-            badFileExit()
-        }
-    }
-
-    private fun badFileExit() {
-        //Toast.makeText(this, getString(R.string.failed_to_extract_text), Toast.LENGTH_LONG).show()
-        Snackbar.make(binding.root, getString(R.string.failed_to_extract_text), Snackbar.LENGTH_LONG).show()
-        finish()
-    }
-
-    private fun initUi() {
-        ColorUtil.colorize(this, window, supportActionBar)
-        binding.apply {
-            nextButton.setOnClickListener { nextPage() }
-            prevButton.setOnClickListener { prevPage() }
-            pageCounter.setOnClickListener {
-                val pageIndex = pageNumber - 1
-                showGoToPageDialog(this@TextModeActivity, binding.root, pageIndex, pdfLength, ::goToPage)
-            }
-        }
-        updatePageCounter()
-    }
-
-    private fun updatePageCounter() {
-        binding.pageCounter.text = getString(R.string.page_counter_label, pageNumber, pdfLength)
-    }
-
-    private fun goToPage(pageIndex: Int) {
-        if (pageIndex in 0 until pdfLength) {
-            pageNumber = pageIndex + 1
-            postUpdatePageNumber()
-        }
-        else {
-            Snackbar.make(
-                binding.root,
-                getString(R.string.page_out_of_bound).format(pageIndex + 1),
-                Snackbar.LENGTH_LONG
-            ).show()
-        }
-
-    }
-
-    private fun nextPage() {
-        if (pageNumber < pdfLength) {
-            ++pageNumber
-            postUpdatePageNumber()
-        }
-    }
-
-    private fun prevPage() {
-        if (pageNumber > 1) {
-            --pageNumber
-            postUpdatePageNumber()
-        }
-    }
-
-    private fun postUpdatePageNumber() {
-        savePageNumber()
-        updatePageText()
-        updatePageCounter()
-        scrollToTop()
-    }
-
-    private fun scrollToTop() {
-        // scroll to top of the Text ScrollView layout
-        binding.pageTextScrollView.fullScroll(ScrollView.FOCUS_UP)
-    }
-
-    private fun increaseTextSize() {
-        if (textSize < MAX_FONT_SIZE) {
-            binding.pageTextView.textSize = ++textSize
-            saveTextSize()
-        }
-    }
-
-    private fun decreaseTextSize() {
-        if (textSize > MIN_FONT_SIZE) {
-            binding.pageTextView.textSize = --textSize
-            saveTextSize()
-        }
-    }
-
-    private fun savePageNumber() {
-        prefManager.edit().putInt(pdfUri.toString(), pageNumber).apply()
-    }
-
-    private fun saveTextSize() {
-        prefManager.edit().putFloat(FONT_SIZE_KEY, textSize).apply()
-    }
-
-    private fun saveTextColor() {
-        prefManager.edit().putInt(TEXT_COLOR_KEY, textColor).apply()
-    }
-
-    private fun saveBackgroundColor() {
-        prefManager.edit().putInt(BACKGROUND_COLOR_KEY, backgroundColor).apply()
-    }
-
-    private fun saveButtonColor() {
-        prefManager.edit().putInt(BUTTON_COLOR_KEY, buttonColor).apply()
-    }
-
-    private fun loadPref() {
-        // load values
-        pageNumber = prefManager.getInt(pdfUri.toString(), DEFAULT_PAGE_NUMBER)
-        textColor = prefManager.getInt(TEXT_COLOR_KEY, DEFAULT_TEXT_COLOR)
-        backgroundColor = prefManager.getInt(BACKGROUND_COLOR_KEY, DEFAULT_BACKGROUND_COLOR)
-        buttonColor = prefManager.getInt(BUTTON_COLOR_KEY, DEFAULT_BACKGROUND_COLOR)
-        textSize = prefManager.getFloat(FONT_SIZE_KEY, DEFAULT_FONT_SIZE)
-
-        updateValues()
-    }
-
-    private fun resetValuesToDefault() {
-        textColor = DEFAULT_TEXT_COLOR
-        backgroundColor = DEFAULT_BACKGROUND_COLOR
-        textSize = DEFAULT_FONT_SIZE
-        buttonColor = DEFAULT_BUTTON_COLOR
-        saveTextSize()
-        saveTextColor()
-        saveBackgroundColor()
-        saveButtonColor()
-        updateValues()
-    }
-
-    private fun setTextColor() {
-        newColorPicker(this)
-            .show(binding.pageTextView, object : ColorPickerObserver() {
-                override fun onColorPicked(color: Int) {
-                    textColor = color
-                    updateTextColor()
-                    saveTextColor()
-                }
-            })
-    }
-
-    private fun setBackgroundColor() {
-        newColorPicker(this)
-            .show(binding.textLayout, object : ColorPickerObserver() {
-                override fun onColorPicked(color: Int) {
-                    backgroundColor = color
-                    updateBackgroundColor()
-                    saveBackgroundColor()
-                }
-            })
-    }
-
-    private fun updateTextColor() {
-        binding.pageTextView.setTextColor(textColor)
-        binding.pageCounter.setTextColor(textColor)
-    }
-
-    private fun updateBackgroundColor() {
-        binding.textLayout.setBackgroundColor(backgroundColor)
-        binding.buttonsLayout.setBackgroundColor(backgroundColor)
-    }
-
-    private fun updateValues() {
-        updateTextColor()
-        updateBackgroundColor()
-        updatePageText()
-    }
-
-    private fun applyDraculaTheme() {
-        textColor = draculaForegroundColor
-        saveTextColor()
-        backgroundColor = draculaBackgroundColor
-        saveBackgroundColor()
-        buttonColor = draculaButtonColor
-        saveButtonColor()
-        updateValues()
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.text_mode_menu, menu)
-        menu.showOptionalIcons()
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            android.R.id.home -> finish()
-            R.id.increase_text_size -> increaseTextSize()
-            R.id.decrease_text_size -> decreaseTextSize()
-            R.id.text_color -> setTextColor()
-            R.id.background_color -> setBackgroundColor()
-            R.id.dracula_theme -> applyDraculaTheme()
-            R.id.reset_to_Default -> resetValuesToDefault()
-            else -> super.onOptionsItemSelected(item)
-        }
-        return true
-    }
-    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        // set search functionality
-        val searchView = menu.findItem(R.id.search_in_text_mode).actionView as SearchView
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String) = false
-
-            override fun onQueryTextChange(query: String): Boolean {
-                searchQuery = query
-                showQueryResultsInPage()
-                return false
+    private fun initReader() {
+        val initialPageIndex = currentPageIndex
+        adapter = TextModePageAdapter(contentLoader::retryPage)
+        layoutManager = LinearLayoutManager(this)
+        contentLoader.attach(adapter, layoutManager) { currentPageIndex }
+        binding.textPagesRecyclerView.adapter = adapter
+        binding.textPagesRecyclerView.layoutManager = layoutManager
+        binding.textPagesRecyclerView.itemAnimator = null
+        controlsController.attachTapListener()
+        binding.textPagesRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                updateCurrentPageFromScroll()
             }
         })
-        return super.onPrepareOptionsMenu(menu)
+        binding.textPagesRecyclerView.addOnChildAttachStateChangeListener(
+            object : RecyclerView.OnChildAttachStateChangeListener {
+                override fun onChildViewAttachedToWindow(view: View) {
+                    contentLoader.scheduleLoadVisiblePages()
+                }
+
+                override fun onChildViewDetachedFromWindow(view: View) = Unit
+            },
+        )
+
+        adapter.submitPageCount(pageCount)
+        adapter.applySettings(settings)
+        applyReaderTheme()
+        initControls()
+        binding.textPagesRecyclerView.post {
+            scrollToPage(initialPageIndex)
+            binding.textPagesRecyclerView.post { contentLoader.loadVisiblePages() }
+        }
     }
 
-    private fun showQueryResultsInPage() {
-        val indexes = pageText.indexesOf(searchQuery, ignoreCase = true)
-        val stylizedText = stylizeText(searchQuery, indexes)
-        binding.pageTextView.setText(stylizedText, TextView.BufferType.SPANNABLE)
+    private fun initControls() {
+        binding.previousPageButton.setOnClickListener { scrollToPage(currentPageIndex - 1) }
+        binding.nextPageButton.setOnClickListener { scrollToPage(currentPageIndex + 1) }
+        binding.pageButton.setOnClickListener {
+            showGoToPageDialog(
+                this,
+                binding.root,
+                currentPageIndex,
+                pageCount,
+                pdfUri,
+                pdfPassword,
+                ::scrollToPage,
+                showAllPages = ::showGoToPageGrid,
+            )
+        }
+        binding.tableOfContentsButton.setOnClickListener { showTableOfContents() }
+        binding.typographyButton.setOnClickListener { typographyController.showSheet() }
+        binding.backToPdfButton.setOnClickListener { finish() }
 
-//        if (indexes.size != pageText.length) {
-//            Snackbar.make(
-//                binding.root,
-//                getString(R.string.number_of_results).format(indexes.size),
-//                Snackbar.LENGTH_SHORT
-//            ).show()
-//        }
+        binding.pageSlider.valueFrom = if (pageCount > 1) 1f else 0f
+        binding.pageSlider.valueTo = if (pageCount > 1) pageCount.toFloat() else 1f
+        binding.pageSlider.stepSize = 1f
+        binding.pageSlider.isEnabled = pageCount > 1
+        binding.pageSlider.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
+            override fun onStartTrackingTouch(slider: Slider) {
+                sliderTracking = true
+                sliderGestureCancelled = false
+            }
+
+            override fun onStopTrackingTouch(slider: Slider) {
+                sliderTracking = false
+                if (sliderGestureCancelled) {
+                    sliderGestureCancelled = false
+                    updatePageControls()
+                    return
+                }
+                scrollToPage(currentPageIndex)
+            }
+        })
+        binding.pageSlider.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                seekToPage(value.toInt() - 1)
+            }
+        }
+        updatePageControls()
+        controlsController.setControlsTouchListeners { sliderGestureCancelled = true }
+        controlsController.showTemporarily()
     }
 
-    private fun stylizeText(query: String, indexes: List<Int>): Spannable {
-        val color = "#ff335d"   // should be extracted
-        val spannable = SpannableString(pageText)
+    private fun updateSettings(newSettings: TextModeSettings) {
+        settings = newSettings
+        settings.save(PreferenceManager.getDefaultSharedPreferences(this))
+        applySettingsToPages()
+        applyReaderTheme()
+    }
 
-        if (query.isEmpty() || query.isBlank()) {
-            return spannable
+    private val joinParagraphsEnabled: Boolean
+        get() = joinParagraphsOverride ?: DEFAULT_JOIN_PARAGRAPHS
+
+    private val detectHeadingsEnabled: Boolean
+        get() = detectHeadingsOverride ?: DEFAULT_DETECT_HEADINGS
+
+    private val codeBlocksEnabled: Boolean
+        get() = codeBlocksOverride ?: DEFAULT_CODE_BLOCKS
+
+    private fun setJoinParagraphs(enabled: Boolean) {
+        if (joinParagraphsEnabled == enabled) return
+        joinParagraphsOverride = enabled
+        persistReflowOverrides()
+        contentLoader.invalidateAndReload()
+    }
+
+    private fun setDetectHeadings(enabled: Boolean) {
+        if (detectHeadingsEnabled == enabled) return
+        detectHeadingsOverride = enabled
+        persistReflowOverrides()
+        contentLoader.invalidateAndReload()
+    }
+
+    private fun setCodeBlocks(enabled: Boolean) {
+        if (codeBlocksEnabled == enabled) return
+        codeBlocksOverride = enabled
+        persistReflowOverrides()
+        contentLoader.invalidateAndReload()
+    }
+
+    private fun resetReflowOverrides() {
+        val effectiveChanged = joinParagraphsEnabled != DEFAULT_JOIN_PARAGRAPHS ||
+            detectHeadingsEnabled != DEFAULT_DETECT_HEADINGS ||
+            codeBlocksEnabled != DEFAULT_CODE_BLOCKS
+        val hadOverrides = joinParagraphsOverride != null || detectHeadingsOverride != null ||
+            codeBlocksOverride != null
+        joinParagraphsOverride = null
+        detectHeadingsOverride = null
+        codeBlocksOverride = null
+        if (hadOverrides) {
+            persistReflowOverrides()
         }
-        else {
-            spannable.removeSpan(StyleSpan(Typeface.BOLD))
-            spannable.removeSpan(UnderlineSpan())
+        if (effectiveChanged) {
+            contentLoader.invalidateAndReload()
+        }
+    }
+
+    private fun persistReflowOverrides() {
+        if (!historyPolicy.canRecord()) return
+        val hash = fileHash ?: return
+        val joinParagraphs = joinParagraphsOverride
+        val detectHeadings = detectHeadingsOverride
+        val codeBlocks = codeBlocksOverride
+        lifecycleScope.launch {
+            pdfRepository.setTextModeReflow(hash, joinParagraphs, detectHeadings, codeBlocks)
+        }
+    }
+
+    private fun applySettingsToPages() {
+        if (binding.textPagesRecyclerView.isComputingLayout) {
+            binding.textPagesRecyclerView.post { applySettingsToPages() }
+            return
         }
 
-        for (index in indexes) {
-            spannable.setSpan(
-                ForegroundColorSpan(Color.parseColor(color)),
-                index,
-                index + query.length,
-                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
-            spannable.setSpan(
-                UnderlineSpan(),
-                index,
-                index + query.length,
-                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
+        adapter.applySettings(settings)
+        contentLoader.scheduleLoadVisiblePages()
+    }
+
+    private fun applyReaderTheme() {
+        val colors = settings.theme.colors(binding.root)
+        binding.textModeRoot.setBackgroundColor(colors.background)
+        binding.textPagesRecyclerView.setBackgroundColor(colors.background)
+        binding.message.setTextColor(colors.label)
+    }
+
+    private fun scrollToPage(pageIndex: Int) {
+        if (pageCount <= 0) return
+
+        currentPageIndex = pageIndex.coerceIn(0, pageCount - 1)
+        binding.textPagesRecyclerView.stopScroll()
+        val anchoredView = layoutManager.findViewByPosition(currentPageIndex)
+        if (anchoredView != null &&
+            layoutManager.findFirstVisibleItemPosition() == currentPageIndex &&
+            anchoredView.top == binding.textPagesRecyclerView.paddingTop
+        ) {
+            updatePageControls()
+            saveCurrentPage()
+            return
         }
-        return spannable
+        layoutManager.scrollToPositionWithOffset(currentPageIndex, 0)
+        contentLoader.loadTargetWindow(currentPageIndex)
+        binding.textPagesRecyclerView.doOnNextLayout { contentLoader.loadVisiblePages() }
+        updatePageControls()
+        saveCurrentPage()
+    }
+
+    private fun seekToPage(pageIndex: Int) {
+        if (pageCount <= 0) return
+
+        currentPageIndex = pageIndex.coerceIn(0, pageCount - 1)
+        updatePageControls()
+    }
+
+    private fun updateCurrentPageFromScroll() {
+        val firstVisiblePage = layoutManager.findFirstVisibleItemPosition()
+        if (firstVisiblePage == RecyclerView.NO_POSITION) return
+
+        contentLoader.loadVisiblePages()
+
+        if (binding.textPagesRecyclerView.scrollState == RecyclerView.SCROLL_STATE_IDLE) return
+        if (firstVisiblePage == currentPageIndex) return
+
+        currentPageIndex = firstVisiblePage
+        updatePageControls()
+        saveCurrentPage()
+    }
+
+    private fun saveCurrentPage() {
+        if (!historyPolicy.canRecord()) return
+        val hash = fileHash ?: return
+        if (savedPageIndex == currentPageIndex) return
+
+        savedPageIndex = currentPageIndex
+        lifecycleScope.launch {
+            pdfRepository.setPageNumber(hash, currentPageIndex)
+        }
+    }
+
+    private fun updatePageControls() {
+        if (pageCount <= 0) return
+
+        binding.pageButton.text = getString(R.string.text_mode_page_counter, currentPageIndex + 1, pageCount)
+        if (!sliderTracking) {
+            binding.pageSlider.value = (currentPageIndex + 1).toFloat().coerceIn(binding.pageSlider.valueFrom, binding.pageSlider.valueTo)
+        }
+        binding.previousPageButton.isEnabled = currentPageIndex > 0
+        binding.nextPageButton.isEnabled = currentPageIndex < pageCount - 1
+    }
+
+    private fun showTableOfContents() {
+        Intent(this, TableOfContentsActivity::class.java).also { bookmarkIntent ->
+            bookmarkIntent.putExtra(PDF.filePathKey, pdfUri.toString())
+            bookmarkIntent.putExtra(PDF.passwordKey, pdfPassword)
+            bookmarkIntent.putExtra(PDF.pageNumberKey, currentPageIndex)
+            bookmarkIntent.putExtra(PDF.incognitoKey, intent.getBooleanExtra(PDF.incognitoKey, false))
+            tableOfContentsState.putInto(bookmarkIntent)
+            bookmarkIntent.grantPdfReadAccess(pdfUri.toString())
+            tableOfContentsLauncher.launch(bookmarkIntent)
+        }
+    }
+
+    private fun showGoToPageGrid() {
+        Intent(this, GoToPageActivity::class.java).also { gridIntent ->
+            gridIntent.putExtra(PDF.filePathKey, pdfUri.toString())
+            gridIntent.putExtra(PDF.passwordKey, pdfPassword)
+            gridIntent.putExtra(PDF.pageNumberKey, currentPageIndex)
+            gridIntent.putExtra(PDF.incognitoKey, intent.getBooleanExtra(PDF.incognitoKey, false))
+            gridIntent.grantPdfReadAccess(pdfUri.toString())
+            goToPageGridLauncher.launch(gridIntent)
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putInt(PAGE_NUMBER_KEY, pageNumber)
-        outState.putInt(PDF_LENGTH_KEY, pdfLength)
-        outState.putFloat(FONT_SIZE_KEY, textSize)
-        outState.putInt(TEXT_COLOR_KEY, textColor)
-        outState.putInt(BACKGROUND_COLOR_KEY, backgroundColor)
-        outState.putParcelable(URI_KEY, pdfUri)
-        // add font color
+        outState.putInt(CURRENT_PAGE_KEY, currentPageIndex)
+        fileHash?.let { outState.putString(PDF.fileHashKey, it) }
+        tableOfContentsState.putInto(outState)
         super.onSaveInstanceState(outState)
     }
 
-    private fun restoreInstanceState(savedState: Bundle) {
-        pageNumber = savedState.getInt(PAGE_NUMBER_KEY)
-        pdfLength = savedState.getInt(PDF_LENGTH_KEY)
-        textSize = savedState.getFloat(FONT_SIZE_KEY)
-        pdfUri = savedState.getParcelable(URI_KEY) ?: return
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            ColorUtil.enterFullscreen(window)
+        }
+    }
+
+    override fun finish() {
+        if (!resultPrepared) {
+            setPageResult(Activity.RESULT_OK)
+        }
+        super.finish()
+    }
+
+    override fun onDestroy() {
+        if (::controlsController.isInitialized) {
+            controlsController.release()
+        }
+        if (::contentLoader.isInitialized) {
+            contentLoader.close()
+        }
+        setupJob?.cancel()
+        super.onDestroy()
+    }
+
+    private fun setPageResult(resultCode: Int) {
+        resultPrepared = true
+        setResult(
+            resultCode,
+            Intent().putExtra(PDF.pageNumberKey, currentPageIndex),
+        )
+    }
+
+    private fun showLoading() {
+        binding.progressBar.visibility = View.VISIBLE
+        binding.message.visibility = View.GONE
+    }
+
+    private fun hideLoading() {
+        binding.progressBar.visibility = View.GONE
+    }
+
+    private fun badFileExit() {
+        if (::binding.isInitialized) {
+            AppSnackbar.make(binding.root, getString(R.string.failed_to_extract_text), Snackbar.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(this, getString(R.string.failed_to_extract_text), Toast.LENGTH_SHORT).show()
+        }
+        setPageResult(Activity.RESULT_CANCELED)
+        finish()
     }
 
     companion object {
-        private const val TAG = "TextModeActivity"
-
-        // default values
-        private const val MIN_FONT_SIZE = 3f
-        private const val MAX_FONT_SIZE = 150f
-        private const val DEFAULT_FONT_SIZE = 16f
-        private const val DEFAULT_TEXT_COLOR = Color.BLACK
-        private const val DEFAULT_BACKGROUND_COLOR = Color.WHITE
-        private const val DEFAULT_BUTTON_COLOR = 2503224    // should be extracted
-        private const val DEFAULT_PAGE_NUMBER = 1
-
-        // keys
-        private const val URI_KEY = "URI_KEY"
-        private const val PAGE_NUMBER_KEY = "PAGE_NUMBER_KEY"
-        private const val PDF_LENGTH_KEY = "PDF_LENGTH_KEY"
-        private const val FONT_SIZE_KEY = "FONT_SIZE_KEY"
-        private const val TEXT_COLOR_KEY = "TEXT_COLOR_KEY"
-        private const val BACKGROUND_COLOR_KEY = "BACKGROUND_COLOR_KEY"
-        private const val BUTTON_COLOR_KEY = "BUTTON_COLOR_KEY"
-
-
-        // dracula theme
-        val draculaBackgroundColor = Color.parseColor("#282a36")
-        val draculaForegroundColor = Color.parseColor("#f8f8f2")
-        val draculaButtonColor = Color.parseColor("#44475a")
+        private const val CURRENT_PAGE_KEY = "CURRENT_TEXT_MODE_PAGE"
+        private const val CONTROLS_EXTRA_HIDE_DELAY_MS = 1500L
+        private const val DEFAULT_JOIN_PARAGRAPHS = true
+        private const val DEFAULT_DETECT_HEADINGS = true
+        private const val DEFAULT_CODE_BLOCKS = true
     }
 }

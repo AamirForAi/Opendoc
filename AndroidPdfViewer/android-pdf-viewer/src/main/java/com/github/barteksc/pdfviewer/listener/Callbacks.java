@@ -15,6 +15,7 @@
  */
 package com.github.barteksc.pdfviewer.listener;
 
+import android.graphics.RectF;
 import android.view.MotionEvent;
 
 import com.github.barteksc.pdfviewer.link.LinkHandler;
@@ -53,6 +54,11 @@ public class Callbacks {
     private OnPageScrollListener onPageScrollListener;
 
     /**
+     * Call back object to call when the user interacts with the document.
+     */
+    private OnDocumentInteractionListener onDocumentInteractionListener;
+
+    /**
      * Call back object to call when the above layer is to drawn
      */
     private OnDrawListener onDrawListener;
@@ -64,10 +70,17 @@ public class Callbacks {
      */
     private OnTapListener onTapListener;
 
+    private OnTapListener onTapUpListener;
+
     /**
      * Call back object to call when the user does a long tap gesture
      */
     private OnLongPressListener onLongPressListener;
+
+    /**
+     * Call back object to call when inline text selection changes.
+     */
+    private OnTextSelectionChangeListener onTextSelectionChangeListener;
 
     /**
      * Call back object to call when clicking link
@@ -134,6 +147,16 @@ public class Callbacks {
         }
     }
 
+    public void setOnDocumentInteraction(OnDocumentInteractionListener onDocumentInteractionListener) {
+        this.onDocumentInteractionListener = onDocumentInteractionListener;
+    }
+
+    public void callOnDocumentInteraction(MotionEvent event) {
+        if (onDocumentInteractionListener != null) {
+            onDocumentInteractionListener.onDocumentInteraction(event);
+        }
+    }
+
     public void setOnDraw(OnDrawListener onDrawListener) {
         this.onDrawListener = onDrawListener;
     }
@@ -158,6 +181,14 @@ public class Callbacks {
         return onTapListener != null && onTapListener.onTap(event);
     }
 
+    public void setOnTapUp(OnTapListener onTapUpListener) {
+        this.onTapUpListener = onTapUpListener;
+    }
+
+    public boolean callOnTapUp(MotionEvent event) {
+        return onTapUpListener != null && onTapUpListener.onTap(event);
+    }
+
     public void setOnLongPress(OnLongPressListener onLongPressListener) {
         this.onLongPressListener = onLongPressListener;
     }
@@ -165,6 +196,22 @@ public class Callbacks {
     public void callOnLongPress(MotionEvent event) {
         if (onLongPressListener != null) {
             onLongPressListener.onLongPress(event);
+        }
+    }
+
+    public void setOnTextSelectionChange(OnTextSelectionChangeListener onTextSelectionChangeListener) {
+        this.onTextSelectionChangeListener = onTextSelectionChangeListener;
+    }
+
+    public void callOnTextSelectionChanged(RectF viewBounds, int pageIndex) {
+        if (onTextSelectionChangeListener != null) {
+            onTextSelectionChangeListener.onTextSelectionChanged(viewBounds, pageIndex);
+        }
+    }
+
+    public void callOnTextSelectionCleared() {
+        if (onTextSelectionChangeListener != null) {
+            onTextSelectionChangeListener.onTextSelectionCleared();
         }
     }
 

@@ -4,9 +4,12 @@ extern "C" {
     #include <unistd.h>
     #include <sys/mman.h>
     #include <sys/stat.h>
+    #include <errno.h>
     #include <string.h>
     #include <stdio.h>
+    #include <stdlib.h>
     #include <math.h>
+    #include <time.h>
 }
 
 #include <android/native_window.h>
@@ -18,18 +21,508 @@ using namespace android;
 #include <fpdfview.h>
 #include <fpdf_doc.h>
 #include <fpdf_text.h>
+#include <fpdf_searchex.h>
 #include <fpdf_annot.h>
 #include <fpdf_formfill.h>
 #include <fpdf_edit.h>
+#include <fpdf_save.h>
+#include <fpdf_progressive.h>
 #include <string>
 
+#include <set>
 #include <vector>
 
 static Mutex sLibraryLock;
 
 static int sLibraryReferenceCount = 0;
 
-static std::vector<int> searchResultAnnotIndexes;
+static volatile bool timingLogsEnabled = false;
+
+static double monotonicMillis() {
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return now.tv_sec * 1000.0 + now.tv_nsec / 1000000.0;
+}
+
+
+struct FdFileWrite {
+    FPDF_FILEWRITE fileWrite;
+    int fd;
+};
+
+static int writeBlockToFd(FPDF_FILEWRITE* fileWrite, const void* data, unsigned long size) {
+    FdFileWrite* fdFileWrite = reinterpret_cast<FdFileWrite*>(fileWrite);
+    const char* buffer = static_cast<const char*>(data);
+    unsigned long remaining = size;
+    while (remaining > 0) {
+        ssize_t written = write(fdFileWrite->fd, buffer, remaining);
+        if (written < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            LOGE("Failed to write PDF save block. Error:%d", errno);
+            return 0;
+        }
+        if (written == 0) {
+            return 0;
+        }
+        buffer += written;
+        remaining -= written;
+    }
+    return 1;
+}
+
+static bool setAnnotWideString(JNIEnv* env, FPDF_ANNOTATION annot, const char* key, jstring value) {
+    if (value == NULL) {
+        return true;
+    }
+    const jchar* chars = env->GetStringChars(value, NULL);
+    if (chars == NULL) {
+        return false;
+    }
+    jsize length = env->GetStringLength(value);
+    std::vector<FPDF_WCHAR> wide(length + 1);
+    for (jsize i = 0; i < length; i++) {
+        wide[i] = static_cast<FPDF_WCHAR>(chars[i]);
+    }
+    wide[length] = 0;
+    FPDF_BOOL result = FPDFAnnot_SetStringValue(annot, key, wide.data());
+    env->ReleaseStringChars(value, chars);
+    return result;
+}
+
+static std::vector<FPDF_WCHAR> getAnnotWideString(FPDF_ANNOTATION annot, const char* key);
+
+static bool setAnnotAsciiString(FPDF_ANNOTATION annot, const char* key, const char* value) {
+    std::vector<FPDF_WCHAR> wide;
+    while (*value != '\0') {
+        wide.push_back(static_cast<unsigned char>(*value));
+        value++;
+    }
+    wide.push_back(0);
+    return FPDFAnnot_SetStringValue(annot, key, wide.data());
+}
+
+static std::string colorToHex(unsigned int red, unsigned int green, unsigned int blue) {
+    char buffer[7];
+    snprintf(buffer, sizeof(buffer), "%02X%02X%02X", red & 0xFF, green & 0xFF, blue & 0xFF);
+    return std::string(buffer);
+}
+
+static bool hexDigitValue(FPDF_WCHAR digit, unsigned int* value) {
+    if (digit >= '0' && digit <= '9') {
+        *value = digit - '0';
+        return true;
+    }
+    if (digit >= 'A' && digit <= 'F') {
+        *value = digit - 'A' + 10;
+        return true;
+    }
+    if (digit >= 'a' && digit <= 'f') {
+        *value = digit - 'a' + 10;
+        return true;
+    }
+    return false;
+}
+
+static bool parseHexColor(const std::vector<FPDF_WCHAR>& value,
+                          unsigned int* red,
+                          unsigned int* green,
+                          unsigned int* blue) {
+    if (value.size() != 6) {
+        return false;
+    }
+
+    unsigned int components[3];
+    for (int i = 0; i < 3; i++) {
+        unsigned int high;
+        unsigned int low;
+        if (!hexDigitValue(value[i * 2], &high) || !hexDigitValue(value[i * 2 + 1], &low)) {
+            return false;
+        }
+        components[i] = (high << 4) | low;
+    }
+    *red = components[0];
+    *green = components[1];
+    *blue = components[2];
+    return true;
+}
+
+static bool getAnnotStoredColor(FPDF_ANNOTATION annot,
+                                unsigned int* red,
+                                unsigned int* green,
+                                unsigned int* blue) {
+    return parseHexColor(getAnnotWideString(annot, "MJColor"), red, green, blue);
+}
+
+static bool isPdfTokenDelimiter(char value) {
+    return value == ' ' || value == '\n' || value == '\r' || value == '\t'
+            || value == '[' || value == ']' || value == '(' || value == ')'
+            || value == '<' || value == '>' || value == '{' || value == '}';
+}
+
+static bool parseDoubleToken(const std::string& token, double* value) {
+    if (token.empty()) {
+        return false;
+    }
+    char* end = NULL;
+    double parsed = strtod(token.c_str(), &end);
+    if (end == token.c_str() || *end != '\0') {
+        return false;
+    }
+    *value = parsed;
+    return true;
+}
+
+static unsigned int colorComponentToByte(double component) {
+    double scaled = component <= 1.0 ? component * 255.0 : component;
+    if (scaled < 0.0) {
+        scaled = 0.0;
+    }
+    if (scaled > 255.0) {
+        scaled = 255.0;
+    }
+    return static_cast<unsigned int>(round(scaled));
+}
+
+static bool setColorFromRecentNumbers(const std::vector<double>& recentNumbers,
+                                      unsigned int* red,
+                                      unsigned int* green,
+                                      unsigned int* blue,
+                                      unsigned int* alpha) {
+    if (recentNumbers.size() < 3) {
+        return false;
+    }
+    size_t start = recentNumbers.size() - 3;
+    *red = colorComponentToByte(recentNumbers[start]);
+    *green = colorComponentToByte(recentNumbers[start + 1]);
+    *blue = colorComponentToByte(recentNumbers[start + 2]);
+    *alpha = 255;
+    return true;
+}
+
+static bool updateColorFromAppearanceToken(const std::string& token,
+                                           const std::vector<double>& recentNumbers,
+                                           unsigned int* red,
+                                           unsigned int* green,
+                                           unsigned int* blue,
+                                           unsigned int* alpha) {
+    if (token == "rg" || token == "RG" || token == "sc" || token == "SC"
+            || token == "scn" || token == "SCN") {
+        return setColorFromRecentNumbers(recentNumbers, red, green, blue, alpha);
+    }
+    if ((token == "g" || token == "G") && !recentNumbers.empty()) {
+        unsigned int gray = colorComponentToByte(recentNumbers.back());
+        *red = gray;
+        *green = gray;
+        *blue = gray;
+        *alpha = 255;
+        return true;
+    }
+    if ((token == "k" || token == "K") && recentNumbers.size() >= 4) {
+        size_t start = recentNumbers.size() - 4;
+        double cyan = recentNumbers[start];
+        double magenta = recentNumbers[start + 1];
+        double yellow = recentNumbers[start + 2];
+        double black = recentNumbers[start + 3];
+        *red = colorComponentToByte(1.0 - fmin(1.0, cyan + black));
+        *green = colorComponentToByte(1.0 - fmin(1.0, magenta + black));
+        *blue = colorComponentToByte(1.0 - fmin(1.0, yellow + black));
+        *alpha = 255;
+        return true;
+    }
+    return false;
+}
+
+static bool getAnnotAppearanceStreamColor(FPDF_ANNOTATION annot,
+                                          unsigned int* red,
+                                          unsigned int* green,
+                                          unsigned int* blue,
+                                          unsigned int* alpha) {
+    unsigned long bytes = FPDFAnnot_GetAP(annot, FPDF_ANNOT_APPEARANCEMODE_NORMAL, NULL, 0);
+    if (bytes <= sizeof(FPDF_WCHAR)) {
+        return false;
+    }
+
+    unsigned long bufferBytes = bytes + sizeof(FPDF_WCHAR);
+    std::vector<FPDF_WCHAR> wide(bufferBytes / sizeof(FPDF_WCHAR));
+    unsigned long copied = FPDFAnnot_GetAP(annot, FPDF_ANNOT_APPEARANCEMODE_NORMAL,
+                                           wide.data(), bufferBytes);
+    if (copied == 0 || copied > bufferBytes) {
+        return false;
+    }
+
+    std::vector<double> recentNumbers;
+    std::string token;
+    bool foundColor = false;
+    size_t length = copied / sizeof(FPDF_WCHAR);
+    for (size_t i = 0; i <= length; i++) {
+        char value = '\0';
+        if (i < length && wide[i] != 0 && wide[i] <= 0x7F) {
+            value = static_cast<char>(wide[i]);
+        }
+        if (i == length || value == '\0' || isPdfTokenDelimiter(value)) {
+            if (!token.empty()) {
+                double number;
+                if (parseDoubleToken(token, &number)) {
+                    recentNumbers.push_back(number);
+                    if (recentNumbers.size() > 8) {
+                        recentNumbers.erase(recentNumbers.begin());
+                    }
+                } else if (updateColorFromAppearanceToken(token, recentNumbers,
+                                                          red, green, blue, alpha)) {
+                    foundColor = true;
+                    recentNumbers.clear();
+                } else {
+                    recentNumbers.clear();
+                }
+                token.clear();
+            }
+        } else {
+            token.push_back(value);
+        }
+    }
+    return foundColor;
+}
+
+static bool getAnnotAppearanceColor(FPDF_ANNOTATION annot,
+                                    unsigned int* red,
+                                    unsigned int* green,
+                                    unsigned int* blue,
+                                    unsigned int* alpha) {
+    int objectCount = FPDFAnnot_GetObjectCount(annot);
+    for (int i = 0; i < objectCount; i++) {
+        FPDF_PAGEOBJECT object = FPDFAnnot_GetObject(annot, i);
+        if (object == NULL) {
+            continue;
+        }
+        unsigned int objectRed;
+        unsigned int objectGreen;
+        unsigned int objectBlue;
+        unsigned int objectAlpha;
+        if (FPDFPageObj_GetFillColor(object, &objectRed, &objectGreen, &objectBlue, &objectAlpha)
+                && objectAlpha > 0) {
+            *red = objectRed;
+            *green = objectGreen;
+            *blue = objectBlue;
+            *alpha = objectAlpha;
+            return true;
+        }
+        if (FPDFPageObj_GetStrokeColor(object, &objectRed, &objectGreen, &objectBlue, &objectAlpha)
+                && objectAlpha > 0) {
+            *red = objectRed;
+            *green = objectGreen;
+            *blue = objectBlue;
+            *alpha = objectAlpha;
+            return true;
+        }
+    }
+    return getAnnotAppearanceStreamColor(annot, red, green, blue, alpha);
+}
+
+static bool getHighlightAnnotationColor(FPDF_ANNOTATION annot,
+                                        unsigned int* red,
+                                        unsigned int* green,
+                                        unsigned int* blue,
+                                        unsigned int* alpha) {
+    if (getAnnotStoredColor(annot, red, green, blue)) {
+        *alpha = 255;
+        return true;
+    }
+    if (getAnnotAppearanceColor(annot, red, green, blue, alpha)) {
+        return true;
+    }
+    return FPDFAnnot_GetColor(annot, FPDFANNOT_COLORTYPE_Color, red, green, blue, alpha);
+}
+
+static std::string makeAnnotName() {
+    static unsigned long counter = 0;
+    struct timespec time;
+    clock_gettime(CLOCK_REALTIME, &time);
+    char buffer[96];
+    snprintf(buffer, sizeof(buffer), "MJPDF-%lld-%lld-%lu",
+             static_cast<long long>(time.tv_sec),
+             static_cast<long long>(time.tv_nsec),
+             ++counter);
+    return std::string(buffer);
+}
+
+static std::vector<FPDF_WCHAR> jstringToWide(JNIEnv* env, jstring value) {
+    std::vector<FPDF_WCHAR> wide;
+    if (value == NULL) {
+        return wide;
+    }
+    const jchar* chars = env->GetStringChars(value, NULL);
+    if (chars == NULL) {
+        return wide;
+    }
+    jsize length = env->GetStringLength(value);
+    wide.reserve(length);
+    for (jsize i = 0; i < length; i++) {
+        wide.push_back(static_cast<FPDF_WCHAR>(chars[i]));
+    }
+    env->ReleaseStringChars(value, chars);
+    return wide;
+}
+
+static std::string jstringToUtf8(JNIEnv* env, jstring value) {
+    if (value == NULL) {
+        return std::string();
+    }
+    const char* chars = env->GetStringUTFChars(value, NULL);
+    if (chars == NULL) {
+        return std::string();
+    }
+    std::string result(chars);
+    env->ReleaseStringUTFChars(value, chars);
+    return result;
+}
+
+static std::vector<FPDF_WCHAR> getAnnotWideString(FPDF_ANNOTATION annot, const char* key) {
+    std::vector<FPDF_WCHAR> empty;
+    unsigned long bytes = FPDFAnnot_GetStringValue(annot, key, NULL, 0);
+    if (bytes <= sizeof(FPDF_WCHAR)) {
+        return empty;
+    }
+
+    unsigned long bufferBytes = bytes + sizeof(FPDF_WCHAR);
+    std::vector<FPDF_WCHAR> value(bufferBytes / sizeof(FPDF_WCHAR));
+    unsigned long copied = FPDFAnnot_GetStringValue(annot, key, value.data(), bufferBytes);
+    if (copied == 0 || copied > bufferBytes) {
+        return empty;
+    }
+    value.resize(copied / sizeof(FPDF_WCHAR));
+    if (!value.empty() && value.back() == 0) {
+        value.pop_back();
+    }
+    return value;
+}
+
+static bool wideEqualsAscii(const std::vector<FPDF_WCHAR>& wide, const char* ascii) {
+    size_t length = strlen(ascii);
+    if (wide.size() != length) {
+        return false;
+    }
+    for (size_t i = 0; i < length; i++) {
+        if (wide[i] != static_cast<unsigned char>(ascii[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool wideEquals(const std::vector<FPDF_WCHAR>& left, const std::vector<FPDF_WCHAR>& right) {
+    if (left.size() != right.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < left.size(); i++) {
+        if (left[i] != right[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static jstring wideToJString(JNIEnv* env, const std::vector<FPDF_WCHAR>& wide) {
+    if (wide.empty()) {
+        return env->NewStringUTF("");
+    }
+    std::vector<jchar> chars(wide.size());
+    for (size_t i = 0; i < wide.size(); i++) {
+        chars[i] = static_cast<jchar>(wide[i]);
+    }
+    return env->NewString(chars.data(), chars.size());
+}
+
+typedef unsigned long (*FormFieldStringGetter)(FPDF_FORMHANDLE, FPDF_ANNOTATION, FPDF_WCHAR*, unsigned long);
+
+static std::vector<FPDF_WCHAR> getFormFieldWideString(FormFieldStringGetter getter,
+                                                      FPDF_FORMHANDLE formHandle,
+                                                      FPDF_ANNOTATION annot) {
+    std::vector<FPDF_WCHAR> empty;
+    unsigned long bytes = getter(formHandle, annot, NULL, 0);
+    if (bytes <= sizeof(FPDF_WCHAR)) {
+        return empty;
+    }
+
+    unsigned long bufferBytes = bytes + sizeof(FPDF_WCHAR);
+    std::vector<FPDF_WCHAR> value(bufferBytes / sizeof(FPDF_WCHAR));
+    unsigned long copied = getter(formHandle, annot, value.data(), bufferBytes);
+    if (copied == 0 || copied > bufferBytes) {
+        return empty;
+    }
+    value.resize(copied / sizeof(FPDF_WCHAR));
+    if (!value.empty() && value.back() == 0) {
+        value.pop_back();
+    }
+    return value;
+}
+
+static bool isAppHighlightAnnotation(FPDF_ANNOTATION annot) {
+    if (annot == NULL || FPDFAnnot_GetSubtype(annot) != FPDF_ANNOT_HIGHLIGHT) {
+        return false;
+    }
+    std::vector<FPDF_WCHAR> group = getAnnotWideString(annot, "MJGroup");
+    if (!group.empty()) {
+        return true;
+    }
+    return wideEqualsAscii(getAnnotWideString(annot, "T"), "MJ PDF");
+}
+
+static bool setAppHighlightsHidden(FPDF_PAGE page, bool hidden) {
+    if (page == NULL) {
+        return false;
+    }
+    bool matchedAny = false;
+    int annotCount = FPDFPage_GetAnnotCount(page);
+    for (int i = 0; i < annotCount; i++) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (annot == NULL) {
+            continue;
+        }
+        if (isAppHighlightAnnotation(annot)) {
+            matchedAny = true;
+            int flags = FPDFAnnot_GetFlags(annot);
+            int updated = hidden ? (flags | FPDF_ANNOT_FLAG_HIDDEN)
+                                 : (flags & ~FPDF_ANNOT_FLAG_HIDDEN);
+            if (updated != flags) {
+                FPDFAnnot_SetFlags(annot, updated);
+            }
+        }
+        FPDFPage_CloseAnnot(annot);
+    }
+    return matchedAny;
+}
+
+static FS_RECTF normalizedRect(FS_RECTF rect) {
+    FS_RECTF normalized;
+    normalized.left = fmin(rect.left, rect.right);
+    normalized.right = fmax(rect.left, rect.right);
+    normalized.bottom = fmin(rect.bottom, rect.top);
+    normalized.top = fmax(rect.bottom, rect.top);
+    return normalized;
+}
+
+static bool rectContainsWithTolerance(FS_RECTF rect, float x, float y, float tolerance) {
+    return x >= rect.left - tolerance
+            && x <= rect.right + tolerance
+            && y >= rect.bottom - tolerance
+            && y <= rect.top + tolerance;
+}
+
+static bool isEditableFormField(FPDF_FORMHANDLE formHandle, FPDF_ANNOTATION annot) {
+    int type = FPDFAnnot_GetFormFieldType(formHandle, annot);
+    bool editableType = type == FPDF_FORMFIELD_TEXTFIELD
+            || type == FPDF_FORMFIELD_CHECKBOX
+            || type == FPDF_FORMFIELD_RADIOBUTTON;
+    if (!editableType) {
+        return false;
+    }
+    if ((FPDFAnnot_GetFormFieldFlags(formHandle, annot) & FPDF_FORMFLAG_READONLY) != 0) {
+        return false;
+    }
+    return (FPDFAnnot_GetFlags(annot) & FPDF_ANNOT_FLAG_HIDDEN) == 0;
+}
 
 static void initLibraryIfNeed(){
     Mutex::Autolock lock(sLibraryLock);
@@ -56,22 +549,40 @@ struct rgb {
 };
 
 class DocumentFile {
-    private:
-    int fileFd;
-
     public:
     FPDF_DOCUMENT pdfDocument = NULL;
-    size_t fileSize;
+    jbyte *memBuffer = NULL;
+    std::set<int> pagesWithAppHighlights;
+    FPDF_FORMFILLINFO formFillInfo;
+    FPDF_FORMHANDLE formHandle = NULL;
 
     DocumentFile() { initLibraryIfNeed(); }
     ~DocumentFile();
 };
 DocumentFile::~DocumentFile(){
+    if(formHandle != NULL){
+        FPDFDOC_ExitFormFillEnvironment(formHandle);
+    }
     if(pdfDocument != NULL){
         FPDF_CloseDocument(pdfDocument);
     }
+    if(memBuffer != NULL){
+        delete[] memBuffer;
+    }
 
     destroyLibraryIfNeed();
+}
+
+static FPDF_FORMHANDLE ensureFormHandle(DocumentFile *doc) {
+    if (doc == NULL || doc->pdfDocument == NULL) {
+        return NULL;
+    }
+    if (doc->formHandle == NULL) {
+        memset(&doc->formFillInfo, 0, sizeof(doc->formFillInfo));
+        doc->formFillInfo.version = 1;
+        doc->formHandle = FPDFDOC_InitFormFillEnvironment(doc->pdfDocument, &doc->formFillInfo);
+    }
+    return doc->formHandle;
 }
 
 template <class string_type>
@@ -140,19 +651,31 @@ int jniThrowExceptionFmt(JNIEnv* env, const char* className, const char* fmt, ..
     va_start(args, fmt);
     char msgBuf[512];
     vsnprintf(msgBuf, sizeof(msgBuf), fmt, args);
-    return jniThrowException(env, className, msgBuf);
     va_end(args);
+    return jniThrowException(env, className, msgBuf);
 }
 
 jobject NewLong(JNIEnv* env, jlong value) {
     jclass cls = env->FindClass("java/lang/Long");
+    if (cls == NULL) {
+        return NULL;
+    }
     jmethodID methodID = env->GetMethodID(cls, "<init>", "(J)V");
+    if (methodID == NULL) {
+        return NULL;
+    }
     return env->NewObject(cls, methodID, value);
 }
 
 jobject NewInteger(JNIEnv* env, jint value) {
     jclass cls = env->FindClass("java/lang/Integer");
+    if (cls == NULL) {
+        return NULL;
+    }
     jmethodID methodID = env->GetMethodID(cls, "<init>", "(I)V");
+    if (methodID == NULL) {
+        return NULL;
+    }
     return env->NewObject(cls, methodID, value);
 }
 
@@ -260,6 +783,7 @@ JNI_FUNC(jlong, PdfiumCore, nativeOpenMemDocument)(JNI_ARGS, jbyteArray data, js
     }
 
     if (!document) {
+        delete[] cDataCopy;
         delete docFile;
 
         const long errorNum = FPDF_GetLastError();
@@ -278,6 +802,7 @@ JNI_FUNC(jlong, PdfiumCore, nativeOpenMemDocument)(JNI_ARGS, jbyteArray data, js
     }
 
     docFile->pdfDocument = document;
+    docFile->memBuffer = cDataCopy;
 
     return reinterpret_cast<jlong>(docFile);
 }
@@ -292,6 +817,48 @@ JNI_FUNC(void, PdfiumCore, nativeCloseDocument)(JNI_ARGS, jlong documentPtr){
     delete doc;
 }
 
+static jboolean saveDocumentToFd(DocumentFile *doc, jint fd, int flags){
+    if (doc == NULL || doc->pdfDocument == NULL || fd < 0) {
+        return false;
+    }
+
+    std::vector<FPDF_PAGE> unhiddenPages;
+    for (std::set<int>::const_iterator it = doc->pagesWithAppHighlights.begin();
+         it != doc->pagesWithAppHighlights.end(); ++it) {
+        FPDF_PAGE page = FPDF_LoadPage(doc->pdfDocument, *it);
+        if (page == NULL) {
+            continue;
+        }
+        setAppHighlightsHidden(page, false);
+        unhiddenPages.push_back(page);
+    }
+
+    FdFileWrite writer;
+    writer.fileWrite.version = 1;
+    writer.fileWrite.WriteBlock = &writeBlockToFd;
+    writer.fd = fd;
+    jboolean saved = FPDF_SaveAsCopy(doc->pdfDocument, &writer.fileWrite, flags);
+
+    for (std::vector<FPDF_PAGE>::const_iterator it = unhiddenPages.begin();
+         it != unhiddenPages.end(); ++it) {
+        setAppHighlightsHidden(*it, true);
+        if (doc->formHandle != NULL) {
+            FORM_OnBeforeClosePage(*it, doc->formHandle);
+        }
+        FPDF_ClosePage(*it);
+    }
+
+    return saved;
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeSaveAsCopy)(JNI_ARGS, jlong documentPtr, jint fd){
+    return saveDocumentToFd(reinterpret_cast<DocumentFile*>(documentPtr), fd, FPDF_INCREMENTAL);
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeSaveAsCopyWithFlags)(JNI_ARGS, jlong documentPtr, jint fd, jint flags){
+    return saveDocumentToFd(reinterpret_cast<DocumentFile*>(documentPtr), fd, (int)flags);
+}
+
 static jlong loadPageInternal(JNIEnv *env, DocumentFile *doc, int pageIndex){
     try {
         if (doc == NULL) throw "Get page document null";
@@ -301,6 +868,9 @@ static jlong loadPageInternal(JNIEnv *env, DocumentFile *doc, int pageIndex){
             FPDF_PAGE page = FPDF_LoadPage(pdfDoc, pageIndex);
             if (page == NULL) {
                 throw "Loaded page is null";
+            }
+            if (setAppHighlightsHidden(page, true)) {
+                doc->pagesWithAppHighlights.insert(pageIndex);
             }
             return reinterpret_cast<jlong>(page);
         }
@@ -315,8 +885,12 @@ static jlong loadPageInternal(JNIEnv *env, DocumentFile *doc, int pageIndex){
     }
 }
 
-static void closePageInternal(jlong pagePtr) {
-    FPDF_ClosePage(reinterpret_cast<FPDF_PAGE>(pagePtr));
+static void closePageInternal(DocumentFile *doc, jlong pagePtr) {
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (doc != NULL && doc->formHandle != NULL) {
+        FORM_OnBeforeClosePage(page, doc->formHandle);
+    }
+    FPDF_ClosePage(page);
 }
 
 JNI_FUNC(jlong, PdfiumCore, nativeLoadPage)(JNI_ARGS, jlong docPtr, jint pageIndex){
@@ -328,29 +902,29 @@ JNI_FUNC(jlongArray, PdfiumCore, nativeLoadPages)(JNI_ARGS, jlong docPtr, jint f
     DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
 
     if(toIndex < fromIndex) return NULL;
-    jlong pages[ toIndex - fromIndex + 1 ];
+    std::vector<jlong> pages;
+    pages.reserve((size_t)(toIndex - fromIndex + 1));
 
-    int i;
-    for(i = 0; i <= (toIndex - fromIndex); i++){
-        pages[i] = loadPageInternal(env, doc, (int)(i + fromIndex));
+    for(int i = 0; i <= (toIndex - fromIndex); i++){
+        jlong page = loadPageInternal(env, doc, (int)(i + fromIndex));
+        if (page == -1 || env->ExceptionCheck()) {
+            return NULL;
+        }
+        pages.push_back(page);
     }
 
-    jlongArray javaPages = env -> NewLongArray( (jsize)(toIndex - fromIndex + 1) );
-    env -> SetLongArrayRegion(javaPages, 0, (jsize)(toIndex - fromIndex + 1), (const jlong*)pages);
+    jlongArray javaPages = env -> NewLongArray( (jsize)pages.size() );
+    if (javaPages == NULL) {
+        return NULL;
+    }
+    env -> SetLongArrayRegion(javaPages, 0, (jsize)pages.size(), pages.data());
 
     return javaPages;
 }
 
-JNI_FUNC(void, PdfiumCore, nativeClosePage)(JNI_ARGS, jlong pagePtr) {
-    closePageInternal(pagePtr);
-}
-
-JNI_FUNC(void, PdfiumCore, nativeClosePages)(JNI_ARGS, jlongArray pagesPtr) {
-    int length = (int)(env -> GetArrayLength(pagesPtr));
-    jlong *pages = env -> GetLongArrayElements(pagesPtr, NULL);
-
-    int i;
-    for(i = 0; i < length; i++){ closePageInternal(pages[i]); }
+JNI_FUNC(void, PdfiumCore, nativeClosePage)(JNI_ARGS, jlong docPtr, jlong pagePtr) {
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+    closePageInternal(doc, pagePtr);
 }
 
 JNI_FUNC(jint, PdfiumCore, nativeGetPageWidthPixel)(JNI_ARGS, jlong pagePtr, jint dpi) {
@@ -397,6 +971,28 @@ JNI_FUNC(jobject, PdfiumCore, nativeGetPageSizeByIndex)(JNI_ARGS, jlong docPtr, 
     jclass clazz = env->FindClass("com/shockwave/pdfium/util/Size");
     jmethodID constructorID = env->GetMethodID(clazz, "<init>", "(II)V");
     return env->NewObject(clazz, constructorID, widthInt, heightInt);
+}
+
+JNI_FUNC(jobject, PdfiumCore, nativeGetPageSizePointByIndex)(JNI_ARGS, jlong docPtr, jint pageIndex){
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+    if(doc == NULL) {
+        LOGE("Document is null");
+
+        jniThrowException(env, "java/lang/IllegalStateException",
+                               "Document is null");
+        return NULL;
+    }
+
+    double width, height;
+    int result = FPDF_GetPageSizeByIndex(doc->pdfDocument, pageIndex, &width, &height);
+    if (result == 0) {
+        width = 0;
+        height = 0;
+    }
+
+    jclass clazz = env->FindClass("com/shockwave/pdfium/util/SizeF");
+    jmethodID constructorID = env->GetMethodID(clazz, "<init>", "(FF)V");
+    return env->NewObject(clazz, constructorID, static_cast<jfloat>(width), static_cast<jfloat>(height));
 }
 
 static void renderPageInternal(
@@ -446,7 +1042,7 @@ static void renderPageInternal(
                            drawSizeHor, drawSizeVer,
                            0, flags );
 
-    // TODO: You need to use FPDF_FFLDraw after FPDF_RenderPageBitmap to render form annotations
+    FPDFBitmap_Destroy(pdfBitmap);
 }
 
 JNI_FUNC(void, PdfiumCore, nativeRenderPage)(JNI_ARGS, jlong pagePtr, jobject objSurface,
@@ -578,6 +1174,8 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
         return;
     }
 
+    double startMs = monotonicMillis();
+
     void *tmp;
     int format;
     int sourceStride;
@@ -619,27 +1217,263 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
     FPDFBitmap_FillRect( pdfBitmap, baseX, baseY, baseHorSize, baseVerSize,
                          0xFFFFFFFF); //White
 
+    double pageStartMs = monotonicMillis();
     FPDF_RenderPageBitmap(
         pdfBitmap, page, startX, startY, (int)drawSizeHor, (int)drawSizeVer, 0, flags
     );
 
+    double formsStartMs = monotonicMillis();
     DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
 
-    FPDF_FORMFILLINFO formfillinfo;
-    formfillinfo.version = 1;
+    FPDF_FORMHANDLE formHandle = ensureFormHandle(doc);
+    if (formHandle != NULL) {
+        FPDF_FFLDraw(
+            formHandle, pdfBitmap, page, startX, startY, (int)drawSizeHor, (int)drawSizeVer, 0, flags
+        );
+    }
 
-    FPDF_FORMHANDLE formHandle = FPDFDOC_InitFormFillEnvironment(doc->pdfDocument, &formfillinfo);
-
-    FPDF_FFLDraw(
-        formHandle, pdfBitmap, page, startX, startY, (int)drawSizeHor, (int)drawSizeVer, 0, flags
-    );
-
+    double convertStartMs = monotonicMillis();
+    FPDFBitmap_Destroy(pdfBitmap);
     if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
         rgbBitmapTo565(tmp, sourceStride, addr, &info);
         free(tmp);
     }
 
     AndroidBitmap_unlockPixels(env, bitmap);
+
+    double endMs = monotonicMillis();
+    if (timingLogsEnabled) {
+        LOGD("renderPageBitmap: %dx%d in %.1f ms (page %.1f, forms %.1f, convert %.1f)",
+             canvasHorSize, canvasVerSize,
+             endMs - startMs,
+             formsStartMs - pageStartMs,
+             convertStartMs - formsStartMs,
+             endMs - convertStartMs);
+    }
+    (void) pageStartMs;
+    (void) formsStartMs;
+    (void) convertStartMs;
+    (void) endMs;
+}
+
+static const double kChunkBudgetMs = 3.0;
+
+struct ChunkPauseState {
+    double chunkStartMs;
+    double budgetMs;
+};
+
+static FPDF_BOOL chunkNeedToPauseNow(IFSDK_PAUSE *pause) {
+    ChunkPauseState *state = reinterpret_cast<ChunkPauseState*>(pause->user);
+    if (state == NULL) {
+        return 0;
+    }
+    return (monotonicMillis() - state->chunkStartMs) > state->budgetMs ? 1 : 0;
+}
+
+struct ChunkRenderContext {
+    FPDF_BITMAP pdfBitmap;
+    void *tmp;
+    void *addr;
+    int format;
+    AndroidBitmapInfo info;
+    int canvasHorSize;
+    int canvasVerSize;
+    int sourceStride;
+    int startX;
+    int startY;
+    int drawSizeHor;
+    int drawSizeVer;
+    int flags;
+    double startMs;
+    double pageStartMs;
+    double maxChunkMs;
+    int chunkCount;
+    int status;
+    IFSDK_PAUSE pause;
+    ChunkPauseState pauseState;
+};
+
+JNI_FUNC(jlong, PdfiumCore, nativeRenderChunkedStart)(JNI_ARGS, jlong docPtr, jlong pagePtr, jobject bitmap,
+                                             jint startX, jint startY,
+                                             jint drawSizeHor, jint drawSizeVer,
+                                             jboolean renderAnnot, jint extraFlags){
+    (void) docPtr;
+
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+
+    if(page == NULL || bitmap == NULL){
+        LOGE("Render page pointers invalid");
+        return 0;
+    }
+
+    AndroidBitmapInfo info;
+    int ret;
+    if((ret = AndroidBitmap_getInfo(env, bitmap, &info)) < 0) {
+        LOGE("Fetching bitmap info failed: %s", strerror(ret * -1));
+        return 0;
+    }
+
+    int canvasHorSize = info.width;
+    int canvasVerSize = info.height;
+
+    if(info.format != ANDROID_BITMAP_FORMAT_RGBA_8888 && info.format != ANDROID_BITMAP_FORMAT_RGB_565){
+        LOGE("Bitmap format must be RGBA_8888 or RGB_565");
+        return 0;
+    }
+
+    void *addr;
+    if( (ret = AndroidBitmap_lockPixels(env, bitmap, &addr)) != 0 ){
+        LOGE("Locking bitmap failed: %s", strerror(ret * -1));
+        return 0;
+    }
+
+    double startMs = monotonicMillis();
+
+    void *tmp;
+    int format;
+    int sourceStride;
+    if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
+        tmp = malloc(canvasVerSize * canvasHorSize * sizeof(rgb));
+        sourceStride = canvasHorSize * sizeof(rgb);
+        format = FPDFBitmap_BGR;
+    } else {
+        tmp = addr;
+        sourceStride = info.stride;
+        format = FPDFBitmap_BGRA;
+    }
+
+    FPDF_BITMAP pdfBitmap = FPDFBitmap_CreateEx( canvasHorSize, canvasVerSize,
+                                                     format, tmp, sourceStride);
+
+    if(drawSizeHor < canvasHorSize || drawSizeVer < canvasVerSize){
+        FPDFBitmap_FillRect( pdfBitmap, 0, 0, canvasHorSize, canvasVerSize,
+                             0x848484FF);
+    }
+
+    int baseHorSize = (canvasHorSize < drawSizeHor)? canvasHorSize : (int)drawSizeHor;
+    int baseVerSize = (canvasVerSize < drawSizeVer)? canvasVerSize : (int)drawSizeVer;
+    int baseX = (startX < 0)? 0 : (int)startX;
+    int baseY = (startY < 0)? 0 : (int)startY;
+    int flags = FPDF_REVERSE_BYTE_ORDER;
+
+    if(renderAnnot) {
+    	flags |= FPDF_ANNOT;
+    }
+    flags |= extraFlags;
+
+    FPDFBitmap_FillRect( pdfBitmap, baseX, baseY, baseHorSize, baseVerSize,
+                         0xFFFFFFFF);
+
+    ChunkRenderContext *ctx = new ChunkRenderContext();
+    ctx->pdfBitmap = pdfBitmap;
+    ctx->tmp = (info.format == ANDROID_BITMAP_FORMAT_RGB_565) ? tmp : NULL;
+    ctx->addr = addr;
+    ctx->format = format;
+    ctx->info = info;
+    ctx->canvasHorSize = canvasHorSize;
+    ctx->canvasVerSize = canvasVerSize;
+    ctx->sourceStride = sourceStride;
+    ctx->startX = startX;
+    ctx->startY = startY;
+    ctx->drawSizeHor = drawSizeHor;
+    ctx->drawSizeVer = drawSizeVer;
+    ctx->flags = flags;
+    ctx->startMs = startMs;
+    ctx->chunkCount = 1;
+    ctx->pauseState.budgetMs = kChunkBudgetMs;
+    ctx->pause.version = 1;
+    ctx->pause.NeedToPauseNow = &chunkNeedToPauseNow;
+    ctx->pause.user = &ctx->pauseState;
+
+    ctx->pageStartMs = monotonicMillis();
+    ctx->pauseState.chunkStartMs = ctx->pageStartMs;
+    ctx->status = FPDF_RenderPageBitmap_Start(
+        pdfBitmap, page, startX, startY, (int)drawSizeHor, (int)drawSizeVer, 0, flags, &ctx->pause
+    );
+    ctx->maxChunkMs = monotonicMillis() - ctx->pauseState.chunkStartMs;
+
+    return reinterpret_cast<jlong>(ctx);
+}
+
+JNI_FUNC(jint, PdfiumCore, nativeRenderChunkedStatus)(JNI_ARGS, jlong ctxPtr){
+    ChunkRenderContext *ctx = reinterpret_cast<ChunkRenderContext*>(ctxPtr);
+    if (ctx == NULL) {
+        return FPDF_RENDER_FAILED;
+    }
+    return ctx->status;
+}
+
+JNI_FUNC(jint, PdfiumCore, nativeRenderChunkedContinue)(JNI_ARGS, jlong ctxPtr, jlong pagePtr){
+    ChunkRenderContext *ctx = reinterpret_cast<ChunkRenderContext*>(ctxPtr);
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (ctx == NULL || page == NULL) {
+        return FPDF_RENDER_FAILED;
+    }
+    ctx->pauseState.chunkStartMs = monotonicMillis();
+    ctx->status = FPDF_RenderPage_Continue(page, &ctx->pause);
+    double chunkMs = monotonicMillis() - ctx->pauseState.chunkStartMs;
+    if (chunkMs > ctx->maxChunkMs) {
+        ctx->maxChunkMs = chunkMs;
+    }
+    ctx->chunkCount++;
+    return ctx->status;
+}
+
+JNI_FUNC(void, PdfiumCore, nativeRenderChunkedClose)(JNI_ARGS, jlong ctxPtr, jlong docPtr, jlong pagePtr,
+                                             jobject bitmap, jboolean drawForms,
+                                             jboolean pageAlive, jboolean completed){
+    ChunkRenderContext *ctx = reinterpret_cast<ChunkRenderContext*>(ctxPtr);
+    if (ctx == NULL) {
+        return;
+    }
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+
+    double formsStartMs = monotonicMillis();
+    if (pageAlive && page != NULL) {
+        FPDF_RenderPage_Close(page);
+    }
+
+    if (completed && drawForms && pageAlive && page != NULL) {
+        DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+        FPDF_FORMHANDLE formHandle = ensureFormHandle(doc);
+        if (formHandle != NULL) {
+            FPDF_FFLDraw(
+                formHandle, ctx->pdfBitmap, page, ctx->startX, ctx->startY,
+                (int)ctx->drawSizeHor, (int)ctx->drawSizeVer, 0, ctx->flags
+            );
+        }
+    }
+
+    double convertStartMs = monotonicMillis();
+    FPDFBitmap_Destroy(ctx->pdfBitmap);
+    if (completed && ctx->info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
+        rgbBitmapTo565(ctx->tmp, ctx->sourceStride, ctx->addr, &ctx->info);
+    }
+    if (ctx->tmp != NULL) {
+        free(ctx->tmp);
+    }
+    if (bitmap != NULL) {
+        AndroidBitmap_unlockPixels(env, bitmap);
+    }
+
+    double endMs = monotonicMillis();
+    if (timingLogsEnabled) {
+        LOGD("renderPageBitmapChunked: %dx%d in %.1f ms (page %.1f, forms %.1f, convert %.1f, chunks %d, maxChunk %.1f)",
+             ctx->canvasHorSize, ctx->canvasVerSize,
+             endMs - ctx->startMs,
+             formsStartMs - ctx->pageStartMs,
+             convertStartMs - formsStartMs,
+             endMs - convertStartMs,
+             ctx->chunkCount,
+             ctx->maxChunkMs);
+    }
+
+    delete ctx;
+}
+
+JNI_FUNC(void, PdfiumCore, nativeSetTimingLogsEnabled)(JNI_ARGS, jboolean enabled){
+    timingLogsEnabled = enabled;
 }
 
 int mapToDisplay(int dpi, int x) {
@@ -663,11 +1497,11 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateAnnotInPage)(JNI_ARGS,
 ) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
 
-    if (FPDFAnnot_IsObjectSupportedSubtype(FPDF_ANNOT_HIGHLIGHT)) return false;
+    if (page == NULL || !FPDFAnnot_IsSupportedSubtype(FPDF_ANNOT_HIGHLIGHT)) return false;
     FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_HIGHLIGHT);
+    if (annot == NULL) return false;
 
-    int annotIndex = FPDFPage_GetAnnotIndex(page, annot);
-    searchResultAnnotIndexes.push_back(annotIndex);
+    setAnnotAsciiString(annot, "MJSearch", "1");
 
     int red = 255, green = 0, blue = 0, alpha = 255;
     //FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_InteriorColor, red, green, blue, alpha);
@@ -709,50 +1543,994 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateAnnotInPage)(JNI_ARGS,
     return true;
 }
 
-JNI_FUNC(jint, PdfiumCore, nativeClearSearchResultAnnot)(JNI_ARGS, jlong pagePtr) {
-    // TODO: this should be converted to a map that has both pageIndexes and a vector of results annot indexes
+JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
+    jlong docPtr,
+    jlong pagePtr,
+    jint pageIndex,
+    jobjectArray rects,
+    jint red,
+    jint green,
+    jint blue,
+    jint alpha,
+    jstring contents,
+    jstring groupKey,
+    jstring creationDate
+) {
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
-    while (!searchResultAnnotIndexes.empty()) {
-        int index = searchResultAnnotIndexes.back();
-        FPDFPage_RemoveAnnot(page, index);
-        searchResultAnnotIndexes.pop_back();
+    (void) alpha;
+    if (doc == NULL || page == NULL || rects == NULL) {
+        return false;
+    }
+    if (!FPDFAnnot_IsSupportedSubtype(FPDF_ANNOT_HIGHLIGHT)) {
+        return false;
     }
 
-    return searchResultAnnotIndexes.size();
+    jsize rectCount = env->GetArrayLength(rects);
+    if (rectCount <= 0) {
+        return false;
+    }
+
+    bool success = true;
+    bool createdAny = false;
+    std::vector<int> createdIndexes;
+    std::string groupName = jstringToUtf8(env, groupKey);
+    if (groupName.empty()) {
+        groupName = makeAnnotName();
+    }
+
+    for (jsize i = 0; i < rectCount; i++) {
+        jfloatArray rectArray = static_cast<jfloatArray>(env->GetObjectArrayElement(rects, i));
+        if (rectArray == NULL) {
+            success = false;
+            break;
+        }
+        if (env->GetArrayLength(rectArray) < 4) {
+            env->DeleteLocalRef(rectArray);
+            success = false;
+            break;
+        }
+
+        jfloat values[4];
+        env->GetFloatArrayRegion(rectArray, 0, 4, values);
+        env->DeleteLocalRef(rectArray);
+        if (env->ExceptionCheck()) {
+            success = false;
+            break;
+        }
+
+        FS_RECTF rect;
+        rect.left = fmin(values[0], values[2]);
+        rect.right = fmax(values[0], values[2]);
+        rect.top = fmax(values[1], values[3]);
+        rect.bottom = fmin(values[1], values[3]);
+        if (rect.right <= rect.left || rect.top <= rect.bottom) {
+            continue;
+        }
+
+        FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_HIGHLIGHT);
+        if (annot == NULL) {
+            success = false;
+            break;
+        }
+
+        FS_QUADPOINTSF quadpoints;
+        quadpoints.x1 = rect.left;
+        quadpoints.y1 = rect.top;
+        quadpoints.x2 = rect.right;
+        quadpoints.y2 = rect.top;
+        quadpoints.x3 = rect.left;
+        quadpoints.y3 = rect.bottom;
+        quadpoints.x4 = rect.right;
+        quadpoints.y4 = rect.bottom;
+        std::string name = makeAnnotName();
+        std::string colorValue = colorToHex(red, green, blue);
+        bool annotSuccess = FPDFAnnot_SetRect(annot, &rect)
+                && FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, red, green, blue, 255)
+                && FPDFAnnot_AppendAttachmentPoints(annot, &quadpoints)
+                && FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT | FPDF_ANNOT_FLAG_HIDDEN)
+                && setAnnotWideString(env, annot, "MJQuote", contents)
+                && setAnnotAsciiString(annot, "T", "MJ PDF")
+                && setAnnotAsciiString(annot, "NM", name.c_str())
+                && setAnnotAsciiString(annot, "MJGroup", groupName.c_str())
+                && setAnnotAsciiString(annot, "MJColor", colorValue.c_str())
+                && setAnnotWideString(env, annot, "CreationDate", creationDate);
+        int annotIndex = FPDFPage_GetAnnotIndex(page, annot);
+        FPDFPage_CloseAnnot(annot);
+        if (!annotSuccess) {
+            if (annotIndex >= 0) {
+                FPDFPage_RemoveAnnot(page, annotIndex);
+            }
+            success = false;
+            break;
+        }
+        if (annotIndex >= 0) {
+            createdIndexes.push_back(annotIndex);
+        }
+        createdAny = true;
+    }
+
+    if (!createdAny) {
+        success = false;
+    }
+    if (!success) {
+        for (std::vector<int>::reverse_iterator it = createdIndexes.rbegin(); it != createdIndexes.rend(); ++it) {
+            FPDFPage_RemoveAnnot(page, *it);
+        }
+    } else {
+        doc->pagesWithAppHighlights.insert(pageIndex);
+    }
+
+    return success;
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeAddSignatureContent)(JNI_ARGS,
+    jlong docPtr,
+    jlong pagePtr,
+    jobjectArray strokes,
+    jint red,
+    jint green,
+    jint blue,
+    jfloat strokeWidth
+) {
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (doc == NULL || page == NULL || strokes == NULL || strokeWidth <= 0) {
+        return false;
+    }
+
+    jsize strokeCount = env->GetArrayLength(strokes);
+    if (strokeCount <= 0) {
+        return false;
+    }
+
+    bool success = true;
+    std::vector<FPDF_PAGEOBJECT> insertedPaths;
+
+    for (jsize i = 0; i < strokeCount; i++) {
+        jfloatArray strokeArray = static_cast<jfloatArray>(env->GetObjectArrayElement(strokes, i));
+        if (strokeArray == NULL) {
+            success = false;
+            break;
+        }
+        jsize length = env->GetArrayLength(strokeArray);
+        if (length < 2 || (length - 2) % 6 != 0) {
+            env->DeleteLocalRef(strokeArray);
+            success = false;
+            break;
+        }
+        std::vector<jfloat> values(length);
+        env->GetFloatArrayRegion(strokeArray, 0, length, values.data());
+        env->DeleteLocalRef(strokeArray);
+        if (env->ExceptionCheck()) {
+            success = false;
+            break;
+        }
+
+        FPDF_PAGEOBJECT path = FPDFPageObj_CreateNewPath(values[0], values[1]);
+        if (path == NULL) {
+            success = false;
+            break;
+        }
+        bool pathSuccess = true;
+        for (jsize k = 2; k + 5 < length; k += 6) {
+            if (!FPDFPath_BezierTo(path, values[k], values[k + 1], values[k + 2],
+                                   values[k + 3], values[k + 4], values[k + 5])) {
+                pathSuccess = false;
+                break;
+            }
+        }
+        pathSuccess = pathSuccess
+                && FPDFPath_SetDrawMode(path, 0, true)
+                && FPDFPageObj_SetStrokeColor(path, red, green, blue, 255)
+                && FPDFPageObj_SetStrokeWidth(path, strokeWidth)
+                && FPDFPageObj_SetLineCap(path, FPDF_LINECAP_ROUND)
+                && FPDFPageObj_SetLineJoin(path, FPDF_LINEJOIN_ROUND);
+        if (!pathSuccess) {
+            FPDFPageObj_Destroy(path);
+            success = false;
+            break;
+        }
+        FPDFPage_InsertObject(page, path);
+        insertedPaths.push_back(path);
+    }
+
+    if (success) {
+        success = FPDFPage_GenerateContent(page);
+    }
+    if (!success && !insertedPaths.empty()) {
+        for (std::vector<FPDF_PAGEOBJECT>::reverse_iterator it = insertedPaths.rbegin();
+             it != insertedPaths.rend(); ++it) {
+            if (FPDFPage_RemoveObject(page, *it)) {
+                FPDFPageObj_Destroy(*it);
+            }
+        }
+        FPDFPage_GenerateContent(page);
+    }
+    return success;
+}
+
+JNI_FUNC(jobjectArray, PdfiumCore, nativeGetHighlightAnnotations)(JNI_ARGS,
+    jlong pagePtr
+) {
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    jclass hitClass = env->FindClass("com/shockwave/pdfium/PdfDocument$HighlightAnnotation");
+    if (hitClass == NULL) {
+        return NULL;
+    }
+    if (page == NULL) {
+        return env->NewObjectArray(0, hitClass, NULL);
+    }
+
+    jclass rectClass = env->FindClass("android/graphics/RectF");
+    if (rectClass == NULL) {
+        env->DeleteLocalRef(hitClass);
+        return NULL;
+    }
+    jmethodID rectConstructor = env->GetMethodID(rectClass, "<init>", "(FFFF)V");
+    jmethodID hitConstructor = env->GetMethodID(hitClass, "<init>",
+            "(ILjava/lang/String;Landroid/graphics/RectF;Ljava/lang/String;IZZLjava/lang/String;Ljava/lang/String;)V");
+    if (rectConstructor == NULL || hitConstructor == NULL) {
+        env->DeleteLocalRef(rectClass);
+        env->DeleteLocalRef(hitClass);
+        return NULL;
+    }
+
+    std::vector<jobject> annotations;
+    int annotCount = FPDFPage_GetAnnotCount(page);
+    for (int i = 0; i < annotCount; i++) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (annot == NULL) {
+            continue;
+        }
+        if (FPDFAnnot_GetSubtype(annot) != FPDF_ANNOT_HIGHLIGHT) {
+            FPDFPage_CloseAnnot(annot);
+            continue;
+        }
+
+        FS_RECTF rect;
+        if (!FPDFAnnot_GetRect(annot, &rect)) {
+            FPDFPage_CloseAnnot(annot);
+            continue;
+        }
+        FS_RECTF bounds = normalizedRect(rect);
+        jobject rectObject = env->NewObject(rectClass, rectConstructor,
+                static_cast<jfloat>(bounds.left),
+                static_cast<jfloat>(bounds.top),
+                static_cast<jfloat>(bounds.right),
+                static_cast<jfloat>(bounds.bottom));
+        if (rectObject == NULL) {
+            FPDFPage_CloseAnnot(annot);
+            continue;
+        }
+
+        unsigned int red = 255;
+        unsigned int green = 255;
+        unsigned int blue = 0;
+        unsigned int alpha = 255;
+        getHighlightAnnotationColor(annot, &red, &green, &blue, &alpha);
+        int color = 0xFF000000
+                | ((red & 0xFF) << 16)
+                | ((green & 0xFF) << 8)
+                | (blue & 0xFF);
+        jstring groupString = wideToJString(env, getAnnotWideString(annot, "MJGroup"));
+        jstring contentsString = wideToJString(env, getAnnotWideString(annot, "MJQuote"));
+        jstring noteString = wideToJString(env, getAnnotWideString(annot, "Contents"));
+        jstring createdString = wideToJString(env, getAnnotWideString(annot, "CreationDate"));
+        jboolean appOwned = isAppHighlightAnnotation(annot);
+        jboolean searchResult = !getAnnotWideString(annot, "MJSearch").empty();
+        jobject hitObject = env->NewObject(hitClass, hitConstructor,
+                static_cast<jint>(i), groupString, rectObject, contentsString, static_cast<jint>(color), appOwned,
+                searchResult, noteString, createdString);
+        if (hitObject != NULL) {
+            annotations.push_back(env->NewGlobalRef(hitObject));
+            env->DeleteLocalRef(hitObject);
+        }
+        if (groupString != NULL) {
+            env->DeleteLocalRef(groupString);
+        }
+        if (contentsString != NULL) {
+            env->DeleteLocalRef(contentsString);
+        }
+        if (noteString != NULL) {
+            env->DeleteLocalRef(noteString);
+        }
+        if (createdString != NULL) {
+            env->DeleteLocalRef(createdString);
+        }
+        env->DeleteLocalRef(rectObject);
+        FPDFPage_CloseAnnot(annot);
+    }
+
+    jobjectArray result = env->NewObjectArray(annotations.size(), hitClass, NULL);
+    for (jsize i = 0; i < static_cast<jsize>(annotations.size()); i++) {
+        env->SetObjectArrayElement(result, i, annotations[i]);
+        env->DeleteGlobalRef(annotations[i]);
+    }
+    env->DeleteLocalRef(rectClass);
+    env->DeleteLocalRef(hitClass);
+    return result;
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeSetHighlightAnnotationColor)(JNI_ARGS,
+    jlong pagePtr,
+    jint annotIndex,
+    jstring groupKey,
+    jint red,
+    jint green,
+    jint blue
+) {
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (page == NULL) {
+        return false;
+    }
+
+    int annotCount = FPDFPage_GetAnnotCount(page);
+    std::vector<FPDF_WCHAR> group = jstringToWide(env, groupKey);
+    bool updatedAny = false;
+    bool success = true;
+    std::string colorValue = colorToHex(red, green, blue);
+
+    for (int i = 0; i < annotCount; i++) {
+        if (group.empty() && i != annotIndex) {
+            continue;
+        }
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (annot == NULL) {
+            continue;
+        }
+
+        bool matches = isAppHighlightAnnotation(annot)
+                && (group.empty() || wideEquals(getAnnotWideString(annot, "MJGroup"), group));
+        if (matches) {
+            updatedAny = true;
+            FPDFAnnot_SetAP(annot, FPDF_ANNOT_APPEARANCEMODE_NORMAL, NULL);
+            if (!FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, red, green, blue, 255)
+                    || !setAnnotAsciiString(annot, "MJColor", colorValue.c_str())) {
+                success = false;
+            }
+            FPDFAnnot_SetFlags(annot, FPDFAnnot_GetFlags(annot) | FPDF_ANNOT_FLAG_PRINT);
+        }
+        FPDFPage_CloseAnnot(annot);
+
+        if (group.empty() && i == annotIndex) {
+            break;
+        }
+    }
+
+    return updatedAny && success;
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeSetHighlightAnnotationNote)(JNI_ARGS,
+    jlong pagePtr,
+    jint annotIndex,
+    jstring groupKey,
+    jstring note,
+    jstring modifiedDate
+) {
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (page == NULL) {
+        return false;
+    }
+
+    int annotCount = FPDFPage_GetAnnotCount(page);
+    std::vector<FPDF_WCHAR> group = jstringToWide(env, groupKey);
+    bool updatedAny = false;
+    bool success = true;
+
+    for (int i = 0; i < annotCount; i++) {
+        if (group.empty() && i != annotIndex) {
+            continue;
+        }
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (annot == NULL) {
+            continue;
+        }
+
+        bool matches = isAppHighlightAnnotation(annot)
+                && (group.empty() || wideEquals(getAnnotWideString(annot, "MJGroup"), group));
+        if (matches) {
+            updatedAny = true;
+            if (!setAnnotWideString(env, annot, "Contents", note)
+                    || !setAnnotWideString(env, annot, "M", modifiedDate)) {
+                success = false;
+            }
+        }
+        FPDFPage_CloseAnnot(annot);
+
+        if (group.empty() && i == annotIndex) {
+            break;
+        }
+    }
+
+    return updatedAny && success;
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeRemoveHighlightAnnotation)(JNI_ARGS,
+    jlong pagePtr,
+    jint annotIndex,
+    jstring groupKey
+) {
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (page == NULL) {
+        return false;
+    }
+
+    int annotCount = FPDFPage_GetAnnotCount(page);
+    std::vector<FPDF_WCHAR> group = jstringToWide(env, groupKey);
+    bool removedAny = false;
+    bool success = true;
+
+    for (int i = annotCount - 1; i >= 0; i--) {
+        if (group.empty() && i != annotIndex) {
+            continue;
+        }
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (annot == NULL) {
+            continue;
+        }
+        bool matches = isAppHighlightAnnotation(annot)
+                && (group.empty() || wideEquals(getAnnotWideString(annot, "MJGroup"), group));
+        FPDFPage_CloseAnnot(annot);
+        if (matches) {
+            removedAny = true;
+            if (!FPDFPage_RemoveAnnot(page, i)) {
+                success = false;
+            }
+        }
+
+        if (group.empty() && i == annotIndex) {
+            break;
+        }
+    }
+
+    return removedAny && success;
+}
+
+static jobject buildFormFieldObject(JNIEnv* env, FPDF_FORMHANDLE formHandle,
+                                    FPDF_PAGE page, FPDF_ANNOTATION annot) {
+    int annotIndex = FPDFPage_GetAnnotIndex(page, annot);
+    if (annotIndex < 0) {
+        return NULL;
+    }
+    int fieldType = FPDFAnnot_GetFormFieldType(formHandle, annot);
+    int fieldFlags = FPDFAnnot_GetFormFieldFlags(formHandle, annot);
+    jboolean checked = FPDFAnnot_IsChecked(formHandle, annot);
+    jstring nameString = wideToJString(env,
+            getFormFieldWideString(&FPDFAnnot_GetFormFieldName, formHandle, annot));
+    jstring alternateNameString = wideToJString(env,
+            getFormFieldWideString(&FPDFAnnot_GetFormFieldAlternateName, formHandle, annot));
+    jstring valueString = wideToJString(env,
+            getFormFieldWideString(&FPDFAnnot_GetFormFieldValue, formHandle, annot));
+
+    jobject fieldObject = NULL;
+    jclass fieldClass = env->FindClass("com/shockwave/pdfium/PdfDocument$FormField");
+    if (fieldClass != NULL) {
+        jmethodID fieldConstructor = env->GetMethodID(fieldClass, "<init>",
+                "(IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V");
+        if (fieldConstructor != NULL) {
+            fieldObject = env->NewObject(fieldClass, fieldConstructor,
+                    static_cast<jint>(annotIndex),
+                    static_cast<jint>(fieldType),
+                    static_cast<jint>(fieldFlags),
+                    nameString,
+                    alternateNameString,
+                    valueString,
+                    checked);
+        }
+        env->DeleteLocalRef(fieldClass);
+    }
+    if (nameString != NULL) {
+        env->DeleteLocalRef(nameString);
+    }
+    if (alternateNameString != NULL) {
+        env->DeleteLocalRef(alternateNameString);
+    }
+    if (valueString != NULL) {
+        env->DeleteLocalRef(valueString);
+    }
+    return fieldObject;
+}
+
+static FPDF_ANNOTATION findEditableFieldNear(FPDF_FORMHANDLE formHandle, FPDF_PAGE page,
+                                             float x, float y, float tolerance) {
+    FPDF_ANNOTATION best = NULL;
+    float bestDistance = 0;
+    int annotCount = FPDFPage_GetAnnotCount(page);
+    for (int i = 0; i < annotCount; i++) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (annot == NULL) {
+            continue;
+        }
+        FS_RECTF rect;
+        bool withinReach = FPDFAnnot_GetSubtype(annot) == FPDF_ANNOT_WIDGET
+                && isEditableFormField(formHandle, annot)
+                && FPDFAnnot_GetRect(annot, &rect)
+                && rectContainsWithTolerance(normalizedRect(rect), x, y, tolerance);
+        if (withinReach) {
+            FS_RECTF bounds = normalizedRect(rect);
+            float dx = (bounds.left + bounds.right) / 2 - x;
+            float dy = (bounds.top + bounds.bottom) / 2 - y;
+            float distance = dx * dx + dy * dy;
+            if (best == NULL || distance < bestDistance) {
+                if (best != NULL) {
+                    FPDFPage_CloseAnnot(best);
+                }
+                best = annot;
+                bestDistance = distance;
+                continue;
+            }
+        }
+        FPDFPage_CloseAnnot(annot);
+    }
+    return best;
+}
+
+JNI_FUNC(jobject, PdfiumCore, nativeGetFormFieldAtPoint)(JNI_ARGS,
+    jlong docPtr,
+    jlong pagePtr,
+    jfloat x,
+    jfloat y,
+    jfloat tolerance
+) {
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    FPDF_FORMHANDLE formHandle = ensureFormHandle(doc);
+    if (page == NULL || formHandle == NULL) {
+        return NULL;
+    }
+
+    FS_POINTF point;
+    point.x = x;
+    point.y = y;
+    FPDF_ANNOTATION annot = FPDFAnnot_GetFormFieldAtPoint(formHandle, page, &point);
+    if (annot == NULL && tolerance > 0) {
+        annot = findEditableFieldNear(formHandle, page, x, y, tolerance);
+    }
+    if (annot == NULL) {
+        return NULL;
+    }
+
+    jobject fieldObject = buildFormFieldObject(env, formHandle, page, annot);
+    FPDFPage_CloseAnnot(annot);
+    return fieldObject;
+}
+
+static FPDF_ANNOTATION getWidgetAnnot(FPDF_PAGE page, int annotIndex) {
+    FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, annotIndex);
+    if (annot == NULL) {
+        return NULL;
+    }
+    if (FPDFAnnot_GetSubtype(annot) != FPDF_ANNOT_WIDGET) {
+        FPDFPage_CloseAnnot(annot);
+        return NULL;
+    }
+    return annot;
+}
+
+JNI_FUNC(jfloatArray, PdfiumCore, nativeGetFormFieldRects)(JNI_ARGS,
+    jlong docPtr,
+    jlong pagePtr
+) {
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    FPDF_FORMHANDLE formHandle = ensureFormHandle(doc);
+    if (page == NULL || formHandle == NULL) {
+        return env->NewFloatArray(0);
+    }
+
+    std::vector<jfloat> values;
+    int annotCount = FPDFPage_GetAnnotCount(page);
+    for (int i = 0; i < annotCount; i++) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (annot == NULL) {
+            continue;
+        }
+        FS_RECTF rect;
+        if (FPDFAnnot_GetSubtype(annot) == FPDF_ANNOT_WIDGET
+                && isEditableFormField(formHandle, annot)
+                && FPDFAnnot_GetRect(annot, &rect)) {
+            FS_RECTF bounds = normalizedRect(rect);
+            values.push_back(bounds.left);
+            values.push_back(bounds.bottom);
+            values.push_back(bounds.right);
+            values.push_back(bounds.top);
+        }
+        FPDFPage_CloseAnnot(annot);
+    }
+
+    jfloatArray result = env->NewFloatArray(values.size());
+    if (result != NULL && !values.empty()) {
+        env->SetFloatArrayRegion(result, 0, values.size(), values.data());
+    }
+    return result;
+}
+
+static bool isAnnotChecked(FPDF_FORMHANDLE formHandle, FPDF_ANNOTATION annot) {
+    return FPDFAnnot_IsChecked(formHandle, annot) != 0;
+}
+
+static bool toggleByFocusAndSpace(FPDF_FORMHANDLE formHandle, FPDF_PAGE page, FPDF_ANNOTATION annot) {
+    if (!FORM_SetFocusedAnnot(formHandle, annot)) {
+        LOGE("toggleByFocusAndSpace: FORM_SetFocusedAnnot failed");
+        return false;
+    }
+    FORM_OnChar(formHandle, page, ' ', 0);
+    FORM_ForceToKillFocus(formHandle);
+    return true;
+}
+
+static bool toggleByClick(FPDF_FORMHANDLE formHandle, FPDF_PAGE page, FPDF_ANNOTATION annot) {
+    FS_RECTF rect;
+    if (!FPDFAnnot_GetRect(annot, &rect)) {
+        LOGE("toggleByClick: FPDFAnnot_GetRect failed");
+        return false;
+    }
+    double centerX = (rect.left + rect.right) / 2.0;
+    double centerY = (rect.top + rect.bottom) / 2.0;
+    if (!FORM_OnLButtonDown(formHandle, page, 0, centerX, centerY)) {
+        LOGE("toggleByClick: FORM_OnLButtonDown not handled at (%f, %f)", centerX, centerY);
+    }
+    FORM_OnLButtonUp(formHandle, page, 0, centerX, centerY);
+    FORM_ForceToKillFocus(formHandle);
+    return true;
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeSetFormFieldText)(JNI_ARGS,
+    jlong docPtr,
+    jlong pagePtr,
+    jint annotIndex,
+    jstring text
+) {
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    FPDF_FORMHANDLE formHandle = ensureFormHandle(doc);
+    if (page == NULL || formHandle == NULL) {
+        return false;
+    }
+
+    FPDF_ANNOTATION annot = getWidgetAnnot(page, annotIndex);
+    if (annot == NULL) {
+        return false;
+    }
+
+    std::vector<FPDF_WCHAR> wideText = jstringToWide(env, text);
+    wideText.push_back(0);
+
+    FORM_OnAfterLoadPage(page, formHandle);
+    FORM_ForceToKillFocus(formHandle);
+    bool focused = FORM_SetFocusedAnnot(formHandle, annot);
+    if (focused) {
+        FORM_SelectAllText(formHandle, page);
+        FORM_ReplaceSelection(formHandle, page, wideText.data());
+        FORM_ForceToKillFocus(formHandle);
+    } else {
+        LOGE("nativeSetFormFieldText: FORM_SetFocusedAnnot failed for annot %d", annotIndex);
+    }
+    FPDFPage_CloseAnnot(annot);
+    return focused;
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeSetFormFieldChecked)(JNI_ARGS,
+    jlong docPtr,
+    jlong pagePtr,
+    jint annotIndex,
+    jboolean checked
+) {
+    DocumentFile *doc = reinterpret_cast<DocumentFile*>(docPtr);
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    FPDF_FORMHANDLE formHandle = ensureFormHandle(doc);
+    if (page == NULL || formHandle == NULL) {
+        return false;
+    }
+
+    FPDF_ANNOTATION annot = getWidgetAnnot(page, annotIndex);
+    if (annot == NULL) {
+        return false;
+    }
+
+    bool wantChecked = checked;
+    if (isAnnotChecked(formHandle, annot) == wantChecked) {
+        FPDFPage_CloseAnnot(annot);
+        return true;
+    }
+
+    FORM_OnAfterLoadPage(page, formHandle);
+    FORM_ForceToKillFocus(formHandle);
+
+    toggleByFocusAndSpace(formHandle, page, annot);
+    if (isAnnotChecked(formHandle, annot) != wantChecked) {
+        LOGE("nativeSetFormFieldChecked: focus+space had no effect on annot %d, trying click", annotIndex);
+        toggleByClick(formHandle, page, annot);
+    }
+
+    jboolean result = isAnnotChecked(formHandle, annot) == wantChecked;
+    if (!result) {
+        LOGE("nativeSetFormFieldChecked: annot %d stuck at %d, wanted %d (type %d, flags 0x%x)",
+             annotIndex,
+             isAnnotChecked(formHandle, annot),
+             wantChecked,
+             FPDFAnnot_GetFormFieldType(formHandle, annot),
+             FPDFAnnot_GetFormFieldFlags(formHandle, annot));
+    }
+    FPDFPage_CloseAnnot(annot);
+    return result;
+}
+
+JNI_FUNC(jint, PdfiumCore, nativeClearSearchResultAnnot)(JNI_ARGS, jlong pagePtr) {
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (page == NULL) {
+        return 0;
+    }
+
+    int removed = 0;
+    int annotCount = FPDFPage_GetAnnotCount(page);
+    for (int i = annotCount - 1; i >= 0; i--) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (annot == NULL) {
+            continue;
+        }
+        bool isSearchAnnot = FPDFAnnot_GetSubtype(annot) == FPDF_ANNOT_HIGHLIGHT
+                && !getAnnotWideString(annot, "MJSearch").empty();
+        FPDFPage_CloseAnnot(annot);
+        if (isSearchAnnot && FPDFPage_RemoveAnnot(page, i)) {
+            removed++;
+        }
+    }
+
+    return removed;
+}
+
+static bool isAttachableArabicMark(jchar c) {
+    return (c >= 0x0610 && c <= 0x061A)
+            || (c >= 0x064B && c <= 0x065F)
+            || c == 0x0670
+            || (c >= 0x06D6 && c <= 0x06DC)
+            || (c >= 0x06DF && c <= 0x06E4)
+            || c == 0x06E7 || c == 0x06E8
+            || (c >= 0x06EA && c <= 0x06ED)
+            || (c >= 0x08D3 && c <= 0x08FF)
+            || (c >= 0xFE70 && c <= 0xFE7F);
+}
+
+static const int kMarkBaseWindow = 8;
+static const double kDegenerateBoxSize = 0.01;
+
+static std::vector<int> arabicMarkEmitOrder(FPDF_TEXTPAGE textPage, const std::vector<int>& charIndex,
+        const jchar* buf, int len) {
+    std::vector<int> attachedTo(len, -1);
+    bool anyAttached = false;
+    for (int i = 0; i < len; i++) {
+        if (!isAttachableArabicMark(buf[i])) {
+            continue;
+        }
+        double left, right, bottom, top;
+        if (!FPDFText_GetCharBox(textPage, charIndex[i], &left, &right, &bottom, &top)) {
+            continue;
+        }
+        if (right - left < kDegenerateBoxSize) {
+            double x, y;
+            if (FPDFText_GetCharOrigin(textPage, charIndex[i], &x, &y)) {
+                left = x;
+                right = x;
+            }
+        }
+        double markCenterY = (bottom + top) / 2.0;
+
+        int best = -1;
+        double bestOverlap = 0.0;
+        double bestDy = 0.0;
+        int windowStart = i - kMarkBaseWindow < 0 ? 0 : i - kMarkBaseWindow;
+        int windowEnd = i + kMarkBaseWindow >= len ? len - 1 : i + kMarkBaseWindow;
+        for (int j = windowStart; j <= windowEnd; j++) {
+            jchar c = buf[j];
+            if (j == i || isAttachableArabicMark(c)
+                    || c == 0 || c == 0x0020 || c == 0xFFFE || c == '\r' || c == '\n') {
+                continue;
+            }
+            double bl, br, bb, bt;
+            if (!FPDFText_GetCharBox(textPage, charIndex[j], &bl, &br, &bb, &bt)) {
+                continue;
+            }
+            double baseHeight = bt - bb;
+            if (br - bl < kDegenerateBoxSize || baseHeight < kDegenerateBoxSize) {
+                continue;
+            }
+            double overlap;
+            if (right > left) {
+                double lo = left > bl ? left : bl;
+                double hi = right < br ? right : br;
+                overlap = hi - lo;
+            } else {
+                overlap = (left >= bl && left <= br) ? br - bl : 0.0;
+            }
+            if (overlap <= 0.0) {
+                continue;
+            }
+            double dy = fabs(markCenterY - (bb + bt) / 2.0);
+            if (dy > 1.5 * baseHeight) {
+                continue;
+            }
+            if (best < 0 || overlap > bestOverlap
+                    || (overlap == bestOverlap && dy < bestDy)) {
+                best = j;
+                bestOverlap = overlap;
+                bestDy = dy;
+            }
+        }
+        if (best >= 0) {
+            attachedTo[i] = best;
+            anyAttached = true;
+        }
+    }
+    if (!anyAttached) {
+        return std::vector<int>();
+    }
+
+    std::vector<int> order;
+    order.reserve(len);
+    for (int i = 0; i < len; i++) {
+        if (attachedTo[i] >= 0) {
+            continue;
+        }
+        order.push_back(i);
+        int lo = i - kMarkBaseWindow < 0 ? 0 : i - kMarkBaseWindow;
+        int hi = i + kMarkBaseWindow >= len ? len - 1 : i + kMarkBaseWindow;
+        for (int m = lo; m <= hi; m++) {
+            if (attachedTo[m] == i) {
+                order.push_back(m);
+            }
+        }
+    }
+    if ((int) order.size() != len) {
+        return std::vector<int>();
+    }
+    return order;
+}
+
+static void reorderArabicMarks(FPDF_TEXTPAGE textPage, int firstCharIndex, jchar* buf, int len) {
+    if (len <= 1) {
+        return;
+    }
+    bool hasMark = false;
+    for (int i = 0; i < len; i++) {
+        if (isAttachableArabicMark(buf[i])) {
+            hasMark = true;
+            break;
+        }
+    }
+    if (!hasMark) {
+        return;
+    }
+
+    int charCount = FPDFText_CountChars(textPage);
+    int textStart = -1;
+    while (firstCharIndex < charCount) {
+        textStart = FPDFText_GetTextIndexFromCharIndex(textPage, firstCharIndex);
+        if (textStart >= 0) {
+            break;
+        }
+        firstCharIndex++;
+    }
+    if (textStart < 0) {
+        return;
+    }
+
+    std::vector<int> charIndex(len);
+    for (int i = 0; i < len; i++) {
+        charIndex[i] = FPDFText_GetCharIndexFromTextIndex(textPage, textStart + i);
+        if (charIndex[i] < 0) {
+            return;
+        }
+    }
+
+    std::vector<int> order = arabicMarkEmitOrder(textPage, charIndex, buf, len);
+    if (order.empty()) {
+        return;
+    }
+    std::vector<jchar> out(len);
+    for (int k = 0; k < len; k++) {
+        out[k] = buf[order[k]];
+    }
+    memcpy(buf, out.data(), len * sizeof(jchar));
 }
 
 JNI_FUNC(jstring, PdfiumCore, nativeGetPageText)(JNI_ARGS, jlong pagePtr) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
     FPDF_TEXTPAGE pageText = FPDFText_LoadPage(page);
+    if (pageText == NULL) {
+        return env->NewStringUTF("");
+    }
 
     auto charCount = FPDFText_CountChars(pageText);
+    if (charCount <= 0) {
+        FPDFText_ClosePage(pageText);
+        return env->NewStringUTF("");
+    }
     jchar* str = (jchar*) malloc((charCount + 1) * sizeof(jchar));
+    if (str == NULL) {
+        FPDFText_ClosePage(pageText);
+        return env->NewStringUTF("");
+    }
     int length = FPDFText_GetText(pageText, 0, charCount, str);
 
-    // ---------
-    //LOGD("string: %s", env->GetStringUTFChars(string, 0));
-    //for (int i = 0; i < length; ++i) {
-    //    if (str[i] == -2) str[i] = '-';
-    //    //LOGD("char: %c value: %hd", str[i], str[i]);
-    //}
-    // ---------
-
     if (length > 0) {
+        reorderArabicMarks(pageText, 0, str, length - 1);
         jstring result = env->NewString(str, length - 1);       // no trailing zero
         free(str);
+        FPDFText_ClosePage(pageText);
         return result;
     }
     else {
-        return 0;
+        free(str);
+        FPDFText_ClosePage(pageText);
+        return env->NewStringUTF("");
     }
+}
+
+extern "C" FPDF_EXPORT size_t FPDF_CALLCONV
+FPDFFont_GetFamilyName(FPDF_FONT font, char* buffer, size_t length);
+
+JNI_FUNC(jobjectArray, PdfiumCore, nativeGetPageFonts)(JNI_ARGS, jlong pagePtr) {
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    jclass stringCls = env->FindClass("java/lang/String");
+    if (page == NULL) {
+        return env->NewObjectArray(0, stringCls, NULL);
+    }
+
+    std::set<std::string> entries;
+    int objectCount = FPDFPage_CountObjects(page);
+    for (int i = 0; i < objectCount; i++) {
+        FPDF_PAGEOBJECT object = FPDFPage_GetObject(page, i);
+        if (object == NULL || FPDFPageObj_GetType(object) != FPDF_PAGEOBJ_TEXT) {
+            continue;
+        }
+        FPDF_FONT font = FPDFTextObj_GetFont(object);
+        if (font == NULL) {
+            continue;
+        }
+        size_t nameLength = FPDFFont_GetFamilyName(font, NULL, 0);
+        if (nameLength == 0) {
+            continue;
+        }
+        std::string name(nameLength, '\0');
+        FPDFFont_GetFamilyName(font, &name[0], nameLength);
+        while (!name.empty() && name[name.size() - 1] == '\0') {
+            name.resize(name.size() - 1);
+        }
+        if (name.empty()) {
+            continue;
+        }
+        int embedded = FPDFFont_GetIsEmbedded(font);
+        entries.insert(name + "\t" + (embedded == 1 ? "1" : "0"));
+    }
+
+    jobjectArray result = env->NewObjectArray((jsize) entries.size(), stringCls, NULL);
+    if (result == NULL) {
+        return NULL;
+    }
+    jsize index = 0;
+    for (std::set<std::string>::iterator it = entries.begin(); it != entries.end(); ++it) {
+        jstring entry = env->NewStringUTF(it->c_str());
+        env->SetObjectArrayElement(result, index++, entry);
+        env->DeleteLocalRef(entry);
+    }
+    return result;
 }
 
 JNI_FUNC(jobjectArray, PdfiumCore, nativeGetPageTextBounds)(JNI_ARGS, jlong pagePtr, jint start, jint count) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
-    FPDF_TEXTPAGE pageText = FPDFText_LoadPage(page);
-    int rectsCount = FPDFText_CountRects(pageText, start, count);
-
     jclass rectCls = env->FindClass("android/graphics/Rect");
+    FPDF_TEXTPAGE pageText = FPDFText_LoadPage(page);
+    if (pageText == NULL) {
+        return env->NewObjectArray(0, rectCls, 0);
+    }
+
+    int rectsCount = FPDFText_CountRects(pageText, start, count);
+    if (rectsCount < 0) {
+        FPDFText_ClosePage(pageText);
+        return env->NewObjectArray(0, rectCls, 0);
+    }
     jmethodID constructorID = env->GetMethodID(rectCls, "<init>", "(IIII)V");
     jobjectArray array = env->NewObjectArray(rectsCount, rectCls, 0);
 
@@ -767,23 +2545,258 @@ JNI_FUNC(jobjectArray, PdfiumCore, nativeGetPageTextBounds)(JNI_ARGS, jlong page
         env->DeleteLocalRef(sizeObj);
     }
 
+    FPDFText_ClosePage(pageText);
     return array;
 }
 
-JNI_FUNC(jstring, PdfiumCore, nativeGetPagesText)(JNI_ARGS, jlong pagePtr, jlong start, jlong end) {
+JNI_FUNC(jlong, PdfiumCore, nativeLoadTextPage)(JNI_ARGS, jlong pagePtr) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
-    FPDF_TEXTPAGE text = FPDFText_LoadPage(page);
-
-    auto length = FPDFText_CountChars(text);
-    jchar *str = (jchar *) malloc((length + 1) * sizeof(jchar));
-    int len = FPDFText_GetText(text, 0, length, str);
-    if (len > 0) {
-        jstring s = env->NewString(str, len - 1);   // no trailing zero
-        free(str);
-        return s;
-    } else {
+    if (page == NULL) {
         return 0;
     }
+
+    FPDF_TEXTPAGE textPage = FPDFText_LoadPage(page);
+    return reinterpret_cast<jlong>(textPage);
+}
+
+JNI_FUNC(void, PdfiumCore, nativeCloseTextPage)(JNI_ARGS, jlong textPagePtr) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage != NULL) {
+        FPDFText_ClosePage(textPage);
+    }
+}
+
+JNI_FUNC(jint, PdfiumCore, nativeTextCountChars)(JNI_ARGS, jlong textPagePtr) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL) {
+        return -1;
+    }
+    return FPDFText_CountChars(textPage);
+}
+
+JNI_FUNC(jint, PdfiumCore, nativeCharIndexAtPos)(JNI_ARGS, jlong textPagePtr,
+    jdouble x,
+    jdouble y,
+    jdouble xTolerance,
+    jdouble yTolerance
+) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL) {
+        return -1;
+    }
+    return FPDFText_GetCharIndexAtPos(textPage, x, y, xTolerance, yTolerance);
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeLooseCharBox)(JNI_ARGS, jlong textPagePtr,
+    jint index,
+    jfloatArray out4
+) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL || out4 == NULL || env->GetArrayLength(out4) < 4) {
+        return false;
+    }
+
+    FS_RECTF rect;
+    if (!FPDFText_GetLooseCharBox(textPage, index, &rect)) {
+        return false;
+    }
+
+    jfloat values[4] = {
+        static_cast<jfloat>(rect.left),
+        static_cast<jfloat>(rect.bottom),
+        static_cast<jfloat>(rect.right),
+        static_cast<jfloat>(rect.top)
+    };
+    env->SetFloatArrayRegion(out4, 0, 4, values);
+    return true;
+}
+
+JNI_FUNC(jboolean, PdfiumCore, nativeTightCharBox)(JNI_ARGS, jlong textPagePtr,
+    jint index,
+    jfloatArray out4
+) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL || out4 == NULL || env->GetArrayLength(out4) < 4) {
+        return false;
+    }
+
+    double left = 0, right = 0, bottom = 0, top = 0;
+    if (!FPDFText_GetCharBox(textPage, index, &left, &right, &bottom, &top)) {
+        return false;
+    }
+
+    jfloat values[4] = {
+        static_cast<jfloat>(left),
+        static_cast<jfloat>(bottom),
+        static_cast<jfloat>(right),
+        static_cast<jfloat>(top)
+    };
+    env->SetFloatArrayRegion(out4, 0, 4, values);
+    return true;
+}
+
+JNI_FUNC(jfloatArray, PdfiumCore, nativeTextGetRects)(JNI_ARGS, jlong textPagePtr,
+    jint start,
+    jint count
+) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL || count <= 0) {
+        return env->NewFloatArray(0);
+    }
+
+    int rectCount = FPDFText_CountRects(textPage, start, count);
+    if (rectCount <= 0) {
+        return env->NewFloatArray(0);
+    }
+
+    std::vector<jfloat> values;
+    values.reserve(rectCount * 4);
+    for (int i = 0; i < rectCount; i++) {
+        double left = 0, top = 0, right = 0, bottom = 0;
+        if (!FPDFText_GetRect(textPage, i, &left, &top, &right, &bottom)) {
+            continue;
+        }
+        values.push_back(static_cast<jfloat>(left));
+        values.push_back(static_cast<jfloat>(bottom));
+        values.push_back(static_cast<jfloat>(right));
+        values.push_back(static_cast<jfloat>(top));
+    }
+
+    jfloatArray result = env->NewFloatArray(values.size());
+    if (result != NULL && !values.empty()) {
+        env->SetFloatArrayRegion(result, 0, values.size(), values.data());
+    }
+    return result;
+}
+
+JNI_FUNC(jdoubleArray, PdfiumCore, nativeTextCharMetrics)(JNI_ARGS, jlong textPagePtr,
+    jint start,
+    jint count
+) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL || count <= 0) {
+        return env->NewDoubleArray(0);
+    }
+
+    int charCount = FPDFText_CountChars(textPage);
+    if (charCount <= 0) {
+        return env->NewDoubleArray(0);
+    }
+    if (start < 0) {
+        start = 0;
+    }
+    if (start >= charCount) {
+        return env->NewDoubleArray(0);
+    }
+
+    int available = charCount - start;
+    int safeCount = count < available ? count : available;
+    if (safeCount <= 0) {
+        return env->NewDoubleArray(0);
+    }
+
+    std::vector<jchar> chars(safeCount);
+    std::vector<int> charIndex(safeCount);
+    bool hasMark = false;
+    for (int k = 0; k < safeCount; k++) {
+        unsigned int unicode = FPDFText_GetUnicode(textPage, start + k);
+        chars[k] = unicode <= 0xFFFF ? (jchar) unicode : 0;
+        charIndex[k] = start + k;
+        if (isAttachableArabicMark(chars[k])) {
+            hasMark = true;
+        }
+    }
+    std::vector<int> order;
+    if (hasMark) {
+        order = arabicMarkEmitOrder(textPage, charIndex, chars.data(), safeCount);
+    }
+
+    std::vector<jdouble> values;
+    values.reserve(static_cast<size_t>(safeCount) * 9);
+    for (int k = 0; k < safeCount; k++) {
+        int i = start + (order.empty() ? k : order[k]);
+        double left = 0, bottom = 0, right = 0, top = 0;
+        FS_RECTF looseRect;
+        if (FPDFText_GetLooseCharBox(textPage, i, &looseRect)) {
+            left = looseRect.left;
+            bottom = looseRect.bottom;
+            right = looseRect.right;
+            top = looseRect.top;
+        } else if (!FPDFText_GetCharBox(textPage, i, &left, &right, &bottom, &top)) {
+            left = bottom = right = top = 0;
+        }
+        int fontFlags = -1;
+        char fontName[128];
+        if (FPDFText_GetFontInfo(textPage, i, fontName, sizeof(fontName), &fontFlags) == 0) {
+            fontFlags = -1;
+        }
+        values.push_back(left);
+        values.push_back(bottom);
+        values.push_back(right);
+        values.push_back(top);
+        values.push_back(FPDFText_GetFontSize(textPage, i));
+        values.push_back(static_cast<jdouble>(FPDFText_GetFontWeight(textPage, i)));
+        values.push_back(static_cast<jdouble>(FPDFText_GetUnicode(textPage, i)));
+        values.push_back(static_cast<jdouble>(FPDFText_GetCharAngle(textPage, i)));
+        values.push_back(static_cast<jdouble>(fontFlags));
+    }
+
+    jdoubleArray result = env->NewDoubleArray(values.size());
+    if (result != NULL && !values.empty()) {
+        env->SetDoubleArrayRegion(result, 0, values.size(), values.data());
+    }
+    return result;
+}
+
+JNI_FUNC(jint, PdfiumCore, nativeCharUnicode)(JNI_ARGS, jlong textPagePtr, jint index) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL) {
+        return 0;
+    }
+    return static_cast<jint>(FPDFText_GetUnicode(textPage, index));
+}
+
+JNI_FUNC(jstring, PdfiumCore, nativeTextRange)(JNI_ARGS, jlong textPagePtr,
+    jint start,
+    jint count
+) {
+    FPDF_TEXTPAGE textPage = reinterpret_cast<FPDF_TEXTPAGE>(textPagePtr);
+    if (textPage == NULL || count <= 0) {
+        return env->NewStringUTF("");
+    }
+
+    int charCount = FPDFText_CountChars(textPage);
+    if (charCount <= 0) {
+        return env->NewStringUTF("");
+    }
+    if (start < 0) {
+        start = 0;
+    }
+    if (start >= charCount) {
+        return env->NewStringUTF("");
+    }
+
+    int available = charCount - start;
+    int safeCount = count < available ? count : available;
+    if (safeCount <= 0) {
+        return env->NewStringUTF("");
+    }
+
+    jchar *str = (jchar *) malloc((safeCount + 1) * sizeof(jchar));
+    if (str == NULL) {
+        return env->NewStringUTF("");
+    }
+
+    int len = FPDFText_GetText(textPage, start, safeCount, str);
+    if (len <= 0) {
+        free(str);
+        return env->NewStringUTF("");
+    }
+
+    reorderArabicMarks(textPage, start, str, len - 1);
+    jstring result = env->NewString(str, len - 1);
+    free(str);
+    return result;
 }
 
 JNI_FUNC(jstring, PdfiumCore, nativeGetDocumentMetaText)(JNI_ARGS, jlong docPtr, jstring tag) {
@@ -795,6 +2808,7 @@ JNI_FUNC(jstring, PdfiumCore, nativeGetDocumentMetaText)(JNI_ARGS, jlong docPtr,
 
     size_t bufferLen = FPDF_GetMetaText(doc->pdfDocument, ctag, NULL, 0);
     if (bufferLen <= 2) {
+        env->ReleaseStringUTFChars(tag, ctag);
         return env->NewStringUTF("");
     }
     std::wstring text;
@@ -856,15 +2870,22 @@ JNI_FUNC(jlong, PdfiumCore, nativeGetBookmarkDestIndex)(JNI_ARGS, jlong docPtr, 
 
 JNI_FUNC(jlongArray, PdfiumCore, nativeGetPageLinks)(JNI_ARGS, jlong pagePtr) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
-    int pos = 0;
     std::vector<jlong> links;
-    FPDF_LINK link;
-    while (FPDFLink_Enumerate(page, &pos, &link)) {
-        links.push_back(reinterpret_cast<jlong>(link));
+    if (page != NULL) {
+        int pos = 0;
+        FPDF_LINK link;
+        while (FPDFLink_Enumerate(page, &pos, &link)) {
+            links.push_back(reinterpret_cast<jlong>(link));
+        }
     }
 
     jlongArray result = env->NewLongArray(links.size());
-    env->SetLongArrayRegion(result, 0, links.size(), &links[0]);
+    if (result == NULL) {
+        return NULL;
+    }
+    if (!links.empty()) {
+        env->SetLongArrayRegion(result, 0, links.size(), links.data());
+    }
     return result;
 }
 
