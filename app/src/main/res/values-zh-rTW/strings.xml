@@ -260,6 +260,8 @@
     <string name="code">原始碼</string>
     <string name="share">分享</string>
     <string name="share_file">分享檔案</string>
+    <string name="share_link_option">分享連結</string>
+    <string name="share_pdf_option">分享 PDF 檔案</string>
     <string name="print_file">列印檔案</string>
     <string name="full_screen">全螢幕</string>
     <string name="none">無</string>
@@ -512,7 +514,7 @@
     <string name="discard_unsaved_highlights_message">未儲存的變更將從文件中移除。</string>
     <string name="unsaved_highlights_prompt">離開此文件前要儲存變更嗎？</string>
     <string name="save_highlights">儲存變更</string>
-    <string name="update_existing_file">更新現有檔案</string>
+    <string name="update_existing_file">更新同一個檔案</string>
     <string name="save_as_new_copy">另存新檔</string>
     <string name="saved_copy_found">找到已儲存的副本</string>
     <string name="saved_copy_found_message">此文件與您先前儲存的 PDF 相符。要更新該已儲存的副本，還是另存新檔？</string>
@@ -713,6 +715,7 @@
     <string name="pdf_produced_by">製作人</string>
     <string name="pdf_file_size">文件大小</string>
     <string name="pdf_file_name">文件名</string>
+    <string name="pdf_file_path">文件路徑</string>
     <string name="pdf_page_size">頁面大小</string>
     <string name="pdf_page_size_mixed">混合</string>
     <string name="pdf_fonts">字型</string>

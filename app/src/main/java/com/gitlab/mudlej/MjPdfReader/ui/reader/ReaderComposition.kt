@@ -157,7 +157,13 @@ class ReaderComposition(
         activity.restartAppIfGranted(granted)
     }
 
+    private var alwaysHideMarginsWhenSettingsOpened = false
+
     private val settingsLauncher: ActivityResultLauncher<Intent> = activity.registerForActivityResult(StartActivityForResult()) {
+        val alwaysHideMargins = pref.getAlwaysHideMargins()
+        if (alwaysHideMargins != alwaysHideMarginsWhenSettingsOpened) {
+            setCropMarginsEnabled(alwaysHideMargins)
+        }
         activity.displayFromUri(doc.uri)
     }
 
@@ -949,6 +955,7 @@ class ReaderComposition(
     }
 
     private fun openSettings() {
+        alwaysHideMarginsWhenSettingsOpened = pref.getAlwaysHideMargins()
         val settingsIntent = Intent(activity, SettingsActivity::class.java)
         settingsIntent.putExtra(PDF.incognitoKey, vm.incognito)
         settingsLauncher.launch(settingsIntent)

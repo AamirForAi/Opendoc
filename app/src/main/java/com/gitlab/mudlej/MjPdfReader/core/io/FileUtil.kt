@@ -11,6 +11,7 @@ import android.content.ContentResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.os.Build
+import android.os.Environment
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -81,6 +82,10 @@ fun canWriteToDownloadFolder(context: Context): Boolean =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) true
     else ContextCompat.checkSelfPermission(context,
         Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+fun publicDownloadsCopy(name: String): File? = runCatching {
+    File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), name)
+        .takeIf { name.isNotBlank() && it.isFile }
+}.getOrNull()
 val File.size get() = if (!exists()) 0.0 else length().toDouble()
 val File.sizeInKb get() = size / 1024
 val File.sizeInMb get() = sizeInKb / 1024

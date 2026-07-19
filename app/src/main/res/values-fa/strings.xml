@@ -260,6 +260,8 @@
     <string name="code">سورس کد</string>
     <string name="share">هم‌رسانی</string>
     <string name="share_file">هم‌رسانی پرونده</string>
+    <string name="share_link_option">هم‌رسانی پیوند</string>
+    <string name="share_pdf_option">هم‌رسانی پرونده PDF</string>
     <string name="print_file">چاپ پرونده</string>
     <string name="full_screen">تمام‌صفحه</string>
     <string name="none">هیچ‌کدام</string>
@@ -512,8 +514,8 @@
     <string name="discard_unsaved_highlights_message">تغییرات ذخیره‌نشده از سند حذف خواهند شد.</string>
     <string name="unsaved_highlights_prompt">پیش از ترک این سند، تغییرات خود را ذخیره کنید؟</string>
     <string name="save_highlights">ذخیره تغییرات</string>
-    <string name="update_existing_file">به‌روزرسانی پرونده موجود</string>
-    <string name="save_as_new_copy">ذخیره به‌صورت نسخه تازه</string>
+    <string name="update_existing_file">به‌روزرسانی همان پرونده</string>
+    <string name="save_as_new_copy">ذخیره به‌صورت پرونده تازه</string>
     <string name="saved_copy_found">نسخه ذخیره‌شده پیدا شد</string>
     <string name="saved_copy_found_message">این سند با یک PDF که پیش‌تر ذخیره کرده‌اید مطابقت دارد. آن نسخه ذخیره‌شده را دفعه بعد به‌روزرسانی کنید، یا به‌صورت نسخه تازه ذخیره شود؟</string>
     <string name="highlights_saved">تغییرات ذخیره شدند</string>
@@ -713,6 +715,7 @@
     <string name="pdf_produced_by">تولید شده بدست</string>
     <string name="pdf_file_size">حجم پرونده</string>
     <string name="pdf_file_name">نام پرونده</string>
+    <string name="pdf_file_path">مسیر پرونده</string>
     <string name="pdf_page_size">اندازه صفحه</string>
     <string name="pdf_page_size_mixed">ترکیبی</string>
     <string name="pdf_fonts">قلم‌ها</string>

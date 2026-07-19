@@ -260,6 +260,8 @@
     <string name="code">Código Fonte</string>
     <string name="share">Compartilhar</string>
     <string name="share_file">Compartilhar Arquivo</string>
+    <string name="share_link_option">Compartilhar o link</string>
+    <string name="share_pdf_option">Compartilhar o arquivo PDF</string>
     <string name="print_file">Imprimir Arquivo</string>
     <string name="full_screen">Tela Cheia</string>
     <string name="none">Nenhum</string>
@@ -512,8 +514,8 @@
     <string name="discard_unsaved_highlights_message">Alterações não salvas serão removidas do documento.</string>
     <string name="unsaved_highlights_prompt">Salvar suas alterações antes de sair deste documento?</string>
     <string name="save_highlights">Salvar alterações</string>
-    <string name="update_existing_file">Atualizar arquivo existente</string>
-    <string name="save_as_new_copy">Salvar como nova cópia</string>
+    <string name="update_existing_file">Atualizar o mesmo arquivo</string>
+    <string name="save_as_new_copy">Salvar como um novo arquivo</string>
     <string name="saved_copy_found">Cópia salva encontrada</string>
     <string name="saved_copy_found_message">Este documento corresponde a um PDF que você salvou anteriormente. Atualize essa cópia salva na próxima vez, ou salve como uma nova cópia?</string>
     <string name="highlights_saved">Alterações salvas</string>
@@ -713,6 +715,7 @@
     <string name="pdf_produced_by">Produzido Por</string>
     <string name="pdf_file_size">Tamanho do Arquivo</string>
     <string name="pdf_file_name">Nome do Arquivo</string>
+    <string name="pdf_file_path">Caminho do Arquivo</string>
     <string name="pdf_page_size">Tamanho da página</string>
     <string name="pdf_page_size_mixed">Misto</string>
     <string name="pdf_fonts">Fontes</string>

@@ -16,6 +16,7 @@ import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.ui.reader.showMetaDialog
+import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
 import com.gitlab.mudlej.MjPdfReader.core.io.appDateFormatter
 import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.gitlab.mudlej.MjPdfReader.core.io.pdfShareIntent
@@ -246,7 +247,10 @@ class RecordOptionsDialog(
     private fun showFullProperties(item: HomeItem, record: PdfRecord?) {
         scope.launch {
             val meta = withContext(Dispatchers.IO) { readDocumentMeta(item.uri) }
-            showMetaDialog(activity, meta, fileNameOf(item, record), fileSizeBytes(item.uri))
+            val filePath = withContext(Dispatchers.IO) {
+                UriCanonicalizer.canonicalize(activity, item.uri)?.absolutePath
+            }
+            showMetaDialog(activity, meta, fileNameOf(item, record), fileSizeBytes(item.uri), filePath = filePath)
         }
     }
 

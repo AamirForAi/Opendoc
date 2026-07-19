@@ -260,6 +260,8 @@
     <string name="code">Quellcode</string>
     <string name="share">Teilen</string>
     <string name="share_file">Datei teilen</string>
+    <string name="share_link_option">Link teilen</string>
+    <string name="share_pdf_option">PDF-Datei teilen</string>
     <string name="print_file">Datei drucken</string>
     <string name="full_screen">Vollbild</string>
     <string name="none">Keine</string>
@@ -512,8 +514,8 @@
     <string name="discard_unsaved_highlights_message">Nicht gespeicherte Änderungen werden aus dem Dokument entfernt.</string>
     <string name="unsaved_highlights_prompt">Änderungen vor dem Verlassen dieses Dokuments speichern?</string>
     <string name="save_highlights">Änderungen speichern</string>
-    <string name="update_existing_file">Bestehende Datei aktualisieren</string>
-    <string name="save_as_new_copy">Als neue Kopie speichern</string>
+    <string name="update_existing_file">Dieselbe Datei aktualisieren</string>
+    <string name="save_as_new_copy">Als neue Datei speichern</string>
     <string name="saved_copy_found">Gespeicherte Kopie gefunden</string>
     <string name="saved_copy_found_message">Dieses Dokument entspricht einem PDF, das Sie zuvor gespeichert haben. Aktualisieren Sie diese gespeicherte Kopie beim nächsten Mal oder speichern Sie als neue Kopie?</string>
     <string name="highlights_saved">Änderungen gespeichert</string>
@@ -713,6 +715,7 @@
     <string name="pdf_produced_by">Produziert von</string>
     <string name="pdf_file_size">Dateigröße</string>
     <string name="pdf_file_name">Dateiname</string>
+    <string name="pdf_file_path">Dateipfad</string>
     <string name="pdf_page_size">Seitengröße</string>
     <string name="pdf_page_size_mixed">Gemischt</string>
     <string name="pdf_fonts">Schriftarten</string>

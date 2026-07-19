@@ -260,6 +260,8 @@
     <string name="code">Broncode</string>
     <string name="share">Delen</string>
     <string name="share_file">Bestand delen</string>
+    <string name="share_link_option">Koppeling delen</string>
+    <string name="share_pdf_option">PDF-bestand delen</string>
     <string name="print_file">Bestand afdrukken</string>
     <string name="full_screen">Volledig scherm</string>
     <string name="none">Geen</string>
@@ -512,8 +514,8 @@
     <string name="discard_unsaved_highlights_message">Niet-opgeslagen wijzigingen worden uit het document verwijderd.</string>
     <string name="unsaved_highlights_prompt">Je wijzigingen opslaan voordat je dit document verlaat?</string>
     <string name="save_highlights">Wijzigingen opslaan</string>
-    <string name="update_existing_file">Bestaand bestand bijwerken</string>
-    <string name="save_as_new_copy">Opslaan als nieuwe kopie</string>
+    <string name="update_existing_file">Hetzelfde bestand bijwerken</string>
+    <string name="save_as_new_copy">Opslaan als nieuw bestand</string>
     <string name="saved_copy_found">Opgeslagen kopie gevonden</string>
     <string name="saved_copy_found_message">Dit document komt overeen met een PDF die je eerder hebt opgeslagen. Die opgeslagen kopie bijwerken, of opslaan als nieuwe kopie?</string>
     <string name="highlights_saved">Wijzigingen opgeslagen</string>
@@ -713,6 +715,7 @@
     <string name="pdf_produced_by">Opgemaakt door</string>
     <string name="pdf_file_size">Bestandsgrootte</string>
     <string name="pdf_file_name">Bestandsnaam</string>
+    <string name="pdf_file_path">Bestandspad</string>
     <string name="pdf_page_size">Paginaformaat</string>
     <string name="pdf_page_size_mixed">Gemengd</string>
     <string name="pdf_fonts">Lettertypen</string>

@@ -260,6 +260,8 @@
     <string name="code">Kod źródłowy</string>
     <string name="share">Udostępnij</string>
     <string name="share_file">Udostępnij plik</string>
+    <string name="share_link_option">Udostępnij link</string>
+    <string name="share_pdf_option">Udostępnij plik PDF</string>
     <string name="print_file">Drukuj plik</string>
     <string name="full_screen">Pełny ekran</string>
     <string name="none">Brak</string>
@@ -512,8 +514,8 @@
     <string name="discard_unsaved_highlights_message">Niezapisane zmiany zostaną usunięte z dokumentu.</string>
     <string name="unsaved_highlights_prompt">Zapisać zmiany przed opuszczeniem tego dokumentu?</string>
     <string name="save_highlights">Zapisz zmiany</string>
-    <string name="update_existing_file">Zaktualizuj istniejący plik</string>
-    <string name="save_as_new_copy">Zapisz jako nową kopię</string>
+    <string name="update_existing_file">Zaktualizuj ten sam plik</string>
+    <string name="save_as_new_copy">Zapisz jako nowy plik</string>
     <string name="saved_copy_found">Znaleziono zapisaną kopię</string>
     <string name="saved_copy_found_message">Ten dokument pasuje do pliku PDF zapisanego wcześniej. Zaktualizować tę zapisaną kopię następnym razem, czy zapisać jako nową kopię?</string>
     <string name="highlights_saved">Zmiany zapisane</string>
@@ -713,6 +715,7 @@
     <string name="pdf_produced_by">Wyprodukowano przez</string>
     <string name="pdf_file_size">Rozmiar pliku PDF</string>
     <string name="pdf_file_name">Nazwa pliku PDF</string>
+    <string name="pdf_file_path">Ścieżka pliku PDF</string>
     <string name="pdf_page_size">Rozmiar strony</string>
     <string name="pdf_page_size_mixed">Mieszany</string>
     <string name="pdf_fonts">Czcionki</string>

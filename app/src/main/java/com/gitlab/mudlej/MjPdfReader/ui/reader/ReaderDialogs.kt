@@ -48,6 +48,7 @@ fun showMetaDialog(
     fileSizeBytes: Long?,
     pageSize: String? = null,
     fonts: String? = null,
+    filePath: String? = null,
 ) {
     if (meta == null) {
         Toast.makeText(context, "Cannot read PDF's meta data!", Toast.LENGTH_SHORT).show()
@@ -56,7 +57,7 @@ fun showMetaDialog(
     try {
         MaterialAlertDialogBuilder(context)
             .setTitle(R.string.file_properties)
-            .setView(createMetadataView(context, meta, fileName, fileSizeBytes, pageSize, fonts))
+            .setView(createMetadataView(context, meta, fileName, fileSizeBytes, pageSize, fonts, filePath))
             .setPositiveButton(android.R.string.ok, null)
             .show()
     }
@@ -73,6 +74,7 @@ private fun createMetadataView(
     fileSizeBytes: Long?,
     pageSize: String?,
     fonts: String?,
+    filePath: String?,
 ): View {
     val content = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
@@ -80,6 +82,7 @@ private fun createMetadataView(
     }
 
     addMetadataRow(content, R.string.pdf_file_name, fileName)
+    addMetadataRow(content, R.string.pdf_file_path, filePath)
     addMetadataRow(content, R.string.pdf_title, meta.title)
     addMetadataRow(content, R.string.pdf_author, meta.author)
     addMetadataRow(content, R.string.pdf_pages, String.format(Locale.getDefault(), "%d", meta.totalPages))
