@@ -950,4 +950,12 @@
     <string name="home_badge_file_size">Taille du fichier</string>
     <string name="home_badge_status">Statut de lecture</string>
     <string name="clear_data_failed">Impossible d\'effacer les données.</string>
+    <string name="annotation_save_unconfirmed_title">Impossible de confirmer l\'enregistrement</string>
+    <string name="annotation_save_unconfirmed_message">MJ PDF a enregistré vos modifications mais n\'a pas pu confirmer que le fichier a été écrit correctement. Vos modifications sont toujours dans l\'application, donc rien n\'a été perdu. Choisissez Enregistrer une copie pour les écrire à un autre emplacement et en être sûr.</string>
+    <string name="annotation_save_failed_message">Vos modifications sont toujours dans l\'application, donc rien n\'a été perdu. Le fichier original n\'a pas été modifié. Choisissez Enregistrer une copie pour les écrire à un autre emplacement.</string>
+    <string name="annotation_save_failed_rescue_message">Vos modifications sont toujours dans l\'application, donc rien n\'a été perdu. Le fichier original n\'a pas été modifié, et une copie terminée a été conservée dans l\'application sous %1$s. Choisissez Enregistrer une copie pour les écrire à un autre emplacement.</string>
+    <string name="annotation_save_failed_title">Impossible d\'enregistrer les modifications</string>
+    <string name="annotation_save_copy_action">Enregistrer une copie</string>
+    <string name="home_title_annotated">%1$s (annoté)</string>
+    <string name="share_text_no_link">Le texte partagé ne contient aucun lien à ouvrir</string>
 </resources>

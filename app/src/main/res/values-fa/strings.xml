@@ -944,4 +944,12 @@
     <string name="home_badge_file_size">اندازه پرونده</string>
     <string name="home_badge_status">وضعیت خواندن</string>
     <string name="clear_data_failed">پاک کردن داده‌ها ممکن نشد.</string>
+    <string name="annotation_save_unconfirmed_title">نتوانستیم ذخیره را تأیید کنیم</string>
+    <string name="annotation_save_unconfirmed_message">MJ PDF تغییرات شما را ذخیره کرد اما نتوانست تأیید کند که پرونده درست نوشته شده است. تغییرات شما همچنان در برنامه هستند، پس چیزی از دست نرفت. برای نوشتن آن‌ها در محلی دیگر و اطمینان، ذخیره یک نسخه را انتخاب کنید.</string>
+    <string name="annotation_save_failed_message">تغییرات شما همچنان در برنامه هستند، پس چیزی از دست نرفت. پرونده اصلی تغییر نکرد. برای نوشتن آن‌ها در محلی دیگر، ذخیره یک نسخه را انتخاب کنید.</string>
+    <string name="annotation_save_failed_rescue_message">تغییرات شما همچنان در برنامه هستند، پس چیزی از دست نرفت. پرونده اصلی تغییر نکرد و یک نسخه کامل با نام %1$s در برنامه نگه داشته شد. برای نوشتن آن‌ها در محلی دیگر، ذخیره یک نسخه را انتخاب کنید.</string>
+    <string name="annotation_save_failed_title">نتوانستیم تغییرات را ذخیره کنیم</string>
+    <string name="annotation_save_copy_action">ذخیره یک نسخه</string>
+    <string name="home_title_annotated">%1$s (حاشیه‌نویسی‌شده)</string>
+    <string name="share_text_no_link">متن هم‌رسانی‌شده هیچ پیوندی برای باز کردن ندارد</string>
 </resources>

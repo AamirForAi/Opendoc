@@ -944,4 +944,12 @@
     <string name="home_badge_file_size">Dimensione file</string>
     <string name="home_badge_status">Stato di lettura</string>
     <string name="clear_data_failed">Impossibile cancellare i dati.</string>
+    <string name="annotation_save_unconfirmed_title">Impossibile confermare il salvataggio</string>
+    <string name="annotation_save_unconfirmed_message">MJ PDF ha salvato le tue modifiche ma non ha potuto confermare che il file sia stato scritto correttamente. Le tue modifiche sono ancora nell\'app, quindi nulla è andato perso. Scegli Salva una copia per scriverle in un\'altra posizione ed esserne certo.</string>
+    <string name="annotation_save_failed_message">Le tue modifiche sono ancora nell\'app, quindi nulla è andato perso. Il file originale non è stato modificato. Scegli Salva una copia per scriverle in un\'altra posizione.</string>
+    <string name="annotation_save_failed_rescue_message">Le tue modifiche sono ancora nell\'app, quindi nulla è andato perso. Il file originale non è stato modificato, e una copia completata è stata conservata nell\'app come %1$s. Scegli Salva una copia per scriverle in un\'altra posizione.</string>
+    <string name="annotation_save_failed_title">Impossibile salvare le modifiche</string>
+    <string name="annotation_save_copy_action">Salva una copia</string>
+    <string name="home_title_annotated">%1$s (annotato)</string>
+    <string name="share_text_no_link">Il testo condiviso non contiene alcun link da aprire</string>
 </resources>

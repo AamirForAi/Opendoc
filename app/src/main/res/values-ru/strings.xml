@@ -956,4 +956,12 @@
     <string name="home_badge_file_size">Размер файла</string>
     <string name="home_badge_status">Статус чтения</string>
     <string name="clear_data_failed">Не удалось очистить данные.</string>
+    <string name="annotation_save_unconfirmed_title">Не удалось подтвердить сохранение</string>
+    <string name="annotation_save_unconfirmed_message">MJ PDF сохранил ваши изменения, но не удалось подтвердить, что файл записан правильно. Ваши изменения по-прежнему в приложении, поэтому ничего не потеряно. Выберите «Сохранить копию», чтобы записать их в другое место и убедиться.</string>
+    <string name="annotation_save_failed_message">Ваши изменения по-прежнему в приложении, поэтому ничего не потеряно. Оригинальный файл не был изменён. Выберите «Сохранить копию», чтобы записать их в другое место.</string>
+    <string name="annotation_save_failed_rescue_message">Ваши изменения по-прежнему в приложении, поэтому ничего не потеряно. Оригинальный файл не был изменён, а готовая копия сохранена в приложении как %1$s. Выберите «Сохранить копию», чтобы записать их в другое место.</string>
+    <string name="annotation_save_failed_title">Не удалось сохранить изменения</string>
+    <string name="annotation_save_copy_action">Сохранить копию</string>
+    <string name="home_title_annotated">%1$s (с аннотациями)</string>
+    <string name="share_text_no_link">В отправленном тексте нет ссылки для открытия</string>
 </resources>

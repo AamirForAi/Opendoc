@@ -944,4 +944,12 @@
     <string name="home_badge_file_size">Dosya boyutu</string>
     <string name="home_badge_status">Okuma durumu</string>
     <string name="clear_data_failed">Veriler temizlenemedi.</string>
+    <string name="annotation_save_unconfirmed_title">Kaydetme doğrulanamadı</string>
+    <string name="annotation_save_unconfirmed_message">MJ PDF değişikliklerinizi kaydetti ancak dosyanın doğru yazıldığını doğrulayamadı. Değişiklikleriniz hala uygulamada olduğundan hiçbir şey kaybolmadı. Bunları başka bir konuma yazıp emin olmak için Kopya kaydet seçeneğini seçin.</string>
+    <string name="annotation_save_failed_message">Değişiklikleriniz hala uygulamada olduğundan hiçbir şey kaybolmadı. Orijinal dosya değiştirilmedi. Bunları başka bir konuma yazmak için Kopya kaydet seçeneğini seçin.</string>
+    <string name="annotation_save_failed_rescue_message">Değişiklikleriniz hala uygulamada olduğundan hiçbir şey kaybolmadı. Orijinal dosya değiştirilmedi ve tamamlanmış bir kopya uygulamada %1$s olarak saklandı. Bunları başka bir konuma yazmak için Kopya kaydet seçeneğini seçin.</string>
+    <string name="annotation_save_failed_title">Değişiklikler kaydedilemedi</string>
+    <string name="annotation_save_copy_action">Kopya kaydet</string>
+    <string name="home_title_annotated">%1$s (açıklamalı)</string>
+    <string name="share_text_no_link">Paylaşılan metinde açılacak bir bağlantı yok</string>
 </resources>

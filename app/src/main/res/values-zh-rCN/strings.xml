@@ -938,4 +938,12 @@
     <string name="home_badge_file_size">文件大小</string>
     <string name="home_badge_status">阅读状态</string>
     <string name="clear_data_failed">无法清除数据。</string>
+    <string name="annotation_save_unconfirmed_title">无法确认保存</string>
+    <string name="annotation_save_unconfirmed_message">MJ PDF 已保存您的更改，但无法确认文件是否正确写入。您的更改仍保留在应用中，不会丢失。请选择“另存副本”将其写入其他位置以确保安全。</string>
+    <string name="annotation_save_failed_message">您的更改仍保留在应用中，不会丢失。原始文件未被更改。请选择“另存副本”将其写入其他位置。</string>
+    <string name="annotation_save_failed_rescue_message">您的更改仍保留在应用中，不会丢失。原始文件未被更改，已在应用中保留一份完成的副本 %1$s。请选择“另存副本”将其写入其他位置。</string>
+    <string name="annotation_save_failed_title">无法保存更改</string>
+    <string name="annotation_save_copy_action">另存副本</string>
+    <string name="home_title_annotated">%1$s（已批注）</string>
+    <string name="share_text_no_link">分享的文本中没有可打开的链接</string>
 </resources>

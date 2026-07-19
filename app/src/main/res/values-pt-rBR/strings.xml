@@ -950,4 +950,12 @@
     <string name="home_badge_file_size">Tamanho do arquivo</string>
     <string name="home_badge_status">Status de leitura</string>
     <string name="clear_data_failed">Não foi possível limpar os dados.</string>
+    <string name="annotation_save_unconfirmed_title">Não foi possível confirmar o salvamento</string>
+    <string name="annotation_save_unconfirmed_message">MJ PDF salvou suas alterações, mas não foi possível confirmar se o arquivo foi gravado corretamente. Suas alterações continuam no aplicativo, então nada foi perdido. Escolha Salvar uma cópia para gravá-las em outro local e ter certeza.</string>
+    <string name="annotation_save_failed_message">Suas alterações continuam no aplicativo, então nada foi perdido. O arquivo original não foi alterado. Escolha Salvar uma cópia para gravá-las em outro local.</string>
+    <string name="annotation_save_failed_rescue_message">Suas alterações continuam no aplicativo, então nada foi perdido. O arquivo original não foi alterado, e uma cópia finalizada foi mantida no aplicativo como %1$s. Escolha Salvar uma cópia para gravá-las em outro local.</string>
+    <string name="annotation_save_failed_title">Não foi possível salvar as alterações</string>
+    <string name="annotation_save_copy_action">Salvar uma cópia</string>
+    <string name="home_title_annotated">%1$s (anotado)</string>
+    <string name="share_text_no_link">O texto compartilhado não tem link para abrir</string>
 </resources>
