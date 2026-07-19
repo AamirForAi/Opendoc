@@ -968,4 +968,12 @@
     <string name="home_badge_file_size">حجم الملف</string>
     <string name="home_badge_status">حالة القراءة</string>
     <string name="clear_data_failed">تعذّر مسح البيانات.</string>
+    <string name="annotation_save_unconfirmed_title">تعذر تأكيد الحفظ</string>
+    <string name="annotation_save_unconfirmed_message">حفظ MJ PDF تغييراتك لكن تعذر تأكيد كتابة الملف بشكل صحيح. تغييراتك لا تزال في التطبيق، فلم يُفقد شيء. اختر حفظ كنسخة لكتابتها في موقع آخر للتأكد.</string>
+    <string name="annotation_save_failed_message">تغييراتك لا تزال في التطبيق، فلم يُفقد شيء. لم يتغير الملف الأصلي. اختر حفظ كنسخة لكتابتها في موقع آخر.</string>
+    <string name="annotation_save_failed_rescue_message">تغييراتك لا تزال في التطبيق، فلم يُفقد شيء. لم يتغير الملف الأصلي، وحُفظت نسخة مكتملة في التطبيق باسم %1$s. اختر حفظ كنسخة لكتابتها في موقع آخر.</string>
+    <string name="annotation_save_failed_title">تعذر حفظ التغييرات</string>
+    <string name="annotation_save_copy_action">حفظ كنسخة</string>
+    <string name="home_title_annotated">%1$s (معلَّق)</string>
+    <string name="share_text_no_link">النص المشارَك لا يحتوي على رابط لفتحه</string>
 </resources>

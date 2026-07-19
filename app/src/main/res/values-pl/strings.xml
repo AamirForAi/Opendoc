@@ -956,4 +956,12 @@
     <string name="home_badge_file_size">Rozmiar pliku</string>
     <string name="home_badge_status">Status czytania</string>
     <string name="clear_data_failed">Nie udało się wyczyścić danych.</string>
+    <string name="annotation_save_unconfirmed_title">Nie można potwierdzić zapisu</string>
+    <string name="annotation_save_unconfirmed_message">MJ PDF zapisał Twoje zmiany, ale nie mógł potwierdzić, że plik został zapisany poprawnie. Twoje zmiany są nadal w aplikacji, więc nic nie zostało utracone. Wybierz Zapisz kopię, aby zapisać je w innej lokalizacji i mieć pewność.</string>
+    <string name="annotation_save_failed_message">Twoje zmiany są nadal w aplikacji, więc nic nie zostało utracone. Oryginalny plik nie został zmieniony. Wybierz Zapisz kopię, aby zapisać je w innej lokalizacji.</string>
+    <string name="annotation_save_failed_rescue_message">Twoje zmiany są nadal w aplikacji, więc nic nie zostało utracone. Oryginalny plik nie został zmieniony, a gotowa kopia została zachowana w aplikacji jako %1$s. Wybierz Zapisz kopię, aby zapisać je w innej lokalizacji.</string>
+    <string name="annotation_save_failed_title">Nie udało się zapisać zmian</string>
+    <string name="annotation_save_copy_action">Zapisz kopię</string>
+    <string name="home_title_annotated">%1$s (z adnotacjami)</string>
+    <string name="share_text_no_link">Udostępniony tekst nie zawiera linku do otwarcia</string>
 </resources>

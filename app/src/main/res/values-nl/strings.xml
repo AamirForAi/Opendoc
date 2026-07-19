@@ -944,4 +944,12 @@
     <string name="home_badge_file_size">Bestandsgrootte</string>
     <string name="home_badge_status">Leesstatus</string>
     <string name="clear_data_failed">Kon de gegevens niet wissen.</string>
+    <string name="annotation_save_unconfirmed_title">Kon het opslaan niet bevestigen</string>
+    <string name="annotation_save_unconfirmed_message">MJ PDF heeft je wijzigingen opgeslagen maar kon niet bevestigen dat het bestand correct is weggeschreven. Je wijzigingen staan nog in de app, er is dus niets verloren gegaan. Kies Kopie opslaan om ze zeker naar een andere locatie weg te schrijven.</string>
+    <string name="annotation_save_failed_message">Je wijzigingen staan nog in de app, er is dus niets verloren gegaan. Het originele bestand is niet gewijzigd. Kies Kopie opslaan om ze naar een andere locatie weg te schrijven.</string>
+    <string name="annotation_save_failed_rescue_message">Je wijzigingen staan nog in de app, er is dus niets verloren gegaan. Het originele bestand is niet gewijzigd, en een voltooide kopie is als %1$s in de app bewaard. Kies Kopie opslaan om ze naar een andere locatie weg te schrijven.</string>
+    <string name="annotation_save_failed_title">Kon wijzigingen niet opslaan</string>
+    <string name="annotation_save_copy_action">Kopie opslaan</string>
+    <string name="home_title_annotated">%1$s (geannoteerd)</string>
+    <string name="share_text_no_link">De gedeelde tekst bevat geen koppeling om te openen</string>
 </resources>
