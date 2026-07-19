@@ -16,6 +16,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.reader.load.PreviewDiskCoordinator
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
+import com.gitlab.mudlej.MjPdfReader.data.OnlineDocumentStore
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfAnnotationSaveDestination
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
@@ -23,8 +24,10 @@ import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.PermissionManager
 import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
+import com.gitlab.mudlej.MjPdfReader.core.io.canWriteToDownloadFolder
 import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.gitlab.mudlej.MjPdfReader.core.io.getFileName
+import com.gitlab.mudlej.MjPdfReader.core.io.publicDownloadsCopy
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
@@ -174,6 +177,13 @@ class AnnotationSaveController(
     }
 
     private fun directWriteDestination(sourceUri: Uri): Uri? {
+        if (sourceUri.scheme?.startsWith("http") == true) {
+            if (!canWriteToDownloadFolder(activity)) {
+                return null
+            }
+            val downloadsCopy = publicDownloadsCopy(pdf.name)?.takeIf { it.canWrite() } ?: return null
+            return Uri.fromFile(downloadsCopy)
+        }
         if (!PermissionManager.hasFullAccess(activity)) {
             return null
         }
@@ -280,6 +290,9 @@ class AnnotationSaveController(
                         }
                     }
                     annotationController.clearJournal(sourceUri)
+                    if (sourceUri.scheme?.startsWith("http") == true && destinationUri.scheme == "file") {
+                        refreshOnlineCacheCopy(destinationUri, sourceUri)
+                    }
                     outcome = SaveOutcome.Success(
                         destinationUri = destinationUri,
                         destinationName = destinationName,
@@ -339,6 +352,15 @@ class AnnotationSaveController(
         val postSaveAction = pendingPostSaveAction
         pendingPostSaveAction = null
         postSaveAction?.invoke()
+    }
+
+    private suspend fun refreshOnlineCacheCopy(destinationUri: Uri, sourceUri: Uri) = withContext(Dispatchers.IO) {
+        runCatching {
+            val saved = destinationUri.path?.let { File(it) }?.takeIf { it.isFile } ?: return@runCatching
+            saved.inputStream().use { input ->
+                OnlineDocumentStore.write(activity, sourceUri.toString(), vm.incognito, input)
+            }
+        }
     }
 
     private suspend fun writeDocumentToSaf(destinationUri: Uri): WriteResult = withContext(Dispatchers.IO) {

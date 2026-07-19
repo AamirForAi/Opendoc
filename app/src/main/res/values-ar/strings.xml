@@ -260,6 +260,8 @@
     <string name="code">الكود</string>
     <string name="share">مشاركة</string>
     <string name="share_file">مشاركة الملف</string>
+    <string name="share_link_option">مشاركة الرابط</string>
+    <string name="share_pdf_option">مشاركة ملف PDF</string>
     <string name="print_file">طباعة الملف</string>
     <string name="full_screen">شاشة كاملة</string>
     <string name="none">بلا</string>
@@ -512,8 +514,8 @@
     <string name="discard_unsaved_highlights_message">ستُزال التغييرات غير المحفوظة من المستند.</string>
     <string name="unsaved_highlights_prompt">حفظ التغييرات قبل مغادرة هذا المستند؟</string>
     <string name="save_highlights">حفظ التغييرات</string>
-    <string name="update_existing_file">تحديث الملف الحالي</string>
-    <string name="save_as_new_copy">حفظ كنسخة جديدة</string>
+    <string name="update_existing_file">تحديث الملف نفسه</string>
+    <string name="save_as_new_copy">حفظ كملف جديد</string>
     <string name="saved_copy_found">تم العثور على نسخة محفوظة</string>
     <string name="saved_copy_found_message">يطابق هذا المستند ملف PDF حفظته سابقًا. حدّث تلك النسخة المحفوظة في المرة القادمة، أو احفظ كنسخة جديدة؟</string>
     <string name="highlights_saved">تم حفظ التغييرات</string>
@@ -713,6 +715,7 @@
     <string name="pdf_produced_by">أنتج بواسطة</string>
     <string name="pdf_file_size">حجم الملف</string>
     <string name="pdf_file_name">اسم الملف</string>
+    <string name="pdf_file_path">مسار الملف</string>
     <string name="pdf_page_size">حجم الصفحة</string>
     <string name="pdf_page_size_mixed">مختلط</string>
     <string name="pdf_fonts">الخطوط</string>

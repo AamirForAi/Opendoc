@@ -260,6 +260,8 @@
     <string name="code">Código fuente</string>
     <string name="share">Compartir</string>
     <string name="share_file">Compartir archivo</string>
+    <string name="share_link_option">Compartir el enlace</string>
+    <string name="share_pdf_option">Compartir el archivo PDF</string>
     <string name="print_file">Imprimir archivo</string>
     <string name="full_screen">Pantalla completa</string>
     <string name="none">Ninguno</string>
@@ -512,8 +514,8 @@
     <string name="discard_unsaved_highlights_message">Los cambios no guardados se eliminarán del documento.</string>
     <string name="unsaved_highlights_prompt">¿Guardar sus cambios antes de salir de este documento?</string>
     <string name="save_highlights">Guardar cambios</string>
-    <string name="update_existing_file">Actualizar archivo existente</string>
-    <string name="save_as_new_copy">Guardar como nueva copia</string>
+    <string name="update_existing_file">Actualizar el mismo archivo</string>
+    <string name="save_as_new_copy">Guardar como archivo nuevo</string>
     <string name="saved_copy_found">Copia guardada encontrada</string>
     <string name="saved_copy_found_message">Este documento coincide con un PDF que guardó anteriormente. Actualice esa copia guardada la próxima vez, o guárdelo como una nueva copia?</string>
     <string name="highlights_saved">Cambios guardados</string>
@@ -713,6 +715,7 @@
     <string name="pdf_produced_by">Producido Por</string>
     <string name="pdf_file_size">Tamaño del Archivo</string>
     <string name="pdf_file_name">Nombre del Archivo</string>
+    <string name="pdf_file_path">Ruta del Archivo</string>
     <string name="pdf_page_size">Tamaño de página</string>
     <string name="pdf_page_size_mixed">Mezclado</string>
     <string name="pdf_fonts">Fuentes</string>

@@ -260,6 +260,8 @@
     <string name="code">Code source</string>
     <string name="share">Partager</string>
     <string name="share_file">Partager le fichier</string>
+    <string name="share_link_option">Partager le lien</string>
+    <string name="share_pdf_option">Partager le fichier PDF</string>
     <string name="print_file">Imprimer le fichier</string>
     <string name="full_screen">Plein écran</string>
     <string name="none">Aucun</string>
@@ -512,8 +514,8 @@
     <string name="discard_unsaved_highlights_message">Les modifications non enregistrées seront retirées du document.</string>
     <string name="unsaved_highlights_prompt">Enregistrer vos modifications avant de quitter ce document ?</string>
     <string name="save_highlights">Enregistrer les modifications</string>
-    <string name="update_existing_file">Mettre à jour le fichier existant</string>
-    <string name="save_as_new_copy">Enregistrer comme nouvelle copie</string>
+    <string name="update_existing_file">Mettre à jour le fichier lui-même</string>
+    <string name="save_as_new_copy">Enregistrer comme nouveau fichier</string>
     <string name="saved_copy_found">Copie enregistrée trouvée</string>
     <string name="saved_copy_found_message">Ce document correspond à un PDF que vous avez enregistré auparavant. Mettre à jour cette copie enregistrée, ou enregistrer comme nouvelle copie ?</string>
     <string name="highlights_saved">Modifications enregistrées</string>
@@ -713,6 +715,7 @@
     <string name="pdf_produced_by">Produit par</string>
     <string name="pdf_file_size">Taille du fichier</string>
     <string name="pdf_file_name">Nom du fichier</string>
+    <string name="pdf_file_path">Chemin du fichier</string>
     <string name="pdf_page_size">Taille de page</string>
     <string name="pdf_page_size_mixed">Mixte</string>
     <string name="pdf_fonts">Polices</string>

@@ -274,6 +274,8 @@
 
     <string name="share">Share</string>
     <string name="share_file">Share</string>
+    <string name="share_link_option">Share the link</string>
+    <string name="share_pdf_option">Share the PDF file</string>
     <string name="share_text_no_link">The shared text has no link to open</string>
     <string name="print_file">Print</string>
     <string name="print_cannot_print">Couldn\'t prepare this PDF for printing.</string>
@@ -579,8 +581,8 @@
     <string name="discard_unsaved_highlights_message">Unsaved changes will be removed from the document.</string>
     <string name="unsaved_highlights_prompt">Save your changes before leaving this document?</string>
     <string name="save_highlights">Save changes</string>
-    <string name="update_existing_file">Update existing file</string>
-    <string name="save_as_new_copy">Save as new copy</string>
+    <string name="update_existing_file">Update the same file</string>
+    <string name="save_as_new_copy">Save as a new file</string>
     <string name="saved_copy_found">Saved copy found</string>
     <string name="saved_copy_found_message">This document matches a PDF you saved before. Update that saved copy next time, or save as a new copy?</string>
     <string name="highlights_saved">Changes saved</string>
@@ -786,6 +788,7 @@
     <string name="pdf_produced_by">Produced By</string>
     <string name="pdf_file_size">File Size</string>
     <string name="pdf_file_name">File Name</string>
+    <string name="pdf_file_path">File Path</string>
     <string name="pdf_page_size">Page Size</string>
     <string name="pdf_page_size_mixed">Mixed</string>
     <string name="pdf_fonts">Fonts</string>

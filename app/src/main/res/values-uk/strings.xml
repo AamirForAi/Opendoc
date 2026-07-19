@@ -260,6 +260,8 @@
     <string name="code">Вихідний код</string>
     <string name="share">Поділитися</string>
     <string name="share_file">Поділитися</string>
+    <string name="share_link_option">Поділитися посиланням</string>
+    <string name="share_pdf_option">Поділитися PDF-файлом</string>
     <string name="print_file">Надрукувати</string>
     <string name="full_screen">На весь екран</string>
     <string name="none">Немає</string>
@@ -512,8 +514,8 @@
     <string name="discard_unsaved_highlights_message">Незбережені зміни будуть видалені з документа.</string>
     <string name="unsaved_highlights_prompt">Зберегти ваші зміни перед тим, як закрити цей документ?</string>
     <string name="save_highlights">Зберегти зміни</string>
-    <string name="update_existing_file">Оновити наявний файл</string>
-    <string name="save_as_new_copy">Зберегти як нову копію</string>
+    <string name="update_existing_file">Оновити той самий файл</string>
+    <string name="save_as_new_copy">Зберегти як новий файл</string>
     <string name="saved_copy_found">Знайдено збережену копію</string>
     <string name="saved_copy_found_message">Цей документ збігається з PDF-файлом, який ви зберегли раніше. Оновити збережену копію наступного разу чи зберегти як нову?</string>
     <string name="highlights_saved">Зміни збережено</string>
@@ -713,6 +715,7 @@
     <string name="pdf_produced_by">Розроблено:</string>
     <string name="pdf_file_size">Розмір файлу</string>
     <string name="pdf_file_name">Назва файлу</string>
+    <string name="pdf_file_path">Шлях до файлу</string>
     <string name="pdf_page_size">Розмір сторінки</string>
     <string name="pdf_page_size_mixed">Змішаний</string>
     <string name="pdf_fonts">Шрифти</string>

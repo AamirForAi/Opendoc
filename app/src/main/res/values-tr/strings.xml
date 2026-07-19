@@ -260,6 +260,8 @@
     <string name="code">Kaynak Kodu</string>
     <string name="share">Paylaş</string>
     <string name="share_file">Dosya Paylaş</string>
+    <string name="share_link_option">Bağlantıyı Paylaş</string>
+    <string name="share_pdf_option">PDF Dosyasını Paylaş</string>
     <string name="print_file">Dosya Yazdır</string>
     <string name="full_screen">Tam Ekran</string>
     <string name="none">Hiçbiri</string>
@@ -512,8 +514,8 @@
     <string name="discard_unsaved_highlights_message">Kaydedilmemiş değişiklikler belgeden kaldırılacak.</string>
     <string name="unsaved_highlights_prompt">Bu belgeden ayrılmadan önce değişiklikleriniz kaydedilsin mi?</string>
     <string name="save_highlights">Değişiklikleri kaydet</string>
-    <string name="update_existing_file">Mevcut dosyayı güncelle</string>
-    <string name="save_as_new_copy">Yeni kopya olarak kaydet</string>
+    <string name="update_existing_file">Aynı dosyayı güncelle</string>
+    <string name="save_as_new_copy">Yeni dosya olarak kaydet</string>
     <string name="saved_copy_found">Kaydedilmiş kopya bulundu</string>
     <string name="saved_copy_found_message">Bu belge daha önce kaydettiğiniz bir PDF ile eşleşiyor. Bir dahaki sefere o kaydedilmiş kopyayı güncelleyin veya yeni kopya olarak kaydedin?</string>
     <string name="highlights_saved">Değişiklikler kaydedildi</string>
@@ -713,6 +715,7 @@
     <string name="pdf_produced_by">Üreten</string>
     <string name="pdf_file_size">Dosya Boyutu</string>
     <string name="pdf_file_name">Dosya Adı</string>
+    <string name="pdf_file_path">Dosya Yolu</string>
     <string name="pdf_page_size">Sayfa boyutu</string>
     <string name="pdf_page_size_mixed">Karışık</string>
     <string name="pdf_fonts">Yazı tipleri</string>

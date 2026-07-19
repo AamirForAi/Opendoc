@@ -36,9 +36,11 @@ import com.gitlab.mudlej.MjPdfReader.data.*
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeActivity
+import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
 import com.gitlab.mudlej.MjPdfReader.core.io.imageShareIntent
 import com.gitlab.mudlej.MjPdfReader.core.io.pdfShareIntent
 import com.gitlab.mudlej.MjPdfReader.core.io.plainTextShareIntent
+import com.gitlab.mudlej.MjPdfReader.core.io.publicDownloadsCopy
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.ui.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoNightMode
@@ -53,6 +55,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsPage
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.shockwave.pdfium.PdfPasswordException
+import java.io.File
 import java.io.FileNotFoundException
 import kotlin.system.exitProcess
 import kotlinx.coroutines.Dispatchers
@@ -482,7 +485,13 @@ class MainActivity : AppCompatActivity(), ReaderUi {
             return
         }
         if (uri.scheme != null && uri.scheme!!.startsWith("http")) {
-            startShareIntent(plainTextShareIntent(getString(R.string.share_file), pdf.uri.toString()))
+            val localCopy = OnlineDocumentStore.fileFor(this, pdf.uri?.toString())
+                ?: publicDownloadsCopy(pdf.name)
+            if (localCopy == null) {
+                startShareIntent(plainTextShareIntent(getString(R.string.share_file), pdf.uri.toString()))
+            } else {
+                showShareChoiceDialog(localCopy)
+            }
             return
         }
         if (asImage) {
@@ -493,6 +502,25 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         lifecycleScope.launch {
             startShareIntent(pdfShareIntent(this@MainActivity, uri, pdf.name))
         }
+    }
+
+    private fun showShareChoiceDialog(localCopy: File) {
+        val options = arrayOf(
+            getString(R.string.share_link_option),
+            getString(R.string.share_pdf_option),
+        )
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.share_file)
+            .setItems(options) { _, which ->
+                if (which == 0) {
+                    startShareIntent(plainTextShareIntent(getString(R.string.share_file), pdf.uri.toString()))
+                } else {
+                    lifecycleScope.launch {
+                        startShareIntent(pdfShareIntent(this@MainActivity, Uri.fromFile(localCopy), pdf.name))
+                    }
+                }
+            }
+            .show()
     }
 
     private fun startShareIntent(sharingIntent: Intent) {
@@ -714,6 +742,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         val uri = pdf.uri
         lifecycleScope.launch {
             val fileSizeBytes = withContext(Dispatchers.IO) { queryFileSizeBytes(uri) }
+            val filePath = withContext(Dispatchers.IO) { resolveDisplayFilePath(uri) }
             val pageSize = withContext(Dispatchers.Default) {
                 PdfPropertiesSummary.formatPageSizes(binding.pdfView, getString(R.string.pdf_page_size_mixed))
             }
@@ -724,8 +753,18 @@ class MainActivity : AppCompatActivity(), ReaderUi {
                     getString(R.string.font_not_embedded),
                 )
             }
-            showMetaDialog(this@MainActivity, binding.pdfView.documentMeta, pdf.name, fileSizeBytes, pageSize, fonts)
+            showMetaDialog(this@MainActivity, binding.pdfView.documentMeta, pdf.name, fileSizeBytes, pageSize, fonts, filePath)
         }
+    }
+
+    private fun resolveDisplayFilePath(uri: Uri?): String? {
+        if (uri == null) {
+            return null
+        }
+        if (uri.scheme?.startsWith("http") == true) {
+            return publicDownloadsCopy(pdf.name)?.absolutePath
+        }
+        return UriCanonicalizer.canonicalize(this, uri)?.absolutePath
     }
 
     private fun queryFileSizeBytes(uri: Uri?): Long? {

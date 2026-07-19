@@ -260,6 +260,8 @@
     <string name="code">Исходный код</string>
     <string name="share">Поделиться</string>
     <string name="share_file">Поделиться файлом</string>
+    <string name="share_link_option">Поделиться ссылкой</string>
+    <string name="share_pdf_option">Поделиться PDF-файлом</string>
     <string name="print_file">Печать файла</string>
     <string name="full_screen">Полный экран</string>
     <string name="none">Нет</string>
@@ -512,8 +514,8 @@
     <string name="discard_unsaved_highlights_message">Несохранённые изменения будут удалены из документа.</string>
     <string name="unsaved_highlights_prompt">Сохранить изменения перед выходом из этого документа?</string>
     <string name="save_highlights">Сохранить изменения</string>
-    <string name="update_existing_file">Обновить существующий файл</string>
-    <string name="save_as_new_copy">Сохранить как новую копию</string>
+    <string name="update_existing_file">Обновить тот же файл</string>
+    <string name="save_as_new_copy">Сохранить как новый файл</string>
     <string name="saved_copy_found">Найдена сохранённая копия</string>
     <string name="saved_copy_found_message">Этот документ соответствует PDF, который вы сохранили ранее. Обновите эту сохранённую копию в следующий раз или сохраните как новую копию?</string>
     <string name="highlights_saved">Изменения сохранены</string>
@@ -713,6 +715,7 @@
     <string name="pdf_produced_by">Произведено</string>
     <string name="pdf_file_size">Размер файла</string>
     <string name="pdf_file_name">Имя файла</string>
+    <string name="pdf_file_path">Путь к файлу</string>
     <string name="pdf_page_size">Размер страницы</string>
     <string name="pdf_page_size_mixed">Смешанный</string>
     <string name="pdf_fonts">Шрифты</string>
