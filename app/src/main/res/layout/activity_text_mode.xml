@@ -1,85 +1,211 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Written by Mudlej. License is GPLv3. -->
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/textModeRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".ui.text_mode.TextModeActivity">
 
-    <androidx.appcompat.widget.LinearLayoutCompat
-        android:id="@+id/textLayout"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:orientation="vertical"
-        android:paddingHorizontal="10dp"
-        android:background="@drawable/bookmark_list_item_background"
-        app:layout_constraintBottom_toTopOf="@id/buttonsLayout"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <ScrollView
-            android:id="@+id/pageTextScrollView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_weight="1">
-
-            <TextView
-                android:id="@+id/pageTextView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textIsSelectable="true"
-                android:textSize="16sp"
-                tools:ignore="TouchTargetSizeCheck"
-                tools:text="page content" />
-        </ScrollView>
-    </androidx.appcompat.widget.LinearLayoutCompat>
-
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/buttonsLayout"
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingVertical="6dp"
-        android:gravity="center"
-        app:layout_constraintTop_toBottomOf="@id/textLayout"
-        app:layout_constraintStart_toStartOf="parent"
+        android:indeterminate="true"
+        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/prevButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/prev_page"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/nextButton"
-            android:layout_marginEnd="5dp"/>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/textPagesRecyclerView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingVertical="12dp"
+        android:scrollbars="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/progressBar" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/nextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/next_page"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@id/prevButton"
-            app:layout_constraintEnd_toStartOf="@id/pageCounter" />
+    <TextView
+        android:id="@+id/message"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="24dp"
+        android:text="@string/loading"
+        android:textSize="20sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/progressBar" />
 
-        <TextView
-            android:id="@+id/pageCounter"
-            android:layout_width="wrap_content"
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/readerControlsCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="12dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="6dp"
+        app:cardUseCompatPadding="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintWidth_max="@dimen/text_mode_controls_max_width"
+        app:rippleColor="@android:color/transparent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="10dp"
-            android:layout_gravity="center"
-            android:textSize="24sp"
-            tools:text="Page: 45/504"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@id/nextButton"
-            app:layout_constraintEnd_toEndOf="parent" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            android:orientation="vertical"
+            android:paddingHorizontal="10dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="16dp">
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/pageSlider"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:stepSize="1"
+                android:valueFrom="1"
+                android:valueTo="2" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/previousPageButton"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="4dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:minHeight="48dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="8dp"
+                        android:text="@string/text_mode_previous_short"
+                        android:textSize="14sp"
+                        app:icon="@drawable/ic_double_arrow_left"
+                        app:iconGravity="textStart"
+                        app:iconPadding="4dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/pageButton"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="4dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:minHeight="48dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="8dp"
+                        android:text="@string/page_number"
+                        android:textSize="14sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/nextPageButton"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="4dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:minHeight="48dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="8dp"
+                        android:text="@string/text_mode_next_short"
+                        android:textSize="14sp"
+                        app:icon="@drawable/ic_double_arrow_right"
+                        app:iconGravity="textEnd"
+                        app:iconPadding="4dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/tableOfContentsButton"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="4dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:minHeight="48dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="8dp"
+                        android:text="@string/text_mode_table_short"
+                        android:textSize="14sp"
+                        app:icon="@drawable/ic_book_bookmark"
+                        app:iconGravity="textStart"
+                        app:iconPadding="4dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/typographyButton"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="4dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:minHeight="48dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="8dp"
+                        android:text="@string/text_mode_settings_short"
+                        android:textSize="14sp"
+                        app:icon="@drawable/ic_display_settings"
+                        app:iconGravity="textStart"
+                        app:iconPadding="4dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/backToPdfButton"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="4dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:minHeight="48dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="8dp"
+                        android:text="@string/text_mode_pdf_short"
+                        android:textSize="14sp"
+                        app:icon="@drawable/ic_elevated_pdf"
+                        app:iconGravity="textStart"
+                        app:iconPadding="4dp" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

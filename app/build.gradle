@@ -50,8 +50,8 @@ android {
         minSdkVersion 23
         compileSdkVersion 36
         targetSdkVersion 36
-        versionCode 56
-        versionName "2.2.1"
+        versionCode 57
+        versionName "3.0.0"
         multiDexEnabled = true
         vectorDrawables.useSupportLibrary = true
 
@@ -73,6 +73,20 @@ android {
         jniLibs {
             useLegacyPackaging = true
         }
+    }
+
+    splits {
+        abi {
+            enable gradle.startParameter.taskNames.any { it.toLowerCase(Locale.ROOT).contains('release') }
+            reset()
+            include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
+            universalApk true
+        }
+    }
+
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     buildTypes {
@@ -101,6 +115,22 @@ android {
     }
 }
 
+def abiVersionOffsets = ['armeabi-v7a': 1, 'arm64-v8a': 2, 'x86': 3, 'x86_64': 4]
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        variant.outputs.each { output ->
+            def abi = output.filters.find {
+                it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI
+            }?.identifier
+            def offset = abiVersionOffsets[abi]
+            if (offset != null) {
+                output.versionCode.set(offset * 1000 + android.defaultConfig.versionCode)
+            }
+        }
+    }
+}
+
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
@@ -109,6 +139,8 @@ dependencies {
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib:2.4.0"
     implementation 'androidx.preference:preference-ktx:1.2.1'
+    implementation 'androidx.documentfile:documentfile:1.1.0'
+    implementation 'androidx.work:work-runtime-ktx:2.10.1'
 
     // Activity
     api 'androidx.activity:activity-ktx:1.13.0'
@@ -128,12 +160,10 @@ dependencies {
 
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'androidx.viewpager2:viewpager2:1.1.0'
 
     // Material Design
     implementation 'com.google.android.material:material:1.14.0'
-
-    // Intro Library
-    implementation 'com.github.paolorotolo:appintro:v5.1.0'
 
     // MJ PDF's fork of
     implementation project(':AndroidPdfViewer:android-pdf-viewer')
@@ -144,14 +174,16 @@ dependencies {
     // kotlin coroutines
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'
 
-    // A color picker for Android by Hong Duan
-    implementation 'com.github.duanhong169:colorpicker:1.1.6'
 
     //  required fir desugar for LocalDateTime with old APIs
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 
 
     // Area Crash Reporter
-    implementation 'ch.acra:acra-dialog:5.13.1'
-    implementation("ch.acra:acra-http:5.13.1")
+    implementation('ch.acra:acra-dialog:5.13.1') {
+        exclude group: 'com.google.auto.service', module: 'auto-service'
+    }
+    implementation('ch.acra:acra-http:5.13.1') {
+        exclude group: 'com.google.auto.service', module: 'auto-service'
+    }
 }

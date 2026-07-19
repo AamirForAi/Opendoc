@@ -1,9 +1,8 @@
 import os
 import shutil
 import subprocess
+import sys
 import tarfile
-
-import requests
 
 from build_dependencies.values import LIB_DIR_PATH, ARCH_NAMES, DEFAULT_TOOLCHAIN, ANDROID_TOOLCHAIN_FILENAME, \
     get_toolchain_path, FILE_NAMES, Lib
@@ -22,7 +21,7 @@ def run_cmd(cmd):
 
 def error(msg):
     log("Error !!! " + msg)
-    os.sys.exit(0)
+    os.sys.exit(1)
 
 
 def log(msg):
@@ -40,6 +39,8 @@ def delete_file_if_exists(path):
 
 
 def download_file(url, filename=None, show_done_message=False):
+    import requests
+
     if not filename:
         filename = url.split('/')[-1] + ".tar.xz"
 
@@ -106,6 +107,11 @@ def get_shared_cpp_libs_path():
 
     log(f"Couldn't find {FILE_NAMES[Lib.cpp_shared]} libs at {path}")
     log("Hint: you can try yo find the path  using 'find / -name libc++_shared.so 2>/dev/null'")
+
+    if not sys.stdin.isatty():
+        error(f"Couldn't find {FILE_NAMES[Lib.cpp_shared]} libs at {path} and no interactive terminal "
+              f"is available to enter the path manually.")
+
     alternative_cpp_path = input("Enter the path manually: ")
     if os.path.exists(alternative_cpp_path):
         return alternative_cpp_path
