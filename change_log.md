@@ -44,6 +44,15 @@
     * Double tap to exit now applies only to documents opened from outside the app.
     * Double tap to exit is now disabled by default.
     * Pinned launcher shortcuts keep working across future app updates.
+    * Books can be deleted straight from Home search results, and the results refresh immediately.
+    * The Home app bar no longer darkens while scrolling.
+    * Selecting multiple books keeps the app bar and status bar colors consistent.
+    * The Recent tab shows the storage permission card whenever unreadable books need access.
+    * Books fixable by the storage permission appear dimmed everywhere, and tapping one opens the grant flow.
+    * Books missing for other reasons are hidden and return automatically once readable again.
+    * After each scan, broken records re link to rediscovered files by content hash, keeping their progress.
+    * Continue Reading only ever shows openable books.
+    * The Continue Reading label shows the percent plus the current page over the total.
   * Library Cards:
     * One unified card design across the Recent, Library, and Folders tabs.
     * Cards show reading position, or total page count when unread.
@@ -61,6 +70,10 @@
     * A placeholder cover is shown for unreadable or password protected files.
     * Covers reload immediately when storage access is granted.
     * Covers and page counts work for files opened through the system picker.
+    * Five badge switches with a List Card Badges dialog choose what list rows show.
+    * Grid and list title line counts and the truncation position are configurable.
+    * Selecting a book shows a bold check badge that stays visible on any cover.
+    * Selected books gently dim, making the selection obvious at a glance.
   * Book Options Dialog:
     * Every card opens a per book options dialog.
     * The dialog shows a cover header, full PDF properties, progress, and a status picker.
@@ -141,6 +154,8 @@
     * A global option always hides margins for all PDFs.
     * Applying or removing the crop keeps your reading position.
     * Hide and Show Margins are available as reader and fullscreen buttons.
+    * Changing the global setting now applies to the open document as soon as settings close.
+    * A manual toggle made in the reader survives unrelated settings visits.
   * Auto Scroll:
     * Auto scroll moves by real elapsed time, so speed is consistent on every device.
     * It ticks on the display's frame clock instead of a timer loop.
@@ -191,6 +206,9 @@
     * Tapping the scroll handle now actually shows the go to page dialog.
     * Improved the page display on the scroll handle.
     * An option shows or hides page numbers on the scroll handle.
+    * Reloading a document no longer flashes stale page content.
+    * A swipe cancelled by the system no longer stalls background loading.
+    * The scroll handle shows the full row range in dual page mode.
   * Text Selection:
     * Live inline text selection with larger, easier to grab handles.
     * Selection handles have a bigger touch target.
@@ -202,6 +220,8 @@
     * The Share button renders the selected quote as a square image.
     * Quote images show book name, author, an optional made by mark, and three themes.
     * A reflow option reshapes the quoted text in the image.
+    * RTL selection carets mirror with their anchor side.
+    * Double tap selects whole vocalized Arabic words.
   * Highlights and Notes:
     * Highlight text and save real highlight annotations into the PDF itself.
     * Save into the file or as a copy.
@@ -233,6 +253,8 @@
     * Saving and discarding are two clear buttons that appear only with unsaved changes.
     * Both grey out while saving and a progress bar runs until the save finishes.
     * Highlights save off the main thread, so the interface never freezes.
+    * Share quotes are capped at 400 characters, trimmed at a word boundary, with a notice when shortened.
+    * RTL quotes draw upright with correct paragraph direction and mirrored marks.
   * Signatures:
     * Draw a signature and place it on any page.
     * Signatures can be moved and resized before saving.
@@ -247,6 +269,8 @@
     * Fill in PDF form fields.
     * Form edits no longer reload the page on every change.
     * A tap tolerance makes checkboxes easier to hit.
+    * The fill in dialog shows the field's readable label instead of an internal path.
+    * Fields without a label show their short name, and unnamed fields a generic title.
   * Saving and Files:
     * Updating the existing file writes directly to it when possible, with no picker.
     * Documents opened through the picker or other apps update in place when reachable.
@@ -258,6 +282,21 @@
     * Closed the window where crop or reload could lose unsaved highlights.
     * Printing downloaded PDFs now works.
     * File identity is stable for cloud files.
+    * Saving confirms with Changes saved, covering highlights, signatures, and form fillings.
+    * The save options now read Update the same file and Save as a new file.
+    * Saving can no longer damage the original file if the write fails, and failed saves keep every edit and offer saving a copy.
+    * Interrupted saves finish in the background instead of freezing the save controls.
+    * Downloaded online PDFs open right away and file into Downloads in the background.
+    * Saving a link opened PDF updates its Downloads copy directly, with no picker.
+    * Reopening the same link shows the saved changes.
+    * Sharing a link opened PDF asks whether to share the link or the PDF file.
+    * Sharing a link opens it as an online PDF, including repeated shares.
+    * Temporarily shared PDFs are copied to Documents/MJ PDF, and the copy becomes their permanent location.
+    * The copy happens only for provably temporary shares, with a switch in History and Privacy.
+    * Reopening a dead share opens the saved copy or a library match, or offers a verified locate dialog.
+    * History records remember the original share link so stale entries find their saved copy.
+    * Shared files always carry the .pdf extension so other apps recognize them.
+    * File Properties shows the file path when the document has a real on disk location.
   * Text Mode:
     * The old Text Mode was replaced with a dedicated Text Mode page.
     * The current page stays in sync between the PDF and Text Mode.
@@ -283,6 +322,11 @@
     * The page slider seeks through pages live while dragging.
     * Controls are constrained on large screens so they stay reachable.
     * An option opens PDFs in Text Mode by default.
+    * Tapping the page slider jumps to the tapped page, and releasing a drag lands reliably.
+    * Slider gestures interrupted by the system no longer jolt the page.
+    * Page jumps settle exactly on the target page.
+    * Vocalized Arabic text keeps its marks attached and ordered.
+    * Hyphen wrapped words are rejoined and search offsets stay exact.
   * Search:
     * Results stream in while pages are scanned, instead of appearing at the end.
     * The scan keeps running after you pick a result.
@@ -313,6 +357,9 @@
     * Search highlights no longer double draw in dark mode.
     * Search highlight cleanup can no longer delete real highlights.
     * Big performance improvements on the search page.
+    * Closing search cleans up leftover markers.
+    * A hit that cannot be highlighted shows a brief notice without ending navigation.
+    * Navigating results no longer reloads the whole document per hit.
   * Table of Contents and Links:
     * Search inside the Table of Contents matches titles and page numbers.
     * Matching ancestors stay visible and matching branches expand automatically.
@@ -379,6 +426,7 @@
     * It falls back to the translator when no definition exists.
     * A define single words toggle controls this behavior.
     * The dictionary can be removed again from settings.
+    * With no translator app installed, a dialog explains the choices and leads to picking a web translator.
   * Privacy and Incognito:
     * A strict per session incognito mode.
     * Incognito saves nothing: no history, positions, passwords, titles, or reading settings.
@@ -402,6 +450,8 @@
     * Confirm guarded clear actions for history, passwords, bookmarks, and recovery data.
     * Clearing recovery data also removes the stored signature.
     * Deleting a record now removes its bookmarks, recovery data, and save destination too.
+    * Private and password documents never leave recovery copies on disk.
+    * Exiting incognito no longer leaves the app stuck in the dark theme.
   * Backup and Restore:
     * Export and import settings, reading history, and app data.
     * An options dialog picks what to export.
@@ -428,6 +478,19 @@
     * Device specific settings like the backup folder are never exported or overwritten.
     * Malformed backup files report a clear invalid file message.
     * Import and export cannot be interrupted midway by navigation.
+    * Every backup is verified by reading it back before it is declared successful.
+    * Interrupted exports can no longer leave corrupt files, and leftovers are swept automatically.
+    * Scheduled backups run even when the app is closed, with retries before reporting failure.
+    * Only automatic backups are pruned, manual backups are never auto deleted.
+    * Importing first writes a verified safety snapshot, restorable at any time from settings.
+    * The restore is atomic, a crash mid import can no longer wipe the library.
+    * Restored settings are validated, bad values self heal to defaults.
+    * Failed or stalled automatic backups surface as a notice with a shortcut to backup settings.
+    * Import runs in the background with progress and a one time summary of what was restored.
+    * Backups use an explicit fixed format that release builds can never corrupt, and the broken release's file imports again.
+    * Every export proves the file can be fully imported, and unreadable backups are rejected up front.
+    * Restoring a backup no longer replays old annotations onto documents.
+    * All backup errors are specific and translatable.
   * Settings:
     * Settings reorganized into searchable pages.
     * Pages: Appearance, Reading, Controls, Text, Highlighting, History and Privacy, and Advanced.
@@ -439,6 +502,8 @@
     * A Translation and Dictionary page.
     * Selection dialogs share one full width row style with ripple.
     * Removed the obsolete long press copy dialog setting.
+    * The settings page was reorganized.
+    * The chosen light or dark theme applies immediately on app start.
   * Design:
     * Material You dynamic colors across the whole app.
     * Consistent theming and colors everywhere.
@@ -467,10 +532,13 @@
     * The home permission card got proper top spacing.
     * Go To Page and All Pages follow the selected theme.
     * Improved accessibility support.
+    * The finalized V3 logo, with a vector version on the welcome and About pages.
+    * Release notes appear once after each update, with a link to the release.
   * Languages:
     * Added Italian, Dutch, French, Simplified Chinese, Persian, Polish, and Ukrainian translations.
     * Updated the existing translations.
     * Cleaned up the merged community translations.
+    * All fourteen partial translations were completed, and every new text is translated.
   * Performance:
     * The PDF engine is now built for speed instead of size.
     * This fixes a years old rendering slowdown, and pages render noticeably faster.
@@ -493,6 +561,12 @@
     * Contents rows recycle individually instead of rebuilding the whole tree.
     * A batched native call fetches character geometry and font data in one pass.
     * Text extraction uses a bounded cache with safe page lifecycle handling.
+    * Rendering is chunked and cancellable, so stale work stops in milliseconds.
+    * Every page gets a render once preview, cached in memory and on disk, drawn under the tiles.
+    * An idle sweep pre renders previews for the whole book, yielding instantly to interaction.
+    * Preview resolution adapts to the device, with smaller previews on low memory phones.
+    * Saving previews to disk no longer causes dropped frames.
+    * Toggling the night theme repaints instead of re rendering everything.
   * Fixes:
     * The database moved out of the cache directory.
     * History, passwords, and progress no longer vanish when the cache is cleared.
@@ -537,6 +611,9 @@
     * Cancelling that picker exits the app, so back twice still leaves.
     * The double tap to exit prompt still comes first when enabled.
     * The toolbar home arrow updates immediately after toggling the Home setting.
+    * Fixed a memory corruption risk when closing pages of form documents.
+    * A failed database relocation recovers on the next launch.
+    * A stale form field indicator no longer lingers after form edits.
   * Development:
     * Updated to Android SDK 36, Gradle 9.5, Kotlin 2.4, and AGP 9.
     * Raised the minimum Android version from 5.0 to 6.0.
