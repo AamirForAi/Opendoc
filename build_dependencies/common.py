@@ -1,3 +1,4 @@
+import hashlib
 import os
 import shutil
 import subprocess
@@ -38,7 +39,7 @@ def delete_file_if_exists(path):
         os.remove(path)
 
 
-def download_file(url, filename=None, show_done_message=False):
+def download_file(url, filename=None, show_done_message=False, sha256=None):
     import requests
 
     if not filename:
@@ -51,6 +52,18 @@ def download_file(url, filename=None, show_done_message=False):
         with open(filename, 'wb') as file:
             for chunk in request.iter_content(chunk_size=1024):
                 file.write(chunk)
+
+    if sha256:
+        digest = hashlib.sha256()
+        with open(filename, 'rb') as file:
+            for chunk in iter(lambda: file.read(8192), b""):
+                digest.update(chunk)
+        actual = digest.hexdigest()
+        if actual.lower() != sha256.lower():
+            error(f"SHA256 mismatch for {filename}\n"
+                  f"      expected: {sha256}\n"
+                  f"      actual:   {actual}\n"
+                  f"Hint: a wrong or corrupted download such as an HTML mirror page can cause this.")
 
     if show_done_message:
         print(f"* Finished downloading {filename}")

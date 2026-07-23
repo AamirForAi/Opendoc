@@ -45,6 +45,8 @@ plugins {
 }
 
 android {
+    def fdroidAbi = project.findProperty("fdroidAbi")
+
     defaultConfig {
         applicationId "com.gitlab.mudlej.MjPdfReader"
         minSdkVersion 23
@@ -55,12 +57,12 @@ android {
         multiDexEnabled = true
         vectorDrawables.useSupportLibrary = true
 
-        Properties properties = new Properties()
-        properties.load(project.rootProject.file("local.properties").newDataInputStream())
-
-        resValue "string", "CRASH_REPORT_APP_ID", "\"${properties.getProperty("AI")}\""
-        resValue "string", "CRASH_REPORT_API_KEY", "\"${properties.getProperty("AK")}\""
-        resValue "string", "CRASH_REPORT_API_URI", "\"${properties.getProperty("AU")}\""
+        def crashAppId = project.findProperty("AI") ?: ""
+        def crashApiKey = project.findProperty("AK") ?: ""
+        def crashApiUri = project.findProperty("AU") ?: ""
+        resValue "string", "CRASH_REPORT_APP_ID", "\"${crashAppId}\""
+        resValue "string", "CRASH_REPORT_API_KEY", "\"${crashApiKey}\""
+        resValue "string", "CRASH_REPORT_API_URI", "\"${crashApiUri}\""
     }
 
     buildFeatures {
@@ -79,8 +81,13 @@ android {
         abi {
             enable gradle.startParameter.taskNames.any { it.toLowerCase(Locale.ROOT).contains('release') }
             reset()
-            include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
-            universalApk true
+            if (fdroidAbi != null) {
+                include fdroidAbi
+                universalApk false
+            } else {
+                include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
+                universalApk true
+            }
         }
     }
 

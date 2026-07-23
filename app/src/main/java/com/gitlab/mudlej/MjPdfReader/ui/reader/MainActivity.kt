@@ -206,7 +206,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         fun titleClickListener() {
             val title = pdf.getTitle()
             if (title.isNotBlank()) {
-                AppSnackbar.make(binding.root, title, Snackbar.LENGTH_LONG).show()
+                AppSnackbar.make(binding.root, title, Snackbar.LENGTH_LONG).setTextMaxLines(5).show()
             }
         }
         appTitle.setOnClickListener { titleClickListener() }

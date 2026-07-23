@@ -4,7 +4,7 @@ import subprocess
 
 from build_dependencies.common import delete_file_if_exists, error, get_lib_path, log
 from build_dependencies.values import (
-    Arch,
+    ALL_ARCHES,
     ARCH_NAMES,
     DEPOT_TOOLS_GIT_URL,
     FILE_NAMES,
@@ -27,11 +27,11 @@ PDFIUM_PATCHES = [
 ]
 
 
-def build_pdfium_from_source():
+def build_pdfium_from_source(arches):
     root = os.getcwd()
     env = depot_tools_env(root)
     source = sync_pdfium(root, env)
-    for arch in [Arch.x86, Arch.x86_64, Arch.arm64, Arch.armeabi]:
+    for arch in arches:
         build_arch(source, arch, env)
 
 
@@ -200,4 +200,4 @@ def run(command, cwd, env):
 
 
 if __name__ == "__main__":
-    build_pdfium_from_source()
+    build_pdfium_from_source(ALL_ARCHES)

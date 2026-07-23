@@ -1,14 +1,14 @@
 import shutil
 
 from build_dependencies.common import log, get_lib_path, delete_file_if_exists, get_shared_cpp_libs_path
-from build_dependencies.values import Arch, ARCH_NAMES, FILE_NAMES, LIB_EXTENSION, Lib, \
-    LIB_CPP_DIR_NAMES
+from build_dependencies.values import ARCH_NAMES, FILE_NAMES, LIB_EXTENSION, Lib, \
+    LIB_CPP_DIR_NAMES, ALL_ARCHES
 
 LIB_FILENAME = FILE_NAMES[Lib.cpp_shared] + LIB_EXTENSION
 
 
-def copy_shared_cpp_libs():
-    for arch in [Arch.x86_64, Arch.arm64, Arch.x86, Arch.armeabi]:
+def copy_shared_cpp_libs(arches):
+    for arch in arches:
         log(f"Copy {LIB_FILENAME} for {ARCH_NAMES[arch]}.")
 
         target_lib_path = get_lib_path(arch, LIB_FILENAME, levels_up=1)
@@ -24,4 +24,4 @@ def copy_shared_cpp_libs():
 
 
 if __name__ == "__main__":
-    copy_shared_cpp_libs()
+    copy_shared_cpp_libs(ALL_ARCHES)

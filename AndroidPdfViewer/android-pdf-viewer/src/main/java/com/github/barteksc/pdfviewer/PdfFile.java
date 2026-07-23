@@ -39,6 +39,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -69,6 +71,9 @@ class PdfFile {
     private SparseBooleanArray openedPages = new SparseBooleanArray();
     /** Pages opened only to back a pinned text page. */
     private SparseBooleanArray textOpenedPages = new SparseBooleanArray();
+    private final LinkedHashSet<Integer> renderPageOrder = new LinkedHashSet<>();
+    private static final int MAX_OPEN_RENDER_PAGES = 12;
+    private volatile int pinnedRenderPage = -1;
     private final Map<Integer, List<PdfDocument.HighlightAnnotation>> highlightAnnotationCache = new ConcurrentHashMap<>();
     private final Map<Integer, float[]> formFieldRectCache = new ConcurrentHashMap<>();
     /** Page with maximum width */
@@ -548,12 +553,16 @@ class PdfFile {
             if (openedPages.indexOfKey(docPage) >= 0) {
                 if (openedPages.get(docPage, false)) {
                     textOpenedPages.delete(docPage);
+                    renderPageOrder.remove(docPage);
+                    renderPageOrder.add(docPage);
                 }
                 return false;
             }
             try {
                 pdfiumCore.openPage(pdfDocument, docPage);
                 openedPages.put(docPage, true);
+                renderPageOrder.add(docPage);
+                evictOverCap();
                 return true;
             } catch (Exception e) {
                 openedPages.put(docPage, false);
@@ -628,7 +637,56 @@ class PdfFile {
         }
         pdfiumCore.closePage(pdfDocument, docPage);
         openedPages.delete(docPage);
+        renderPageOrder.remove(docPage);
         textOpenedPages.delete(docPage);
+    }
+
+    private void evictOverCap() {
+        if (renderPageOrder.size() <= MAX_OPEN_RENDER_PAGES) {
+            return;
+        }
+        Iterator<Integer> order = renderPageOrder.iterator();
+        while (order.hasNext() && renderPageOrder.size() > MAX_OPEN_RENDER_PAGES) {
+            int docPage = order.next();
+            if (docPage == pinnedRenderPage || textOpenedPages.get(docPage, false) || hasOpenTextPage(docPage)) {
+                continue;
+            }
+            pdfiumCore.closePage(pdfDocument, docPage);
+            openedPages.delete(docPage);
+            order.remove();
+        }
+    }
+
+    private boolean hasOpenTextPage(int docPage) {
+        return pdfDocument != null && pdfiumCore.hasTextPage(pdfDocument, docPage);
+    }
+
+    void closeRenderOwnedPage(int pageIndex) {
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return;
+        }
+        synchronized (lock) {
+            if (disposed || pdfDocument == null) {
+                return;
+            }
+            if (!openedPages.get(docPage, false) || docPage == pinnedRenderPage
+                    || textOpenedPages.get(docPage, false) || hasOpenTextPage(docPage)) {
+                return;
+            }
+            pdfiumCore.closePage(pdfDocument, docPage);
+            openedPages.delete(docPage);
+            renderPageOrder.remove(docPage);
+        }
+    }
+
+    void pinPage(int pageIndex) {
+        int docPage = documentPage(pageIndex);
+        pinnedRenderPage = docPage >= 0 ? docPage : -1;
+    }
+
+    void unpinPage() {
+        pinnedRenderPage = -1;
     }
 
     public int pageCharCount(int pageIndex) {
@@ -1414,6 +1472,8 @@ class PdfFile {
                 originalFullPagePointSizes.clear();
                 openedPages.clear();
                 textOpenedPages.clear();
+                renderPageOrder.clear();
+                pinnedRenderPage = -1;
                 highlightAnnotationCache.clear();
                 formFieldRectCache.clear();
                 pageRowIndexes = new int[0];

@@ -346,6 +346,13 @@ public class PdfiumCore {
         }
     }
 
+    public boolean hasTextPage(PdfDocument doc, int pageIndex) {
+        synchronized (lock) {
+            Long textPagePtr = doc.mNativeTextPagesPtr.get(pageIndex);
+            return textPagePtr != null && textPagePtr != 0L;
+        }
+    }
+
     public int textCountChars(PdfDocument doc, int pageIndex) {
         synchronized (lock) {
             Long textPagePtr = doc.mNativeTextPagesPtr.get(pageIndex);
