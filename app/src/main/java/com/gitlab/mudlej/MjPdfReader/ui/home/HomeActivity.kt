@@ -10,6 +10,8 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
@@ -31,6 +33,7 @@ import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationJournal
 import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
 import com.gitlab.mudlej.MjPdfReader.core.PermissionManager
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
+import com.gitlab.mudlej.MjPdfReader.core.ui.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.ui.about.WhatsNewActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
@@ -129,6 +132,14 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
 
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        ColorUtil.applySystemBarIconColors(this, window)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val bottomInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            if (view.paddingBottom != bottomInset) {
+                view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, bottomInset)
+            }
+            insets
+        }
 
         pdfRepository = PdfRepository(AppDatabase.getInstance(applicationContext))
         coverCache = CoverCache.getInstance(applicationContext)

@@ -57,6 +57,10 @@ object ColorUtil {
         )
     }
 
+    fun applySystemBarIconColors(context: Context, window: Window) {
+        setSystemBarIconColors(window, getBarColor(context))
+    }
+
     private fun setSystemBarIconColors(window: Window, color: Int) {
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         val isLight = MaterialColors.isColorLight(color)
