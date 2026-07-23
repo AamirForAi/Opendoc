@@ -114,7 +114,25 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pref = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
+        val launchIntro = launchIntroOnFirstInstall()
+        if (redirectToReaderIfHomeDisabled()) {
+            return
+        }
+        binding = ActivityHomeBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        setupWindowChrome()
+        createCoreServices()
+        createControllers()
+        setupPager()
+        setupSearch()
+        setupMenuAndNavigation()
+        setupOpenFab()
+        observeLibraryIndex()
+        maybeShowWhatsNew(launchIntro)
+        handleRelocateIntent(intent)
+    }
 
+    private fun launchIntroOnFirstInstall(): Boolean {
         val launchIntro = pref.getFirstInstall()
         if (launchIntro) {
             pref.setFirstInstall(false)
@@ -122,16 +140,20 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             pref.setLastSeenVersionCode(BuildConfig.VERSION_CODE)
             introLauncher.launch(Intent(this, MainIntroActivity::class.java))
         }
+        return launchIntro
+    }
 
+    private fun redirectToReaderIfHomeDisabled(): Boolean {
         if (pref.getHomeDisabled()) {
             startActivity(Intent(this, MainActivity::class.java))
             overridePendingTransition(0, 0)
             finish()
-            return
+            return true
         }
+        return false
+    }
 
-        binding = ActivityHomeBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+    private fun setupWindowChrome() {
         ColorUtil.applySystemBarIconColors(this, window)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
             val bottomInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
@@ -140,7 +162,9 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             }
             insets
         }
+    }
 
+    private fun createCoreServices() {
         pdfRepository = PdfRepository(AppDatabase.getInstance(applicationContext))
         coverCache = CoverCache.getInstance(applicationContext)
         historyPolicy = HistoryPolicy(pref)
@@ -165,7 +189,9 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
                 scanLocationsPicker.launch(Intent(this, ScanLocationsActivity::class.java))
             },
         )
+    }
 
+    private fun createControllers() {
         recordOptionsDialog = RecordOptionsDialog(
             this,
             pdfRepository,
@@ -236,9 +262,9 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             onOpen = ::openInReader,
             onHealed = ::refresh,
         )
+    }
 
-        setupPager()
-        setupSearch()
+    private fun setupMenuAndNavigation() {
         menuDialog = HomeMenuDialog(
             this,
             pref,
@@ -263,6 +289,9 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
                 false
             }
         }
+    }
+
+    private fun setupOpenFab() {
         binding.openPdfFab.setOnClickListener { pdfPicker.launch(arrayOf(PDF.FILE_TYPE)) }
         binding.openPdfFab.setOnLongClickListener {
             pickIncognito = true
@@ -270,11 +299,15 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             pdfPicker.launch(arrayOf(PDF.FILE_TYPE))
             true
         }
+    }
 
+    private fun observeLibraryIndex() {
         lifecycleScope.launch {
             libraryScanner.index.collect { refresh() }
         }
+    }
 
+    private fun maybeShowWhatsNew(launchIntro: Boolean) {
         if (!launchIntro) {
             if (pref.getLastSeenVersionCode() < BuildConfig.VERSION_CODE) {
                 pref.setShowFeaturesDialog(true)
@@ -282,7 +315,6 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             }
             showWhatsNewOnFirstRun()
         }
-        handleRelocateIntent(intent)
     }
 
     private fun setupPager() {

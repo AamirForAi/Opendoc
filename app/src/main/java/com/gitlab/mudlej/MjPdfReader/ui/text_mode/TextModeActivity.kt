@@ -110,6 +110,15 @@ class TextModeActivity : AppCompatActivity() {
         applyIncognitoOverlayFromIntent()
         binding = ActivityTextModeBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setupWindowChrome()
+        createCoreServices()
+        restoreState(savedInstanceState)
+        initPdfProperties()
+        if (!::pdfUri.isInitialized) return
+        startDocumentSetup()
+    }
+
+    private fun setupWindowChrome() {
         ColorUtil.colorize(this, window, supportActionBar)
         ColorUtil.enterFullscreen(window)
         ViewCompat.setOnApplyWindowInsetsListener(binding.readerControlsCard) { view, insets ->
@@ -122,7 +131,9 @@ class TextModeActivity : AppCompatActivity() {
             }
             insets
         }
+    }
 
+    private fun createCoreServices() {
         pdfRepository = PdfRepository(AppDatabase.getInstance(applicationContext))
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         settings = TextModeSettings.load(sharedPreferences)
@@ -137,10 +148,9 @@ class TextModeActivity : AppCompatActivity() {
             { codeBlocksEnabled },
         )
         controlsController = TextModeControlsController(binding, hideDelayMillis)
-        restoreState(savedInstanceState)
-        initPdfProperties()
-        if (!::pdfUri.isInitialized) return
+    }
 
+    private fun startDocumentSetup() {
         setupJob = lifecycleScope.launch {
             showLoading()
             if (!contentLoader.open(pdfUri, pdfPassword)) {
