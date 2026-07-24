@@ -359,6 +359,11 @@
     <string name="advanced_summary">रेंडरिंग सीमाएँ और तकनीकी रीडर विकल्प</string>
     <string name="anti_aliasing">एंटी-एलियासिंग</string>
     <string name="anti_aliasing_summary">रेंडरिंग के दौरान पाठ और पृष्ठ किनारों को चिकना करें। आमतौर पर कम प्रदर्शन लागत के साथ उपस्थिति में सुधार होता है।</string>
+    <string name="page_fit_title">पेज फ़िट</string>
+    <string name="page_fit_summary">पेज को स्क्रीन पर कैसे फ़िट किया जाए</string>
+    <string name="page_fit_width">पेज की चौड़ाई फ़िट करें</string>
+    <string name="page_fit_height">पेज की ऊंचाई फ़िट करें</string>
+    <string name="page_fit_whole">पूरा पेज फ़िट करें</string>
     <string name="horizontal_scrolling_mode">क्षैतिज स्क्रॉलिंग</string>
     <string name="horizontal_scrolling_summary">पृष्ठों को लंबवत के बजाय क्षैतिज रूप से नेविगेट करें। MJ PDF सही पढ़ने की दिशा स्वचालित रूप से पता लगाने का प्रयास करेगा। आप क्षैतिज स्क्रॉलिंग सक्षम करने के बाद मेनू &gt; पढ़ने की दिशा से प्रति पीडीएफ इसे ओवरराइड कर सकते हैं।</string>
     <string name="dual_page_mode_title">डुअल पेज मोड</string>

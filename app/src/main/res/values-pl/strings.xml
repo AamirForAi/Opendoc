@@ -359,6 +359,11 @@
     <string name="advanced_summary">Limity renderowania i techniczne opcje czytnika</string>
     <string name="anti_aliasing">Wygładzanie krawędzi</string>
     <string name="anti_aliasing_summary">Wygładzaj tekst i krawędzie stron podczas renderowania. Zwykle poprawia wygląd niewielkim kosztem wydajności.</string>
+    <string name="page_fit_title">Dopasowanie strony</string>
+    <string name="page_fit_summary">Jak strona jest skalowana do ekranu</string>
+    <string name="page_fit_width">Dopasuj do szerokości strony</string>
+    <string name="page_fit_height">Dopasuj do wysokości strony</string>
+    <string name="page_fit_whole">Dopasuj całą stronę</string>
     <string name="horizontal_scrolling_mode">Przewijanie poziome</string>
     <string name="horizontal_scrolling_summary">Przechodź między stronami poziomo zamiast pionowo. MJ PDF spróbuje automatycznie wykryć właściwy kierunek czytania. Możesz go zmienić dla poszczególnego pliku PDF w Menu &gt; Kierunek czytania po włączeniu przewijania poziomego.</string>
     <string name="dual_page_mode_title">Tryb podwójnej strony</string>

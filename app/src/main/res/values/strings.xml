@@ -393,6 +393,11 @@
     <string name="privacy_section_clear">Clear Data</string>
     <string name="translation_section_translation">Translation</string>
     <string name="translation_section_dictionary">Dictionary</string>
+    <string name="page_fit_title">Page fit</string>
+    <string name="page_fit_summary">How a page is scaled to the screen</string>
+    <string name="page_fit_width">Fit page width</string>
+    <string name="page_fit_height">Fit page height</string>
+    <string name="page_fit_whole">Fit the whole page</string>
     <string name="horizontal_scrolling_mode">Horizontal Scrolling</string>
     <string name="horizontal_scrolling_summary">Navigate pages horizontally instead of vertically. MJ PDF will try to auto-detect the right reading direction. You can override it per PDF from Menu &gt; Reading Direction after enabling horizontal scrolling.</string>
     <string name="dual_page_mode_title">Dual Page Mode</string>

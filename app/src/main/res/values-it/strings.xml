@@ -359,6 +359,11 @@
     <string name="advanced_summary">Limiti di rendering e opzioni tecniche del lettore</string>
     <string name="anti_aliasing">Anti-Aliasing</string>
     <string name="anti_aliasing_summary">Arrotonda i bordi di testo e pagina durante il rendering. Di solito migliora l\'aspetto con un piccolo costo di prestazioni.</string>
+    <string name="page_fit_title">Adattamento della pagina</string>
+    <string name="page_fit_summary">Come la pagina viene adattata allo schermo</string>
+    <string name="page_fit_width">Adatta alla larghezza della pagina</string>
+    <string name="page_fit_height">Adatta all\'altezza della pagina</string>
+    <string name="page_fit_whole">Adatta la pagina intera</string>
     <string name="horizontal_scrolling_mode">Scorrimento orizzontale</string>
     <string name="horizontal_scrolling_summary">Naviga le pagine orizzontalmente invece che verticalmente. MJ PDF proverà a rilevare automaticamente la direzione di lettura corretta. Puoi sovrascriverla per PDF dal Menu &gt; Direzione di lettura dopo aver abilitato lo scorrimento orizzontale.</string>
     <string name="dual_page_mode_title">Modalità doppia pagina</string>

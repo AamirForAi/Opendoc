@@ -359,6 +359,11 @@
     <string name="advanced_summary">渲染限制和技術閱讀器選項</string>
     <string name="anti_aliasing">抗鋸齒</string>
     <string name="anti_aliasing_summary">渲染時平滑文字和頁面邊緣。通常可改善外觀，且性能成本很低。</string>
+    <string name="page_fit_title">頁面符合方式</string>
+    <string name="page_fit_summary">頁面如何縮放以符合螢幕</string>
+    <string name="page_fit_width">符合頁面寬度</string>
+    <string name="page_fit_height">符合頁面高度</string>
+    <string name="page_fit_whole">符合整個頁面</string>
     <string name="horizontal_scrolling_mode">水平捲動</string>
     <string name="horizontal_scrolling_summary">以水平而非垂直方式瀏覽頁面。MJ PDF 會嘗試自動偵測正確的閱讀方向。啟用水平捲動後，您可從「選單 > 閱讀方向」為每個 PDF 覆寫此設定。</string>
     <string name="dual_page_mode_title">雙頁模式</string>

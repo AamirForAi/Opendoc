@@ -104,6 +104,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val horizontalScrollKey = "horizontalScroll"
         const val dualPageModeKey = "dualPageMode"
         const val dualPageFirstPageAloneKey = "dualPageFirstPageAlone"
+        const val pageFitPolicyKey = "pageFitPolicy"
         const val pageSnapKey = "pageSnap"
         const val pageFlingKey = "pageFling"
         const val browserScrollModeKey = "browserScrollMode"
@@ -191,6 +192,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val horizontalScrollDefault = false
         const val dualPageModeDefault = false
         const val dualPageFirstPageAloneDefault = false
+        const val pageFitPolicyDefault = "WIDTH"
         const val pageSnapDefault = false
         const val pageFlingDefault = false
         const val browserScrollModeDefault = false
@@ -313,7 +315,7 @@ class Preferences(private val prefMan: SharedPreferences) {
                 interfaceThemeKey, pdfPagesThemeKey, primaryButtonActionKey,
                 secondaryButtonActionKey, fullScreenOverlayActionOrderKey, shortcutBarActionOrderKey,
                 highlightColorsKey, listFilterKey, homeTabKey, homeViewModeKey, homeProgressStyleKey,
-                homeGridSizeKey, homeTitleEllipsizeKey, homeSortKey, scanModeKey,
+                homeGridSizeKey, homeTitleEllipsizeKey, homeSortKey, scanModeKey, pageFitPolicyKey,
                 backupFolderTreeUriKey, autoBackupLastErrorKey, translationModeKey,
                 translationEngineKey, translationTargetLanguageKey, translationCustomUrlKey,
                 importResultPendingKey,
@@ -332,6 +334,7 @@ class Preferences(private val prefMan: SharedPreferences) {
             homeTitleEllipsizeKey to HomeTitleEllipsize.entries.map { it.name }.toSet(),
             homeSortKey to HomeSortOrder.entries.map { it.name }.toSet(),
             scanModeKey to ScanMode.entries.map { it.name }.toSet(),
+            pageFitPolicyKey to PageFitPolicy.entries.map { it.name }.toSet(),
         )
     }
 
@@ -344,6 +347,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getHorizontalScroll() = safeGetBoolean(horizontalScrollKey, horizontalScrollDefault)
     fun getDualPageMode() = safeGetBoolean(dualPageModeKey, dualPageModeDefault)
     fun getDualPageFirstPageAlone() = safeGetBoolean(dualPageFirstPageAloneKey, dualPageFirstPageAloneDefault)
+    fun getPageFitPolicy() = safeGetEnum<PageFitPolicy>(pageFitPolicyKey, pageFitPolicyDefault)
     fun getPageSnap() = safeGetBoolean(pageSnapKey, pageSnapDefault)
     fun getPageFling() = safeGetBoolean(pageFlingKey, pageFlingDefault)
     fun getBrowserScrollMode() = safeGetBoolean(browserScrollModeKey, browserScrollModeDefault)
@@ -494,6 +498,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setHorizontalScroll(value: Boolean) = prefMan.edit().putBoolean(horizontalScrollKey, value).apply()
     fun setDualPageMode(value: Boolean) = prefMan.edit().putBoolean(dualPageModeKey, value).apply()
     fun setDualPageFirstPageAlone(value: Boolean) = prefMan.edit().putBoolean(dualPageFirstPageAloneKey, value).apply()
+    fun setPageFitPolicy(value: PageFitPolicy) = prefMan.edit().putString(pageFitPolicyKey, value.name).apply()
     fun setPageSnap(value: Boolean) = prefMan.edit().putBoolean(pageSnapKey, value).apply()
     fun setPageFling(value: Boolean) = prefMan.edit().putBoolean(pageFlingKey, value).apply()
     fun setBrowserScrollMode(value: Boolean) = prefMan.edit().putBoolean(browserScrollModeKey, value).apply()

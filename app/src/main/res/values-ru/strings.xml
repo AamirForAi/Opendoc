@@ -359,6 +359,11 @@
     <string name="advanced_summary">Ограничения рендеринга и технические параметры читалки</string>
     <string name="anti_aliasing">Сглаживание</string>
     <string name="anti_aliasing_summary">Сглаживать края текста и страницы при рендеринге. Обычно улучшает внешний вид с небольшой потерей производительности.</string>
+    <string name="page_fit_title">Масштаб страницы</string>
+    <string name="page_fit_summary">Как страница масштабируется под экран</string>
+    <string name="page_fit_width">По ширине страницы</string>
+    <string name="page_fit_height">По высоте страницы</string>
+    <string name="page_fit_whole">Страница целиком</string>
     <string name="horizontal_scrolling_mode">Горизонтальная прокрутка</string>
     <string name="horizontal_scrolling_summary">Навигация по страницам горизонтально вместо вертикально. MJ PDF попытается автоматически определить правильное направление чтения. Вы можете переопределить его для каждого PDF из Меню &gt; Направление чтения после включения горизонтальной прокрутки.</string>
     <string name="dual_page_mode_title">Режим двух страниц</string>

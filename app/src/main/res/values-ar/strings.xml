@@ -359,6 +359,11 @@
     <string name="advanced_summary">حدود التصيير وخيارات القارئ التقنية</string>
     <string name="anti_aliasing">مضاد للتعرج</string>
     <string name="anti_aliasing_summary">تنعيم حواف النص والصفحة أثناء التصيير. عادةً يحسن المظهر بتكلفة أداء قليلة.</string>
+    <string name="page_fit_title">ملاءمة الصفحة</string>
+    <string name="page_fit_summary">طريقة ملاءمة حجم الصفحة مع الشاشة</string>
+    <string name="page_fit_width">ملاءمة عرض الصفحة</string>
+    <string name="page_fit_height">ملاءمة ارتفاع الصفحة</string>
+    <string name="page_fit_whole">ملاءمة الصفحة كاملة</string>
     <string name="horizontal_scrolling_mode">وضعية التصفح الأفقية</string>
     <string name="horizontal_scrolling_summary">التنقل بين الصفحات أفقيًا بدلًا من العمودي. سيحاول MJ PDF اكتشاف اتجاه القراءة الصحيح تلقائيًا. يمكنك تجاوز ذلك لكل ملف PDF من القائمة &gt; اتجاه القراءة بعد تفعيل التصفح الأفقي.</string>
     <string name="dual_page_mode_title">وضع الصفحتين</string>

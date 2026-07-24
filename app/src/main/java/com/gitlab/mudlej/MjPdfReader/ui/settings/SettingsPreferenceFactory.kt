@@ -19,6 +19,7 @@ import androidx.preference.PreferenceViewHolder
 import androidx.preference.SwitchPreferenceCompat
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.BackupFolder
+import com.gitlab.mudlej.MjPdfReader.data.PageFitPolicy
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.data.translation.DictionaryInstaller
 import com.gitlab.mudlej.MjPdfReader.data.translation.DictionaryStore
@@ -210,6 +211,32 @@ internal class SettingsPreferenceFactory(
                     },
                 ) { index ->
                     onSelected(titleLineOptions[index])
+                    host?.refreshPreferences()
+                }
+                true
+            }
+        }
+    }
+
+    fun pageFitPreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val options = PageFitPolicy.entries
+        return Preference(context).apply {
+            title = getString(R.string.page_fit_title)
+            key = Preferences.pageFitPolicyKey
+            summary = formatSummary(breadcrumb, getString(appPreferences.getPageFitPolicy().labelRes))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showSingleChoiceDialog(
+                    title = getString(R.string.page_fit_title),
+                    items = options.map { getString(it.labelRes) },
+                    checkedIndex = options.indexOf(appPreferences.getPageFitPolicy()),
+                    onReset = {
+                        appPreferences.setPageFitPolicy(PageFitPolicy.valueOf(Preferences.pageFitPolicyDefault))
+                        host?.refreshPreferences()
+                    },
+                ) { index ->
+                    appPreferences.setPageFitPolicy(options[index])
                     host?.refreshPreferences()
                 }
                 true

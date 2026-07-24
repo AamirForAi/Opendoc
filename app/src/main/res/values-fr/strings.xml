@@ -359,6 +359,11 @@
     <string name="advanced_summary">Limites de rendu et options techniques du lecteur</string>
     <string name="anti_aliasing">Anti-crénelage</string>
     <string name="anti_aliasing_summary">Lisse le texte et les bords des pages lors du rendu. Améliore généralement l\'apparence avec un faible coût en performances.</string>
+    <string name="page_fit_title">Ajustement de la page</string>
+    <string name="page_fit_summary">Comment la page est mise à l\'échelle sur l\'écran</string>
+    <string name="page_fit_width">Ajuster à la largeur de la page</string>
+    <string name="page_fit_height">Ajuster à la hauteur de la page</string>
+    <string name="page_fit_whole">Ajuster la page entière</string>
     <string name="horizontal_scrolling_mode">Défilement horizontal</string>
     <string name="horizontal_scrolling_summary">Naviguez horizontalement entre les pages au lieu de verticalement. MJ PDF essaiera de détecter automatiquement le bon sens de lecture. Vous pouvez le modifier pour chaque PDF depuis Menu &gt; Sens de lecture après avoir activé le défilement horizontal.</string>
     <string name="dual_page_mode_title">Mode double page</string>

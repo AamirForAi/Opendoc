@@ -359,6 +359,11 @@
     <string name="advanced_summary">İşleme sınırları ve teknik okuyucu seçenekleri</string>
     <string name="anti_aliasing">Kenar Yumuşatma</string>
     <string name="anti_aliasing_summary">İşleme sırasında metin ve sayfa kenarlarını yumuşat. Genellikle düşük performans maliyetiyle görünümü iyileştirir.</string>
+    <string name="page_fit_title">Sayfa Sığdırma</string>
+    <string name="page_fit_summary">Sayfanın ekrana nasıl sığdırılacağı</string>
+    <string name="page_fit_width">Sayfa genişliğine sığdır</string>
+    <string name="page_fit_height">Sayfa yüksekliğine sığdır</string>
+    <string name="page_fit_whole">Tüm sayfayı sığdır</string>
     <string name="horizontal_scrolling_mode">Yatay Kaydırma</string>
     <string name="horizontal_scrolling_summary">Sayfalar arasında dikey yerine yatay olarak gezinin. MJ PDF doğru okuma yönünü otomatik olarak algılamaya çalışacaktır. Yatay kaydırmayı etkinleştirdikten sonra Menü &gt; Okuma Yönü\'nden PDF başına bunu geçersiz kılabilirsiniz.</string>
     <string name="dual_page_mode_title">Çift Sayfa Modu</string>

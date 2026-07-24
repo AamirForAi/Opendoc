@@ -359,6 +359,11 @@
     <string name="advanced_summary">Límites de renderizado y opciones técnicas del lector</string>
     <string name="anti_aliasing">Antialiasing</string>
     <string name="anti_aliasing_summary">Suavizar bordes de texto y página durante el renderizado. Por lo general mejora la apariencia con poco costo de rendimiento.</string>
+    <string name="page_fit_title">Escalado de Página</string>
+    <string name="page_fit_summary">Cómo se escala la página en la pantalla</string>
+    <string name="page_fit_width">Ajustar al ancho de página</string>
+    <string name="page_fit_height">Ajustar a la altura de página</string>
+    <string name="page_fit_whole">Ajustar la página completa</string>
     <string name="horizontal_scrolling_mode">Desplazamiento Horizontal</string>
     <string name="horizontal_scrolling_summary">Navegar páginas horizontalmente en lugar de verticalmente. MJ PDF intentará detectar automáticamente la dirección de lectura correcta. Puede anularla por PDF desde Menú &gt; Dirección de lectura después de habilitar el desplazamiento horizontal.</string>
     <string name="dual_page_mode_title">Modo de Página Doble</string>

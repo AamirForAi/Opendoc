@@ -359,6 +359,11 @@
     <string name="advanced_summary">Weergavelimieten en technische lezersopties</string>
     <string name="anti_aliasing">Anti-aliasing</string>
     <string name="anti_aliasing_summary">Verzacht tekst en paginaranden tijdens het weergeven. Verbetert meestal het uiterlijk tegen weinig prestatieverlies.</string>
+    <string name="page_fit_title">Pagina-aanpassing</string>
+    <string name="page_fit_summary">Hoe een pagina aan het scherm wordt aangepast</string>
+    <string name="page_fit_width">Aanpassen aan paginabreedte</string>
+    <string name="page_fit_height">Aanpassen aan paginahoogte</string>
+    <string name="page_fit_whole">Hele pagina passend maken</string>
     <string name="horizontal_scrolling_mode">Horizontaal bladeren</string>
     <string name="horizontal_scrolling_summary">Navigeer horizontaal door pagina\'s in plaats van verticaal. MJ PDF probeert automatisch de juiste leesrichting te herkennen. Je kunt dit per PDF overschrijven via Menu &gt; Leesrichting nadat horizontaal bladeren is ingeschakeld.</string>
     <string name="dual_page_mode_title">Modus Dubbele Pagina</string>

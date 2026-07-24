@@ -359,6 +359,11 @@
     <string name="advanced_summary">Ліміти візуалізації та технічні параметри для читання.</string>
     <string name="anti_aliasing">Згладжування країв / Згладжування</string>
     <string name="anti_aliasing_summary">Згладжування тексту та країв сторінок під час візуалізації. Зазвичай покращує вигляд з невеликою втратою продуктивності.</string>
+    <string name="page_fit_title">Масштаб сторінки</string>
+    <string name="page_fit_summary">Як сторінка масштабується під екран</string>
+    <string name="page_fit_width">За шириною сторінки</string>
+    <string name="page_fit_height">За висотою сторінки</string>
+    <string name="page_fit_whole">Сторінка цілком</string>
     <string name="horizontal_scrolling_mode">Горизонтальне гортання</string>
     <string name="horizontal_scrolling_summary">Гортайте сторінки по горизонталі, а не по вертикалі. MJ PDF спробує автоматично визначить напрямок читання, але ви можете змінити його вручну в Меню &gt; Напрямок читання після активації горизонтального гортання.</string>
     <string name="dual_page_mode_title">Режим двох сторінок</string>

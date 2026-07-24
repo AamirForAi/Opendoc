@@ -11,7 +11,6 @@ import com.github.barteksc.pdfviewer.PDFView
 import com.github.barteksc.pdfviewer.PDFView.Configurator
 import com.github.barteksc.pdfviewer.model.CropMargins
 import com.github.barteksc.pdfviewer.util.Constants
-import com.github.barteksc.pdfviewer.util.FitPolicy
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.OnlineDocumentStore
@@ -337,7 +336,7 @@ class DocumentLoader(
                 emit { it.onLoadFailed(exception) }
             }
             .onPageError { page: Int, error: Throwable -> reportLoadPageError(page, error) }
-            .pageFitPolicy(FitPolicy.WIDTH)
+            .pageFitPolicy(pref.getPageFitPolicy().libraryPolicy)
             .password(doc.password)
             .swipeHorizontal(pref.getHorizontalScroll())
             .horizontalReadingDirectionRtl(pref.getHorizontalScroll() && readingDirectionRtl)

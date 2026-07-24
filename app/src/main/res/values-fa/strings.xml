@@ -359,6 +359,11 @@
     <string name="advanced_summary">محدودیت‌های رندر و گزینه‌های فنی خواننده</string>
     <string name="anti_aliasing">ضد-آلیاسینگ</string>
     <string name="anti_aliasing_summary">متن و لبه‌های صفحه را هنگام رندر صاف کنید. معمولاً ظاهر را با هزینه کارایی کم بهبود می‌دهد.</string>
+    <string name="page_fit_title">تناسب صفحه</string>
+    <string name="page_fit_summary">نحوه تنظیم اندازه صفحه نسبت به صفحه‌نمایش</string>
+    <string name="page_fit_width">متناسب با عرض صفحه</string>
+    <string name="page_fit_height">متناسب با ارتفاع صفحه</string>
+    <string name="page_fit_whole">متناسب با کل صفحه</string>
     <string name="horizontal_scrolling_mode">پیمایش افقی</string>
     <string name="horizontal_scrolling_summary">به‌جای عمودی، صفحات را به‌صورت افقی پیمایش کنید. MJ PDF تلاش می‌کند جهت درست خواندن را به‌طور خودکار تشخیص دهد. می‌توانید پس از فعال کردن پیمایش افقی، آن را برای هر PDF از منو &gt; جهت خواندن بازنویسی کنید.</string>
     <string name="dual_page_mode_title">حالت دو صفحه‌ای</string>

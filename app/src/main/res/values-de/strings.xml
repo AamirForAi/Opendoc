@@ -359,6 +359,11 @@
     <string name="advanced_summary">Rendering-Grenzen und technische Reader-Optionen</string>
     <string name="anti_aliasing">Anti-Aliasing</string>
     <string name="anti_aliasing_summary">Text- und Seitenkanten beim Rendern glätten. Verbessert normalerweise das Aussehen mit geringem Leistungsaufwand.</string>
+    <string name="page_fit_title">Seitenanpassung</string>
+    <string name="page_fit_summary">Wie eine Seite an den Bildschirm angepasst wird</string>
+    <string name="page_fit_width">An Seitenbreite anpassen</string>
+    <string name="page_fit_height">An Seitenhöhe anpassen</string>
+    <string name="page_fit_whole">Ganze Seite einpassen</string>
     <string name="horizontal_scrolling_mode">Horizontales Scrollen</string>
     <string name="horizontal_scrolling_summary">Seiten horizontal statt vertikal navigieren. MJ PDF versucht, die richtige Leserichtung automatisch zu erkennen. Sie können dies pro PDF im Menü &gt; Leserichtung nach Aktivierung des horizontalen Scrollens überschreiben.</string>
     <string name="dual_page_mode_title">Doppelseitenmodus</string>

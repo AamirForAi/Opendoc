@@ -184,6 +184,15 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 sectionRes = R.string.reading_section_scrolling,
             ),
 
+            SettingEntry(
+                page = SettingsPage.READING,
+                titleRes = R.string.page_fit_title,
+                summaryRes = R.string.page_fit_summary,
+                keywords = listOf("fit", "width", "height", "whole page", "scale", "zoom", "tablet", "landscape"),
+                sectionRes = R.string.reading_section_layout,
+            ) { breadcrumb ->
+                pageFitPreference(breadcrumb)
+            },
             switchEntry(
                 page = SettingsPage.READING,
                 titleRes = R.string.horizontal_scrolling_mode,
