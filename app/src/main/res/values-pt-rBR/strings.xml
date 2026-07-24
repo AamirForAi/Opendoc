@@ -659,7 +659,7 @@
     <string name="last_opened_key">Última Abertura:</string>
     <string name="pdf_cover_image">Imagem de Capa do PDF</string>
     <string name="pages">páginas</string>
-    <string name="exit">Sair</string>
+    <string name="exit">Sair da Tela Cheia</string>
     <string name="rotate">Girar</string>
     <string name="auto_scroll">Rolar Automaticamente</string>
     <string name="horizontal_lock">Bloqueio Horiz.</string>

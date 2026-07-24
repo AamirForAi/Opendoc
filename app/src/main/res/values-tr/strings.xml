@@ -659,7 +659,7 @@
     <string name="last_opened_key">Son Açılan:</string>
     <string name="pdf_cover_image">PDF Kapak Resmi</string>
     <string name="pages">sayfalar</string>
-    <string name="exit">Çıkış</string>
+    <string name="exit">Tam Ekrandan Çık</string>
     <string name="rotate">Döndür</string>
     <string name="auto_scroll">Otomatik Kaydırma</string>
     <string name="horizontal_lock">Yatay Kilidi</string>

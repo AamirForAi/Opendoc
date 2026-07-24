@@ -659,7 +659,7 @@
     <string name="last_opened_key">Востаннє відкрито:</string>
     <string name="pdf_cover_image">Обкладинка PDF</string>
     <string name="pages">сторінок</string>
-    <string name="exit">Вийти</string>
+    <string name="exit">Вийти з повного екрана</string>
     <string name="rotate">Повернути</string>
     <string name="auto_scroll">Автогортання</string>
     <string name="horizontal_lock">Горизонтальне блокування</string>

@@ -732,7 +732,7 @@
     <string name="last_opened_key">Last Opened:</string>
     <string name="pdf_cover_image">PDF cover Image</string>
     <string name="pages">pages</string>
-    <string name="exit">Exit</string>
+    <string name="exit">Exit Fullscreen</string>
     <string name="rotate">Rotate</string>
     <string name="auto_scroll">Auto Scroll</string>
     <string name="horizontal_lock">Horiz. Lock</string>

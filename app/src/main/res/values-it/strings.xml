@@ -659,7 +659,7 @@
     <string name="last_opened_key">Ultimo aperto:</string>
     <string name="pdf_cover_image">Immagine di copertina PDF</string>
     <string name="pages">pagine</string>
-    <string name="exit">Esci</string>
+    <string name="exit">Esci da schermo intero</string>
     <string name="rotate">Ruota</string>
     <string name="auto_scroll">Scorrimento automatico</string>
     <string name="horizontal_lock">Blocco orizzontale</string>

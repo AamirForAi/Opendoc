@@ -659,7 +659,7 @@
     <string name="last_opened_key">Последний раз открыто:</string>
     <string name="pdf_cover_image">Обложка PDF</string>
     <string name="pages">страницы</string>
-    <string name="exit">Выход</string>
+    <string name="exit">Выйти из полноэкранного режима</string>
     <string name="rotate">Поворот</string>
     <string name="auto_scroll">Автопрокрутка</string>
     <string name="horizontal_lock">Горизонт. блокировка</string>

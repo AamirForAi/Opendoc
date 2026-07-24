@@ -659,7 +659,7 @@
     <string name="last_opened_key">آخرین باز شده:</string>
     <string name="pdf_cover_image">تصویر جلد PDF</string>
     <string name="pages">صفحات</string>
-    <string name="exit">خروج</string>
+    <string name="exit">خروج از حالت تمام‌صفحه</string>
     <string name="rotate">چرخش</string>
     <string name="auto_scroll">پیمایش خودکار</string>
     <string name="horizontal_lock">قفل افقی</string>

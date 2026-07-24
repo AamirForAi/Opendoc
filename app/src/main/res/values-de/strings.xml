@@ -659,7 +659,7 @@
     <string name="last_opened_key">Zuletzt geöffnet:</string>
     <string name="pdf_cover_image">PDF-Coverbild</string>
     <string name="pages">Seiten</string>
-    <string name="exit">Beenden</string>
+    <string name="exit">Vollbildmodus beenden</string>
     <string name="rotate">Drehen</string>
     <string name="auto_scroll">Automatisches Scrollen</string>
     <string name="horizontal_lock">Horizontalsperre</string>

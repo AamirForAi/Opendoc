@@ -659,7 +659,7 @@
     <string name="last_opened_key">上次打开：</string>
     <string name="pdf_cover_image">PDF 封面图片</string>
     <string name="pages">页面</string>
-    <string name="exit">退出</string>
+    <string name="exit">退出全屏</string>
     <string name="rotate">旋转</string>
     <string name="auto_scroll">自动滚动</string>
     <string name="horizontal_lock">水平锁定</string>

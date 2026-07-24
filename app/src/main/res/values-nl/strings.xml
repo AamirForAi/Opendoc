@@ -659,7 +659,7 @@
     <string name="last_opened_key">Laatst geopend:</string>
     <string name="pdf_cover_image">PDF-omslagafbeelding</string>
     <string name="pages">pagina\'s</string>
-    <string name="exit">Afsluiten</string>
+    <string name="exit">Volledig scherm afsluiten</string>
     <string name="rotate">Draaien</string>
     <string name="auto_scroll">Automatisch bladeren</string>
     <string name="horizontal_lock">Horiz. vergrendeling</string>

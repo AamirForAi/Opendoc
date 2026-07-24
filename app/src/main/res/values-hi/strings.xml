@@ -659,7 +659,7 @@
     <string name="last_opened_key">अंतिम खोला गया:</string>
     <string name="pdf_cover_image">पीडीएफ कवर छवि</string>
     <string name="pages">पृष्ठ</string>
-    <string name="exit">बाहर निकलें</string>
+    <string name="exit">पूर्ण स्क्रीन से बाहर निकलें</string>
     <string name="rotate">घुमाएँ</string>
     <string name="auto_scroll">स्वचालित स्क्रॉल</string>
     <string name="horizontal_lock">क्षैतिज लॉक</string>
