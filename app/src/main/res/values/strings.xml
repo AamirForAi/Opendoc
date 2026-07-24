@@ -407,6 +407,8 @@
     <string name="single_page_mode">Single Page Mode</string>
     <string name="double_tap_to_exit">Double Tap Back to Exit</string>
     <string name="double_tap_to_exit_summary">Require pressing Back twice to leave the reader. This applies when a PDF was opened from another app, or when the Home Page is disabled and Back returns to the file picker.</string>
+    <string name="three_step_double_tap_zoom">Three-Step Double Tap Zoom</string>
+    <string name="three_step_double_tap_zoom_summary">A second double tap keeps zooming to the maximum level before returning to the page.</string>
     <string name="always_open_first_page_title">Always Open at First Page</string>
     <string name="always_open_first_page_summary">Ignore the saved reading position and start every PDF from page 1.</string>
     <string name="snap">Page Snap</string>
