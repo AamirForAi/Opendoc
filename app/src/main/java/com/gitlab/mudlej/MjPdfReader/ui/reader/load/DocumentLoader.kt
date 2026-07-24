@@ -337,6 +337,7 @@ class DocumentLoader(
             }
             .onPageError { page: Int, error: Throwable -> reportLoadPageError(page, error) }
             .pageFitPolicy(pref.getPageFitPolicy().libraryPolicy)
+            .threeStepDoubleTapZoom(pref.getDoubleTapThreeStepZoom())
             .password(doc.password)
             .swipeHorizontal(pref.getHorizontalScroll())
             .horizontalReadingDirectionRtl(pref.getHorizontalScroll() && readingDirectionRtl)

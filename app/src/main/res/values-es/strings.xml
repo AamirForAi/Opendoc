@@ -373,6 +373,8 @@
     <string name="single_page_mode">Modo de Página Única</string>
     <string name="double_tap_to_exit">Doble toque para salir</string>
     <string name="double_tap_to_exit_summary">Requiere presionar Atrás dos veces para salir del lector. Esto se aplica cuando un PDF se abrió desde otra aplicación, o cuando la Página de Inicio está desactivada y Atrás regresa al selector de archivos.</string>
+    <string name="three_step_double_tap_zoom">Zoom de doble toque en tres pasos</string>
+    <string name="three_step_double_tap_zoom_summary">Un segundo doble toque sigue acercando hasta el nivel máximo antes de volver a la página.</string>
     <string name="always_open_first_page_title">Siempre Abrir en la Primera Página</string>
     <string name="always_open_first_page_summary">Ignore la posición de lectura guardada y comience cada PDF desde la página 1.</string>
     <string name="snap">Ajuste de Página</string>

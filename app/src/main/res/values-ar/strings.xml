@@ -373,6 +373,8 @@
     <string name="single_page_mode">وضع الصفحة الواحدة</string>
     <string name="double_tap_to_exit">الضغط مرتين على زر العودة للخروج</string>
     <string name="double_tap_to_exit_summary">يتطلب الضغط على زر العودة مرتين لمغادرة القارئ. ينطبق هذا عند فتح ملف PDF من تطبيق آخر، أو عندما تكون الصفحة الرئيسية معطلة ويعيد زر العودة إلى منتقي الملفات.</string>
+    <string name="three_step_double_tap_zoom">تكبير بثلاث خطوات عند الضغط مرتين</string>
+    <string name="three_step_double_tap_zoom_summary">يؤدي الضغط مرتين مرة أخرى إلى متابعة التكبير حتى الحد الأقصى قبل العودة إلى الصفحة.</string>
     <string name="always_open_first_page_title">الفتح دائمًا عند الصفحة الأولى</string>
     <string name="always_open_first_page_summary">تجاهل موضع القراءة المحفوظ وابدأ كل ملف PDF من الصفحة 1.</string>
     <string name="snap">تثبيت الصفحة في المنتصف تلقائيا</string>

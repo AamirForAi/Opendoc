@@ -373,6 +373,8 @@
     <string name="single_page_mode">Tryb pojedynczej strony</string>
     <string name="double_tap_to_exit">Podwójne dotknięcie, aby wyjść</string>
     <string name="double_tap_to_exit_summary">Wymagaj dwukrotnego naciśnięcia Wstecz, aby opuścić czytnik. Dotyczy to sytuacji, gdy plik PDF został otwarty z innej aplikacji lub gdy Ekran główny jest wyłączony, a Wstecz wraca do wyboru plików.</string>
+    <string name="three_step_double_tap_zoom">Trzystopniowe powiększanie podwójnym dotknięciem</string>
+    <string name="three_step_double_tap_zoom_summary">Drugie podwójne dotknięcie kontynuuje powiększanie do maksymalnego poziomu, zanim widok wróci do strony.</string>
     <string name="always_open_first_page_title">Zawsze otwieraj na pierwszej stronie</string>
     <string name="always_open_first_page_summary">Ignoruj zapisaną pozycję czytania i zaczynaj każdy plik PDF od strony 1.</string>
     <string name="snap">Przyciąganie strony</string>

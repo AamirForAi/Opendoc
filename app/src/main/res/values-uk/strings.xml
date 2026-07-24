@@ -373,6 +373,8 @@
     <string name="single_page_mode">Режим однієї сторінки</string>
     <string name="double_tap_to_exit">Торкнутися двічі, щоби вийти</string>
     <string name="double_tap_to_exit_summary">Натисніть «Назад» двічі, щоб вийти з переглядача.</string>
+    <string name="three_step_double_tap_zoom">Триступеневе масштабування подвійним торканням</string>
+    <string name="three_step_double_tap_zoom_summary">Друге подвійне торкання продовжує масштабування до максимального рівня, перш ніж повернутися до сторінки.</string>
     <string name="always_open_first_page_title">Завжди відкривати на першій сторінці</string>
     <string name="always_open_first_page_summary">Ігнорувати збережену позицію читання й починати кожен PDF зі сторінки 1.</string>
     <string name="snap">Знімок сторінки</string>

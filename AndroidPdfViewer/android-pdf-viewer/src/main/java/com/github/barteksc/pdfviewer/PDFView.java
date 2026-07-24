@@ -729,6 +729,8 @@ public class PDFView extends RelativeLayout {
 
     private boolean fitEachPage = false;
 
+    private boolean threeStepDoubleTapZoom = false;
+
     private boolean cropMargins = false;
 
     private CropMargins cachedCropMargins = null;
@@ -3217,6 +3219,14 @@ public class PDFView extends RelativeLayout {
         return fitEachPage;
     }
 
+    private void setThreeStepDoubleTapZoom(boolean threeStepDoubleTapZoom) {
+        this.threeStepDoubleTapZoom = threeStepDoubleTapZoom;
+    }
+
+    public boolean isThreeStepDoubleTapZoom() {
+        return threeStepDoubleTapZoom;
+    }
+
     private void setCropMargins(boolean cropMargins) {
         this.cropMargins = cropMargins;
     }
@@ -3488,6 +3498,8 @@ public class PDFView extends RelativeLayout {
 
         private boolean fitEachPage = false;
 
+        private boolean threeStepDoubleTapZoom = false;
+
         private boolean cropMargins = false;
 
         private CropMargins cachedCropMargins = null;
@@ -3692,6 +3704,11 @@ public class PDFView extends RelativeLayout {
             return this;
         }
 
+        public Configurator threeStepDoubleTapZoom(boolean threeStepDoubleTapZoom) {
+            this.threeStepDoubleTapZoom = threeStepDoubleTapZoom;
+            return this;
+        }
+
         public Configurator cropMargins(boolean cropMargins) {
             this.cropMargins = cropMargins;
             return this;
@@ -3779,6 +3796,7 @@ public class PDFView extends RelativeLayout {
             PDFView.this.setAutoReleasingWhenDetachedFromWindow(autoReleasingWhenDetachedFromWindow);
             PDFView.this.setPageFitPolicy(pageFitPolicy);
             PDFView.this.setFitEachPage(fitEachPage);
+            PDFView.this.setThreeStepDoubleTapZoom(threeStepDoubleTapZoom);
             PDFView.this.setCropMargins(cropMargins);
             PDFView.this.setCachedCropMargins(cachedCropMargins);
             PDFView.this.setPageSnap(pageSnap);

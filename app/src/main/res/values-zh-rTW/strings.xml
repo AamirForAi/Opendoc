@@ -373,6 +373,8 @@
     <string name="single_page_mode">單頁模式</string>
     <string name="double_tap_to_exit">雙擊退出</string>
     <string name="double_tap_to_exit_summary">須連按兩次返回鍵才能離開閱讀器。適用於從其他應用程式開啟 PDF，或停用首頁時返回鍵會回到檔案選擇器的情況。</string>
+    <string name="three_step_double_tap_zoom">三段式雙擊縮放</string>
+    <string name="three_step_double_tap_zoom_summary">再次雙擊會繼續放大至最高等級，之後才會恢復頁面檢視。</string>
     <string name="always_open_first_page_title">一律從第一頁開啟</string>
     <string name="always_open_first_page_summary">忽略已儲存的閱讀位置，每次都從第 1 頁開始。</string>
     <string name="snap">頁面對齊</string>

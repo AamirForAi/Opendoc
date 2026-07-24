@@ -542,6 +542,14 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 summaryRes = R.string.double_tap_to_exit_summary,
                 keywords = listOf("exit", "back"),
             ),
+            switchEntry(
+                page = SettingsPage.ADVANCED,
+                titleRes = R.string.three_step_double_tap_zoom,
+                key = Preferences.doubleTapThreeStepZoomKey,
+                defaultValue = Preferences.doubleTapThreeStepZoomDefault,
+                summaryRes = R.string.three_step_double_tap_zoom_summary,
+                keywords = listOf("double tap", "zoom", "steps", "magnify"),
+            ),
             floatPreferenceEntry(
                 page = SettingsPage.ADVANCED,
                 titleRes = R.string.part_size,

@@ -373,6 +373,8 @@
     <string name="single_page_mode">Mode page unique</string>
     <string name="double_tap_to_exit">Double tape pour quitter</string>
     <string name="double_tap_to_exit_summary">Nécessite d\'appuyer deux fois sur Retour pour quitter le lecteur. Cela s\'applique lorsqu\'un PDF a été ouvert depuis une autre application, ou lorsque la page d\'accueil est désactivée et que Retour renvoie au sélecteur de fichiers.</string>
+    <string name="three_step_double_tap_zoom">Zoom par double tape en trois étapes</string>
+    <string name="three_step_double_tap_zoom_summary">Une seconde double tape continue de zoomer jusqu\'au niveau maximum avant de revenir à la page.</string>
     <string name="always_open_first_page_title">Toujours ouvrir à la première page</string>
     <string name="always_open_first_page_summary">Ignore la position de lecture enregistrée et démarre chaque PDF à la page 1.</string>
     <string name="snap">Centrage de la page</string>

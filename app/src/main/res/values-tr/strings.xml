@@ -373,6 +373,8 @@
     <string name="single_page_mode">Tek Sayfa Modu</string>
     <string name="double_tap_to_exit">Çıkmak İçin Çift Tıklayın</string>
     <string name="double_tap_to_exit_summary">Okuyucudan çıkmak için Geri\'ye iki kez basmayı gerektirir. Bu, bir PDF başka bir uygulamadan açıldığında veya Ana Sayfa devre dışı bırakılıp Geri dosya seçiciye döndüğünde geçerlidir.</string>
+    <string name="three_step_double_tap_zoom">Üç Adımlı Çift Tıklama Yakınlaştırması</string>
+    <string name="three_step_double_tap_zoom_summary">İkinci bir çift tıklama, sayfaya dönmeden önce maksimum düzeye kadar yakınlaştırmaya devam eder.</string>
     <string name="always_open_first_page_title">Her Zaman İlk Sayfadan Aç</string>
     <string name="always_open_first_page_summary">Kaydedilmiş okuma konumunu yoksayar ve her PDF\'i 1. sayfadan başlatır.</string>
     <string name="snap">Sayfa Yerine Oturma</string>

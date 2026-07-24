@@ -373,6 +373,8 @@
     <string name="single_page_mode">Режим одной страницы</string>
     <string name="double_tap_to_exit">Двойное нажатие для выхода</string>
     <string name="double_tap_to_exit_summary">Требовать двойное нажатие «Назад» для выхода из читалки. Применяется, когда PDF открыт из другого приложения, или когда главный экран отключён и «Назад» возвращает к выбору файла.</string>
+    <string name="three_step_double_tap_zoom">Трёхступенчатое увеличение двойным нажатием</string>
+    <string name="three_step_double_tap_zoom_summary">Второе двойное нажатие продолжает увеличение до максимального уровня, прежде чем вернуться к странице.</string>
     <string name="always_open_first_page_title">Всегда открывать с первой страницы</string>
     <string name="always_open_first_page_summary">Игнорировать сохранённую позицию чтения и открывать каждый PDF с 1-й страницы.</string>
     <string name="snap">Фиксация страницы</string>
@@ -659,7 +661,7 @@
     <string name="last_opened_key">Последний раз открыто:</string>
     <string name="pdf_cover_image">Обложка PDF</string>
     <string name="pages">страницы</string>
-    <string name="exit">Выйти из полноэкранного режима</string>
+    <string name="exit">Выйти из полного экрана</string>
     <string name="rotate">Поворот</string>
     <string name="auto_scroll">Автопрокрутка</string>
     <string name="horizontal_lock">Горизонт. блокировка</string>

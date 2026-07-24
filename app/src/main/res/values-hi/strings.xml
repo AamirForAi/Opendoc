@@ -373,6 +373,8 @@
     <string name="single_page_mode">सिंगल पेज मोड</string>
     <string name="double_tap_to_exit">बाहर जाने के लिए डबल टैप करें</string>
     <string name="double_tap_to_exit_summary">रीडर छोड़ने के लिए बैक को दो बार दबाना ज़रूरी करें। यह तब लागू होता है जब कोई PDF किसी अन्य ऐप से खोला गया हो, या जब होम पेज अक्षम हो और बैक फ़ाइल पिकर पर लौटता हो।</string>
+    <string name="three_step_double_tap_zoom">तीन-चरण डबल टैप ज़ूम</string>
+    <string name="three_step_double_tap_zoom_summary">दूसरा डबल टैप पेज पर लौटने से पहले अधिकतम स्तर तक ज़ूम जारी रखता है।</string>
     <string name="always_open_first_page_title">हमेशा पहले पेज पर खोलें</string>
     <string name="always_open_first_page_summary">सहेजी गई पढ़ने की स्थिति को नज़रअंदाज़ करें और हर PDF को पेज 1 से शुरू करें।</string>
     <string name="snap">पेज स्नैप</string>
