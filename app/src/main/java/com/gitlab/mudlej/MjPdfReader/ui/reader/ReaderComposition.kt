@@ -696,7 +696,7 @@ class ReaderComposition(
             reload = activity::reloadPdf,
             openLocal = ::pickFile,
             openOnline = { onlinePdfController.showOpenOnlinePdfDialog() },
-            search = { showSearchDialog(activity, doc, vm.incognito) { intent -> searchLauncher.launch(intent) } },
+            search = { showSearchDialog(activity, doc) { query, ignoreAccents -> readerNavigationController.startInlineSearch(query, ignoreAccents) } },
             goToPage = ::goToPage,
             extractText = { pageTextCopier.copyPageText() },
             textMode = ::navToTextMode,

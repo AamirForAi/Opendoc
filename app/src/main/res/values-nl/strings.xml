@@ -255,6 +255,7 @@
     <string name="features_custom_languages_body">De interface is beschikbaar in 15 talen.</string>
     <string name="done">KLAAR</string>
     <string name="results">ZOEKRESULTATEN</string>
+    <string name="search_no_results">Geen resultaten gevonden</string>
     <string name="ok">OK</string>
     <string name="libs">Open Source-bibliotheken</string>
     <string name="code">Broncode</string>

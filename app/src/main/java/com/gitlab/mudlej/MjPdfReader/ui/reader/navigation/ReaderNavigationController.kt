@@ -157,6 +157,10 @@ class ReaderNavigationController(
         searchNavigationController.reset()
     }
 
+    fun startInlineSearch(query: String, ignoreAccents: Boolean) {
+        searchNavigationController.startQuery(query, ignoreAccents)
+    }
+
     fun resetTableOfContentsState() {
         tableOfContentsSnackbar.dismiss()
         tableOfContentsState = TableOfContentsState()

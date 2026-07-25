@@ -255,6 +255,7 @@
     <string name="features_custom_languages_body">Интерфейс доступен на 15 языках.</string>
     <string name="done">ГОТОВО</string>
     <string name="results">РЕЗУЛЬТАТЫ ПОИСКА</string>
+    <string name="search_no_results">Результаты не найдены</string>
     <string name="ok">ОК</string>
     <string name="libs">Библиотеки с открытым исходным кодом</string>
     <string name="code">Исходный код</string>

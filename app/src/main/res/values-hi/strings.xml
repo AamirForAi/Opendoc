@@ -255,6 +255,7 @@
     <string name="features_custom_languages_body">इंटरफ़ेस 15 भाषाओं में उपलब्ध है।</string>
     <string name="done">हो गया</string>
     <string name="results">खोज परिणाम</string>
+    <string name="search_no_results">कोई परिणाम नहीं मिला</string>
     <string name="ok">ठीक</string>
     <string name="libs">ओपन सोर्स लाइब्रेरीज</string>
     <string name="code">सोर्स कोड</string>

@@ -255,6 +255,7 @@
     <string name="features_custom_languages_body">Інтерфейс доступний 15 мовами.</string>
     <string name="done">ГОТОВО</string>
     <string name="results">РЕЗУЛЬТАТИ ПОШУКУ</string>
+    <string name="search_no_results">Результатів не знайдено</string>
     <string name="ok">ГАРАЗД</string>
     <string name="libs">Бібліотеки з відкритим вихідним кодом</string>
     <string name="code">Вихідний код</string>

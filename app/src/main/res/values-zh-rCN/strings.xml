@@ -255,6 +255,7 @@
     <string name="features_custom_languages_body">界面支持 15 种语言。</string>
     <string name="done">完成</string>
     <string name="results">搜索结果</string>
+    <string name="search_no_results">未找到结果</string>
     <string name="ok">确认</string>
     <string name="libs">开放源代码库</string>
     <string name="code">源代码</string>

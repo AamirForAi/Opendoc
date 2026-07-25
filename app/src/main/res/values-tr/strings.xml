@@ -255,6 +255,7 @@
     <string name="features_custom_languages_body">Arayüz 15 dilde kullanılabilir.</string>
     <string name="done">TAMAMLANDI</string>
     <string name="results">ARAMA SONUÇLARI</string>
+    <string name="search_no_results">Sonuç bulunamadı</string>
     <string name="ok">TAMAM</string>
     <string name="libs">Açık Kaynak Kütüphaneleri</string>
     <string name="code">Kaynak Kodu</string>

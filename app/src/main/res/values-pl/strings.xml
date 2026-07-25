@@ -255,6 +255,7 @@
     <string name="features_custom_languages_body">Interfejs jest dostępny w 15 językach.</string>
     <string name="done">GOTOWE</string>
     <string name="results">WYNIKI WYSZUKIWANIA</string>
+    <string name="search_no_results">Nie znaleziono wyników</string>
     <string name="ok">OK</string>
     <string name="libs">Biblioteki Open Source</string>
     <string name="code">Kod źródłowy</string>

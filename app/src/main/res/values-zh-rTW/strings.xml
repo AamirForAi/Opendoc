@@ -255,6 +255,7 @@
     <string name="features_custom_languages_body">介面支援 15 種語言。</string>
     <string name="done">DONE</string>
     <string name="results">搜索結果</string>
+    <string name="search_no_results">未找到結果</string>
     <string name="ok">確認</string>
     <string name="libs">開放原始碼庫</string>
     <string name="code">原始碼</string>

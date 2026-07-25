@@ -255,6 +255,7 @@
     <string name="features_custom_languages_body">Die Benutzeroberfläche ist in 15 Sprachen verfügbar.</string>
     <string name="done">FERTIG</string>
     <string name="results">SUCHERGEBNISSE</string>
+    <string name="search_no_results">Keine Ergebnisse gefunden</string>
     <string name="ok">OK</string>
     <string name="libs">Open-Source-Bibliotheken</string>
     <string name="code">Quellcode</string>

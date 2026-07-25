@@ -2300,6 +2300,13 @@ public class PDFView extends RelativeLayout {
         return currentPage;
     }
 
+    public int getVisiblePageIndex() {
+        if (pdfFile == null) {
+            return currentPage;
+        }
+        return pdfFile.determineValidPageNumberFrom(findFocusPage(currentXOffset, currentYOffset));
+    }
+
     public float getCurrentXOffset() {
         return currentXOffset;
     }

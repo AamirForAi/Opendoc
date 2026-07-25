@@ -255,6 +255,7 @@
     <string name="features_custom_languages_body">الواجهة متوفرة بـ 15 لغة.</string>
     <string name="done">تم</string>
     <string name="results">نتائج البحث</string>
+    <string name="search_no_results">لم يتم العثور على نتائج</string>
     <string name="ok">موافق</string>
     <string name="libs">مكتبات التطبيق</string>
     <string name="code">الكود</string>

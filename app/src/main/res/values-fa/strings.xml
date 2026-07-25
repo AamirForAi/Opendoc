@@ -255,6 +255,7 @@
     <string name="features_custom_languages_body">رابط کاربری به ۱۵ زبان موجود است.</string>
     <string name="done">انجام شد</string>
     <string name="results">یافته‌های جستجو</string>
+    <string name="search_no_results">نتیجه‌ای یافت نشد</string>
     <string name="ok">تایید</string>
     <string name="libs">کتابخانه‌های متن باز</string>
     <string name="code">سورس کد</string>
