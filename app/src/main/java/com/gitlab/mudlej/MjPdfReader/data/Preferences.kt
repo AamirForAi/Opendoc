@@ -108,6 +108,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val pageSnapKey = "pageSnap"
         const val pageFlingKey = "pageFling"
         const val browserScrollModeKey = "browserScrollMode"
+        const val singlePageModeKey = "singlePageMode"
+        const val tapToTurnKey = "tapToTurnPages"
         const val turnPageByMouseButtonsKey = "turnPageByMouseButtons"
         const val pdfDarkThemeKey = "pdfDarkTheme"
         const val appFollowSystemThemeKey = "appFollowSystemTheme"
@@ -197,6 +199,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val pageSnapDefault = false
         const val pageFlingDefault = false
         const val browserScrollModeDefault = false
+        const val singlePageModeDefault = false
+        const val tapToTurnDefault = "LEFT_RIGHT"
         const val turnPageByMouseButtonsDefault = true
         const val pdfDarkThemeDefault = false
         const val appFollowSystemThemeDefault = true    // NEW: for version v2.1 M3 Theme
@@ -291,7 +295,7 @@ class Preferences(private val prefMan: SharedPreferences) {
             listOf(
                 firstInstallKey, showFeaturesDialogKey, highQualityKey, antiAliasingKey,
                 horizontalScrollKey, dualPageModeKey, dualPageFirstPageAloneKey, pageSnapKey,
-                pageFlingKey, browserScrollModeKey, turnPageByMouseButtonsKey, pdfDarkThemeKey,
+                pageFlingKey, browserScrollModeKey, singlePageModeKey, turnPageByMouseButtonsKey, pdfDarkThemeKey,
                 appFollowSystemThemeKey, pdfFollowSystemThemeKey, enableReloadButtonKey, screenOnKey,
                 spaceBetweenPagesKey, inlineTextSelectionKey, detectExistingHighlightsKey,
                 searchIgnoreAccentsKey, searchZoomToResultKey, defaultTextModeKey,
@@ -318,7 +322,7 @@ class Preferences(private val prefMan: SharedPreferences) {
                 secondaryButtonActionKey, fullScreenOverlayActionOrderKey, shortcutBarActionOrderKey,
                 highlightColorsKey, listFilterKey, homeTabKey, homeViewModeKey, homeProgressStyleKey,
                 homeGridSizeKey, homeTitleEllipsizeKey, homeSortKey, scanModeKey, pageFitPolicyKey,
-                backupFolderTreeUriKey, autoBackupLastErrorKey, translationModeKey,
+                tapToTurnKey, backupFolderTreeUriKey, autoBackupLastErrorKey, translationModeKey,
                 translationEngineKey, translationTargetLanguageKey, translationCustomUrlKey,
                 importResultPendingKey,
             ).forEach { put(it, kindString) }
@@ -337,6 +341,7 @@ class Preferences(private val prefMan: SharedPreferences) {
             homeSortKey to HomeSortOrder.entries.map { it.name }.toSet(),
             scanModeKey to ScanMode.entries.map { it.name }.toSet(),
             pageFitPolicyKey to PageFitPolicy.entries.map { it.name }.toSet(),
+            tapToTurnKey to TapToTurnZones.entries.map { it.name }.toSet(),
         )
     }
 
@@ -353,6 +358,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getPageSnap() = safeGetBoolean(pageSnapKey, pageSnapDefault)
     fun getPageFling() = safeGetBoolean(pageFlingKey, pageFlingDefault)
     fun getBrowserScrollMode() = safeGetBoolean(browserScrollModeKey, browserScrollModeDefault)
+    fun getSinglePageMode() = safeGetBoolean(singlePageModeKey, singlePageModeDefault)
+    fun getTapToTurnZones() = safeGetEnum<TapToTurnZones>(tapToTurnKey, tapToTurnDefault)
     fun getTurnPageByMouseButtons() = safeGetBoolean(turnPageByMouseButtonsKey, turnPageByMouseButtonsDefault)
     fun getPdfDarkTheme() = safeGetBoolean(pdfDarkThemeKey, pdfDarkThemeDefault)
     fun getAppFollowSystemTheme() = safeGetBoolean(appFollowSystemThemeKey, appFollowSystemThemeDefault)
@@ -505,6 +512,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setPageSnap(value: Boolean) = prefMan.edit().putBoolean(pageSnapKey, value).apply()
     fun setPageFling(value: Boolean) = prefMan.edit().putBoolean(pageFlingKey, value).apply()
     fun setBrowserScrollMode(value: Boolean) = prefMan.edit().putBoolean(browserScrollModeKey, value).apply()
+    fun setSinglePageMode(value: Boolean) = prefMan.edit().putBoolean(singlePageModeKey, value).apply()
+    fun setTapToTurnZones(value: TapToTurnZones) = prefMan.edit().putString(tapToTurnKey, value.name).apply()
     fun setTurnPageByMouseButtons(value: Boolean) = prefMan.edit().putBoolean(turnPageByMouseButtonsKey, value).apply()
     fun setPdfDarkTheme(value: Boolean) = prefMan.edit().putBoolean(pdfDarkThemeKey, value).apply()
     fun setAppFollowSystemTheme(value: Boolean) = prefMan.edit().putBoolean(appFollowSystemThemeKey, value).apply()

@@ -399,6 +399,14 @@
     <string name="page_fit_width">Fit page width</string>
     <string name="page_fit_height">Fit page height</string>
     <string name="page_fit_whole">Fit the whole page</string>
+    <string name="single_page_mode_title">Single Page Mode</string>
+    <string name="single_page_mode_summary">Show one full page per screen and turn pages like a book.</string>
+    <string name="tap_to_turn_title">Tap to Turn Pages</string>
+    <string name="tap_to_turn_summary">Which screen edges turn the page when tapped.</string>
+    <string name="tap_turn_left_right">Left and right edges</string>
+    <string name="tap_turn_top_bottom">Top and bottom edges</string>
+    <string name="tap_turn_off">Off</string>
+    <string name="overridden_by">Overridden by %1$s</string>
     <string name="horizontal_scrolling_mode">Horizontal Scrolling</string>
     <string name="horizontal_scrolling_summary">Navigate pages horizontally instead of vertically. MJ PDF will try to auto-detect the right reading direction. You can override it per PDF from Menu &gt; Reading Direction after enabling horizontal scrolling.</string>
     <string name="dual_page_mode_title">Dual Page Mode</string>

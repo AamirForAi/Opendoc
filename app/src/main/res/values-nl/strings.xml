@@ -365,6 +365,14 @@
     <string name="page_fit_width">Aanpassen aan paginabreedte</string>
     <string name="page_fit_height">Aanpassen aan paginahoogte</string>
     <string name="page_fit_whole">Hele pagina passend maken</string>
+    <string name="single_page_mode_title">Modus Enkele Pagina</string>
+    <string name="single_page_mode_summary">Toon één volledige pagina per scherm en sla pagina\'s om zoals in een boek.</string>
+    <string name="tap_to_turn_title">Bladzijde omslaan door te tikken</string>
+    <string name="tap_to_turn_summary">Welke schermranden de pagina omslaan bij een tik.</string>
+    <string name="tap_turn_left_right">Linker- en rechterrand</string>
+    <string name="tap_turn_top_bottom">Boven- en onderrand</string>
+    <string name="tap_turn_off">Uit</string>
+    <string name="overridden_by">Overschreven door %1$s</string>
     <string name="horizontal_scrolling_mode">Horizontaal bladeren</string>
     <string name="horizontal_scrolling_summary">Navigeer horizontaal door pagina\'s in plaats van verticaal. MJ PDF probeert automatisch de juiste leesrichting te herkennen. Je kunt dit per PDF overschrijven via Menu &gt; Leesrichting nadat horizontaal bladeren is ingeschakeld.</string>
     <string name="dual_page_mode_title">Modus Dubbele Pagina</string>

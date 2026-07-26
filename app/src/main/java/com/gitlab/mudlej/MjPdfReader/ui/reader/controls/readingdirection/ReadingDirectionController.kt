@@ -8,6 +8,7 @@ import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.pdf.ReadingDirection
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
+import com.gitlab.mudlej.MjPdfReader.data.resolveReadingLayout
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
 import com.gitlab.mudlej.MjPdfReader.ui.reader.load.DocumentLoader
@@ -42,7 +43,7 @@ class ReadingDirectionController(
                 applyOverride(selectedOverride)
             }
             .setNegativeButton(android.R.string.cancel, null)
-        if (!pref.getHorizontalScroll()) {
+        if (!resolveReadingLayout(pref).swipeHorizontal) {
             dialogBuilder.setMessage(R.string.reading_direction_message)
         }
         dialogBuilder.show()
@@ -115,7 +116,7 @@ class ReadingDirectionController(
             pdf.readingDirectionOverride = direction
             pdf.detectedReadingDirection = detectedDirection
             pdf.effectiveReadingDirection = ReadingDirection.effective(direction, detectedDirection)
-            if (pref.getHorizontalScroll() && pdf.effectiveReadingDirection != oldEffectiveDirection) {
+            if (resolveReadingLayout(pref).swipeHorizontal && pdf.effectiveReadingDirection != oldEffectiveDirection) {
                 activity.recreate()
             }
         }

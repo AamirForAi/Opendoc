@@ -20,7 +20,6 @@ import static com.github.barteksc.pdfviewer.util.Constants.Pinch.MINIMUM_ZOOM;
 import static com.github.barteksc.pdfviewer.util.Constants.Pinch.RENDER_DURING_SCALE_STEP;
 
 import android.graphics.PointF;
-import android.graphics.RectF;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -30,8 +29,6 @@ import android.view.ViewConfiguration;
 import com.github.barteksc.pdfviewer.model.LinkTapEvent;
 import com.github.barteksc.pdfviewer.scroll.ScrollHandle;
 import com.github.barteksc.pdfviewer.util.SnapEdge;
-import com.shockwave.pdfium.PdfDocument;
-import com.shockwave.pdfium.util.SizeF;
 
 /**
  * This Manager takes care of moving the PDFView,
@@ -110,36 +107,12 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
 
 
     private boolean checkLinkTapped(float x, float y) {
-        PdfFile pdfFile = pdfView.pdfFile;
-        if (pdfFile == null) {
+        LinkTapEvent event = pdfView.findLinkAt(x, y);
+        if (event == null) {
             return false;
         }
-        float mappedX = -pdfView.getCurrentXOffset() + x;
-        float mappedY = -pdfView.getCurrentYOffset() + y;
-        int page = pdfFile.getPageAtOffset(pdfView.isSwipeVertical() ? mappedY : mappedX,
-                pdfView.isSwipeVertical() ? mappedX : mappedY, pdfView.getZoom());
-        SizeF pageSize = pdfFile.getScaledPageSize(page, pdfView.getZoom());
-        int pageX, pageY;
-        if (pdfView.isSwipeVertical()) {
-            pageX = (int) pdfFile.getSecondaryPageOffset(page, pdfView.getZoom());
-            pageY = (int) pdfFile.getPageOffset(page, pdfView.getZoom());
-        } else {
-            pageY = (int) pdfFile.getSecondaryPageOffset(page, pdfView.getZoom());
-            pageX = (int) pdfFile.getPageOffset(page, pdfView.getZoom());
-        }
-        for (PdfDocument.Link link : pdfFile.getPageLinks(page)) {
-            RectF mapped = pdfFile.mapRectToDevice(page, pageX, pageY, (int) pageSize.getWidth(),
-                    (int) pageSize.getHeight(), link.getBounds());
-            if (mapped == null) {
-                continue;
-            }
-            mapped.sort();
-            if (mapped.contains(mappedX, mappedY)) {
-                pdfView.callbacks.callLinkHandler(new LinkTapEvent(x, y, mappedX, mappedY, mapped, link));
-                return true;
-            }
-        }
-        return false;
+        pdfView.callbacks.callLinkHandler(event);
+        return true;
     }
 
     private void startPageFling(MotionEvent downEvent, MotionEvent ev, float velocityX, float velocityY) {

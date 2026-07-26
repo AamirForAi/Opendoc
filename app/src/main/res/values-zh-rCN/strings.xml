@@ -365,6 +365,14 @@
     <string name="page_fit_width">适应页面宽度</string>
     <string name="page_fit_height">适应页面高度</string>
     <string name="page_fit_whole">适应整个页面</string>
+    <string name="single_page_mode_title">单页模式</string>
+    <string name="single_page_mode_summary">每屏显示一整页，并像书本一样翻页。</string>
+    <string name="tap_to_turn_title">点按翻页</string>
+    <string name="tap_to_turn_summary">点按屏幕的哪些边缘时翻页。</string>
+    <string name="tap_turn_left_right">左右边缘</string>
+    <string name="tap_turn_top_bottom">上下边缘</string>
+    <string name="tap_turn_off">关闭</string>
+    <string name="overridden_by">已被“%1$s”覆盖</string>
     <string name="horizontal_scrolling_mode">水平滚动</string>
     <string name="horizontal_scrolling_summary">水平翻页而非垂直滚动。MJ PDF 会尝试自动检测正确的阅读方向。启用水平滚动后，可从菜单 &gt; 阅读方向按 PDF 单独覆盖设置。</string>
     <string name="dual_page_mode_title">双页模式</string>

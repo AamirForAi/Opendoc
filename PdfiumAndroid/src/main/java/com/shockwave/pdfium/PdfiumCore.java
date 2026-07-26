@@ -113,6 +113,8 @@ public class PdfiumCore {
 
     private native SizeF nativeGetPageSizePointByIndex(long docPtr, int pageIndex);
 
+    private native float[] nativeGetPageGeometry(long pagePtr);
+
     private native long[] nativeGetPageLinks(long pagePtr);
 
     private native String nativeGetPageText(long pagePtr);
@@ -533,6 +535,20 @@ public class PdfiumCore {
                 return new SizeF(0, 0);
             }
             return nativeGetPageSizePointByIndex(doc.mNativeDocPtr, index);
+        }
+    }
+
+    public float[] getPageGeometry(PdfDocument doc, int pageIndex) {
+        synchronized (lock) {
+            if (doc.closed) {
+                return new float[0];
+            }
+            Long pagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (pagePtr == null) {
+                return new float[0];
+            }
+            float[] geometry = nativeGetPageGeometry(pagePtr);
+            return geometry == null ? new float[0] : geometry;
         }
     }
 

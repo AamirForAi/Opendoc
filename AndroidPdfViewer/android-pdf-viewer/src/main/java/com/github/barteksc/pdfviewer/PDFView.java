@@ -67,6 +67,7 @@ import com.github.barteksc.pdfviewer.listener.OnTapListener;
 import com.github.barteksc.pdfviewer.listener.OnTextSelectionChangeListener;
 import com.github.barteksc.pdfviewer.model.CropBounds;
 import com.github.barteksc.pdfviewer.model.CropMargins;
+import com.github.barteksc.pdfviewer.model.LinkTapEvent;
 import com.github.barteksc.pdfviewer.model.PagePart;
 import com.github.barteksc.pdfviewer.preview.GenerationSource;
 import com.github.barteksc.pdfviewer.preview.PreviewBitmapAdapter;
@@ -2203,6 +2204,41 @@ public class PDFView extends RelativeLayout {
         return pdfFile.getRowFirstPage(row) + pdfFile.getPagesInRow(row) - 1;
     }
 
+    public LinkTapEvent findLinkAt(float x, float y) {
+        if (pdfFile == null) {
+            return null;
+        }
+        float mappedX = -getCurrentXOffset() + x;
+        float mappedY = -getCurrentYOffset() + y;
+        int page = pdfFile.getPageAtOffset(isSwipeVertical() ? mappedY : mappedX,
+                isSwipeVertical() ? mappedX : mappedY, getZoom());
+        SizeF pageSize = pdfFile.getScaledPageSize(page, getZoom());
+        int pageX, pageY;
+        if (isSwipeVertical()) {
+            pageX = (int) pdfFile.getSecondaryPageOffset(page, getZoom());
+            pageY = (int) pdfFile.getPageOffset(page, getZoom());
+        } else {
+            pageY = (int) pdfFile.getSecondaryPageOffset(page, getZoom());
+            pageX = (int) pdfFile.getPageOffset(page, getZoom());
+        }
+        for (PdfDocument.Link link : pdfFile.getPageLinks(page)) {
+            RectF mapped = pdfFile.mapRectToDevice(page, pageX, pageY, (int) pageSize.getWidth(),
+                    (int) pageSize.getHeight(), link.getBounds());
+            if (mapped == null) {
+                continue;
+            }
+            mapped.sort();
+            if (mapped.contains(mappedX, mappedY)) {
+                return new LinkTapEvent(x, y, mappedX, mappedY, mapped, link);
+            }
+        }
+        return null;
+    }
+
+    public boolean hasLinkAt(float x, float y) {
+        return findLinkAt(x, y) != null;
+    }
+
     /**
      * @return true if single page fills the entire screen in the scrolling direction
      */
@@ -2513,8 +2549,9 @@ public class PDFView extends RelativeLayout {
         }
         float left = center.x - width / 2f;
         float bottom = center.y - height / 2f;
-        left = Math.max(0, Math.min(left, pageWidth - width));
-        bottom = Math.max(0, Math.min(bottom, pageHeight - height));
+        RectF bounds = pdfFile.getPageUserBounds(page);
+        left = Math.max(bounds.left, Math.min(left, bounds.right - width));
+        bottom = Math.max(bounds.bottom, Math.min(bottom, bounds.top - height));
         RectF rect = new RectF(left, bottom + height, left + width, bottom);
         startStampPlacement(page, rect, strokes, color, normalizedStrokeWidth);
         return true;

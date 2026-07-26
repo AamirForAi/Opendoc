@@ -365,6 +365,14 @@
     <string name="page_fit_width">An Seitenbreite anpassen</string>
     <string name="page_fit_height">An Seitenhöhe anpassen</string>
     <string name="page_fit_whole">Ganze Seite einpassen</string>
+    <string name="single_page_mode_title">Einzelseitenmodus</string>
+    <string name="single_page_mode_summary">Eine ganze Seite pro Bildschirm anzeigen und wie in einem Buch umblättern.</string>
+    <string name="tap_to_turn_title">Tippen zum Umblättern</string>
+    <string name="tap_to_turn_summary">Welche Bildschirmränder beim Antippen die Seite umblättern.</string>
+    <string name="tap_turn_left_right">Linker und rechter Rand</string>
+    <string name="tap_turn_top_bottom">Oberer und unterer Rand</string>
+    <string name="tap_turn_off">Aus</string>
+    <string name="overridden_by">Überschrieben durch %1$s</string>
     <string name="horizontal_scrolling_mode">Horizontales Scrollen</string>
     <string name="horizontal_scrolling_summary">Seiten horizontal statt vertikal navigieren. MJ PDF versucht, die richtige Leserichtung automatisch zu erkennen. Sie können dies pro PDF im Menü &gt; Leserichtung nach Aktivierung des horizontalen Scrollens überschreiben.</string>
     <string name="dual_page_mode_title">Doppelseitenmodus</string>

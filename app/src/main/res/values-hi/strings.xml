@@ -365,6 +365,14 @@
     <string name="page_fit_width">पेज की चौड़ाई फ़िट करें</string>
     <string name="page_fit_height">पेज की ऊंचाई फ़िट करें</string>
     <string name="page_fit_whole">पूरा पेज फ़िट करें</string>
+    <string name="single_page_mode_title">सिंगल पेज मोड</string>
+    <string name="single_page_mode_summary">हर स्क्रीन पर एक पूरा पेज दिखाएं और किताब की तरह पेज पलटें।</string>
+    <string name="tap_to_turn_title">टैप करके पेज पलटें</string>
+    <string name="tap_to_turn_summary">टैप करने पर स्क्रीन के कौन से किनारे पेज पलटते हैं।</string>
+    <string name="tap_turn_left_right">बाएं और दाएं किनारे</string>
+    <string name="tap_turn_top_bottom">ऊपर और नीचे के किनारे</string>
+    <string name="tap_turn_off">बंद</string>
+    <string name="overridden_by">%1$s द्वारा ओवरराइड किया गया</string>
     <string name="horizontal_scrolling_mode">क्षैतिज स्क्रॉलिंग</string>
     <string name="horizontal_scrolling_summary">पृष्ठों को लंबवत के बजाय क्षैतिज रूप से नेविगेट करें। MJ PDF सही पढ़ने की दिशा स्वचालित रूप से पता लगाने का प्रयास करेगा। आप क्षैतिज स्क्रॉलिंग सक्षम करने के बाद मेनू &gt; पढ़ने की दिशा से प्रति पीडीएफ इसे ओवरराइड कर सकते हैं।</string>
     <string name="dual_page_mode_title">डुअल पेज मोड</string>

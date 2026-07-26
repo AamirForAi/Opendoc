@@ -365,6 +365,14 @@
     <string name="page_fit_width">За шириною сторінки</string>
     <string name="page_fit_height">За висотою сторінки</string>
     <string name="page_fit_whole">Сторінка цілком</string>
+    <string name="single_page_mode_title">Режим однієї сторінки</string>
+    <string name="single_page_mode_summary">Показувати одну сторінку цілком на екрані та гортати сторінки як у книзі.</string>
+    <string name="tap_to_turn_title">Гортати сторінки дотиком</string>
+    <string name="tap_to_turn_summary">Які краї екрана гортають сторінку при дотику.</string>
+    <string name="tap_turn_left_right">Лівий і правий краї</string>
+    <string name="tap_turn_top_bottom">Верхній і нижній краї</string>
+    <string name="tap_turn_off">Вимкнено</string>
+    <string name="overridden_by">Перевизначено налаштуванням «%1$s»</string>
     <string name="horizontal_scrolling_mode">Горизонтальне гортання</string>
     <string name="horizontal_scrolling_summary">Гортайте сторінки по горизонталі, а не по вертикалі. MJ PDF спробує автоматично визначить напрямок читання, але ви можете змінити його вручну в Меню &gt; Напрямок читання після активації горизонтального гортання.</string>
     <string name="dual_page_mode_title">Режим двох сторінок</string>

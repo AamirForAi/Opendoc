@@ -12,6 +12,7 @@ import android.text.format.Formatter
 import android.widget.FrameLayout
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
+import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceGroup
@@ -19,6 +20,8 @@ import androidx.preference.PreferenceScreen
 import android.widget.Toast
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.data.ReadingLayout
+import com.gitlab.mudlej.MjPdfReader.data.resolveReadingLayout
 import com.gitlab.mudlej.MjPdfReader.data.AutoBackupScheduler
 import com.gitlab.mudlej.MjPdfReader.data.BackupData
 import com.gitlab.mudlej.MjPdfReader.data.BackupException
@@ -152,18 +155,27 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     fun refreshPreferences() = rebuildPreferences()
 
+    fun refreshPreferencesAfterChange() {
+        listView.post {
+            if (isAdded) {
+                rebuildPreferences()
+            }
+        }
+    }
+
     private fun rebuildPreferences() {
         val screen = preferenceManager.createPreferenceScreen(requireContext())
         val currentPage = page
+        val layout = resolveReadingLayout(appPreferences)
         if (currentPage == null) {
-            buildRootScreen(screen)
+            buildRootScreen(screen, layout)
         } else {
-            buildPageScreen(screen, currentPage)
+            buildPageScreen(screen, currentPage, layout)
         }
         preferenceScreen = screen
     }
 
-    private fun buildRootScreen(screen: PreferenceScreen) {
+    private fun buildRootScreen(screen: PreferenceScreen, layout: ReadingLayout) {
         val query = searchQuery.trim()
         if (query.isBlank()) {
             SettingsPage.values().forEach { page ->
@@ -179,11 +191,13 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
 
         results.forEach { entry ->
-            screen.addPreference(entry.createPreference(preferenceFactory, getString(entry.page.titleRes)))
+            val preference = entry.createPreference(preferenceFactory, getString(entry.page.titleRes))
+            applyReadingLayoutOverride(preference, layout)
+            screen.addPreference(preference)
         }
     }
 
-    private fun buildPageScreen(screen: PreferenceScreen, page: SettingsPage) {
+    private fun buildPageScreen(screen: PreferenceScreen, page: SettingsPage, layout: ReadingLayout) {
         var target: PreferenceGroup = screen
         var currentSection: Int? = null
         preferenceFactory.entriesFor(page).forEach { entry ->
@@ -197,7 +211,18 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     }
                 } ?: screen
             }
-            target.addPreference(entry.createPreference(preferenceFactory, breadcrumb = null))
+            val preference = entry.createPreference(preferenceFactory, breadcrumb = null)
+            applyReadingLayoutOverride(preference, layout)
+            target.addPreference(preference)
+        }
+    }
+
+    private fun applyReadingLayoutOverride(preference: Preference, layout: ReadingLayout) {
+        layout.overridden[preference.key]?.let { reasonRes ->
+            preference.isEnabled = false
+            val reason = getString(R.string.overridden_by, getString(reasonRes))
+            val summary = preference.summary
+            preference.summary = if (summary.isNullOrBlank()) reason else "$summary\n$reason"
         }
     }
 

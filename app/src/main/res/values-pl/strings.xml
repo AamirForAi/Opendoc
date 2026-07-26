@@ -365,6 +365,14 @@
     <string name="page_fit_width">Dopasuj do szerokości strony</string>
     <string name="page_fit_height">Dopasuj do wysokości strony</string>
     <string name="page_fit_whole">Dopasuj całą stronę</string>
+    <string name="single_page_mode_title">Tryb pojedynczej strony</string>
+    <string name="single_page_mode_summary">Pokazuj jedną całą stronę na ekranie i przewracaj strony jak w książce.</string>
+    <string name="tap_to_turn_title">Przewracanie stron dotknięciem</string>
+    <string name="tap_to_turn_summary">Które krawędzie ekranu przewracają stronę po dotknięciu.</string>
+    <string name="tap_turn_left_right">Lewa i prawa krawędź</string>
+    <string name="tap_turn_top_bottom">Górna i dolna krawędź</string>
+    <string name="tap_turn_off">Wyłączone</string>
+    <string name="overridden_by">Nadpisane przez %1$s</string>
     <string name="horizontal_scrolling_mode">Przewijanie poziome</string>
     <string name="horizontal_scrolling_summary">Przechodź między stronami poziomo zamiast pionowo. MJ PDF spróbuje automatycznie wykryć właściwy kierunek czytania. Możesz go zmienić dla poszczególnego pliku PDF w Menu &gt; Kierunek czytania po włączeniu przewijania poziomego.</string>
     <string name="dual_page_mode_title">Tryb podwójnej strony</string>

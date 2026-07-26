@@ -365,6 +365,14 @@
     <string name="page_fit_width">ملاءمة عرض الصفحة</string>
     <string name="page_fit_height">ملاءمة ارتفاع الصفحة</string>
     <string name="page_fit_whole">ملاءمة الصفحة كاملة</string>
+    <string name="single_page_mode_title">وضع الصفحة الواحدة</string>
+    <string name="single_page_mode_summary">اعرض صفحة واحدة كاملة في كل شاشة وقلّب الصفحات كالكتاب.</string>
+    <string name="tap_to_turn_title">تقليب الصفحات بالضغط</string>
+    <string name="tap_to_turn_summary">أي حواف الشاشة تقلّب الصفحة عند الضغط عليها.</string>
+    <string name="tap_turn_left_right">الحافتان اليسرى واليمنى</string>
+    <string name="tap_turn_top_bottom">الحافتان العلوية والسفلية</string>
+    <string name="tap_turn_off">إيقاف</string>
+    <string name="overridden_by">يتم تجاوزه بواسطة %1$s</string>
     <string name="horizontal_scrolling_mode">وضعية التصفح الأفقية</string>
     <string name="horizontal_scrolling_summary">التنقل بين الصفحات أفقيًا بدلًا من العمودي. سيحاول MJ PDF اكتشاف اتجاه القراءة الصحيح تلقائيًا. يمكنك تجاوز ذلك لكل ملف PDF من القائمة &gt; اتجاه القراءة بعد تفعيل التصفح الأفقي.</string>
     <string name="dual_page_mode_title">وضع الصفحتين</string>

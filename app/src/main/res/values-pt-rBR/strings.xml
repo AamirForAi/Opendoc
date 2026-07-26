@@ -365,6 +365,14 @@
     <string name="page_fit_width">Ajustar à largura da página</string>
     <string name="page_fit_height">Ajustar à altura da página</string>
     <string name="page_fit_whole">Ajustar a página inteira</string>
+    <string name="single_page_mode_title">Modo Página Única</string>
+    <string name="single_page_mode_summary">Mostre uma página inteira por tela e vire as páginas como em um livro.</string>
+    <string name="tap_to_turn_title">Tocar para Virar Páginas</string>
+    <string name="tap_to_turn_summary">Quais bordas da tela viram a página ao serem tocadas.</string>
+    <string name="tap_turn_left_right">Bordas esquerda e direita</string>
+    <string name="tap_turn_top_bottom">Bordas superior e inferior</string>
+    <string name="tap_turn_off">Desativado</string>
+    <string name="overridden_by">Substituído por %1$s</string>
     <string name="horizontal_scrolling_mode">Rolagem Horizontal</string>
     <string name="horizontal_scrolling_summary">Navegue pelas páginas horizontalmente em vez de verticalmente. MJ PDF tentará detectar automaticamente a direção de leitura correta. Você pode substituí-la por PDF no Menu &gt; Direção de leitura após habilitar a rolagem horizontal.</string>
     <string name="dual_page_mode_title">Modo Página Dupla</string>

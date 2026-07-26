@@ -21,6 +21,7 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.BackupFolder
 import com.gitlab.mudlej.MjPdfReader.data.PageFitPolicy
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.data.TapToTurnZones
 import com.gitlab.mudlej.MjPdfReader.data.translation.DictionaryInstaller
 import com.gitlab.mudlej.MjPdfReader.data.translation.DictionaryStore
 import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationEngine
@@ -244,6 +245,33 @@ internal class SettingsPreferenceFactory(
         }
     }
 
+    fun tapToTurnPreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val options = TapToTurnZones.entries
+        return Preference(context).apply {
+            title = getString(R.string.tap_to_turn_title)
+            key = Preferences.tapToTurnKey
+            summary = formatSummary(breadcrumb, getString(appPreferences.getTapToTurnZones().labelRes))
+            isEnabled = appPreferences.getSinglePageMode()
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showSingleChoiceDialog(
+                    title = getString(R.string.tap_to_turn_title),
+                    items = options.map { getString(it.labelRes) },
+                    checkedIndex = options.indexOf(appPreferences.getTapToTurnZones()),
+                    onReset = {
+                        appPreferences.setTapToTurnZones(TapToTurnZones.valueOf(Preferences.tapToTurnDefault))
+                        host?.refreshPreferences()
+                    },
+                ) { index ->
+                    appPreferences.setTapToTurnZones(options[index])
+                    host?.refreshPreferences()
+                }
+                true
+            }
+        }
+    }
+
     fun switchPreference(
         @StringRes titleRes: Int,
         key: String,
@@ -257,6 +285,28 @@ internal class SettingsPreferenceFactory(
             setDefaultValue(defaultValue)
             summary = formatSummary(breadcrumb, summaryRes?.let(::getString))
             isIconSpaceReserved = false
+        }
+    }
+
+    fun refreshingSwitchPreference(
+        @StringRes titleRes: Int,
+        key: String,
+        defaultValue: Boolean,
+        @StringRes summaryRes: Int?,
+        breadcrumb: String?,
+    ): SwitchPreferenceCompat {
+        val host = fragment as? SettingsFragment
+        return switchPreference(
+            titleRes = titleRes,
+            key = key,
+            defaultValue = defaultValue,
+            summaryRes = summaryRes,
+            breadcrumb = breadcrumb,
+        ).apply {
+            setOnPreferenceChangeListener { _, _ ->
+                host?.refreshPreferencesAfterChange()
+                true
+            }
         }
     }
 

@@ -365,6 +365,14 @@
     <string name="page_fit_width">متناسب با عرض صفحه</string>
     <string name="page_fit_height">متناسب با ارتفاع صفحه</string>
     <string name="page_fit_whole">متناسب با کل صفحه</string>
+    <string name="single_page_mode_title">حالت تک‌صفحه</string>
+    <string name="single_page_mode_summary">در هر صفحه‌نمایش یک صفحه کامل نشان دهید و صفحات را مانند کتاب ورق بزنید.</string>
+    <string name="tap_to_turn_title">ضربه برای ورق زدن صفحات</string>
+    <string name="tap_to_turn_summary">کدام لبه‌های صفحه‌نمایش هنگام ضربه صفحه را ورق می‌زنند.</string>
+    <string name="tap_turn_left_right">لبه‌های چپ و راست</string>
+    <string name="tap_turn_top_bottom">لبه‌های بالا و پایین</string>
+    <string name="tap_turn_off">خاموش</string>
+    <string name="overridden_by">توسط %1$s بازنویسی شده است</string>
     <string name="horizontal_scrolling_mode">پیمایش افقی</string>
     <string name="horizontal_scrolling_summary">به‌جای عمودی، صفحات را به‌صورت افقی پیمایش کنید. MJ PDF تلاش می‌کند جهت درست خواندن را به‌طور خودکار تشخیص دهد. می‌توانید پس از فعال کردن پیمایش افقی، آن را برای هر PDF از منو &gt; جهت خواندن بازنویسی کنید.</string>
     <string name="dual_page_mode_title">حالت دو صفحه‌ای</string>

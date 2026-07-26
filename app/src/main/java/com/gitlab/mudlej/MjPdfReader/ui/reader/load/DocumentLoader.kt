@@ -18,6 +18,7 @@ import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
+import com.gitlab.mudlej.MjPdfReader.data.resolveReadingLayout
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderUi
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
@@ -318,8 +319,7 @@ class DocumentLoader(
         pdfView.midZoom = Preferences.midZoomDefault
         pdfView.maxZoom = pref.getMaxZoom()
         val spacing = if (pref.getSpaceBetweenPages()) Preferences.spacingDefault else 0
-        val browserScrollMode = pref.getBrowserScrollMode() && !pref.getHorizontalScroll()
-        val dualPageMode = pref.getDualPageMode() && !pref.getHorizontalScroll()
+        val layout = resolveReadingLayout(pref)
 
         val configurator = viewConfigurator
             .defaultPage(pageNumber)
@@ -336,19 +336,19 @@ class DocumentLoader(
                 emit { it.onLoadFailed(exception) }
             }
             .onPageError { page: Int, error: Throwable -> reportLoadPageError(page, error) }
-            .pageFitPolicy(pref.getPageFitPolicy().libraryPolicy)
+            .pageFitPolicy(layout.fitPolicy)
             .threeStepDoubleTapZoom(pref.getDoubleTapThreeStepZoom())
             .password(doc.password)
-            .swipeHorizontal(pref.getHorizontalScroll())
-            .horizontalReadingDirectionRtl(pref.getHorizontalScroll() && readingDirectionRtl)
+            .swipeHorizontal(layout.swipeHorizontal)
+            .horizontalReadingDirectionRtl(layout.swipeHorizontal && readingDirectionRtl)
             .disableHorizontalSwipe(horizontalSwipeDisabled)
             .zoomDisabled(zoomDisabled)
-            .autoSpacing(pref.getHorizontalScroll())
-            .pagesPerRow(if (dualPageMode) 2 else 1)
+            .autoSpacing(layout.autoSpacing)
+            .pagesPerRow(if (layout.dualPage) 2 else 1)
             .firstPageAlone(pref.getDualPageFirstPageAlone())
-            .pageSnap(pref.getPageSnap() && !browserScrollMode)
-            .pageFling(pref.getPageFling() && !browserScrollMode)
-            .freeScrollMode(browserScrollMode)
+            .pageSnap(layout.pageSnap)
+            .pageFling(layout.pageFling)
+            .freeScrollMode(layout.freeScroll)
             .enableTextSelection(pref.getInlineTextSelection())
             .textSelectionColor(MaterialColors.getColor(binding.root, R.attr.colorPrimary))
             .cropMargins(vm.cropMarginsEnabled)

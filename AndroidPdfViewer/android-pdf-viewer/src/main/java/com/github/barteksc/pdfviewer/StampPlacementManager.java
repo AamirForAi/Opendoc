@@ -9,8 +9,6 @@ import android.graphics.Path;
 import android.graphics.RectF;
 import android.view.MotionEvent;
 
-import com.shockwave.pdfium.util.SizeF;
-
 final class StampPlacementManager {
 
     private static final float MIN_WIDTH_PAGE_FRACTION = 0.05f;
@@ -249,10 +247,8 @@ final class StampPlacementManager {
         if (docRect == null || docRect.width() <= 0 || docRect.height() <= 0) {
             return;
         }
-        SizeF pageSize = pdfFile.getPagePointSize(pageIndex);
-        float pageWidth = pageSize.getWidth();
-        float pageHeight = pageSize.getHeight();
-        if (pageWidth <= 0 || pageHeight <= 0) {
+        RectF bounds = pdfFile.getPageUserBounds(pageIndex);
+        if (bounds.right - bounds.left <= 0 || bounds.top - bounds.bottom <= 0) {
             return;
         }
         float scaleX = pdfRect.width() / docRect.width();
@@ -261,40 +257,40 @@ final class StampPlacementManager {
         float dyPdf = -(docY - lastDocY) * scaleY;
 
         if (dragMode == DragMode.MOVE) {
-            float clampedDx = clamp(dxPdf, -pdfRect.left, pageWidth - pdfRect.right);
-            float clampedDy = clamp(dyPdf, -pdfRect.bottom, pageHeight - pdfRect.top);
+            float clampedDx = clamp(dxPdf, bounds.left - pdfRect.left, bounds.right - pdfRect.right);
+            float clampedDy = clamp(dyPdf, bounds.bottom - pdfRect.bottom, bounds.top - pdfRect.top);
             pdfRect.offset(clampedDx, clampedDy);
         } else {
-            resize(dxPdf, pageWidth, pageHeight);
+            resize(dxPdf, bounds);
         }
         lastDocX = docX;
         lastDocY = docY;
         pdfView.invalidate();
     }
 
-    private void resize(float dxPdf, float pageWidth, float pageHeight) {
-        float minWidth = MIN_WIDTH_PAGE_FRACTION * pageWidth;
+    private void resize(float dxPdf, RectF bounds) {
+        float minWidth = MIN_WIDTH_PAGE_FRACTION * (bounds.right - bounds.left);
         float width = pdfRect.width();
         float newWidth;
         float maxWidth;
         switch (dragMode) {
             case RESIZE_TL:
                 newWidth = width - dxPdf;
-                maxWidth = Math.min(pdfRect.right, (pageHeight - pdfRect.bottom) / aspect);
+                maxWidth = Math.min(pdfRect.right - bounds.left, (bounds.top - pdfRect.bottom) / aspect);
                 newWidth = clamp(newWidth, minWidth, maxWidth);
                 pdfRect.left = pdfRect.right - newWidth;
                 pdfRect.top = pdfRect.bottom + newWidth * aspect;
                 break;
             case RESIZE_BL:
                 newWidth = width - dxPdf;
-                maxWidth = Math.min(pdfRect.right, pdfRect.top / aspect);
+                maxWidth = Math.min(pdfRect.right - bounds.left, (pdfRect.top - bounds.bottom) / aspect);
                 newWidth = clamp(newWidth, minWidth, maxWidth);
                 pdfRect.left = pdfRect.right - newWidth;
                 pdfRect.bottom = pdfRect.top - newWidth * aspect;
                 break;
             case RESIZE_BR:
                 newWidth = width + dxPdf;
-                maxWidth = Math.min(pageWidth - pdfRect.left, pdfRect.top / aspect);
+                maxWidth = Math.min(bounds.right - pdfRect.left, (pdfRect.top - bounds.bottom) / aspect);
                 newWidth = clamp(newWidth, minWidth, maxWidth);
                 pdfRect.right = pdfRect.left + newWidth;
                 pdfRect.bottom = pdfRect.top - newWidth * aspect;

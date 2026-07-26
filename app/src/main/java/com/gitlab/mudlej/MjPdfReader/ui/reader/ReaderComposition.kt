@@ -35,6 +35,7 @@ import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationSettings
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
+import com.gitlab.mudlej.MjPdfReader.data.resolveReadingLayout
 import com.gitlab.mudlej.MjPdfReader.ui.about.AboutActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableActionResolver
 import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.FullScreenButtonController
@@ -59,6 +60,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.PdfThemeController
 import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.ZoomSwipeLockController
 import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.readingdirection.ReadingDirectionController
 import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.readingdirection.ReadingDirectionResolver
+import com.gitlab.mudlej.MjPdfReader.ui.reader.input.EdgeTapPager
 import com.gitlab.mudlej.MjPdfReader.ui.reader.input.MousePager
 import com.gitlab.mudlej.MjPdfReader.ui.reader.input.TapDispatcher
 import com.gitlab.mudlej.MjPdfReader.ui.reader.input.VolumeKeyPager
@@ -240,6 +242,7 @@ class ReaderComposition(
     val pdfThemeController = PdfThemeController(activity, binding, pref)
     val volumeKeyPager = VolumeKeyPager(binding, doc, pref)
     val mousePager = MousePager(binding, doc, pref)
+    val edgeTapPager = EdgeTapPager(binding, doc, pref)
     val printController = PrintController(activity, binding, doc, scope) { activity.shareFile(doc.uri) }
     val pageTextCopier = PageTextCopier(activity, binding, doc, scope)
     val screenshotController: ScreenshotController = ScreenshotController(
@@ -360,7 +363,7 @@ class ReaderComposition(
 
     val actionResolver: ConfigurableActionResolver = ConfigurableActionResolver(
         doc::hasFile,
-        pref::getHorizontalScroll,
+        { resolveReadingLayout(pref).swipeHorizontal },
         { vm.cropMarginsEnabled },
         pref::getDualPageMode,
         { pdfThemeController.effectivePdfDarkTheme() },
@@ -406,6 +409,7 @@ class ReaderComposition(
     val tapDispatcher = TapDispatcher(listOf(
         { event -> inlineAnnotationActionController.handleImmediatePdfTap(event) },
         { event -> formFieldController.handlePdfTap(event) },
+        { event -> edgeTapPager.handleTap(event) },
         { _ ->
             inlineAnnotationActionController.handleEmptyTap()
             true

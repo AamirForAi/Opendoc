@@ -46,6 +46,9 @@ final class TextSelectionManager {
 
     private boolean enabled;
     private TextSelection selection;
+    private int selectionCharCount;
+    private boolean startHandleRtl;
+    private boolean endHandleRtl;
     private int activePage = -1;
     private Handle dragging = Handle.NONE;
     private float dragOffsetX;
@@ -231,6 +234,9 @@ final class TextSelectionManager {
         selection = null;
         dragging = Handle.NONE;
         pdfRunRects.clear();
+        selectionCharCount = 0;
+        startHandleRtl = false;
+        endHandleRtl = false;
         dismissMagnifier();
         if (hadSelection) {
             pdfView.callbacks.callOnTextSelectionCleared();
@@ -244,6 +250,9 @@ final class TextSelectionManager {
         activePage = -1;
         dragging = Handle.NONE;
         pdfRunRects.clear();
+        selectionCharCount = 0;
+        startHandleRtl = false;
+        endHandleRtl = false;
         dismissMagnifier();
         if (hadSelection) {
             pdfView.callbacks.callOnTextSelectionCleared();
@@ -460,7 +469,7 @@ final class TextSelectionManager {
         float zoom = pdfView.getZoom();
         PointF origin = pdfFile.documentToPdf(page, zoom, 0f, 0f);
         PointF shifted = pdfFile.documentToPdf(page, zoom, SCALE_PROBE_PX, 0f);
-        float scale = Math.abs(shifted.x - origin.x) / SCALE_PROBE_PX;
+        float scale = (float) Math.hypot(shifted.x - origin.x, shifted.y - origin.y) / SCALE_PROBE_PX;
         return scale > 0f ? distancePx * scale : distancePx;
     }
 
@@ -517,19 +526,10 @@ final class TextSelectionManager {
     }
 
     private boolean isHandleEndpointRtl(Handle handle) {
-        PdfFile pdfFile = pdfView.pdfFile;
-        if (pdfFile == null || selection == null) {
+        if (selection == null || selectionCharCount <= 0) {
             return false;
         }
-
-        int charCount = pdfFile.pageCharCount(selection.pageIndex);
-        if (charCount <= 0) {
-            return false;
-        }
-
-        int index = handle == Handle.START ? selection.startChar() : selection.endChar() - 1;
-        index = clamp(index, 0, charCount - 1);
-        return TextDirectionUtil.isRtl(pdfFile.charUnicode(selection.pageIndex, index));
+        return handle == Handle.START ? startHandleRtl : endHandleRtl;
     }
 
     private RectF handleRunDocumentRect(Handle handle, float zoom) {
@@ -607,6 +607,9 @@ final class TextSelectionManager {
 
     private void rebuildRects() {
         pdfRunRects.clear();
+        selectionCharCount = 0;
+        startHandleRtl = false;
+        endHandleRtl = false;
         PdfFile pdfFile = pdfView.pdfFile;
         if (pdfFile == null || selection == null || selection.isEmpty()) {
             return;
@@ -614,11 +617,15 @@ final class TextSelectionManager {
 
         int page = selection.pageIndex;
         int charCount = pdfFile.pageCharCount(page);
+        selectionCharCount = charCount;
         int start = Math.max(0, Math.min(selection.startChar(), charCount));
         int end = Math.max(start, Math.min(selection.endChar(), charCount));
         if (end <= start) {
             return;
         }
+
+        startHandleRtl = TextDirectionUtil.isRtl(pdfFile.charUnicode(page, clamp(selection.startChar(), 0, charCount - 1)));
+        endHandleRtl = TextDirectionUtil.isRtl(pdfFile.charUnicode(page, clamp(selection.endChar() - 1, 0, charCount - 1)));
 
         float[] values = pdfFile.textRects(page, start, end - start);
         List<RectF> runs = new ArrayList<>();

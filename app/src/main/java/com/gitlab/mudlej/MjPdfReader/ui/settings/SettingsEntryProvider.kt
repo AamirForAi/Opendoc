@@ -164,6 +164,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 summaryRes = R.string.browser_scroll_mode_summary,
                 keywords = listOf("browser", "scroll", "pan", "lock", "diagonal"),
                 sectionRes = R.string.reading_section_scrolling,
+                refreshOnChange = true,
             ),
             switchEntry(
                 page = SettingsPage.READING,
@@ -184,6 +185,25 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 sectionRes = R.string.reading_section_scrolling,
             ),
 
+            switchEntry(
+                page = SettingsPage.READING,
+                titleRes = R.string.single_page_mode_title,
+                key = Preferences.singlePageModeKey,
+                defaultValue = Preferences.singlePageModeDefault,
+                summaryRes = R.string.single_page_mode_summary,
+                keywords = listOf("single", "book", "page", "tap", "turn", "flip"),
+                sectionRes = R.string.reading_section_layout,
+                refreshOnChange = true,
+            ),
+            SettingEntry(
+                page = SettingsPage.READING,
+                titleRes = R.string.tap_to_turn_title,
+                summaryRes = R.string.tap_to_turn_summary,
+                keywords = listOf("tap", "turn", "edge", "zones", "page", "flip"),
+                sectionRes = R.string.reading_section_layout,
+            ) { breadcrumb ->
+                tapToTurnPreference(breadcrumb)
+            },
             SettingEntry(
                 page = SettingsPage.READING,
                 titleRes = R.string.page_fit_title,
@@ -201,6 +221,7 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 summaryRes = R.string.horizontal_scrolling_summary,
                 keywords = listOf("landscape", "swipe"),
                 sectionRes = R.string.reading_section_layout,
+                refreshOnChange = true,
             ),
             switchEntry(
                 page = SettingsPage.READING,
@@ -631,6 +652,7 @@ private fun switchEntry(
     @StringRes summaryRes: Int? = null,
     keywords: List<String> = emptyList(),
     @StringRes sectionRes: Int? = null,
+    refreshOnChange: Boolean = false,
 ): SettingEntry {
     return SettingEntry(
         page = page,
@@ -639,13 +661,23 @@ private fun switchEntry(
         keywords = keywords,
         sectionRes = sectionRes,
     ) { breadcrumb ->
-        switchPreference(
-            titleRes = titleRes,
-            key = key,
-            defaultValue = defaultValue,
-            summaryRes = summaryRes,
-            breadcrumb = breadcrumb,
-        )
+        if (refreshOnChange) {
+            refreshingSwitchPreference(
+                titleRes = titleRes,
+                key = key,
+                defaultValue = defaultValue,
+                summaryRes = summaryRes,
+                breadcrumb = breadcrumb,
+            )
+        } else {
+            switchPreference(
+                titleRes = titleRes,
+                key = key,
+                defaultValue = defaultValue,
+                summaryRes = summaryRes,
+                breadcrumb = breadcrumb,
+            )
+        }
     }
 }
 

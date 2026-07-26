@@ -995,6 +995,29 @@ JNI_FUNC(jobject, PdfiumCore, nativeGetPageSizePointByIndex)(JNI_ARGS, jlong doc
     return env->NewObject(clazz, constructorID, static_cast<jfloat>(width), static_cast<jfloat>(height));
 }
 
+JNI_FUNC(jfloatArray, PdfiumCore, nativeGetPageGeometry)(JNI_ARGS, jlong pagePtr){
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (page == NULL) {
+        return NULL;
+    }
+    FS_RECTF box;
+    if (!FPDF_GetPageBoundingBox(page, &box)) {
+        return NULL;
+    }
+    jfloat values[5];
+    values[0] = box.left;
+    values[1] = box.bottom;
+    values[2] = box.right;
+    values[3] = box.top;
+    values[4] = (jfloat) FPDFPage_GetRotation(page);
+    jfloatArray result = env->NewFloatArray(5);
+    if (result == NULL) {
+        return NULL;
+    }
+    env->SetFloatArrayRegion(result, 0, 5, values);
+    return result;
+}
+
 static void renderPageInternal(
     FPDF_PAGE page,
     ANativeWindow_Buffer *windowBuffer,
