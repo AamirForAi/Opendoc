@@ -10,6 +10,7 @@ import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.core.io.DurableCopyStore
 import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
 import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
+import com.gitlab.mudlej.MjPdfReader.core.io.forLog
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
@@ -48,7 +49,7 @@ class TemporaryCopyImporter(
             try {
                 importIfTemporary(fileHash, uri, name)
             } catch (throwable: Throwable) {
-                Log.e(TAG, "importIfTemporary failed for $uri", throwable)
+                Log.e(TAG, "importIfTemporary failed for ${uri.forLog()}", throwable)
             } finally {
                 synchronized(inFlightHashes) { inFlightHashes.remove(fileHash) }
             }

@@ -58,7 +58,7 @@ class PdfFile {
     private static volatile boolean mainThreadChecksEnabled = false;
     private static volatile PDFView.MainThreadViolationReporter mainThreadViolationReporter = null;
     private static final int MAIN_THREAD_VIOLATION_REPORT_LIMIT = 3;
-    private static final Map<String, AtomicInteger> mainThreadViolationCounts = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, AtomicInteger> mainThreadViolationCounts = new ConcurrentHashMap<>();
     private final ReentrantLock renderGate = new ReentrantLock(true);
     private volatile AtomicBoolean activeRenderCancel = null;
     private volatile boolean fenceRequested = false;

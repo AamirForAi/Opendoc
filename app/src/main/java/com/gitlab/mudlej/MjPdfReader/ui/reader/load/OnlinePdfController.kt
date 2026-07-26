@@ -16,6 +16,8 @@ import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.io.canWriteToDownloadFolder
+import com.gitlab.mudlej.MjPdfReader.core.io.urlForLog
+import com.gitlab.mudlej.MjPdfReader.core.net.contentLengthCompat
 import com.gitlab.mudlej.MjPdfReader.core.io.copyFileToDirectory
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -146,7 +148,7 @@ class OnlinePdfController(
                 conn.connect()
                 when (val responseCode = conn.responseCode) {
                     HttpURLConnection.HTTP_OK -> {
-                        val contentLength = conn.contentLengthLong
+                        val contentLength = conn.contentLengthCompat()
                         if (contentLength > 0) {
                             binding.progressBar.post {
                                 binding.progressBar.isIndeterminate = false
@@ -177,7 +179,7 @@ class OnlinePdfController(
                     HTTP_PERMANENT_REDIRECT -> {
                         val location = conn.getHeaderField("Location")
                         if (location == null || redirects >= MAX_REDIRECTS) {
-                            Log.e(TAG, "Redirect could not be followed for URL : $url")
+                            Log.e(TAG, "Redirect could not be followed for URL : ${url.urlForLog()}")
                             return DownloadResult.HttpError
                         }
                         redirects++
@@ -191,13 +193,13 @@ class OnlinePdfController(
                 }
             }
         } catch (e: SSLException) {
-            Log.e(TAG, "Error cannot get file at URL : $url", e)
+            Log.e(TAG, "Error cannot get file at URL : ${url.urlForLog()}", e)
             return DownloadResult.SslError
         } catch (e: IOException) {
-            Log.e(TAG, "Error cannot get file at URL : $url", e)
+            Log.e(TAG, "Error cannot get file at URL : ${url.urlForLog()}", e)
             return DownloadResult.GenericError
         } catch (e: Exception) {
-            Log.e(TAG, "Error cannot get file at URL : $url", e)
+            Log.e(TAG, "Error cannot get file at URL : ${url.urlForLog()}", e)
             return DownloadResult.GenericError
         } finally {
             connection?.disconnect()

@@ -5,6 +5,7 @@ package com.gitlab.mudlej.MjPdfReader.pdf
 import android.app.Activity
 import android.net.Uri
 import android.util.Log
+import com.gitlab.mudlej.MjPdfReader.core.io.urlForLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -20,7 +21,7 @@ suspend fun Activity.openPdfExtractorFromIntent(): PdfExtractor? {
     } catch (cancellation: CancellationException) {
         throw cancellation
     } catch (throwable: Throwable) {
-        Log.e("PdfExtractorLifecycle", "Failed to open PdfExtractor for URI=$pdfPath", throwable)
+        Log.e("PdfExtractorLifecycle", "Failed to open PdfExtractor for URI=${pdfPath.urlForLog()}", throwable)
         null
     }
 }

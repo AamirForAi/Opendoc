@@ -19,6 +19,8 @@
     <application
         android:name="com.gitlab.mudlej.MjPdfReader.App"
         android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/mj_app_name"
@@ -144,7 +146,7 @@
         </activity>
         <activity
             android:name=".ui.about.AboutActivity"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/action_about"
             android:parentActivityName=".ui.reader.MainActivity" />
         <activity
@@ -161,11 +163,11 @@
             android:label="@string/features_title" />
         <activity
             android:name=".ui.intro.MainIntroActivity"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/mj_app_name" />
         <activity
             android:name=".ui.settings.SettingsActivity"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/settings" />
 
         <provider

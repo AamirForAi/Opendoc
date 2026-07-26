@@ -2,6 +2,7 @@
 
 package com.gitlab.mudlej.MjPdfReader.ui.reader.annotation
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityManager
 import android.content.Intent
@@ -278,6 +279,7 @@ class AnnotationSaveController(
         createDestinationLauncher.launch(intent)
     }
 
+    @SuppressLint("WrongConstant")
     private fun persistWritePermission(uri: Uri, intent: Intent): Boolean {
         val flags = intent.flags and (
             Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION

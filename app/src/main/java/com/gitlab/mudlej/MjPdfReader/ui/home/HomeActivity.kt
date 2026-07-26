@@ -85,8 +85,6 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         }
     }
 
-    private var pickIncognito = false
-
     private val scanLocationsPicker =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
@@ -101,14 +99,21 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         }
 
     private val pdfPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        val incognito = pickIncognito
-        pickIncognito = false
-        if (uri != null) {
-            if (!incognito) {
-                PersistedGrantKeeper.takeReadGrant(this, uri)
-            }
-            openInReader(uri, incognito = incognito)
+        openPickedDocument(uri, incognito = false)
+    }
+
+    private val pdfPickerIncognito = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        openPickedDocument(uri, incognito = true)
+    }
+
+    private fun openPickedDocument(uri: Uri?, incognito: Boolean) {
+        if (uri == null) {
+            return
         }
+        if (!incognito) {
+            PersistedGrantKeeper.takeReadGrant(this, uri)
+        }
+        openInReader(uri, incognito = incognito)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -294,9 +299,8 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     private fun setupOpenFab() {
         binding.openPdfFab.setOnClickListener { pdfPicker.launch(arrayOf(PDF.FILE_TYPE)) }
         binding.openPdfFab.setOnLongClickListener {
-            pickIncognito = true
             Toast.makeText(this, R.string.open_in_incognito_hint, Toast.LENGTH_SHORT).show()
-            pdfPicker.launch(arrayOf(PDF.FILE_TYPE))
+            pdfPickerIncognito.launch(arrayOf(PDF.FILE_TYPE))
             true
         }
     }

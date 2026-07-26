@@ -3,6 +3,7 @@
 package com.gitlab.mudlej.MjPdfReader.data.translation
 
 import android.content.Context
+import com.gitlab.mudlej.MjPdfReader.core.net.contentLengthCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -56,7 +57,7 @@ object DictionaryInstaller {
             if (connection.responseCode != HttpURLConnection.HTTP_OK) {
                 throw IOException("Server responded with HTTP ${connection.responseCode}")
             }
-            val totalBytes = connection.contentLengthLong
+            val totalBytes = connection.contentLengthCompat()
             val digest = MessageDigest.getInstance("SHA-256")
             connection.inputStream.use { input ->
                 destination.outputStream().use { output ->

@@ -6,6 +6,7 @@ import android.app.Activity
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.util.Log
+import com.gitlab.mudlej.MjPdfReader.core.io.forLog
 import com.gitlab.mudlej.MjPdfReader.data.OnlineDocumentStore
 import com.shockwave.pdfium.PdfiumCore
 import java.io.File
@@ -47,7 +48,7 @@ fun createPdfExtractor(activity: Activity, uri: Uri, password: String?): PdfExtr
     try {
         return PdfExtractorFactory.create(activity, uri, password)
     } catch (throwable: Throwable) {
-        Log.w(activity::class.simpleName, "createPdfExtractor: Failed to create PdfExtractor by URI=${uri} !", throwable)
+        Log.w(activity::class.simpleName, "createPdfExtractor: Failed to create PdfExtractor by URI=${uri.forLog()} !", throwable)
     }
     try {
         Log.d(activity::class.simpleName, "createPdfExtractor: Trying to use OnlineDocumentStore file")

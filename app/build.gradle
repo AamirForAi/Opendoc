@@ -117,8 +117,9 @@ android {
     }
     namespace = 'com.gitlab.mudlej.MjPdfReader'
     lint {
-        abortOnError = false
-        checkReleaseBuilds = false
+        abortOnError = true
+        checkReleaseBuilds = true
+        fatal += 'NewApi'
     }
 }
 
