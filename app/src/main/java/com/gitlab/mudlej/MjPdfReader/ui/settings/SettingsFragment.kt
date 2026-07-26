@@ -184,14 +184,16 @@ class SettingsFragment : PreferenceFragmentCompat() {
             return
         }
 
-        val results = preferenceFactory.entries().filter { it.matches(requireContext(), query) }
+        val results = preferenceFactory.entries()
+            .filter { it.matches(requireContext(), query) }
+            .map { entry -> entry.createPreference(preferenceFactory, getString(entry.page.titleRes)) }
+            .filter { preference -> preference.isVisible }
         if (results.isEmpty()) {
             screen.addPreference(preferenceFactory.noSearchResultsPreference())
             return
         }
 
-        results.forEach { entry ->
-            val preference = entry.createPreference(preferenceFactory, getString(entry.page.titleRes))
+        results.forEach { preference ->
             applyReadingLayoutOverride(preference, layout)
             screen.addPreference(preference)
         }
@@ -200,8 +202,14 @@ class SettingsFragment : PreferenceFragmentCompat() {
     private fun buildPageScreen(screen: PreferenceScreen, page: SettingsPage, layout: ReadingLayout) {
         var target: PreferenceGroup = screen
         var currentSection: Int? = null
+        var emittedAny = false
         preferenceFactory.entriesFor(page).forEach { entry ->
-            if (entry.sectionRes != currentSection) {
+            val preference = entry.createPreference(preferenceFactory, breadcrumb = null)
+            if (!preference.isVisible) {
+                return@forEach
+            }
+            if (!emittedAny || entry.sectionRes != currentSection) {
+                emittedAny = true
                 currentSection = entry.sectionRes
                 target = entry.sectionRes?.let { sectionRes ->
                     PreferenceCategory(requireContext()).apply {
@@ -211,7 +219,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     }
                 } ?: screen
             }
-            val preference = entry.createPreference(preferenceFactory, breadcrumb = null)
             applyReadingLayoutOverride(preference, layout)
             target.addPreference(preference)
         }

@@ -402,6 +402,11 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         }
     }
 
+    // Intentional behavior:
+    // Once the user taps rotate, the app owns rotation for this document.
+    // The button toggles landscape and portrait only, with no automatic option.
+    // The lock clears when another document is opened, and when the app closes.
+    // It is deliberately not saved across app restarts.
     @SuppressLint("SourceLockedOrientationActivity")
     internal fun rotateScreen() {
         val showingLandscape = when (requestedOrientation) {

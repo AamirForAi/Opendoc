@@ -533,12 +533,14 @@ class DocumentLoader(
             return
         }
         vm.setPage(pageNumber)
+        doc.pageRangeStart = binding.pdfView.getRowFirstPage(pageNumber)
         doc.pageRangeEnd = binding.pdfView.getRowLastPage(pageNumber)
         doc.initPdfLength(pageCount)
         ui.updateTitle()
         emit { it.onPageChanged(pageNumber) }
-        val announcement = if (doc.pageRangeEnd > pageNumber) {
-            context.getString(R.string.pages_x_to_y_of_z, pageNumber + 1, doc.pageRangeEnd + 1, pageCount)
+        val rangeStart = minOf(doc.pageRangeStart, pageNumber)
+        val announcement = if (doc.pageRangeEnd > rangeStart) {
+            context.getString(R.string.pages_x_to_y_of_z, rangeStart + 1, doc.pageRangeEnd + 1, pageCount)
         } else {
             context.getString(R.string.page_x_of_y, pageNumber + 1, pageCount)
         }

@@ -40,8 +40,6 @@ object PDF {
     const val viewStatePageCenterOffsetRatioKey = "viewStatePageCenterOffsetRatio"
     const val viewStatePagesPerRowKey = "viewStatePagesPerRow"
     const val viewStateFirstPageAloneKey = "viewStateFirstPageAlone"
-    const val userOrientationLockKey = "userOrientationLock"
-    const val orientationDocKey = "orientationDoc"
     const val isFullScreenToggledKey = "isFullScreenToggled"
     const val autoScrollSpeedKey = "autoScrollSpeedKey"
     const val cropMarginsEnabledKey = "cropMarginsEnabled"

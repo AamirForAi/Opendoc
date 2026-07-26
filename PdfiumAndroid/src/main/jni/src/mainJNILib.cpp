@@ -2898,6 +2898,12 @@ JNI_FUNC(jlong, PdfiumCore, nativeGetBookmarkDestIndex)(JNI_ARGS, jlong docPtr, 
 
     FPDF_DEST dest = FPDFBookmark_GetDest(doc->pdfDocument, bookmark);
     if (dest == NULL) {
+        FPDF_ACTION action = FPDFBookmark_GetAction(bookmark);
+        if (action != NULL && FPDFAction_GetType(action) == PDFACTION_GOTO) {
+            dest = FPDFAction_GetDest(doc->pdfDocument, action);
+        }
+    }
+    if (dest == NULL) {
         return -1;
     }
     return (jlong) FPDFDest_GetDestPageIndex(doc->pdfDocument, dest);

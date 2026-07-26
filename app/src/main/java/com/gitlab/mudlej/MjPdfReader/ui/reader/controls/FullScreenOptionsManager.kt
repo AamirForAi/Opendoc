@@ -229,10 +229,10 @@ class FullScreenOptionsManager(
     }
 
     private fun getPageInfo(context: Context, settings: FullScreenInfoSettings): String? {
-        val pageNumber = vm.doc.pageNumber + 1
+        val pageNumber = minOf(vm.doc.pageRangeStart, vm.doc.pageNumber) + 1
         val rangeEnd = (vm.doc.pageRangeEnd + 1).coerceAtLeast(pageNumber)
         val pageCount = vm.doc.length.coerceAtLeast(rangeEnd)
-        val percentage = rangeEnd.divideToPercent(pageCount)
+        val percentage = rangeEnd.divideToPercent(pageCount).coerceIn(1, 100)
 
         return when {
             settings.showPageNumber && settings.showReadingPercentage && rangeEnd > pageNumber -> context.getString(

@@ -26,6 +26,8 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
     private var positionPersistSuppressed = false
     private var positionPersistSuppressedAtPage = 0
 
+    // Session scoped by design. Do not add these to the saved state.
+    // The rotation lock must not survive an app restart.
     var userOrientationLock = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     var orientationDocId: String? = null
     var isFullScreenToggled = false
@@ -94,6 +96,7 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
         doc.fileHash = null
         doc.pageNumber = 0
         clearPositionPersistSuppression()
+        doc.pageRangeStart = 0
         doc.pageRangeEnd = 0
         doc.autoScrollSpeed = null
         doc.readingDirectionOverride = null
@@ -131,8 +134,6 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
         out.putString(PDF.readingDirectionOverrideKey, doc.readingDirectionOverride?.id)
         out.putString(PDF.detectedReadingDirectionKey, doc.detectedReadingDirection?.id)
         out.putString(PDF.effectiveReadingDirectionKey, doc.effectiveReadingDirection.id)
-        out.putInt(PDF.userOrientationLockKey, userOrientationLock)
-        out.putString(PDF.orientationDocKey, orientationDocId)
         out.putBoolean(PDF.isFullScreenToggledKey, isFullScreenToggled)
         out.putBoolean(PDF.incognitoKey, incognito)
         doc.autoScrollSpeed?.let { out.putInt(PDF.autoScrollSpeedKey, it) }
@@ -176,8 +177,6 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
         doc.effectiveReadingDirection = ReadingDirection.fromId(
             saved.getString(PDF.effectiveReadingDirectionKey),
         ) ?: ReadingDirection.LEFT_TO_RIGHT
-        userOrientationLock = saved.getInt(PDF.userOrientationLockKey, ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
-        orientationDocId = saved.getString(PDF.orientationDocKey)
         isFullScreenToggled = saved.getBoolean(PDF.isFullScreenToggledKey)
         incognito = saved.getBoolean(PDF.incognitoKey, false)
         doc.autoScrollSpeed = saved.takeIf { it.containsKey(PDF.autoScrollSpeedKey) }
