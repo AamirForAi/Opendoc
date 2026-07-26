@@ -613,6 +613,7 @@
     <string name="annotation_save_unconfirmed_title">Couldn\'t confirm the save</string>
     <string name="annotation_save_unconfirmed_message">MJ PDF saved your changes but couldn\'t confirm the file was written correctly. Your changes are still in the app, so nothing was lost. Choose Save a copy to write them to another location and be sure.</string>
     <string name="annotation_save_copy_action">Save a copy</string>
+    <string name="annotation_edit_blocked_while_saving">Wait for the save to finish before making more changes.</string>
     <string name="annotation_save_incomplete_title">This file may be incomplete</string>
     <string name="annotation_save_incomplete_message">MJ PDF was writing your changes into this file when the save failed, so the file may be incomplete. Your changes are still in the app. Choose Save a copy to write a complete file somewhere else.</string>
     <string name="annotation_save_incomplete_rescue_message">MJ PDF was writing your changes into this file when the save failed, so the file may be incomplete. Your changes are still in the app, and a finished copy was kept in the app as %1$s. Choose Save a copy to write a complete file somewhere else.</string>

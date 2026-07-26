@@ -95,12 +95,14 @@ class AnnotationController(
         uri?.let { vm.sessionOwnedAnnotationKeys.add(SourceKey.of(it)) }
     }
 
-    fun clearJournal(uri: Uri? = pdf.uri) {
+    fun clearJournal(uri: Uri? = pdf.uri, resetContentTags: Boolean = true) {
         uri?.let(journal::delete)
         if (uri != null && uri != pdf.uri) {
             return
         }
-        pageContentTags.clear()
+        if (resetContentTags) {
+            pageContentTags.clear()
+        }
         vm.hasUnsavedAnnotations = false
     }
 

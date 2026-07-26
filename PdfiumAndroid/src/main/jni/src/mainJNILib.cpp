@@ -552,7 +552,7 @@ class DocumentFile {
     public:
     FPDF_DOCUMENT pdfDocument = NULL;
     jbyte *memBuffer = NULL;
-    std::set<int> pagesWithAppHighlights;
+    std::set<FPDF_PAGE> pagesWithAppHighlights;
     FPDF_FORMFILLINFO formFillInfo;
     FPDF_FORMHANDLE formHandle = NULL;
 
@@ -835,14 +835,13 @@ static jboolean saveDocumentToFd(DocumentFile *doc, jint fd, int flags){
     }
 
     std::vector<FPDF_PAGE> unhiddenPages;
-    for (std::set<int>::const_iterator it = doc->pagesWithAppHighlights.begin();
+    for (std::set<FPDF_PAGE>::const_iterator it = doc->pagesWithAppHighlights.begin();
          it != doc->pagesWithAppHighlights.end(); ++it) {
-        FPDF_PAGE page = FPDF_LoadPage(doc->pdfDocument, *it);
-        if (page == NULL) {
+        if (*it == NULL) {
             continue;
         }
-        setAppHighlightsHidden(page, false);
-        unhiddenPages.push_back(page);
+        setAppHighlightsHidden(*it, false);
+        unhiddenPages.push_back(*it);
     }
 
     FdFileWrite writer;
@@ -854,10 +853,6 @@ static jboolean saveDocumentToFd(DocumentFile *doc, jint fd, int flags){
     for (std::vector<FPDF_PAGE>::const_iterator it = unhiddenPages.begin();
          it != unhiddenPages.end(); ++it) {
         setAppHighlightsHidden(*it, true);
-        if (doc->formHandle != NULL) {
-            FORM_OnBeforeClosePage(*it, doc->formHandle);
-        }
-        FPDF_ClosePage(*it);
     }
 
     return saved;
@@ -882,7 +877,7 @@ static jlong loadPageInternal(JNIEnv *env, DocumentFile *doc, int pageIndex){
                 throw "Loaded page is null";
             }
             if (setAppHighlightsHidden(page, true)) {
-                doc->pagesWithAppHighlights.insert(pageIndex);
+                doc->pagesWithAppHighlights.insert(page);
             }
             return reinterpret_cast<jlong>(page);
         }
@@ -899,6 +894,9 @@ static jlong loadPageInternal(JNIEnv *env, DocumentFile *doc, int pageIndex){
 
 static void closePageInternal(DocumentFile *doc, jlong pagePtr) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (doc != NULL && doc->pagesWithAppHighlights.erase(page) > 0) {
+        setAppHighlightsHidden(page, false);
+    }
     if (doc != NULL && doc->formHandle != NULL) {
         FORM_OnBeforeClosePage(page, doc->formHandle);
     }
@@ -1693,7 +1691,7 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
             FPDFPage_RemoveAnnot(page, *it);
         }
     } else {
-        doc->pagesWithAppHighlights.insert(pageIndex);
+        doc->pagesWithAppHighlights.insert(page);
     }
 
     return success;

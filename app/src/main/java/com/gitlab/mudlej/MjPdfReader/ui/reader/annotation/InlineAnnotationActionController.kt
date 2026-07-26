@@ -43,6 +43,7 @@ class InlineAnnotationActionController(
     private val binding: ActivityMainBinding,
     private val clearActiveSearchResultHighlight: () -> Unit,
     private val onAnnotationEdit: (AnnotationEdit) -> Unit,
+    private val canEditDocument: () -> Boolean,
     private val updateSaveUiPosition: () -> Unit,
     private val isDetectExistingHighlightsEnabled: () -> Boolean,
     private val getHighlightColors: () -> List<Int>,
@@ -222,6 +223,9 @@ class InlineAnnotationActionController(
         val request = binding.pdfView.getHighlightRequest()
         val groupKey = UUID.randomUUID().toString()
         val createdDate = pdfDateNow()
+        if (!canEditDocument()) {
+            return
+        }
         if (request == null || !binding.pdfView.addHighlight(request, color, groupKey, createdDate)) {
             AppSnackbar.make(binding.root, R.string.highlight_failed, Snackbar.LENGTH_SHORT).show()
             return
@@ -318,6 +322,9 @@ class InlineAnnotationActionController(
         val groupKey = UUID.randomUUID().toString()
         val createdDate = pdfDateNow()
         val color = HighlightPalette.noteHighlight.colorValue
+        if (!canEditDocument()) {
+            return
+        }
         if (request == null || !binding.pdfView.addHighlight(request, color, groupKey, createdDate)) {
             AppSnackbar.make(binding.root, R.string.highlight_failed, Snackbar.LENGTH_SHORT).show()
             return
@@ -349,6 +356,9 @@ class InlineAnnotationActionController(
 
     private fun deleteActiveHighlightAnnotation() {
         val annotation = activeHighlightAnnotation ?: return
+        if (!canEditDocument()) {
+            return
+        }
         val removed = binding.pdfView.removeHighlightAnnotation(annotation)
         if (!removed) {
             AppSnackbar.make(binding.root, R.string.highlight_update_failed, Snackbar.LENGTH_SHORT).show()

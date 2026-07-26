@@ -40,11 +40,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -53,6 +55,10 @@ class PdfFile {
     private static final String TAG = PdfFile.class.getSimpleName();
     private static final Object lock = new Object();
     private static volatile boolean debugChecksEnabled = false;
+    private static volatile boolean mainThreadChecksEnabled = false;
+    private static volatile PDFView.MainThreadViolationReporter mainThreadViolationReporter = null;
+    private static final int MAIN_THREAD_VIOLATION_REPORT_LIMIT = 3;
+    private static final Map<String, AtomicInteger> mainThreadViolationCounts = new ConcurrentHashMap<>();
     private final ReentrantLock renderGate = new ReentrantLock(true);
     private volatile AtomicBoolean activeRenderCancel = null;
     private volatile boolean fenceRequested = false;
@@ -78,6 +84,8 @@ class PdfFile {
     private volatile int pinnedRenderPage = -1;
     private final Map<Integer, List<PdfDocument.HighlightAnnotation>> highlightAnnotationCache = new ConcurrentHashMap<>();
     private final Map<Integer, float[]> formFieldRectCache = new ConcurrentHashMap<>();
+    private final Map<Integer, Map<String, List<PdfDocument.HighlightAnnotation>>> highlightGroupCache =
+            new ConcurrentHashMap<>();
     /** Page with maximum width */
     private Size originalMaxWidthPageSize = new Size(0, 0);
     /** Page with maximum height */
@@ -640,6 +648,7 @@ class PdfFile {
                 return false;
             }
             try {
+                warnIfMainThreadFill("openPage");
                 pdfiumCore.openPage(pdfDocument, docPage);
                 openedPages.put(docPage, true);
                 renderPageOrder.add(docPage);
@@ -662,6 +671,7 @@ class PdfFile {
         if (disposed || pdfiumCore == null || pdfDocument == null) {
             return;
         }
+        warnIfMainThreadFill("ensureTextPage");
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return;
@@ -1152,6 +1162,7 @@ class PdfFile {
         if (disposed || pdfDocument == null) {
             return new ArrayList<>();
         }
+        warnIfMainThreadFill("getPageLinks");
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return new ArrayList<>();
@@ -1163,6 +1174,7 @@ class PdfFile {
         if (disposed || pdfDocument == null) {
             return "";
         }
+        warnIfMainThreadFill("getPageText");
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return "";
@@ -1179,6 +1191,7 @@ class PdfFile {
         if (disposed || pdfDocument == null) {
             return "";
         }
+        warnIfMainThreadFill("getPageRawText");
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return "";
@@ -1321,6 +1334,7 @@ class PdfFile {
         List<PdfDocument.HighlightAnnotation> snapshot = annotations == null
                 ? Collections.<PdfDocument.HighlightAnnotation>emptyList()
                 : Collections.unmodifiableList(annotations);
+        highlightGroupCache.remove(pageIndex);
         highlightAnnotationCache.put(pageIndex, snapshot);
         return snapshot;
     }
@@ -1358,12 +1372,39 @@ class PdfFile {
         List<PdfDocument.HighlightAnnotation> snapshot = annotations == null
                 ? Collections.<PdfDocument.HighlightAnnotation>emptyList()
                 : Collections.unmodifiableList(annotations);
+        highlightGroupCache.remove(pageIndex);
         highlightAnnotationCache.put(pageIndex, snapshot);
         formFieldRectCache.put(pageIndex, rects);
     }
 
     public List<PdfDocument.HighlightAnnotation> peekHighlightAnnotations(int pageIndex) {
         return highlightAnnotationCache.get(pageIndex);
+    }
+
+    Map<String, List<PdfDocument.HighlightAnnotation>> peekHighlightAnnotationGroups(
+            int pageIndex, List<PdfDocument.HighlightAnnotation> annotations) {
+        Map<String, List<PdfDocument.HighlightAnnotation>> cached = highlightGroupCache.get(pageIndex);
+        if (cached != null) {
+            return cached;
+        }
+        Map<String, List<PdfDocument.HighlightAnnotation>> groups = new LinkedHashMap<>();
+        for (PdfDocument.HighlightAnnotation annotation : annotations) {
+            if (annotation.getBounds() == null || annotation.isSearchResult()) {
+                continue;
+            }
+            String groupKey = annotation.getGroupKey();
+            String key = groupKey == null || groupKey.isEmpty()
+                    ? "i" + annotation.getAnnotationIndex()
+                    : "g" + groupKey + "#" + annotation.getColor() + "#" + annotation.isAppOwned();
+            List<PdfDocument.HighlightAnnotation> members = groups.get(key);
+            if (members == null) {
+                members = new ArrayList<>();
+                groups.put(key, members);
+            }
+            members.add(annotation);
+        }
+        highlightGroupCache.put(pageIndex, groups);
+        return groups;
     }
 
     public float[] peekFormFieldRects(int pageIndex) {
@@ -1378,6 +1419,14 @@ class PdfFile {
         return debugChecksEnabled;
     }
 
+    static void setMainThreadChecksEnabled(boolean enabled) {
+        mainThreadChecksEnabled = enabled;
+    }
+
+    static void setMainThreadViolationReporter(PDFView.MainThreadViolationReporter reporter) {
+        mainThreadViolationReporter = reporter;
+    }
+
     private static void throwIfMainThreadFill(String path) {
         if (debugChecksEnabled && Looper.getMainLooper().isCurrentThread()) {
             throw new IllegalStateException("pdfium fill on main thread: " + path);
@@ -1385,16 +1434,39 @@ class PdfFile {
     }
 
     private static void warnIfMainThreadFill(String path) {
-        if (debugChecksEnabled && Looper.getMainLooper().isCurrentThread()) {
-            Log.w(TAG, "pdfium fill on main thread: " + path, new Throwable());
+        if (!mainThreadChecksEnabled || !Looper.getMainLooper().isCurrentThread()) {
+            return;
+        }
+        AtomicInteger counter = mainThreadViolationCounts.get(path);
+        if (counter == null) {
+            counter = new AtomicInteger();
+            AtomicInteger existing = mainThreadViolationCounts.putIfAbsent(path, counter);
+            if (existing != null) {
+                counter = existing;
+            }
+        }
+        int count = counter.incrementAndGet();
+        if (count > MAIN_THREAD_VIOLATION_REPORT_LIMIT) {
+            if (debugChecksEnabled) {
+                Log.w(TAG, "pdfium work on main thread: " + path + " x" + count);
+            }
+            return;
+        }
+        Throwable stack = new Throwable("pdfium work on main thread: " + path + " x" + count);
+        Log.w(TAG, "pdfium work on main thread: " + path + " x" + count, stack);
+        PDFView.MainThreadViolationReporter reporter = mainThreadViolationReporter;
+        if (reporter != null) {
+            reporter.onMainThreadPdfiumWork(path, stack);
         }
     }
 
     public void invalidateHighlightAnnotationCache(int pageIndex) {
+        highlightGroupCache.remove(pageIndex);
         highlightAnnotationCache.remove(pageIndex);
     }
 
     public void invalidateHighlightAnnotationCache() {
+        highlightGroupCache.clear();
         highlightAnnotationCache.clear();
     }
 
@@ -1498,6 +1570,7 @@ class PdfFile {
         if (disposed || pdfDocument == null) {
             return null;
         }
+        warnIfMainThreadFill("getFormFieldAtPoint");
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return null;
@@ -1666,6 +1739,7 @@ class PdfFile {
                 textOpenedPages.clear();
                 renderPageOrder.clear();
                 pinnedRenderPage = -1;
+                highlightGroupCache.clear();
                 highlightAnnotationCache.clear();
                 formFieldRectCache.clear();
                 pageRowIndexes = new int[0];

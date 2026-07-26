@@ -335,6 +335,7 @@ class DocumentLoader(
             .enableAntialiasing(pref.getAntiAliasing())
             .renderDuringScale(true)
             .debugChecks(BuildConfig.DEBUG)
+            .mainThreadChecks(true)
             .spacing(spacing)
             .onError { exception: Throwable ->
                 state = if (exception is PdfPasswordException) LoadState.PasswordRequired else LoadState.Failed(exception)

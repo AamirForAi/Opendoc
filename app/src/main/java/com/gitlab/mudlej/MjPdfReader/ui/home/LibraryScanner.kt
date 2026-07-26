@@ -28,6 +28,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
 
 class LibraryScanner private constructor(
@@ -123,9 +125,13 @@ class LibraryScanner private constructor(
     }
 
     suspend fun findPathByHash(hash: String): String? {
-        return pdfRepository.findScannedPdfsByHash(hash)
-            .firstOrNull { File(it.path).canRead() }
-            ?.path
+        return withTimeoutOrNull(RELINK_TIMEOUT_MS) {
+            withContext(Dispatchers.IO) {
+                pdfRepository.findScannedPdfsByHash(hash)
+                    .firstOrNull { File(it.path).canRead() }
+                    ?.path
+            }
+        }
     }
 
     fun onFileRemoved(path: String) {
@@ -356,6 +362,7 @@ class LibraryScanner private constructor(
     }
 
     companion object {
+        private const val RELINK_TIMEOUT_MS = 2_000L
         @Volatile
         private var INSTANCE: LibraryScanner? = null
 

@@ -24,6 +24,7 @@ class SignatureController(
     private val store: SignatureStore,
     private val annotationController: AnnotationController,
     private val onAnnotationEdit: (AnnotationEdit) -> Unit,
+    private val canEditDocument: () -> Boolean,
     private val updateDirtyUi: () -> Unit,
 ) {
 
@@ -103,6 +104,9 @@ class SignatureController(
     fun hasPendingPlacement(): Boolean = binding.pdfView.hasPendingStampPlacement()
 
     fun commitPendingSignature(): Boolean {
+        if (!canEditDocument()) {
+            return false
+        }
         val pending = binding.pdfView.getPendingStampPlacement() ?: return true
         if (!binding.pdfView.commitPendingStampPlacement()) {
             AppSnackbar.make(binding.root, R.string.signature_commit_failed, Snackbar.LENGTH_SHORT).show()

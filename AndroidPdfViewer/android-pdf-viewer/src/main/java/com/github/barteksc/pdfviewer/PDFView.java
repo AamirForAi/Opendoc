@@ -406,6 +406,9 @@ public class PDFView extends RelativeLayout {
         PreviewStore<Bitmap> store = previewStore;
         if (store != null && generation == getPageGeneration(page)) {
             store.put(page, bitmap, generation);
+            if (generation != getPageGeneration(page)) {
+                store.invalidatePage(page);
+            }
         } else if (bitmap != null) {
             synchronized (bitmap) {
                 bitmap.recycle();
@@ -1523,22 +1526,8 @@ public class PDFView extends RelativeLayout {
                 requestPrewarm(page);
                 continue;
             }
-            Map<String, List<PdfDocument.HighlightAnnotation>> groups = new LinkedHashMap<>();
-            for (PdfDocument.HighlightAnnotation annotation : annotations) {
-                if (annotation.getBounds() == null || annotation.isSearchResult()) {
-                    continue;
-                }
-                String groupKey = annotation.getGroupKey();
-                String key = groupKey == null || groupKey.isEmpty()
-                        ? "i" + annotation.getAnnotationIndex()
-                        : "g" + groupKey + "#" + annotation.getColor() + "#" + annotation.isAppOwned();
-                List<PdfDocument.HighlightAnnotation> members = groups.get(key);
-                if (members == null) {
-                    members = new ArrayList<>();
-                    groups.put(key, members);
-                }
-                members.add(annotation);
-            }
+            Map<String, List<PdfDocument.HighlightAnnotation>> groups =
+                    pdfFile.peekHighlightAnnotationGroups(page, annotations);
             for (List<PdfDocument.HighlightAnnotation> members : groups.values()) {
                 Paint overlayPaint = highlightOverlayPaint(members.get(0));
                 if (overlayPaint == null) {
@@ -2952,12 +2941,29 @@ public class PDFView extends RelativeLayout {
         PointF point = pdfFile.documentToPdf(page, getZoom(), docX, docY);
         try {
             float tolerance = formFieldTouchTolerance(page, docX, docY, point);
+            float[] rects = pdfFile.peekFormFieldRects(page);
+            if (rects != null && !pointNearFormFieldRect(rects, point.x, point.y, tolerance)) {
+                return null;
+            }
             PdfDocument.FormField field = pdfFile.getFormFieldAtPoint(page, point.x, point.y, tolerance);
             return field == null ? null : new FormField(page, field);
         } catch (Throwable throwable) {
             Log.e(TAG, "findFormFieldAt: failed to hit-test form field", throwable);
             return null;
         }
+    }
+
+    private static boolean pointNearFormFieldRect(float[] rects, float pdfX, float pdfY, float tolerance) {
+        for (int i = 0; i + 3 < rects.length; i += 4) {
+            float left = Math.min(rects[i], rects[i + 2]) - tolerance;
+            float right = Math.max(rects[i], rects[i + 2]) + tolerance;
+            float bottom = Math.min(rects[i + 1], rects[i + 3]) - tolerance;
+            float top = Math.max(rects[i + 1], rects[i + 3]) + tolerance;
+            if (pdfX >= left && pdfX <= right && pdfY >= bottom && pdfY <= top) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private float formFieldTouchTolerance(int page, float docX, float docY, PointF pdfPoint) {
@@ -3459,6 +3465,14 @@ public class PDFView extends RelativeLayout {
     /**
      * Use URI as the pdf source, for use with content providers
      */
+    public interface MainThreadViolationReporter {
+        void onMainThreadPdfiumWork(String path, Throwable stack);
+    }
+
+    public static void setMainThreadViolationReporter(MainThreadViolationReporter reporter) {
+        PdfFile.setMainThreadViolationReporter(reporter);
+    }
+
     public Configurator fromUri(Uri uri) {
         return new Configurator(new UriSource(uri));
     }
@@ -3579,6 +3593,7 @@ public class PDFView extends RelativeLayout {
         private int textSelectionColor = 0xFF3F51B5;
 
         private boolean debugChecks = false;
+        private boolean mainThreadChecks = false;
 
         private Configurator(DocumentSource documentSource) {
             this.documentSource = documentSource;
@@ -3809,6 +3824,11 @@ public class PDFView extends RelativeLayout {
             return this;
         }
 
+        public Configurator mainThreadChecks(boolean mainThreadChecks) {
+            this.mainThreadChecks = mainThreadChecks;
+            return this;
+        }
+
         public Configurator disableLongpress() {
             PDFView.this.dragPinchManager.disableLongpress();
             return this;
@@ -3821,6 +3841,7 @@ public class PDFView extends RelativeLayout {
             }
             PDFView.this.recycle();
             PdfFile.setDebugChecksEnabled(debugChecks);
+            PdfFile.setMainThreadChecksEnabled(mainThreadChecks || debugChecks);
             PdfiumCore.setTimingLogsEnabled(debugChecks);
             PDFView.this.callbacks.setOnLoadComplete(onLoadCompleteListener);
             PDFView.this.callbacks.setOnError(onErrorListener);

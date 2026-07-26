@@ -17,6 +17,7 @@ import org.acra.ReportField
 import org.acra.config.dialog
 import org.acra.config.httpSender
 import org.acra.data.StringFormat
+import com.github.barteksc.pdfviewer.PDFView
 import org.acra.ktx.initAcra
 
 class App : Application() {
@@ -31,6 +32,9 @@ class App : Application() {
             }
             OnlineDocumentStore.sweepIncognito(this)
             PrintController.sweepStaging(this)
+            PDFView.setMainThreadViolationReporter { _, stack ->
+                runCatching { ACRA.errorReporter.handleSilentException(stack) }
+            }
         }
     }
 

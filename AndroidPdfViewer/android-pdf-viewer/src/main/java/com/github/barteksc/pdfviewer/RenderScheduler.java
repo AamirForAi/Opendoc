@@ -273,14 +273,13 @@ class RenderScheduler {
             long startMs = SystemClock.uptimeMillis();
             pdfView.onPreviewStarted(task.page);
             boolean freshlyOpened = pdfFile.openPage(task.page);
-            boolean closeAfter = false;
+            boolean closeAfter = freshlyOpened;
             RenderResult result;
             pdfFile.pinPage(task.page);
             try {
                 int w = Math.round(task.renderWidth);
                 int h = Math.round(task.renderHeight);
                 if (w <= 0 || h <= 0 || pdfFile.pageHasError(task.page)) {
-                    closeAfter = freshlyOpened;
                     result = RenderResult.NONE;
                 } else {
                     Bitmap render = null;
@@ -290,7 +289,6 @@ class RenderScheduler {
                         Log.e(TAG, "Cannot create preview bitmap", e);
                     }
                     if (render == null) {
-                        closeAfter = freshlyOpened;
                         result = RenderResult.NONE;
                     } else {
                         boolean completed = pdfFile.renderFullPageBitmapCancellable(render, task.page,
@@ -307,7 +305,6 @@ class RenderScheduler {
                                 Log.d("MjPdfPerf", "preview p" + task.page + " " + (SystemClock.uptimeMillis() - startMs) + "ms "
                                         + (repainted ? "repaint" : "skipped-repaint"));
                             }
-                            closeAfter = freshlyOpened;
                             result = RenderResult.NONE;
                         }
                     }

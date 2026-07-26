@@ -31,6 +31,11 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.shape.ShapeAppearanceModel
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.max
 
 class SearchNavigationController(
@@ -40,6 +45,7 @@ class SearchNavigationController(
     private val pref: Preferences,
     private val isIncognito: () -> Boolean,
     private val historyManager: ReaderHistoryManager,
+    private val scope: CoroutineScope,
     private val launchSearch: (Intent) -> Unit,
 ) {
 
@@ -58,6 +64,9 @@ class SearchNavigationController(
     private var pendingLabelRestore: Runnable? = null
     private var previousButton: ImageButton? = null
     private var nextButton: ImageButton? = null
+    private var showHitJob: Job? = null
+    private var rawTextCachePage = -1
+    private var rawTextCache: String? = null
 
     private val activeSearchListener = object : SearchCoordinator.Listener {
         override fun onProgress(pagesScanned: Int, pageCount: Int) = Unit
@@ -67,7 +76,7 @@ class SearchNavigationController(
                 return
             }
             val currentResultIndex = hits.getOrNull(currentPosition)?.resultIndex
-            hits = SearchCoordinator.cacheHits(results)
+            hits = SearchCoordinator.appendHits(hits, results)
             if (finished) {
                 subscribedToActiveSearch = false
                 hasFullSession = hits.isNotEmpty()
@@ -194,6 +203,10 @@ class SearchNavigationController(
 
     fun reset() {
         unsubscribeFromActiveSearch()
+        showHitJob?.cancel()
+        showHitJob = null
+        rawTextCachePage = -1
+        rawTextCache = null
         clearHighlight()
         dismissSnackbar()
         hits = emptyList()
@@ -348,9 +361,24 @@ class SearchNavigationController(
     private fun showCurrentHit() {
         cancelPendingLabelRestore()
         val hit = hits.getOrNull(currentPosition) ?: return
+        showHitJob?.cancel()
+        showHitJob = scope.launch {
+            val cached = if (rawTextCachePage == hit.pageNumber) rawTextCache else null
+            val rawText = cached ?: withContext(Dispatchers.IO) {
+                binding.pdfView.getPageRawText(hit.pageNumber)
+            }
+            if (hits.getOrNull(currentPosition) !== hit) {
+                return@launch
+            }
+            rawTextCachePage = hit.pageNumber
+            rawTextCache = rawText
+            applyCurrentHit(hit, rawText)
+        }
+    }
+
+    private fun applyCurrentHit(hit: SearchSessionCache.Hit, rawText: String) {
         clearHighlight()
         val matchLength = if (hit.matchLength > 0) hit.matchLength else query.length
-        val rawText = binding.pdfView.getPageRawText(hit.pageNumber)
         val rawRange = NormalizedTextMapper.toRawRange(rawText, hit.originalIndex, matchLength)
         val highlightStart = rawRange?.first ?: hit.originalIndex
         val highlightCount = rawRange?.let { it.last + 1 - it.first } ?: matchLength

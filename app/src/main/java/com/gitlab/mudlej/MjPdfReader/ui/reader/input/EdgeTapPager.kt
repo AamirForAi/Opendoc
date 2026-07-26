@@ -26,9 +26,6 @@ class EdgeTapPager(
         if (pdfView.zoom > 1f) {
             return false
         }
-        if (pdfView.hasLinkAt(event.x, event.y)) {
-            return false
-        }
         val step = when (zones) {
             TapToTurnZones.LEFT_RIGHT -> {
                 val forward = if (pdfView.isHorizontalReadingDirectionRtl) -1 else 1
@@ -44,6 +41,9 @@ class EdgeTapPager(
                 else -> return false
             }
             TapToTurnZones.OFF -> return false
+        }
+        if (pdfView.hasLinkAt(event.x, event.y)) {
+            return false
         }
         pdfView.jumpTo(pdfView.getPageAfterRowStep(pdf.pageNumber, step), true)
         return true

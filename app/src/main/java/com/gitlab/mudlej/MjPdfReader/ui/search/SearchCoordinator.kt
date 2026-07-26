@@ -221,6 +221,25 @@ object SearchCoordinator {
         )
     }
 
+    fun appendHits(
+        previous: List<SearchSessionCache.Hit>,
+        results: List<SearchResult>,
+    ): List<SearchSessionCache.Hit> {
+        if (previous.isEmpty() || results.size < previous.size) {
+            return cacheHits(results)
+        }
+        if (previous.last().resultIndex != results[previous.size - 1].searchResultIndexInList) {
+            return cacheHits(results)
+        }
+        if (results.size == previous.size) {
+            return previous
+        }
+        val appended = ArrayList<SearchSessionCache.Hit>(results.size)
+        appended.addAll(previous)
+        appended.addAll(cacheHits(results.subList(previous.size, results.size)))
+        return appended
+    }
+
     fun cacheHits(results: List<SearchResult>): List<SearchSessionCache.Hit> {
         return results.map { result ->
             SearchSessionCache.Hit(

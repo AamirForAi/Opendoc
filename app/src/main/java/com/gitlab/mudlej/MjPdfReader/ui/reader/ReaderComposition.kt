@@ -254,7 +254,7 @@ class ReaderComposition(
     )
 
     val annotationController: AnnotationController = AnnotationController(activity, binding, vm, historyPolicy)
-    val formFieldController = FormFieldController(activity, binding, ::onAnnotationEdit)
+    val formFieldController = FormFieldController(activity, binding, ::onAnnotationEdit, ::canEditDocument)
     val signatureController: SignatureController = SignatureController(
         activity,
         binding,
@@ -262,6 +262,7 @@ class ReaderComposition(
         SignatureStore(activity),
         annotationController,
         ::onAnnotationEdit,
+        ::canEditDocument,
         ui::updateDirtyUi,
     )
     val dictionaryDefinitionController: DictionaryDefinitionController = DictionaryDefinitionController(
@@ -273,6 +274,7 @@ class ReaderComposition(
         binding,
         { readerNavigationController.clearActiveSearchResultHighlight() },
         ::onAnnotationEdit,
+        ::canEditDocument,
         ui::updateDirtyUiPosition,
         { pref.getDetectExistingHighlights() },
         { pref.getHighlightColors() },
@@ -349,6 +351,7 @@ class ReaderComposition(
         pref,
         { vm.incognito },
         readerHistory,
+        scope,
         userBookmarkController::onPageDisplayed,
         ui::updateTitle,
         { intent -> tableOfContentsLauncher.launch(intent) },
@@ -867,6 +870,14 @@ class ReaderComposition(
         } catch (e: ActivityNotFoundException) {
             AppSnackbar.make(binding.root, R.string.toast_pick_file_error, Snackbar.LENGTH_LONG).show()
         }
+    }
+
+    private fun canEditDocument(): Boolean {
+        if (!annotationController.isSaving) {
+            return true
+        }
+        AppSnackbar.make(binding.root, R.string.annotation_edit_blocked_while_saving, Snackbar.LENGTH_SHORT).show()
+        return false
     }
 
     private fun onAnnotationEdit(edit: AnnotationEdit) {

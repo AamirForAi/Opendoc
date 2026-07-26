@@ -348,7 +348,7 @@ class AnnotationSaveController(
                             )
                         }
                     }
-                    annotationController.clearJournal(sourceUri)
+                    annotationController.clearJournal(sourceUri, resetContentTags = false)
                     if (sourceUri.scheme?.startsWith("http") == true && destinationUri.scheme == "file") {
                         refreshOnlineCacheCopy(destinationUri, sourceUri)
                     }
@@ -408,6 +408,7 @@ class AnnotationSaveController(
             incognito = vm.incognito,
             hasPassword = pdf.password != null,
         )
+        annotationController.resetContentTags()
         annotationController.setCurrentSaveDestination(outcome.destinationUri, durable = outcome.saveDestinationDurable)
         onDocumentSaved()
         activity.setTaskDescription(ActivityManager.TaskDescription(pdf.name))

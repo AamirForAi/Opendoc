@@ -2,6 +2,8 @@
 
 package com.gitlab.mudlej.MjPdfReader.pdf
 
+import android.graphics.RectF
+
 data class SweptHighlight(
     val pageIndex: Int,
     val annotationIndex: Int,
@@ -10,6 +12,7 @@ data class SweptHighlight(
     val quotedText: String,
     val note: String,
     val creationDate: String?,
+    val bounds: RectF? = null,
 )
 
 fun sweepPageHighlights(extractor: PdfExtractor, pageIndex: Int): List<SweptHighlight> {
@@ -29,6 +32,7 @@ fun sweepPageHighlights(extractor: PdfExtractor, pageIndex: Int): List<SweptHigh
                 quotedText = annotation.quote,
                 note = annotation.note,
                 creationDate = annotation.creationDate.takeIf { it.isNotBlank() },
+                bounds = annotation.bounds?.let { RectF(it) },
             )
         )
     }

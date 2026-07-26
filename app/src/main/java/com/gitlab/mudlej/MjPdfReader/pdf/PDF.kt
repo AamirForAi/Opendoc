@@ -51,6 +51,7 @@ object PDF {
     const val chosenTableOfContentsEntryKey = "chosenTableOfContentsEntryKey"
     const val chosenHighlightGroupKey = "chosenHighlightGroupKey"
     const val chosenHighlightAnnotationIndexKey = "chosenHighlightAnnotationIndexKey"
+    const val chosenHighlightBoundsKey = "chosenHighlightBoundsKey"
     const val tableOfContentsExpandedPathsKey = "tableOfContentsExpandedPathsKey"
     const val tableOfContentsScrollPositionKey = "tableOfContentsScrollPositionKey"
     const val tableOfContentsScrollOffsetKey = "tableOfContentsScrollOffsetKey"
