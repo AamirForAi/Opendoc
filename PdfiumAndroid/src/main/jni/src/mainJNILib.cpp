@@ -703,10 +703,22 @@ extern "C" { //For JNI support
 static int getBlock(void* param, unsigned long position, unsigned char* outBuffer,
         unsigned long size) {
     const int fd = reinterpret_cast<intptr_t>(param);
-    const int readCount = pread(fd, outBuffer, size, position);
-    if (readCount < 0) {
-        LOGE("Cannot read from file descriptor. Error:%d", errno);
-        return 0;
+    unsigned long totalRead = 0;
+    while (totalRead < size) {
+        const ssize_t readCount = pread(fd, outBuffer + totalRead, size - totalRead,
+                                        position + totalRead);
+        if (readCount < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            LOGE("Cannot read from file descriptor. Error:%d", errno);
+            return 0;
+        }
+        if (readCount == 0) {
+            LOGE("Short read: wanted %lu bytes at %lu, got %lu", size, position, totalRead);
+            return 0;
+        }
+        totalRead += (unsigned long) readCount;
     }
     return 1;
 }
@@ -2280,7 +2292,7 @@ JNI_FUNC(jboolean, PdfiumCore, nativeSetFormFieldChecked)(JNI_ARGS,
     return result;
 }
 
-JNI_FUNC(jint, PdfiumCore, nativeClearSearchResultAnnot)(JNI_ARGS, jlong pagePtr) {
+JNI_FUNC(jint, PdfiumCore, nativeClearSearchResultAnnot)(JNI_ARGS, jlong pagePtr, jint pageIndex) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
     if (page == NULL) {
         return 0;

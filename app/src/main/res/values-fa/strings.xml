@@ -384,6 +384,8 @@
     <string name="double_tap_to_exit_summary">برای ترک خواننده، فشردن دوباره دکمه بازگشت لازم است. این هنگامی اعمال می‌شود که یک PDF از برنامه دیگری باز شده باشد، یا زمانی که صفحه خانه غیرفعال است و بازگشت به انتخاب‌گر پرونده برمی‌گردد.</string>
     <string name="three_step_double_tap_zoom">بزرگنمایی سه‌مرحله‌ای با دوبار ضربه</string>
     <string name="three_step_double_tap_zoom_summary">دوبار ضربه دوم، بزرگنمایی را تا بالاترین سطح ادامه می‌دهد و سپس به صفحه بازمی‌گردد.</string>
+    <string name="separate_windows_title">باز کردن PDFها در پنجره‌های جداگانه</string>
+    <string name="separate_windows_summary">هر PDF باز به شکل کارتی جداگانه در برنامه‌های اخیر نمایش داده می‌شود. برای نگه داشتن تنها یک پنجره خواننده، این گزینه را خاموش کنید.</string>
     <string name="always_open_first_page_title">همیشه از صفحه اول باز شود</string>
     <string name="always_open_first_page_summary">موقعیت خواندن ذخیره‌شده را نادیده بگیرید و هر PDF را از صفحه ۱ شروع کنید.</string>
     <string name="snap">صفحه‌بندی</string>

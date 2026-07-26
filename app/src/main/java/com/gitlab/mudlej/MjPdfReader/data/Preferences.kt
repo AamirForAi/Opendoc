@@ -146,6 +146,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val fullScreenInfoShowReadingPercentageKey = "fullScreenInfoShowReadingPercentage"
         const val doubleTapToExitEnabledKey = "doubleTapToExitEnabled"
         const val doubleTapThreeStepZoomKey = "doubleTapThreeStepZoom"
+        const val openPdfsInSeparateWindowsKey = "openPdfsInSeparateWindows"
         const val alwaysOpenAtFirstPageKey = "alwaysOpenAtFirstPage"
         const val autoFullScreenKey = "autoFullScreenSwitch"
         const val alwaysHorizontalKey = "alwaysHorizontal"
@@ -238,6 +239,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val fullScreenInfoShowReadingPercentageDefault = true
         const val doubleTapToExitEnabledDefault = false
         const val doubleTapThreeStepZoomDefault = false
+        const val openPdfsInSeparateWindowsDefault = true
         const val alwaysOpenAtFirstPageDefault = false
         const val autoFullScreenDefault = false
         const val alwaysHorizontalDefault = false
@@ -307,7 +309,7 @@ class Preferences(private val prefMan: SharedPreferences) {
                 autoFullScreenKey, alwaysHorizontalKey, homeDisabledKey, homeShowPdfTitleKey,
                 homeFolderFlatKey, homeBadgePagesKey, homeBadgeProgressKey, homeBadgeLastOpenedKey,
                 homeBadgeFileSizeKey, homeBadgeStatusKey, historyEnabledKey, keepSharedCopiesKey,
-                dictionaryDefineWordsKey, autoBackupEnabledKey,
+                dictionaryDefineWordsKey, autoBackupEnabledKey, openPdfsInSeparateWindowsKey,
             ).forEach { put(it, kindBoolean) }
             listOf(
                 hideDelayKey, goToPageGridColumnsKey, scrollSpeedKey, homeListTitleLinesKey,
@@ -437,6 +439,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getFullScreenInfoShowReadingPercentage() = safeGetBoolean(fullScreenInfoShowReadingPercentageKey, fullScreenInfoShowReadingPercentageDefault)
     fun getDoubleTapToExitEnabled() = safeGetBoolean(doubleTapToExitEnabledKey, doubleTapToExitEnabledDefault)
     fun getDoubleTapThreeStepZoom() = safeGetBoolean(doubleTapThreeStepZoomKey, doubleTapThreeStepZoomDefault)
+    fun getOpenPdfsInSeparateWindows() = safeGetBoolean(openPdfsInSeparateWindowsKey, openPdfsInSeparateWindowsDefault)
 
     fun getAlwaysOpenAtFirstPage() = safeGetBoolean(alwaysOpenAtFirstPageKey, alwaysOpenAtFirstPageDefault)
     fun getAutoFullScreen() = safeGetBoolean(autoFullScreenKey, autoFullScreenDefault)
@@ -584,6 +587,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setSecondBarEnabled(value: Boolean) = prefMan.edit().putBoolean(secondBarEnabledKey, value).apply()
     fun setDoubleTapToExitEnabled(value: Boolean) = prefMan.edit().putBoolean(doubleTapToExitEnabledKey, value).apply()
     fun setDoubleTapThreeStepZoom(value: Boolean) = prefMan.edit().putBoolean(doubleTapThreeStepZoomKey, value).apply()
+    fun setOpenPdfsInSeparateWindows(value: Boolean) = prefMan.edit().putBoolean(openPdfsInSeparateWindowsKey, value).apply()
     fun setAutoFullScreen(value: Boolean) = prefMan.edit().putBoolean(autoFullScreenKey, value).apply()
     fun setAlwaysHorizontal(value: Boolean) = prefMan.edit().putBoolean(alwaysHorizontalKey, value).apply()
     fun setHideButtonsLabels(value: Boolean) = prefMan.edit().putBoolean(hideButtonsLabelsKey, value).apply()

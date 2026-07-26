@@ -330,7 +330,7 @@ class FullScreenOptionsManager(
         button.iconGravity = MaterialButton.ICON_GRAVITY_START
         button.iconPadding = button.resources.getDimensionPixelSize(R.dimen.fs_button_icon_padding)
         button.setPaddingRelative(padding, button.paddingTop, paddingEnd, button.paddingBottom)
-        button.layoutParams.width = LinearLayout.LayoutParams.WRAP_CONTENT
+        button.layoutParams.width = LinearLayout.LayoutParams.MATCH_PARENT
         button.requestLayout()
     }
 

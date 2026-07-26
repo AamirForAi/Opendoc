@@ -524,7 +524,7 @@ class ReaderComposition(
             override fun onDocumentLoaded(event: DocumentLoadedEvent) {
                 if (event.applyDocumentLoadDefaults) {
                     fullscreenController.checkAutoFullScreen()
-                    activity.checkAlwaysHorizontal()
+                    activity.applyOrientationPolicy()
                     openTextModeByDefault()
                     configureButtonsLabels()
                 }

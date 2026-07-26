@@ -186,6 +186,7 @@ class TextModeActivity : AppCompatActivity() {
             ?: intent.getIntExtra(PDF.pageNumberKey, 0)
         fileHash = savedInstanceState?.getString(PDF.fileHashKey)
             ?: intent.getStringExtra(PDF.fileHashKey)
+        savedPageIndex = currentPageIndex
     }
 
     private fun initPdfProperties() {

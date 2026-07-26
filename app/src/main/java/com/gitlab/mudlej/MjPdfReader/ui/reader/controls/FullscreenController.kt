@@ -2,7 +2,6 @@
 
 package com.gitlab.mudlej.MjPdfReader.ui.reader.controls
 
-import android.content.pm.ActivityInfo
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
@@ -53,9 +52,6 @@ class FullscreenController(
     }
 
     fun exitFullscreen() {
-        if (!pref.getAlwaysHorizontal()) {
-            unlockScreenOrientation()
-        }
         toggleFullscreen()
         autoScrollManager.stop()
         zoomSwipeLockController.enableZooming()
@@ -165,11 +161,5 @@ class FullscreenController(
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
         return panel.measuredWidth
-    }
-
-    private fun unlockScreenOrientation() {
-        // set orientation to unspecified so that the screen rotation will be unlocked
-        // this is because PORTRAIT / LANDSCAPE modes will lock the app in them
-        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     }
 }

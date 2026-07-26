@@ -384,6 +384,8 @@
     <string name="double_tap_to_exit_summary">Verlangt zweimaliges Drücken von Zurück, um den Reader zu verlassen. Dies gilt, wenn ein PDF aus einer anderen App geöffnet wurde, oder wenn die Startseite deaktiviert ist und Zurück zum Dateiauswähler führt.</string>
     <string name="three_step_double_tap_zoom">Dreistufiger Doppeltipp-Zoom</string>
     <string name="three_step_double_tap_zoom_summary">Ein zweites Doppeltippen vergrößert weiter bis zur maximalen Stufe, bevor die Ansicht zur Seite zurückkehrt.</string>
+    <string name="separate_windows_title">PDFs in separaten Fenstern öffnen</string>
+    <string name="separate_windows_summary">Zeigt jedes geöffnete PDF als eigene Karte in den letzten Apps. Wenn deaktiviert, bleibt nur ein Reader-Fenster erhalten.</string>
     <string name="always_open_first_page_title">Immer auf erster Seite öffnen</string>
     <string name="always_open_first_page_summary">Ignoriert die gespeicherte Leseposition und startet jedes PDF von Seite 1.</string>
     <string name="snap">Seitenrastung</string>

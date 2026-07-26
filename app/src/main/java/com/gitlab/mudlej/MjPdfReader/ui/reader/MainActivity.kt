@@ -8,7 +8,9 @@ import android.app.ActivityManager
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
 import android.util.Log
@@ -285,6 +287,9 @@ class MainActivity : AppCompatActivity(), ReaderUi {
 
     fun displayFromUri(uri: Uri?, savePassword: Boolean = false) {
         documentLoader.displayFromUri(uri, savePassword)
+        if (uri != null) {
+            closeOtherReaderWindows()
+        }
     }
 
     override fun updateTitle() {
@@ -310,12 +315,17 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         reader.toolbarActionController.update(actionBarMenu)
     }
 
-    internal fun checkAlwaysHorizontal() {
-        if (pref.getAlwaysHorizontal() && vm.isPortrait) {
-            rotateScreen()
+    @SuppressLint("SourceLockedOrientationActivity")
+    internal fun applyOrientationPolicy() {
+        val docId = pdf.uri?.toString()
+        if (docId != vm.orientationDocId) {
+            vm.orientationDocId = docId
+            vm.userOrientationLock = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
-        if (!pref.getAlwaysHorizontal() && !vm.isPortrait) {
-            rotateScreen()
+        requestedOrientation = when {
+            vm.userOrientationLock != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED -> vm.userOrientationLock
+            pref.getAlwaysHorizontal() -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            else -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
     }
 
@@ -394,12 +404,18 @@ class MainActivity : AppCompatActivity(), ReaderUi {
 
     @SuppressLint("SourceLockedOrientationActivity")
     internal fun rotateScreen() {
-        requestedOrientation = if (vm.isPortrait) {
-            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        } else {
-            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        val showingLandscape = when (requestedOrientation) {
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE -> true
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT -> false
+            else -> resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         }
-        vm.togglePortrait()
+        val lock = if (showingLandscape) {
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
+        requestedOrientation = lock
+        vm.userOrientationLock = lock
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -407,8 +423,16 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         fullscreenController.refreshOnWindowFocus(hasFocus)
     }
 
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (savingProgressVisible) {
+            return true
+        }
+        return super.dispatchTouchEvent(event)
+    }
+
     public override fun onResume() {
         super.onResume()
+        closeOtherReaderWindows()
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         if (pref.getScreenOn()) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -437,6 +461,29 @@ class MainActivity : AppCompatActivity(), ReaderUi {
 
         if (BuildConfig.DEBUG) {
             stallWatchdog.start()
+        }
+    }
+
+    private fun closeOtherReaderWindows() {
+        if (pref.getOpenPdfsInSeparateWindows()) return
+        if (isFinishing) return
+        if (pdf.uri == null) return
+        val activityManager = getSystemService(ActivityManager::class.java)
+        for (task in activityManager.appTasks) {
+            try {
+                val taskInfo = task.taskInfo
+                val id = if (Build.VERSION.SDK_INT >= 29) {
+                    taskInfo.taskId
+                } else {
+                    @Suppress("DEPRECATION")
+                    taskInfo.persistentId
+                }
+                if (id == taskId) continue
+                if (taskInfo.baseIntent.component?.className != MainActivity::class.java.name) continue
+                task.finishAndRemoveTask()
+            } catch (e: IllegalArgumentException) {
+                continue
+            }
         }
     }
 

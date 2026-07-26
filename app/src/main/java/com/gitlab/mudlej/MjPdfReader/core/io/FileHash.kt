@@ -17,6 +17,51 @@ import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import kotlin.math.min
 
+fun computeTailHash(file: File): String? {
+    return runCatching {
+        java.io.RandomAccessFile(file, "r").use { access ->
+            val length = access.length()
+            if (length <= 0L) return@use null
+            val size = min(PDF.HASH_SIZE.toLong(), length).toInt()
+            access.seek(length - size)
+            val buffer = ByteArray(size)
+            access.readFully(buffer)
+            digestOf(buffer, size)
+        }
+    }.getOrNull()
+}
+
+suspend fun computeTailHash(context: Context, uri: Uri?): String? {
+    if (uri == null) return null
+    return withContext(Dispatchers.IO) {
+        runCatching {
+            OnlineDocumentStore.fileFor(context, uri.toString())?.let { return@runCatching computeTailHash(it) }
+            context.contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
+                val length = descriptor.statSize
+                if (length <= 0L) return@use null
+                val size = min(PDF.HASH_SIZE.toLong(), length).toInt()
+                FileInputStream(descriptor.fileDescriptor).use { stream ->
+                    stream.channel.position(length - size)
+                    val buffer = ByteArray(size)
+                    var totalRead = 0
+                    while (totalRead < size) {
+                        val amountRead = stream.read(buffer, totalRead, size - totalRead)
+                        if (amountRead == -1) break
+                        totalRead += amountRead
+                    }
+                    if (totalRead < size) null else digestOf(buffer, size)
+                }
+            }
+        }.getOrNull()
+    }
+}
+
+private fun digestOf(buffer: ByteArray, size: Int): String {
+    val digester = MessageDigest.getInstance("MD5")
+    digester.update(buffer, 0, size)
+    return String.format("%032x", BigInteger(1, digester.digest()))
+}
+
 fun computeHash(bytes: ByteArray): String? {
     return runCatching {
         val digester = MessageDigest.getInstance("MD5")

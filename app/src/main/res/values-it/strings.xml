@@ -384,6 +384,8 @@
     <string name="double_tap_to_exit_summary">Richiede di premere Indietro due volte per uscire dal lettore. Si applica quando un PDF è stato aperto da un\'altra app, o quando la Pagina home è disattivata e Indietro riporta al selettore file.</string>
     <string name="three_step_double_tap_zoom">Zoom con doppio tocco in tre passaggi</string>
     <string name="three_step_double_tap_zoom_summary">Un secondo doppio tocco continua a ingrandire fino al livello massimo prima di tornare alla pagina.</string>
+    <string name="separate_windows_title">Apri i PDF in finestre separate</string>
+    <string name="separate_windows_summary">Mostra ogni PDF aperto come una scheda separata nelle app recenti. Disattiva questa opzione per mantenere una sola finestra del lettore.</string>
     <string name="always_open_first_page_title">Apri sempre alla prima pagina</string>
     <string name="always_open_first_page_summary">Ignora la posizione di lettura salvata e avvia ogni PDF dalla pagina 1.</string>
     <string name="snap">Scatto della pagina</string>

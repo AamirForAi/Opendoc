@@ -97,6 +97,9 @@ class AnnotationController(
 
     fun clearJournal(uri: Uri? = pdf.uri) {
         uri?.let(journal::delete)
+        if (uri != null && uri != pdf.uri) {
+            return
+        }
         pageContentTags.clear()
         vm.hasUnsavedAnnotations = false
     }

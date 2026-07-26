@@ -176,7 +176,8 @@ class DocumentLoader(
                 return@launch
             }
 
-            val pageNumber = if (doc.pageNumber == 0 && hash != null && !pref.getAlwaysOpenAtFirstPage()) {
+            val openAtFirstPageOverride = doc.pageNumber == 0 && pref.getAlwaysOpenAtFirstPage()
+            val pageNumber = if (doc.pageNumber == 0 && hash != null && !openAtFirstPageOverride) {
                 pdfRepository.findPageNumber(hash)
             } else {
                 doc.pageNumber
@@ -200,6 +201,11 @@ class DocumentLoader(
                 return@launch
             }
             vm.setPage(pageNumber)
+            if (openAtFirstPageOverride) {
+                vm.suppressPositionPersistAt(pageNumber)
+            } else {
+                vm.clearPositionPersistSuppression()
+            }
             doc.autoScrollSpeed = doc.autoScrollSpeed ?: autoScrollSpeed
             doc.readingDirectionOverride = readingDirectionState.overrideDirection
             doc.detectedReadingDirection = readingDirectionState.detectedDirection
@@ -550,7 +556,7 @@ class DocumentLoader(
                 doc.fileHash = hash
                 emit { it.onFileHashComputed() }
                 attachPreviewDiskIfCurrent(hash, loadToken, documentUri)
-                if (historyPolicy.canRecord()) {
+                if (historyPolicy.canRecord() && vm.canPersistPosition(pageNumber)) {
                     pdfRepository.setPageNumber(hash, pageNumber)
                 }
             }

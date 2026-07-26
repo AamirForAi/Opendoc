@@ -384,6 +384,8 @@
     <string name="double_tap_to_exit_summary">Натисніть «Назад» двічі, щоб вийти з переглядача.</string>
     <string name="three_step_double_tap_zoom">Триступеневе масштабування подвійним торканням</string>
     <string name="three_step_double_tap_zoom_summary">Друге подвійне торкання продовжує масштабування до максимального рівня, перш ніж повернутися до сторінки.</string>
+    <string name="separate_windows_title">Відкривати PDF в окремих вікнах</string>
+    <string name="separate_windows_summary">Показувати кожен відкритий PDF окремою карткою серед останніх програм. Вимкніть цю функцію, щоб залишилося тільки одне вікно переглядача.</string>
     <string name="always_open_first_page_title">Завжди відкривати на першій сторінці</string>
     <string name="always_open_first_page_summary">Ігнорувати збережену позицію читання й починати кожен PDF зі сторінки 1.</string>
     <string name="snap">Знімок сторінки</string>

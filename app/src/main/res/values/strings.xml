@@ -418,6 +418,8 @@
     <string name="double_tap_to_exit_summary">Require pressing Back twice to leave the reader. This applies when a PDF was opened from another app, or when the Home Page is disabled and Back returns to the file picker.</string>
     <string name="three_step_double_tap_zoom">Three-Step Double Tap Zoom</string>
     <string name="three_step_double_tap_zoom_summary">A second double tap keeps zooming to the maximum level before returning to the page.</string>
+    <string name="separate_windows_title">Open PDFs in Separate Windows</string>
+    <string name="separate_windows_summary">Show each open PDF as its own card in recent apps. Turn this off to keep only one reader window.</string>
     <string name="always_open_first_page_title">Always Open at First Page</string>
     <string name="always_open_first_page_summary">Ignore the saved reading position and start every PDF from page 1.</string>
     <string name="snap">Page Snap</string>
@@ -611,6 +613,14 @@
     <string name="annotation_save_unconfirmed_title">Couldn\'t confirm the save</string>
     <string name="annotation_save_unconfirmed_message">MJ PDF saved your changes but couldn\'t confirm the file was written correctly. Your changes are still in the app, so nothing was lost. Choose Save a copy to write them to another location and be sure.</string>
     <string name="annotation_save_copy_action">Save a copy</string>
+    <string name="annotation_save_incomplete_title">This file may be incomplete</string>
+    <string name="annotation_save_incomplete_message">MJ PDF was writing your changes into this file when the save failed, so the file may be incomplete. Your changes are still in the app. Choose Save a copy to write a complete file somewhere else.</string>
+    <string name="annotation_save_incomplete_rescue_message">MJ PDF was writing your changes into this file when the save failed, so the file may be incomplete. Your changes are still in the app, and a finished copy was kept in the app as %1$s. Choose Save a copy to write a complete file somewhere else.</string>
+    <string name="annotation_save_same_file_title">Choose a different file</string>
+    <string name="annotation_save_same_file_message">That is the file you are reading. Saving a copy leaves the original untouched, so pick another name or location.</string>
+    <string name="annotation_save_different_file_title">Overwrite a different file?</string>
+    <string name="annotation_save_different_file_message">%1$s is not the file you are reading. Its contents will be replaced with this document and cannot be recovered.</string>
+    <string name="annotation_save_overwrite_action">Overwrite</string>
     <string name="search_results">Search Results</string>
     <string name="copy">Copy</string>
     <string name="copy_all">Copy All</string>

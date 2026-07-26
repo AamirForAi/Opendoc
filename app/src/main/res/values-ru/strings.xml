@@ -384,6 +384,8 @@
     <string name="double_tap_to_exit_summary">Требовать двойное нажатие «Назад» для выхода из читалки. Применяется, когда PDF открыт из другого приложения, или когда главный экран отключён и «Назад» возвращает к выбору файла.</string>
     <string name="three_step_double_tap_zoom">Трёхступенчатое увеличение двойным нажатием</string>
     <string name="three_step_double_tap_zoom_summary">Второе двойное нажатие продолжает увеличение до максимального уровня, прежде чем вернуться к странице.</string>
+    <string name="separate_windows_title">Открывать PDF в отдельных окнах</string>
+    <string name="separate_windows_summary">Показывать каждый открытый PDF отдельной карточкой в списке недавних приложений. Отключите эту функцию, чтобы осталось только одно окно читалки.</string>
     <string name="always_open_first_page_title">Всегда открывать с первой страницы</string>
     <string name="always_open_first_page_summary">Игнорировать сохранённую позицию чтения и открывать каждый PDF с 1-й страницы.</string>
     <string name="snap">Фиксация страницы</string>

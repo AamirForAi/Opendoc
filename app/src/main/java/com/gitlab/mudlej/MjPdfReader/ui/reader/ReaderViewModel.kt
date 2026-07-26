@@ -2,6 +2,7 @@
 
 package com.gitlab.mudlej.MjPdfReader.ui.reader
 
+import android.content.pm.ActivityInfo
 import android.graphics.RectF
 import android.net.Uri
 import android.os.Bundle
@@ -22,7 +23,11 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
     var pendingViewState: PDFView.ViewState? = null
     var cropMarginsEnabled = false
 
-    var isPortrait = true
+    private var positionPersistSuppressed = false
+    private var positionPersistSuppressedAtPage = 0
+
+    var userOrientationLock = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+    var orientationDocId: String? = null
     var isFullScreenToggled = false
     var incognito = false
     var pendingIncognitoNotice: Boolean? = null
@@ -63,8 +68,24 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
         doc.pageNumber = pageIndex
     }
 
-    fun togglePortrait() {
-        isPortrait = !isPortrait
+    fun suppressPositionPersistAt(pageIndex: Int) {
+        positionPersistSuppressed = true
+        positionPersistSuppressedAtPage = pageIndex
+    }
+
+    fun clearPositionPersistSuppression() {
+        positionPersistSuppressed = false
+    }
+
+    fun canPersistPosition(pageIndex: Int): Boolean {
+        if (!positionPersistSuppressed) {
+            return true
+        }
+        if (pageIndex == positionPersistSuppressedAtPage) {
+            return false
+        }
+        positionPersistSuppressed = false
+        return true
     }
 
     fun beginNewDocument(uri: Uri, cropMarginsDefault: Boolean) {
@@ -72,6 +93,7 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
         doc.uri = uri
         doc.fileHash = null
         doc.pageNumber = 0
+        clearPositionPersistSuppression()
         doc.pageRangeEnd = 0
         doc.autoScrollSpeed = null
         doc.readingDirectionOverride = null
@@ -109,7 +131,8 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
         out.putString(PDF.readingDirectionOverrideKey, doc.readingDirectionOverride?.id)
         out.putString(PDF.detectedReadingDirectionKey, doc.detectedReadingDirection?.id)
         out.putString(PDF.effectiveReadingDirectionKey, doc.effectiveReadingDirection.id)
-        out.putBoolean(PDF.isPortraitKey, isPortrait)
+        out.putInt(PDF.userOrientationLockKey, userOrientationLock)
+        out.putString(PDF.orientationDocKey, orientationDocId)
         out.putBoolean(PDF.isFullScreenToggledKey, isFullScreenToggled)
         out.putBoolean(PDF.incognitoKey, incognito)
         doc.autoScrollSpeed?.let { out.putInt(PDF.autoScrollSpeedKey, it) }
@@ -153,7 +176,8 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
         doc.effectiveReadingDirection = ReadingDirection.fromId(
             saved.getString(PDF.effectiveReadingDirectionKey),
         ) ?: ReadingDirection.LEFT_TO_RIGHT
-        isPortrait = saved.getBoolean(PDF.isPortraitKey, true)
+        userOrientationLock = saved.getInt(PDF.userOrientationLockKey, ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
+        orientationDocId = saved.getString(PDF.orientationDocKey)
         isFullScreenToggled = saved.getBoolean(PDF.isFullScreenToggledKey)
         incognito = saved.getBoolean(PDF.incognitoKey, false)
         doc.autoScrollSpeed = saved.takeIf { it.containsKey(PDF.autoScrollSpeedKey) }

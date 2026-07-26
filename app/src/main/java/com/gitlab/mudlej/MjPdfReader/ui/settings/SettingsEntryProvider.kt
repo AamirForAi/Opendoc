@@ -571,6 +571,14 @@ internal class SettingsEntryProvider(private val preferences: Preferences) {
                 summaryRes = R.string.three_step_double_tap_zoom_summary,
                 keywords = listOf("double tap", "zoom", "steps", "magnify"),
             ),
+            switchEntry(
+                page = SettingsPage.ADVANCED,
+                titleRes = R.string.separate_windows_title,
+                key = Preferences.openPdfsInSeparateWindowsKey,
+                defaultValue = Preferences.openPdfsInSeparateWindowsDefault,
+                summaryRes = R.string.separate_windows_summary,
+                keywords = listOf("window", "instance", "recent", "task", "separate"),
+            ),
             floatPreferenceEntry(
                 page = SettingsPage.ADVANCED,
                 titleRes = R.string.part_size,

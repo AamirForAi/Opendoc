@@ -384,6 +384,8 @@
     <string name="double_tap_to_exit_summary">需要连按两次返回键才能离开阅读器。此设置适用于从其他应用打开 PDF 时，或主页已禁用且返回键会回到文件选择器时。</string>
     <string name="three_step_double_tap_zoom">三段式双击缩放</string>
     <string name="three_step_double_tap_zoom_summary">再次双击会继续放大到最高级别，然后才恢复页面视图。</string>
+    <string name="separate_windows_title">在单独窗口中打开 PDF</string>
+    <string name="separate_windows_summary">每个打开的 PDF 都会在最近任务中显示为单独的卡片。关闭后将只保留一个阅读器窗口。</string>
     <string name="always_open_first_page_title">总是从第一页打开</string>
     <string name="always_open_first_page_summary">忽略已保存的阅读位置，每次都从第 1 页开始打开 PDF。</string>
     <string name="snap">页面对齐</string>

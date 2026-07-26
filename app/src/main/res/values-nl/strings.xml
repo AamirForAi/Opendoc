@@ -384,6 +384,8 @@
     <string name="double_tap_to_exit_summary">Vereis dat je twee keer op Terug drukt om de lezer te verlaten. Dit geldt wanneer een PDF vanuit een andere app is geopend, of wanneer het startscherm is uitgeschakeld en Terug terugkeert naar de bestandskiezer.</string>
     <string name="three_step_double_tap_zoom">Zoomen in drie stappen met dubbel tikken</string>
     <string name="three_step_double_tap_zoom_summary">Een tweede keer dubbel tikken zoomt verder in tot het maximale niveau voordat de weergave naar de pagina terugkeert.</string>
+    <string name="separate_windows_title">PDF\'s in aparte vensters openen</string>
+    <string name="separate_windows_summary">Toon elke geopende PDF als een eigen kaart in recente apps. Schakel dit uit om slechts één lezervenster te behouden.</string>
     <string name="always_open_first_page_title">Altijd openen op eerste pagina</string>
     <string name="always_open_first_page_summary">Negeer de opgeslagen leespositie en start elke PDF vanaf pagina 1.</string>
     <string name="snap">Pagina centreren</string>

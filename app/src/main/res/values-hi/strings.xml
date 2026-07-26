@@ -384,6 +384,8 @@
     <string name="double_tap_to_exit_summary">रीडर छोड़ने के लिए बैक को दो बार दबाना ज़रूरी करें। यह तब लागू होता है जब कोई PDF किसी अन्य ऐप से खोला गया हो, या जब होम पेज अक्षम हो और बैक फ़ाइल पिकर पर लौटता हो।</string>
     <string name="three_step_double_tap_zoom">तीन-चरण डबल टैप ज़ूम</string>
     <string name="three_step_double_tap_zoom_summary">दूसरा डबल टैप पेज पर लौटने से पहले अधिकतम स्तर तक ज़ूम जारी रखता है।</string>
+    <string name="separate_windows_title">PDF को अलग-अलग विंडो में खोलें</string>
+    <string name="separate_windows_summary">हर खुले PDF को हाल के ऐप्स में एक अलग कार्ड के रूप में दिखाएं। केवल एक रीडर विंडो रखने के लिए इसे बंद करें।</string>
     <string name="always_open_first_page_title">हमेशा पहले पेज पर खोलें</string>
     <string name="always_open_first_page_summary">सहेजी गई पढ़ने की स्थिति को नज़रअंदाज़ करें और हर PDF को पेज 1 से शुरू करें।</string>
     <string name="snap">पेज स्नैप</string>
