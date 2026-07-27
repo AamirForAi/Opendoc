@@ -13,7 +13,7 @@ import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
 import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
-import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
+import com.gitlab.mudlej.MjPdfReader.core.io.DocumentIdentity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -23,19 +23,26 @@ class RelocateController(
     private val activity: AppCompatActivity,
     private val pdfRepository: PdfRepository,
     private val libraryScanner: LibraryScanner,
+    private val vm: HomeViewModel,
     private val scope: CoroutineScope,
     private val onOpen: (Uri, String?) -> Unit,
     private val onHealed: () -> Unit,
 ) {
 
-    private var pendingRecord: PdfRecord? = null
-
     private val relocatePicker =
         activity.registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            val record = pendingRecord
-            pendingRecord = null
-            if (uri != null && record != null) {
-                onFilePicked(record, uri)
+            val pendingHash = vm.pendingRelocateHash
+            vm.pendingRelocateHash = null
+            if (uri != null) {
+                scope.launch {
+                    val record = pendingHash?.let { pdfRepository.findRecord(it) }
+                    if (record != null) {
+                        onFilePicked(record, uri)
+                    } else {
+                        PersistedGrantKeeper.takeReadGrant(activity, uri)
+                        onOpen(uri, null)
+                    }
+                }
             }
         }
 
@@ -63,7 +70,7 @@ class RelocateController(
             .setTitle(R.string.home_relocate_title)
             .setMessage(activity.getString(R.string.home_relocate_message, record.fileName))
             .setPositiveButton(R.string.home_relocate_action) { _, _ ->
-                pendingRecord = record
+                vm.pendingRelocateHash = record.hash
                 relocatePicker.launch(arrayOf(PDF.FILE_TYPE))
             }
             .setNegativeButton(R.string.cancel, null)
@@ -72,16 +79,17 @@ class RelocateController(
 
     private fun onFilePicked(record: PdfRecord, uri: Uri) {
         scope.launch {
-            val pickedHash = computeHash(activity, uri)
-            if (pickedHash == record.hash) {
+            val identities = DocumentIdentity.of(activity, uri)
+            if (identities != null && identities.matches(record.hash)) {
+                val pickedHash = pdfRepository.resolveIdentity(identities)
                 PersistedGrantKeeper.takeReadGrant(activity, uri)
                 val canonicalFile = UriCanonicalizer.canonicalize(activity, uri)
                 val durableUri = canonicalFile?.let(Uri::fromFile) ?: uri
                 pdfRepository.updateRecordIdentity(
-                    record.hash, durableUri, record.fileName, record.lastOpened
+                    pickedHash, durableUri, record.fileName, record.lastOpened
                 )
                 onHealed()
-                onOpen(durableUri, record.hash)
+                onOpen(durableUri, pickedHash)
             } else {
                 showMismatchDialog(uri)
             }

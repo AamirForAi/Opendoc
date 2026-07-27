@@ -25,6 +25,9 @@ interface UserBookmarkDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun upsertAll(bookmarks: List<UserBookmark>)
 
+    @Query("UPDATE OR REPLACE UserBookmark SET fileHash = :newHash WHERE fileHash = :oldHash")
+    fun rekey(oldHash: String, newHash: String): Int
+
     @Query("DELETE FROM UserBookmark WHERE fileHash = :fileHash AND pageIndex = :pageIndex")
     fun delete(fileHash: String, pageIndex: Int)
 

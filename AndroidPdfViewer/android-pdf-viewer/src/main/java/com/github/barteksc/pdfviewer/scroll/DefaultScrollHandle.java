@@ -305,7 +305,6 @@ public class DefaultScrollHandle extends RelativeLayout implements ScrollHandle 
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-            case MotionEvent.ACTION_POINTER_DOWN:
                 dragging = true;
                 pdfView.stopFling();
                 pdfView.setRenderInteractionActive(true);

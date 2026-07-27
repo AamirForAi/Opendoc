@@ -3059,7 +3059,7 @@ public class PDFView extends RelativeLayout {
     }
 
     public void zoomWithAnimation(float centerX, float centerY, float scaleTo) {
-        animationManager.startZoomAnimation(centerX, centerY, zoom, scaleTo);
+        animationManager.startZoomAnimation(centerX, centerY, zoom, validZoom(scaleTo));
     }
 
     public RectF focusOnPdfRect(int pageIndex, RectF pdfRect, float targetZoom) {
@@ -3125,7 +3125,7 @@ public class PDFView extends RelativeLayout {
     }
 
     public void zoomWithAnimation(float scale) {
-        animationManager.startZoomAnimation((float) getWidth() / 2, (float) getHeight() / 2, zoom, scale);
+        animationManager.startZoomAnimation((float) getWidth() / 2, (float) getHeight() / 2, zoom, validZoom(scale));
     }
 
     private void setScrollHandle(ScrollHandle scrollHandle) {

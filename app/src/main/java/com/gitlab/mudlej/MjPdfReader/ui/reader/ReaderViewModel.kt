@@ -53,6 +53,14 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
     var pendingSignaturePage = -1
     var pendingSignatureRect: RectF? = null
 
+    var pickerOpenedByBackButton = false
+    var pendingRelocate: PendingRelocate? = null
+    var pendingPostSaveAction: PostSaveAction? = null
+    var pendingPostSaveActionUri: Uri? = null
+    var pendingAnnotationSourceUri: Uri? = null
+    var pendingAnnotationDestinationIsCopy = false
+    var alwaysHideMarginsAtSettingsOpen: Boolean? = null
+
     init {
         state.setSavedStateProvider(STATE_KEY) { snapshotState() }
         state.get<Bundle>(STATE_KEY)?.let { restoreState(it) }
@@ -162,6 +170,16 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
             )
             out.putBoolean(KEY_SIGNATURE_DIRTY_BEFORE, signatureDirtyBeforePlacement)
         }
+        out.putBoolean(KEY_PICKER_BACK, pickerOpenedByBackButton)
+        pendingRelocate?.let { pending ->
+            out.putBoolean(KEY_RELOCATE_PENDING, true)
+            out.putString(KEY_RELOCATE_HASH, pending.hash)
+        }
+        out.putString(KEY_POST_SAVE_ACTION, pendingPostSaveAction?.name)
+        out.putParcelable(KEY_POST_SAVE_URI, pendingPostSaveActionUri)
+        out.putParcelable(KEY_ANNOTATION_SOURCE_URI, pendingAnnotationSourceUri)
+        out.putBoolean(KEY_ANNOTATION_DESTINATION_COPY, pendingAnnotationDestinationIsCopy)
+        alwaysHideMarginsAtSettingsOpen?.let { out.putBoolean(KEY_MARGINS_BASELINE, it) }
         return out
     }
 
@@ -208,6 +226,19 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
             }
             signatureDirtyBeforePlacement = saved.getBoolean(KEY_SIGNATURE_DIRTY_BEFORE, false)
         }
+        pickerOpenedByBackButton = saved.getBoolean(KEY_PICKER_BACK, false)
+        if (saved.getBoolean(KEY_RELOCATE_PENDING, false)) {
+            pendingRelocate = PendingRelocate(saved.getString(KEY_RELOCATE_HASH))
+        }
+        pendingPostSaveAction = saved.getString(KEY_POST_SAVE_ACTION)?.let { name ->
+            PostSaveAction.entries.firstOrNull { it.name == name }
+        }
+        pendingPostSaveActionUri = saved.getParcelable(KEY_POST_SAVE_URI)
+        pendingAnnotationSourceUri = saved.getParcelable(KEY_ANNOTATION_SOURCE_URI)
+        pendingAnnotationDestinationIsCopy = saved.getBoolean(KEY_ANNOTATION_DESTINATION_COPY, false)
+        if (saved.containsKey(KEY_MARGINS_BASELINE)) {
+            alwaysHideMarginsAtSettingsOpen = saved.getBoolean(KEY_MARGINS_BASELINE)
+        }
     }
 
     private companion object {
@@ -217,5 +248,15 @@ class ReaderViewModel(state: SavedStateHandle) : ViewModel() {
         const val KEY_SIGNATURE_PAGE = "signaturePlacementPage"
         const val KEY_SIGNATURE_RECT = "signaturePlacementRect"
         const val KEY_SIGNATURE_DIRTY_BEFORE = "signaturePlacementDirtyBefore"
+        const val KEY_PICKER_BACK = "pickerOpenedByBackButton"
+        const val KEY_RELOCATE_PENDING = "relocatePending"
+        const val KEY_RELOCATE_HASH = "relocatePendingHash"
+        const val KEY_POST_SAVE_ACTION = "pendingPostSaveAction"
+        const val KEY_POST_SAVE_URI = "pendingPostSaveActionUri"
+        const val KEY_ANNOTATION_SOURCE_URI = "pendingAnnotationSourceUri"
+        const val KEY_ANNOTATION_DESTINATION_COPY = "pendingAnnotationDestinationIsCopy"
+        const val KEY_MARGINS_BASELINE = "alwaysHideMarginsAtSettingsOpen"
     }
 }
+
+class PendingRelocate(val hash: String?)

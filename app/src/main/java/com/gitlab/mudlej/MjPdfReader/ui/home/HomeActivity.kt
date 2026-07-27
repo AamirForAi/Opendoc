@@ -9,6 +9,7 @@ import android.provider.DocumentsContract
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -52,6 +53,8 @@ import java.time.LocalDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 class HomeActivity : AppCompatActivity(), HomeItemFunctions {
@@ -75,9 +78,12 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     private lateinit var libraryTab: LibraryTabController
     private lateinit var foldersTab: FoldersTabController
 
+    private val homeViewModel: HomeViewModel by viewModels()
+
     private var allItems: List<HomeItem> = emptyList()
     private var allRecordItems: List<HomeItem> = emptyList()
     private var relinkRunning = false
+    private val renderMutex = Mutex()
 
     private val foldersBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -263,6 +269,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             this,
             pdfRepository,
             libraryScanner,
+            homeViewModel,
             lifecycleScope,
             onOpen = ::openInReader,
             onHealed = ::refresh,
@@ -484,17 +491,19 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     }
 
     private suspend fun renderTabs() {
-        val probe = AvailabilityProbe(applicationContext, permissionManager.hasFullAccess())
-        allRecordItems = libraryController.loadLibrary(probe, getString(R.string.home_title_annotated))
-        allItems = allRecordItems.filter { it.availability != Availability.MISSING }
-        val scanIndex = libraryScanner.index.value
-        recentTab.render(allItems)
-        libraryTab.render(allItems)
-        foldersTab.render(allItems, scanIndex.entries, scanIndex.scanning)
-        if (binding.searchView.isShowing) {
-            submitSearchResults()
+        renderMutex.withLock {
+            val probe = AvailabilityProbe(applicationContext, permissionManager.hasFullAccess())
+            allRecordItems = libraryController.loadLibrary(probe, getString(R.string.home_title_annotated))
+            allItems = allRecordItems.filter { it.availability != Availability.MISSING }
+            val scanIndex = libraryScanner.index.value
+            recentTab.render(allItems)
+            libraryTab.render(allItems)
+            foldersTab.render(allItems, scanIndex.entries, scanIndex.scanning)
+            if (binding.searchView.isShowing) {
+                submitSearchResults()
+            }
+            maybeRelinkRecords()
         }
-        maybeRelinkRecords()
     }
 
     private fun maybeRelinkRecords() {

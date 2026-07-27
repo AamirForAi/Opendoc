@@ -31,6 +31,7 @@ fun resolveReadingLayout(pref: Preferences): ReadingLayout {
         dualPage = false
         overridden[Preferences.browserScrollModeKey] = R.string.horizontal_scrolling_mode
         overridden[Preferences.dualPageModeKey] = R.string.horizontal_scrolling_mode
+        overridden[Preferences.dualPageFirstPageAloneKey] = R.string.horizontal_scrolling_mode
     }
 
     if (freeScroll) {
@@ -54,6 +55,7 @@ fun resolveReadingLayout(pref: Preferences): ReadingLayout {
         overridden[Preferences.pageFlingKey] = R.string.single_page_mode_title
         overridden[Preferences.browserScrollModeKey] = R.string.single_page_mode_title
         overridden[Preferences.dualPageModeKey] = R.string.single_page_mode_title
+        overridden[Preferences.dualPageFirstPageAloneKey] = R.string.single_page_mode_title
     }
 
     return ReadingLayout(

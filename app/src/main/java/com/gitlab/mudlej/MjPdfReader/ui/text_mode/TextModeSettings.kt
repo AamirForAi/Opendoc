@@ -8,7 +8,9 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.view.View
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.google.android.material.color.MaterialColors
+import kotlin.math.roundToInt
 
 data class TextModeSettings(
     val fontSize: Float = DEFAULT_FONT_SIZE,
@@ -20,12 +22,12 @@ data class TextModeSettings(
 ) {
     fun save(preferences: SharedPreferences) {
         preferences.edit()
-            .putFloat(FONT_SIZE_KEY, fontSize)
-            .putFloat(LINE_SPACING_KEY, lineSpacing)
-            .putInt(HORIZONTAL_MARGIN_KEY, horizontalMargin)
-            .putString(THEME_KEY, theme.name)
-            .putString(FONT_FAMILY_KEY, fontFamily.name)
-            .putBoolean(READABLE_LINE_LENGTH_KEY, readableLineLength)
+            .putFloat(Preferences.textModeFontSizeKey, fontSize)
+            .putFloat(Preferences.textModeLineSpacingKey, lineSpacing)
+            .putInt(Preferences.textModeHorizontalMarginKey, horizontalMargin)
+            .putString(Preferences.textModeThemeKey, theme.name)
+            .putString(Preferences.textModeFontFamilyKey, fontFamily.name)
+            .putBoolean(Preferences.textModeReadableLineLengthKey, readableLineLength)
             .apply()
     }
 
@@ -35,29 +37,50 @@ data class TextModeSettings(
         const val DEFAULT_HORIZONTAL_MARGIN = 20
         const val DEFAULT_READABLE_LINE_LENGTH = true
 
-        private const val FONT_SIZE_KEY = "textModeFontSize"
-        private const val LINE_SPACING_KEY = "textModeLineSpacing"
-        private const val HORIZONTAL_MARGIN_KEY = "textModeHorizontalMargin"
-        private const val THEME_KEY = "textModeTheme"
-        private const val FONT_FAMILY_KEY = "textModeFontFamily"
-        private const val READABLE_LINE_LENGTH_KEY = "textModeReadableLineLength"
+        const val FONT_SIZE_MIN = 12f
+        const val FONT_SIZE_MAX = 36f
+        const val FONT_SIZE_STEP = 1f
+        const val LINE_SPACING_MIN = 1f
+        const val LINE_SPACING_MAX = 2.2f
+        const val LINE_SPACING_STEP = 0.05f
+        const val HORIZONTAL_MARGIN_MIN = 8f
+        const val HORIZONTAL_MARGIN_MAX = 48f
+        const val HORIZONTAL_MARGIN_STEP = 2f
+
+        internal fun snap(value: Float, min: Float, max: Float, step: Float, default: Float): Float {
+            if (!value.isFinite()) {
+                return default
+            }
+            val steps = ((value.coerceIn(min, max) - min) / step).roundToInt()
+            return (min + steps * step).coerceIn(min, max)
+        }
 
         fun load(preferences: SharedPreferences): TextModeSettings {
             val defaults = TextModeSettings()
             return TextModeSettings(
-                fontSize = runCatching { preferences.getFloat(FONT_SIZE_KEY, defaults.fontSize) }
-                    .getOrDefault(defaults.fontSize),
-                lineSpacing = runCatching { preferences.getFloat(LINE_SPACING_KEY, defaults.lineSpacing) }
-                    .getOrDefault(defaults.lineSpacing),
-                horizontalMargin = runCatching { preferences.getInt(HORIZONTAL_MARGIN_KEY, defaults.horizontalMargin) }
-                    .getOrDefault(defaults.horizontalMargin),
-                theme = runCatching { preferences.getString(THEME_KEY, null) }.getOrNull()
+                fontSize = snap(
+                    runCatching { preferences.getFloat(Preferences.textModeFontSizeKey, defaults.fontSize) }
+                        .getOrDefault(defaults.fontSize),
+                    FONT_SIZE_MIN, FONT_SIZE_MAX, FONT_SIZE_STEP, defaults.fontSize,
+                ),
+                lineSpacing = snap(
+                    runCatching { preferences.getFloat(Preferences.textModeLineSpacingKey, defaults.lineSpacing) }
+                        .getOrDefault(defaults.lineSpacing),
+                    LINE_SPACING_MIN, LINE_SPACING_MAX, LINE_SPACING_STEP, defaults.lineSpacing,
+                ),
+                horizontalMargin = snap(
+                    runCatching { preferences.getInt(Preferences.textModeHorizontalMarginKey, defaults.horizontalMargin) }
+                        .getOrDefault(defaults.horizontalMargin).toFloat(),
+                    HORIZONTAL_MARGIN_MIN, HORIZONTAL_MARGIN_MAX, HORIZONTAL_MARGIN_STEP,
+                    defaults.horizontalMargin.toFloat(),
+                ).roundToInt(),
+                theme = runCatching { preferences.getString(Preferences.textModeThemeKey, null) }.getOrNull()
                     ?.let { runCatching { ReaderTheme.valueOf(it) }.getOrNull() }
                     ?: defaults.theme,
-                fontFamily = runCatching { preferences.getString(FONT_FAMILY_KEY, null) }.getOrNull()
+                fontFamily = runCatching { preferences.getString(Preferences.textModeFontFamilyKey, null) }.getOrNull()
                     ?.let { runCatching { ReaderFontFamily.valueOf(it) }.getOrNull() }
                     ?: defaults.fontFamily,
-                readableLineLength = runCatching { preferences.getBoolean(READABLE_LINE_LENGTH_KEY, defaults.readableLineLength) }
+                readableLineLength = runCatching { preferences.getBoolean(Preferences.textModeReadableLineLengthKey, defaults.readableLineLength) }
                     .getOrDefault(defaults.readableLineLength),
             )
         }

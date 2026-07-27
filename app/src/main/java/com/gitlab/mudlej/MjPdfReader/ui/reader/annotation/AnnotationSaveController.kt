@@ -21,12 +21,14 @@ import com.gitlab.mudlej.MjPdfReader.data.OnlineDocumentStore
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfAnnotationSaveDestination
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
+import com.gitlab.mudlej.MjPdfReader.ui.reader.PostSaveAction
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.PermissionManager
 import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
 import com.gitlab.mudlej.MjPdfReader.core.io.canWriteToDownloadFolder
 import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
+import com.gitlab.mudlej.MjPdfReader.core.io.DocumentIdentity
 import com.gitlab.mudlej.MjPdfReader.core.io.computeTailHash
 import com.gitlab.mudlej.MjPdfReader.core.io.getFileName
 import com.gitlab.mudlej.MjPdfReader.core.io.publicDownloadsCopy
@@ -74,25 +76,23 @@ class AnnotationSaveController(
     private val clearActiveSearchResultHighlight: () -> Unit,
     private val updateDirtyUi: () -> Unit,
     private val beforeSave: () -> Boolean,
+    private val runPostSaveAction: (PostSaveAction, Uri?) -> Unit,
     private val onDocumentSaved: () -> Unit,
 ) {
     private sealed interface WriteResult {
-        data class Success(val hash: String, val sizeBytes: Long) : WriteResult
+        data class Success(val hash: String, val identity: String, val sizeBytes: Long) : WriteResult
         data class Failure(val rescueFileName: String?, val unconfirmed: Boolean) : WriteResult
     }
 
-    private var pendingSourceUri: Uri? = null
-    private var pendingPostSaveAction: (() -> Unit)? = null
-    private var pendingDestinationIsCopy = false
-
-    fun saveHighlights(postSaveAction: (() -> Unit)? = null) {
+    fun saveHighlights(postSaveAction: PostSaveAction? = null, actionUri: Uri? = null) {
         if (!annotationController.hasUnsavedAnnotations || annotationController.isSaving) {
             return
         }
         if (!beforeSave()) {
             return
         }
-        pendingPostSaveAction = postSaveAction
+        vm.pendingPostSaveAction = postSaveAction
+        vm.pendingPostSaveActionUri = actionUri
         val destinationUri = annotationController.currentSaveDestinationUri
         if (destinationUri != null) {
             saveHighlightsToUri(
@@ -106,9 +106,10 @@ class AnnotationSaveController(
     }
 
     fun clearPendingRequests() {
-        pendingSourceUri = null
-        pendingPostSaveAction = null
-        pendingDestinationIsCopy = false
+        vm.pendingAnnotationSourceUri = null
+        vm.pendingPostSaveAction = null
+        vm.pendingPostSaveActionUri = null
+        vm.pendingAnnotationDestinationIsCopy = false
     }
 
     fun handleDestinationResult(intent: Intent?) {
@@ -117,21 +118,23 @@ class AnnotationSaveController(
             clearPendingRequests()
             return
         }
-        val sourceUri = pendingSourceUri ?: pdf.uri
+        val sourceUri = vm.pendingAnnotationSourceUri
         if (sourceUri == null) {
             clearPendingRequests()
             return
         }
-        val isCopyRequest = pendingDestinationIsCopy
-        pendingSourceUri = null
-        pendingDestinationIsCopy = false
+        val isCopyRequest = vm.pendingAnnotationDestinationIsCopy
+        vm.pendingAnnotationSourceUri = null
+        vm.pendingAnnotationDestinationIsCopy = false
         if (!vm.acceptsDocumentUri(sourceUri)) {
-            pendingPostSaveAction = null
+            vm.pendingPostSaveAction = null
+            vm.pendingPostSaveActionUri = null
             return
         }
         val sameDocument = resolvesToSameDocument(destinationUri, sourceUri)
         if (isCopyRequest && sameDocument) {
-            pendingPostSaveAction = null
+            vm.pendingPostSaveAction = null
+            vm.pendingPostSaveActionUri = null
             MaterialAlertDialogBuilder(activity)
                 .setTitle(R.string.annotation_save_same_file_title)
                 .setMessage(R.string.annotation_save_same_file_message)
@@ -150,13 +153,16 @@ class AnnotationSaveController(
 
     private fun confirmOverwritingDifferentFile(destinationUri: Uri, sourceUri: Uri, durable: Boolean) {
         val destinationName = runCatching { getFileName(activity, destinationUri) }.getOrNull().orEmpty()
-        val postSaveAction = pendingPostSaveAction
-        pendingPostSaveAction = null
+        val postSaveAction = vm.pendingPostSaveAction
+        val postSaveActionUri = vm.pendingPostSaveActionUri
+        vm.pendingPostSaveAction = null
+        vm.pendingPostSaveActionUri = null
         MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.annotation_save_different_file_title)
             .setMessage(activity.getString(R.string.annotation_save_different_file_message, destinationName))
             .setPositiveButton(R.string.annotation_save_overwrite_action) { _, _ ->
-                pendingPostSaveAction = postSaveAction
+                vm.pendingPostSaveAction = postSaveAction
+                vm.pendingPostSaveActionUri = postSaveActionUri
                 saveHighlightsToUri(destinationUri, sourceUri, saveDestinationDurably = durable)
             }
             .setNegativeButton(R.string.cancel, null)
@@ -252,8 +258,8 @@ class AnnotationSaveController(
 
     private fun launchUpdateDestinationPicker() {
         val sourceUri = pdf.uri ?: return
-        pendingSourceUri = sourceUri
-        pendingDestinationIsCopy = false
+        vm.pendingAnnotationSourceUri = sourceUri
+        vm.pendingAnnotationDestinationIsCopy = false
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
             .addCategory(Intent.CATEGORY_OPENABLE)
             .setType(PDF.FILE_TYPE)
@@ -266,8 +272,8 @@ class AnnotationSaveController(
 
     private fun launchCreateDestinationPicker() {
         val sourceUri = pdf.uri ?: return
-        pendingSourceUri = sourceUri
-        pendingDestinationIsCopy = true
+        vm.pendingAnnotationSourceUri = sourceUri
+        vm.pendingAnnotationDestinationIsCopy = true
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
             .addCategory(Intent.CATEGORY_OPENABLE)
             .setType(PDF.FILE_TYPE)
@@ -320,7 +326,7 @@ class AnnotationSaveController(
                 val writeResult = writeDocumentToSaf(destinationUri)
                 if (writeResult is WriteResult.Success) {
                     val destinationName = getFileName(activity, destinationUri)
-                    val newHash = writeResult.hash
+                    val newHash = writeResult.identity
                     val isCurrent = vm.isCurrent(loadToken, sourceUri)
                     if (historyPolicy.canRecord()) {
                         if (oldHash != null) {
@@ -387,7 +393,8 @@ class AnnotationSaveController(
         when (outcome) {
             is SaveOutcome.Success -> onSaveSucceeded(outcome)
             is SaveOutcome.Failure -> {
-                pendingPostSaveAction = null
+                vm.pendingPostSaveAction = null
+                vm.pendingPostSaveActionUri = null
                 showSaveFailed(outcome)
             }
         }
@@ -395,7 +402,8 @@ class AnnotationSaveController(
 
     private fun onSaveSucceeded(outcome: SaveOutcome.Success) {
         if (!outcome.isCurrent) {
-            pendingPostSaveAction = null
+            vm.pendingPostSaveAction = null
+            vm.pendingPostSaveActionUri = null
             return
         }
         pdf.uri = outcome.destinationUri
@@ -415,9 +423,11 @@ class AnnotationSaveController(
         onDocumentSaved()
         activity.setTaskDescription(ActivityManager.TaskDescription(pdf.name))
         AppSnackbar.make(binding.root, R.string.highlights_saved, Snackbar.LENGTH_SHORT).show()
-        val postSaveAction = pendingPostSaveAction
-        pendingPostSaveAction = null
-        postSaveAction?.invoke()
+        val postSaveAction = vm.pendingPostSaveAction
+        val postSaveActionUri = vm.pendingPostSaveActionUri
+        vm.pendingPostSaveAction = null
+        vm.pendingPostSaveActionUri = null
+        postSaveAction?.let { runPostSaveAction(it, postSaveActionUri) }
     }
 
     private suspend fun refreshOnlineCacheCopy(destinationUri: Uri, sourceUri: Uri) = withContext(Dispatchers.IO) {
@@ -436,14 +446,15 @@ class AnnotationSaveController(
                 return@withContext WriteResult.Failure(rescueFileName = null, unconfirmed = false)
             }
             val sizeBytes = tmp.length()
-            val hash = computeHash(tmp)
+            val identities = DocumentIdentity.of(tmp)
                 ?: return@withContext WriteResult.Failure(rescueFileName = null, unconfirmed = false)
+            val hash = identities.legacy
             val tailHash = computeTailHash(tmp)
                 ?: return@withContext WriteResult.Failure(rescueFileName = null, unconfirmed = false)
             if (destinationUri.scheme == "file") {
-                writeToFileDestination(destinationUri, tmp, hash, tailHash, sizeBytes)
+                writeToFileDestination(destinationUri, tmp, hash, identities.identity, tailHash, sizeBytes)
             } else {
-                writeToContentDestination(destinationUri, tmp, hash, tailHash, sizeBytes)
+                writeToContentDestination(destinationUri, tmp, hash, identities.identity, tailHash, sizeBytes)
             }
         } finally {
             tmp.delete()
@@ -454,6 +465,7 @@ class AnnotationSaveController(
         destinationUri: Uri,
         tmp: File,
         hash: String,
+        identity: String,
         tailHash: String,
         sizeBytes: Long,
     ): WriteResult {
@@ -480,20 +492,21 @@ class AnnotationSaveController(
             sibling.delete()
             return failure(tmp, unconfirmed = false)
         }
-        return WriteResult.Success(hash, sizeBytes)
+        return WriteResult.Success(hash, identity, sizeBytes)
     }
 
     private suspend fun writeToContentDestination(
         destinationUri: Uri,
         tmp: File,
         hash: String,
+        identity: String,
         tailHash: String,
         sizeBytes: Long,
     ): WriteResult {
         var wrote = attemptContentWrite(destinationUri, tmp)
         if (wrote.isFailure) {
             if (destinationMatches(destinationUri, hash, tailHash, sizeBytes)) {
-                return WriteResult.Success(hash, sizeBytes)
+                return WriteResult.Success(hash, identity, sizeBytes)
             }
             wrote = attemptContentWrite(destinationUri, tmp)
         }
@@ -501,7 +514,7 @@ class AnnotationSaveController(
             return failure(tmp, unconfirmed = false)
         }
         return if (destinationMatches(destinationUri, hash, tailHash, sizeBytes)) {
-            WriteResult.Success(hash, sizeBytes)
+            WriteResult.Success(hash, identity, sizeBytes)
         } else {
             failure(tmp, unconfirmed = true)
         }

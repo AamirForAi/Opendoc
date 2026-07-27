@@ -77,7 +77,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
 import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
-import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
+import com.gitlab.mudlej.MjPdfReader.core.io.DocumentIdentity
 import com.gitlab.mudlej.MjPdfReader.core.io.navIntent
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeActivity
@@ -103,8 +103,8 @@ class ReaderComposition(
     private val scope = activity.lifecycleScope
 
     private val pdfPickerLauncher: ActivityResultLauncher<Array<String>> = activity.registerForActivityResult(OpenDocument()) { selectedDocumentUri ->
-        val exitOnCancel = pickerOpenedByBackButton
-        pickerOpenedByBackButton = false
+        val exitOnCancel = vm.pickerOpenedByBackButton
+        vm.pickerOpenedByBackButton = false
         if (selectedDocumentUri != null) {
             if (!vm.incognito) {
                 PersistedGrantKeeper.takeReadGrant(activity, selectedDocumentUri)
@@ -115,18 +115,14 @@ class ReaderComposition(
         }
     }
 
-    private var pickerOpenedByBackButton = false
-
-    private var pendingRelocateRecord: PdfRecord? = null
-
     private val relocatePickerLauncher: ActivityResultLauncher<Array<String>> = activity.registerForActivityResult(OpenDocument()) { pickedUri ->
-        val record = pendingRelocateRecord
-        pendingRelocateRecord = null
+        val pendingHash = vm.pendingRelocate?.hash
+        vm.pendingRelocate = null
         if (pickedUri == null) {
             exitAfterFailedRecovery()
             return@registerForActivityResult
         }
-        if (record == null) {
+        if (pendingHash == null) {
             if (!vm.incognito) {
                 PersistedGrantKeeper.takeReadGrant(activity, pickedUri)
             }
@@ -134,15 +130,24 @@ class ReaderComposition(
             return@registerForActivityResult
         }
         scope.launch {
-            val pickedHash = computeHash(activity, pickedUri)
-            if (pickedHash == record.hash) {
+            val record = pdfRepository.findRecord(pendingHash)
+            if (record == null) {
+                if (!vm.incognito) {
+                    PersistedGrantKeeper.takeReadGrant(activity, pickedUri)
+                }
+                activity.displayFromUri(pickedUri, savePassword = true)
+                return@launch
+            }
+            val identities = DocumentIdentity.of(activity, pickedUri)
+            if (identities != null && identities.matches(record.hash)) {
+                val pickedHash = pdfRepository.resolveIdentity(identities)
                 if (!vm.incognito) {
                     PersistedGrantKeeper.takeReadGrant(activity, pickedUri)
                 }
                 val canonicalFile = withContext(Dispatchers.IO) { UriCanonicalizer.canonicalize(activity, pickedUri) }
                 val durableUri = canonicalFile?.let(Uri::fromFile) ?: pickedUri
                 if (historyPolicy.canRecord()) {
-                    pdfRepository.updateRecordIdentity(record.hash, durableUri, record.fileName, record.lastOpened)
+                    pdfRepository.updateRecordIdentity(pickedHash, durableUri, record.fileName, record.lastOpened)
                 }
                 activity.displayFromUri(durableUri)
             } else {
@@ -159,11 +164,11 @@ class ReaderComposition(
         activity.restartAppIfGranted(granted)
     }
 
-    private var alwaysHideMarginsWhenSettingsOpened = false
-
     private val settingsLauncher: ActivityResultLauncher<Intent> = activity.registerForActivityResult(StartActivityForResult()) {
+        val baseline = vm.alwaysHideMarginsAtSettingsOpen
+        vm.alwaysHideMarginsAtSettingsOpen = null
         val alwaysHideMargins = pref.getAlwaysHideMargins()
-        if (alwaysHideMargins != alwaysHideMarginsWhenSettingsOpened) {
+        if (baseline != null && alwaysHideMargins != baseline) {
             setCropMarginsEnabled(alwaysHideMargins)
         }
         activity.displayFromUri(doc.uri)
@@ -305,6 +310,7 @@ class ReaderComposition(
         { readerNavigationController.clearActiveSearchResultHighlight() },
         ui::updateDirtyUi,
         { signatureController.commitPendingSignature() },
+        activity::performPostSaveAction,
     ) {
         ui.updateTitle()
     }
@@ -331,7 +337,7 @@ class ReaderComposition(
         { vm.incognito },
         { saveToDownloadPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE) },
         { file -> documentLoader.initPdfViewAndLoad(binding.pdfView.fromFile(file)) },
-        { uri -> ui.runAfterDirtyAnnotationPrompt { activity.displayFromUri(uri, savePassword = true) } },
+        { uri -> ui.runAfterDirtyAnnotationPrompt(PostSaveAction.DISPLAY_URI, uri) },
     )
 
     val readerHistory: ReaderHistoryManager = ReaderHistoryManager({ binding.pdfView }, ::onHistoryChanged)
@@ -469,6 +475,7 @@ class ReaderComposition(
     }
 
     fun onActivityDestroyed() {
+        readerNavigationController.onActivityDestroyed()
         if (activity.isFinishing) {
             vm.onSaveComplete = null
         }
@@ -662,14 +669,16 @@ class ReaderComposition(
     }
 
     fun pickFile() {
-        ui.runAfterDirtyAnnotationPrompt {
-            pickerOpenedByBackButton = false
-            launchPdfPicker()
-        }
+        ui.runAfterDirtyAnnotationPrompt(PostSaveAction.OPEN_PICKER)
+    }
+
+    fun openPickerWithoutPrompt() {
+        vm.pickerOpenedByBackButton = false
+        launchPdfPicker()
     }
 
     fun pickFileOnBackPressed() {
-        pickerOpenedByBackButton = true
+        vm.pickerOpenedByBackButton = true
         launchPdfPicker()
     }
 
@@ -802,7 +811,7 @@ class ReaderComposition(
             .setTitle(R.string.home_relocate_title)
             .setMessage(activity.getString(R.string.home_relocate_message, record.fileName))
             .setPositiveButton(R.string.home_relocate_action) { _, _ ->
-                pendingRelocateRecord = record
+                vm.pendingRelocate = PendingRelocate(record.hash)
                 relocatePickerLauncher.launch(arrayOf(PDF.FILE_TYPE))
             }
             .setNegativeButton(R.string.cancel) { _, _ -> exitAfterFailedRecovery() }
@@ -815,7 +824,7 @@ class ReaderComposition(
             .setTitle(R.string.stale_shared_title)
             .setMessage(R.string.stale_shared_message)
             .setPositiveButton(R.string.stale_shared_locate) { _, _ ->
-                pendingRelocateRecord = null
+                vm.pendingRelocate = PendingRelocate(null)
                 relocatePickerLauncher.launch(arrayOf(PDF.FILE_TYPE))
             }
             .setNegativeButton(R.string.cancel) { _, _ -> exitAfterFailedRecovery() }
@@ -932,18 +941,14 @@ class ReaderComposition(
         if (!ui.checkHasFile()) {
             return
         }
-        activity.runAfterAnnotationSaveGate {
-            readerNavigationController.showUserNotes()
-        }
+        activity.runAfterAnnotationSaveGate(PostSaveAction.SHOW_USER_NOTES)
     }
 
     private fun showUserHighlights() {
         if (!ui.checkHasFile()) {
             return
         }
-        activity.runAfterAnnotationSaveGate {
-            readerNavigationController.showUserHighlights()
-        }
+        activity.runAfterAnnotationSaveGate(PostSaveAction.SHOW_USER_HIGHLIGHTS)
     }
 
     private fun printFile() {
@@ -970,7 +975,7 @@ class ReaderComposition(
     }
 
     private fun openSettings() {
-        alwaysHideMarginsWhenSettingsOpened = pref.getAlwaysHideMargins()
+        vm.alwaysHideMarginsAtSettingsOpen = pref.getAlwaysHideMargins()
         val settingsIntent = Intent(activity, SettingsActivity::class.java)
         settingsIntent.putExtra(PDF.incognitoKey, vm.incognito)
         settingsLauncher.launch(settingsIntent)

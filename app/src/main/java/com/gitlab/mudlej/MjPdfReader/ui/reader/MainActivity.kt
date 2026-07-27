@@ -96,6 +96,29 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     private val fullscreenController get() = reader.fullscreenController
     private val pdfRepository get() = reader.pdfRepository
 
+    private val readerBackCallback = object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            if (annotationController.hasUnsavedAnnotations) {
+                runAfterDirtyAnnotationPrompt(PostSaveAction.LEAVE_READER)
+                return
+            }
+            if (!pref.getDoubleTapToExitEnabled()
+                || intent.getBooleanExtra(HomeActivity.EXTRA_FROM_HOME, false)
+                || doubleBackToExitPressedOnce
+            ) {
+                leaveReader(this)
+            } else {
+                AppSnackbar.make(binding.root, getString(R.string.press_back_again), Snackbar.LENGTH_LONG).show()
+                doubleBackToExitPressedOnce = true
+
+                lifecycleScope.launch {
+                    delay(2500)
+                    doubleBackToExitPressedOnce = false
+                }
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val incognito = if (savedInstanceState?.containsKey(PDF.incognitoKey) == true) {
             savedInstanceState.getBoolean(PDF.incognitoKey)
@@ -179,10 +202,18 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        val newUri = intent.data
         if (intent.action == Intent.ACTION_SEND) {
             if (!openSharedTextLink()) {
                 AppSnackbar.make(binding.root, R.string.share_text_no_link, Snackbar.LENGTH_LONG).show()
             }
+        } else if (newUri != null) {
+            if (!isDisplayingUri(newUri.toString())) {
+                runAfterDirtyAnnotationPrompt(PostSaveAction.DISPLAY_URI, newUri)
+            }
+        } else if (intent.getBooleanExtra(HomeActivity.EXTRA_OPEN_ONLINE_DIALOG, false)) {
+            intent.removeExtra(HomeActivity.EXTRA_OPEN_ONLINE_DIALOG)
+            onlinePdfController.showOpenOnlinePdfDialog()
         }
     }
 
@@ -227,43 +258,54 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         }
     }
 
-    override fun runAfterDirtyAnnotationPrompt(discardAction: () -> Unit) {
+    override fun runAfterDirtyAnnotationPrompt(action: PostSaveAction, uri: Uri?) {
         if (!annotationController.hasUnsavedAnnotations) {
-            discardAction()
+            performPostSaveAction(action, uri)
             return
         }
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.unsaved_highlights)
             .setMessage(R.string.unsaved_highlights_prompt)
             .setPositiveButton(R.string.save_highlights) { _, _ ->
-                annotationSaveController.saveHighlights(postSaveAction = discardAction)
+                annotationSaveController.saveHighlights(action, uri)
             }
             .setNegativeButton(R.string.discard) { _, _ ->
                 clearUnsavedAnnotationState()
-                discardAction()
+                performPostSaveAction(action, uri)
             }
             .setNeutralButton(R.string.cancel, null)
             .show()
     }
 
-    internal fun runAfterAnnotationSaveGate(action: () -> Unit) {
+    internal fun runAfterAnnotationSaveGate(action: PostSaveAction, uri: Uri? = null) {
         if (!annotationController.hasUnsavedAnnotations) {
-            action()
+            performPostSaveAction(action, uri)
             return
         }
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.unsaved_highlights)
             .setMessage(R.string.unsaved_highlights_prompt)
             .setPositiveButton(R.string.save_highlights) { _, _ ->
-                annotationSaveController.saveHighlights(postSaveAction = action)
+                annotationSaveController.saveHighlights(action, uri)
             }
             .setNegativeButton(R.string.discard) { _, _ ->
                 clearUnsavedAnnotationState()
                 reloadPdf()
-                action()
+                performPostSaveAction(action, uri)
             }
             .setNeutralButton(R.string.cancel, null)
             .show()
+    }
+
+    internal fun performPostSaveAction(action: PostSaveAction, uri: Uri?) {
+        when (action) {
+            PostSaveAction.DISPLAY_URI -> uri?.let { displayFromUri(it, savePassword = true) }
+            PostSaveAction.OPEN_PICKER -> reader.openPickerWithoutPrompt()
+            PostSaveAction.SHOW_USER_NOTES -> readerNavigationController.showUserNotes()
+            PostSaveAction.SHOW_USER_HIGHLIGHTS -> readerNavigationController.showUserHighlights()
+            PostSaveAction.GO_HOME -> goHomeNow()
+            PostSaveAction.LEAVE_READER -> leaveReader(readerBackCallback)
+        }
     }
 
     private fun clearUnsavedAnnotationState() {
@@ -711,6 +753,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
 
     override fun onStop() {
         if (::reader.isInitialized) {
+            reader.autoScrollManager.stop()
             reader.autoScrollSpeedStore.flushPendingSave()
         }
         super.onStop()
@@ -763,10 +806,12 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     }
 
     private fun navigateHome() {
-        runAfterDirtyAnnotationPrompt {
-            startActivity(Intent(this, HomeActivity::class.java))
-            finish()
-        }
+        runAfterDirtyAnnotationPrompt(PostSaveAction.GO_HOME)
+    }
+
+    private fun goHomeNow() {
+        startActivity(Intent(this, HomeActivity::class.java))
+        finish()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -861,29 +906,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     }
 
     private fun overrideOnBackButtonPressed() {
-        val onBackPressedCallback = object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (annotationController.hasUnsavedAnnotations) {
-                    runAfterDirtyAnnotationPrompt { leaveReader(this) }
-                    return
-                }
-                if (!pref.getDoubleTapToExitEnabled()
-                    || intent.getBooleanExtra(HomeActivity.EXTRA_FROM_HOME, false)
-                    || doubleBackToExitPressedOnce
-                ) {
-                    leaveReader(this)
-                } else {
-                    AppSnackbar.make(binding.root, getString(R.string.press_back_again), Snackbar.LENGTH_LONG).show()
-                    doubleBackToExitPressedOnce = true
-
-                    lifecycleScope.launch {
-                        delay(2500)
-                        doubleBackToExitPressedOnce = false
-                    }
-                }
-            }
-        }
-        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+        onBackPressedDispatcher.addCallback(this, readerBackCallback)
     }
 
     private fun leaveReader(callback: OnBackPressedCallback) {

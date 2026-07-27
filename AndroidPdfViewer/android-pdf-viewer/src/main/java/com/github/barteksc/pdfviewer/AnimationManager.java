@@ -33,9 +33,13 @@ import android.widget.OverScroller;
  */
 class AnimationManager {
 
+    private enum AnimationKind { SCROLL, ZOOM }
+
     private PDFView pdfView;
 
     private ValueAnimator animation;
+
+    private AnimationKind animationKind;
 
     private OverScroller scroller;
 
@@ -50,6 +54,7 @@ class AnimationManager {
 
     public void startXAnimation(float xFrom, float xTo) {
         stopAll();
+        animationKind = AnimationKind.SCROLL;
         animation = ValueAnimator.ofFloat(xFrom, xTo);
         XAnimation xAnimation = new XAnimation();
         animation.setInterpolator(new DecelerateInterpolator());
@@ -61,6 +66,7 @@ class AnimationManager {
 
     public void startYAnimation(float yFrom, float yTo) {
         stopAll();
+        animationKind = AnimationKind.SCROLL;
         animation = ValueAnimator.ofFloat(yFrom, yTo);
         YAnimation yAnimation = new YAnimation();
         animation.setInterpolator(new DecelerateInterpolator());
@@ -76,6 +82,7 @@ class AnimationManager {
 
     public void startZoomAnimation(float centerX, float centerY, float zoomFrom, float zoomTo, PointF endOffsets) {
         stopAll();
+        animationKind = AnimationKind.ZOOM;
         animation = ValueAnimator.ofFloat(zoomFrom, zoomTo);
         animation.setInterpolator(new DecelerateInterpolator());
         ZoomAnimation zoomAnim = new ZoomAnimation(centerX, centerY, zoomTo, endOffsets);
@@ -121,6 +128,13 @@ class AnimationManager {
             animation = null;
         }
         stopFling();
+    }
+
+    public void stopScrollAnimation() {
+        if (animation != null && animationKind == AnimationKind.SCROLL) {
+            animation.cancel();
+            animation = null;
+        }
     }
 
     public void stopFling() {

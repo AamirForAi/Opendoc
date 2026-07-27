@@ -1212,8 +1212,14 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
     void *tmp;
     int format;
     int sourceStride;
-    if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
-        tmp = malloc(canvasVerSize * canvasHorSize * sizeof(rgb));
+    bool usesScratchBuffer = info.format == ANDROID_BITMAP_FORMAT_RGB_565;
+    if (usesScratchBuffer) {
+        tmp = malloc((size_t) canvasVerSize * canvasHorSize * sizeof(rgb));
+        if (tmp == NULL) {
+            LOGE("Scratch buffer allocation failed for %dx%d", canvasHorSize, canvasVerSize);
+            AndroidBitmap_unlockPixels(env, bitmap);
+            return;
+        }
         sourceStride = canvasHorSize * sizeof(rgb);
         format = FPDFBitmap_BGR;
     } else {
@@ -1224,6 +1230,14 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
 
     FPDF_BITMAP pdfBitmap = FPDFBitmap_CreateEx( canvasHorSize, canvasVerSize,
                                                      format, tmp, sourceStride);
+    if (pdfBitmap == NULL) {
+        LOGE("FPDFBitmap_CreateEx failed for %dx%d", canvasHorSize, canvasVerSize);
+        if (usesScratchBuffer) {
+            free(tmp);
+        }
+        AndroidBitmap_unlockPixels(env, bitmap);
+        return;
+    }
 
     /*LOGD("Start X: %d", startX);
     LOGD("Start Y: %d", startY);
@@ -1267,7 +1281,7 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
 
     double convertStartMs = monotonicMillis();
     FPDFBitmap_Destroy(pdfBitmap);
-    if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
+    if (usesScratchBuffer) {
         rgbBitmapTo565(tmp, sourceStride, addr, &info);
         free(tmp);
     }
@@ -1367,7 +1381,12 @@ JNI_FUNC(jlong, PdfiumCore, nativeRenderChunkedStart)(JNI_ARGS, jlong docPtr, jl
     int format;
     int sourceStride;
     if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
-        tmp = malloc(canvasVerSize * canvasHorSize * sizeof(rgb));
+        tmp = malloc((size_t) canvasVerSize * canvasHorSize * sizeof(rgb));
+        if (tmp == NULL) {
+            LOGE("Scratch buffer allocation failed for %dx%d", canvasHorSize, canvasVerSize);
+            AndroidBitmap_unlockPixels(env, bitmap);
+            return 0;
+        }
         sourceStride = canvasHorSize * sizeof(rgb);
         format = FPDFBitmap_BGR;
     } else {
@@ -1378,6 +1397,14 @@ JNI_FUNC(jlong, PdfiumCore, nativeRenderChunkedStart)(JNI_ARGS, jlong docPtr, jl
 
     FPDF_BITMAP pdfBitmap = FPDFBitmap_CreateEx( canvasHorSize, canvasVerSize,
                                                      format, tmp, sourceStride);
+    if (pdfBitmap == NULL) {
+        LOGE("FPDFBitmap_CreateEx failed for %dx%d", canvasHorSize, canvasVerSize);
+        if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
+            free(tmp);
+        }
+        AndroidBitmap_unlockPixels(env, bitmap);
+        return 0;
+    }
 
     if(drawSizeHor < canvasHorSize || drawSizeVer < canvasVerSize){
         FPDFBitmap_FillRect( pdfBitmap, 0, 0, canvasHorSize, canvasVerSize,
@@ -1480,7 +1507,7 @@ JNI_FUNC(void, PdfiumCore, nativeRenderChunkedClose)(JNI_ARGS, jlong ctxPtr, jlo
 
     double convertStartMs = monotonicMillis();
     FPDFBitmap_Destroy(ctx->pdfBitmap);
-    if (completed && ctx->info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
+    if (completed && ctx->tmp != NULL) {
         rgbBitmapTo565(ctx->tmp, ctx->sourceStride, ctx->addr, &ctx->info);
     }
     if (ctx->tmp != NULL) {

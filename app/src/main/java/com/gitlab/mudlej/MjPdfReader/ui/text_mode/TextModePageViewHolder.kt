@@ -16,6 +16,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.databinding.TextModePageItemBinding
 import com.gitlab.mudlej.MjPdfReader.core.io.plainTextShareIntent
+import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
+import com.google.android.material.snackbar.Snackbar
 
 class TextModePageViewHolder(
     private val binding: TextModePageItemBinding,
@@ -113,7 +115,11 @@ class TextModePageViewHolder(
         try {
             context.startActivity(searchIntent)
         } catch (e: ActivityNotFoundException) {
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=${Uri.encode(text)}")))
+            try {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=${Uri.encode(text)}")))
+            } catch (browserError: ActivityNotFoundException) {
+                AppSnackbar.make(binding.root, context.getString(R.string.no_app_to_open_link), Snackbar.LENGTH_LONG).show()
+            }
         }
     }
 

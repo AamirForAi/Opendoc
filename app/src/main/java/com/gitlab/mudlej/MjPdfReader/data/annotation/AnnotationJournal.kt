@@ -12,10 +12,6 @@ import java.util.concurrent.Executors
 
 class AnnotationJournal(private val context: Context) {
 
-    private val executor = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "annotation-journal")
-    }
-
     fun append(uri: Uri, edit: AnnotationEdit) {
         executor.execute {
             runCatching {
@@ -75,5 +71,9 @@ class AnnotationJournal(private val context: Context) {
 
     private companion object {
         const val TAG = "AnnotationJournal"
+
+        val executor = Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "annotation-journal")
+        }
     }
 }

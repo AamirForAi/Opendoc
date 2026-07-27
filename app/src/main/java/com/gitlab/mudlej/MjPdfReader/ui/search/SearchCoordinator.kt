@@ -3,6 +3,7 @@
 package com.gitlab.mudlej.MjPdfReader.ui.search
 
 import android.app.Activity
+import android.content.Context
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -67,7 +68,8 @@ object SearchCoordinator {
         val search = ActiveSearch(key)
         search.listeners.add(listener)
         active = search
-        search.scope.launch { runSearch(search, activity, pdfPath, password) }
+        val appContext = activity.applicationContext
+        search.scope.launch { runSearch(search, appContext, pdfPath, password) }
     }
 
     @Synchronized
@@ -110,10 +112,10 @@ object SearchCoordinator {
         }
     }
 
-    private suspend fun runSearch(search: ActiveSearch, activity: Activity, pdfPath: String?, password: String?) {
+    private suspend fun runSearch(search: ActiveSearch, context: Context, pdfPath: String?, password: String?) {
         var extractor: PdfExtractor? = null
         try {
-            extractor = createPdfExtractor(activity, Uri.parse(pdfPath), password)
+            extractor = createPdfExtractor(context, Uri.parse(pdfPath), password)
             val pageCount = extractor.getPageCount()
             search.pageCount = pageCount
             val results = mutableListOf<SearchResult>()

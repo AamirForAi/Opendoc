@@ -15,7 +15,7 @@ import com.gitlab.mudlej.MjPdfReader.core.PermissionManager
 import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
 import android.os.ParcelFileDescriptor
 import com.gitlab.mudlej.MjPdfReader.data.entity.ScannedPdfEntry
-import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
+import com.gitlab.mudlej.MjPdfReader.core.io.DocumentIdentity
 import com.shockwave.pdfium.PdfiumCore
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -308,14 +308,15 @@ class LibraryScanner private constructor(
     private suspend fun hashBackfill(current: LinkedHashMap<String, ScannedPdfEntry>, mode: ScanMode) {
         val hashScope = ScanScope.displayRoots(mode, pref.getScanLocations())
         val pending = current.values.filter {
-            it.hash == null && ScanScope.contains(hashScope, it.path)
+            val stored = it.hash
+            (stored == null || DocumentIdentity.isLegacy(stored)) && ScanScope.contains(hashScope, it.path)
         }
         if (pending.isEmpty()) {
             return
         }
         val updated = mutableListOf<ScannedPdfEntry>()
         for (entry in pending) {
-            val hash = computeHash(File(entry.path))
+            val hash = DocumentIdentity.of(File(entry.path))?.identity
             if (hash != null) {
                 val withHash = entry.copy(hash = hash, pageCount = readPageCount(entry.path))
                 current[entry.path] = withHash

@@ -13,6 +13,8 @@ import com.gitlab.mudlej.MjPdfReader.ui.home.HomeTitleEllipsize
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeViewMode
 import com.gitlab.mudlej.MjPdfReader.ui.home.ListFilter
 import com.gitlab.mudlej.MjPdfReader.ui.home.ScanMode
+import com.gitlab.mudlej.MjPdfReader.ui.text_mode.ReaderFontFamily
+import com.gitlab.mudlej.MjPdfReader.ui.text_mode.ReaderTheme
 
 class Preferences(private val prefMan: SharedPreferences) {
 
@@ -187,6 +189,12 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val translationTargetLanguageKey = "translationTargetLanguage"
         const val translationCustomUrlKey = "translationCustomUrl"
         const val dictionaryDefineWordsKey = "dictionaryDefineWords"
+        const val textModeFontSizeKey = "textModeFontSize"
+        const val textModeLineSpacingKey = "textModeLineSpacing"
+        const val textModeHorizontalMarginKey = "textModeHorizontalMargin"
+        const val textModeThemeKey = "textModeTheme"
+        const val textModeFontFamilyKey = "textModeFontFamily"
+        const val textModeReadableLineLengthKey = "textModeReadableLineLength"
 
         // Default values
         const val firstInstallDefault = true
@@ -310,15 +318,19 @@ class Preferences(private val prefMan: SharedPreferences) {
                 homeFolderFlatKey, homeBadgePagesKey, homeBadgeProgressKey, homeBadgeLastOpenedKey,
                 homeBadgeFileSizeKey, homeBadgeStatusKey, historyEnabledKey, keepSharedCopiesKey,
                 dictionaryDefineWordsKey, autoBackupEnabledKey, openPdfsInSeparateWindowsKey,
+                textModeReadableLineLengthKey,
             ).forEach { put(it, kindBoolean) }
             listOf(
                 hideDelayKey, goToPageGridColumnsKey, scrollSpeedKey, homeListTitleLinesKey,
                 homeGridTitleLinesKey, autoBackupHourKey, autoBackupMinuteKey, lastSeenVersionCodeKey,
+                textModeHorizontalMarginKey,
             ).forEach { put(it, kindInt) }
             listOf(
                 autoBackupLastRunKey, autoBackupErrorAcknowledgedRunKey, autoBackupEnabledAtKey,
             ).forEach { put(it, kindLong) }
-            listOf(partSizeKey, maxZoomKey).forEach { put(it, kindFloat) }
+            listOf(
+                partSizeKey, maxZoomKey, textModeFontSizeKey, textModeLineSpacingKey,
+            ).forEach { put(it, kindFloat) }
             listOf(
                 interfaceThemeKey, pdfPagesThemeKey, primaryButtonActionKey,
                 secondaryButtonActionKey, fullScreenOverlayActionOrderKey, shortcutBarActionOrderKey,
@@ -326,7 +338,7 @@ class Preferences(private val prefMan: SharedPreferences) {
                 homeGridSizeKey, homeTitleEllipsizeKey, homeSortKey, scanModeKey, pageFitPolicyKey,
                 tapToTurnKey, backupFolderTreeUriKey, autoBackupLastErrorKey, translationModeKey,
                 translationEngineKey, translationTargetLanguageKey, translationCustomUrlKey,
-                importResultPendingKey,
+                importResultPendingKey, textModeThemeKey, textModeFontFamilyKey,
             ).forEach { put(it, kindString) }
             listOf(
                 fullScreenOverlayActionsKey, shortcutBarActionsKey, scanLocationsKey,
@@ -344,6 +356,8 @@ class Preferences(private val prefMan: SharedPreferences) {
             scanModeKey to ScanMode.entries.map { it.name }.toSet(),
             pageFitPolicyKey to PageFitPolicy.entries.map { it.name }.toSet(),
             tapToTurnKey to TapToTurnZones.entries.map { it.name }.toSet(),
+            textModeThemeKey to ReaderTheme.entries.map { it.name }.toSet(),
+            textModeFontFamilyKey to ReaderFontFamily.entries.map { it.name }.toSet(),
         )
     }
 

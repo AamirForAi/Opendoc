@@ -129,6 +129,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 includePasswords = savedInstanceState.getBoolean(STATE_EXPORT_PASSWORDS, false),
             )
             pendingExportToFolder = savedInstanceState.getBoolean(STATE_EXPORT_PENDING, false)
+            pendingAutoBackupEnable = savedInstanceState.getBoolean(STATE_AUTO_BACKUP_PENDING, false)
         }
     }
 
@@ -137,6 +138,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         outState.putBoolean(STATE_EXPORT_HISTORY, exportOptions.includeHistory)
         outState.putBoolean(STATE_EXPORT_PASSWORDS, exportOptions.includePasswords)
         outState.putBoolean(STATE_EXPORT_PENDING, pendingExportToFolder)
+        outState.putBoolean(STATE_AUTO_BACKUP_PENDING, pendingAutoBackupEnable)
         super.onSaveInstanceState(outState)
     }
 
@@ -650,6 +652,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         private const val STATE_EXPORT_HISTORY = "settingsExportIncludeHistory"
         private const val STATE_EXPORT_PASSWORDS = "settingsExportIncludePasswords"
         private const val STATE_EXPORT_PENDING = "settingsExportPendingFolderPick"
+        private const val STATE_AUTO_BACKUP_PENDING = "settingsAutoBackupPendingEnable"
 
         fun root(searchQuery: String = ""): SettingsFragment {
             return SettingsFragment().apply {

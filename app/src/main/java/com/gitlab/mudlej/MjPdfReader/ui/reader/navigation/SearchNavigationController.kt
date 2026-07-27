@@ -157,7 +157,7 @@ class SearchNavigationController(
         updateControls()
         SearchCoordinator.startOrSubscribe(
             activity,
-            pdf.uri.toString(),
+            pdf.uri?.toString(),
             pdf.password,
             pdf.fileHash,
             query,
@@ -219,6 +219,11 @@ class SearchNavigationController(
             return
         }
         reset()
+    }
+
+    fun onActivityDestroyed() {
+        unsubscribeFromActiveSearch()
+        dismissSnackbar()
     }
 
     private fun dismissSnackbar() {

@@ -57,6 +57,9 @@ interface PdfRecordDao {
     @Query("UPDATE PdfRecord SET uri = :uri, fileName = :fileName, lastOpened = :lastOpened WHERE hash = :fileHash")
     fun updateIdentity(fileHash: String, uri: android.net.Uri, fileName: String, lastOpened: LocalDateTime): Int
 
+    @Query("UPDATE OR REPLACE PdfRecord SET hash = :newHash WHERE hash = :oldHash")
+    fun rekey(oldHash: String, newHash: String): Int
+
     @Query("UPDATE PdfRecord SET favorite = :favorite WHERE hash = :fileHash")
     fun updateFavorite(fileHash: String?, favorite: Boolean)
 

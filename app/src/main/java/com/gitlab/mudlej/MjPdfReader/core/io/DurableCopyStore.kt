@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import java.io.File
 import java.io.IOException
+import java.util.UUID
 
 object DurableCopyStore {
 
@@ -77,7 +78,7 @@ object DurableCopyStore {
             if (target.exists()) {
                 return@runCatching SavedCopy(Uri.fromFile(target), isPublic)
             }
-            val partial = File(directory, target.name + PARTIAL_SUFFIX)
+            val partial = File(directory, "${target.name}.${UUID.randomUUID()}$PARTIAL_SUFFIX")
             try {
                 partial.outputStream().use { output -> copySource(context, source, output) }
                 if (!partial.renameTo(target)) {
@@ -105,7 +106,7 @@ object DurableCopyStore {
         var candidate = File(directory, fileName)
         var index = 2
         while (candidate.exists()) {
-            if (expectedHash != null && computeHash(candidate) == expectedHash) {
+            if (expectedHash != null && DocumentIdentity.of(candidate)?.matches(expectedHash) == true) {
                 return candidate
             }
             if (index > MAX_NAME_ATTEMPTS) {

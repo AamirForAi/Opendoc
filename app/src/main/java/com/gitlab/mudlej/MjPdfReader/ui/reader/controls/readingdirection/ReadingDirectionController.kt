@@ -12,7 +12,6 @@ import com.gitlab.mudlej.MjPdfReader.data.resolveReadingLayout
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
 import com.gitlab.mudlej.MjPdfReader.ui.reader.load.DocumentLoader
-import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -84,7 +83,7 @@ class ReadingDirectionController(
         val documentUri = pdf.uri
         val oldEffectiveDirection = pdf.effectiveReadingDirection
         scope.launch {
-            val hash = pdf.fileHash ?: computeHash(activity, pdf.uri)
+            val hash = pdf.fileHash ?: pdfRepository.resolveIdentity(activity, pdf.uri)
             if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }

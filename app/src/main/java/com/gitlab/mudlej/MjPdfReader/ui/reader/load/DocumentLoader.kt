@@ -25,7 +25,6 @@ import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
 import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.readingdirection.ReadingDirectionResolver
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
-import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.gitlab.mudlej.MjPdfReader.core.io.getFileName
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.snackbar.Snackbar
@@ -85,11 +84,15 @@ class DocumentLoader(
         prepareNewDocument(uri)
         val loadToken = vm.currentLoadToken
         scope.launch {
-            val hash = computeHash(context, doc.uri)
+            val hash = resolveDocumentIdentity(doc.uri)
             if (vm.isCurrent(loadToken, uri)) {
                 doc.fileHash = hash
             }
         }
+    }
+
+    private suspend fun resolveDocumentIdentity(uri: Uri?): String? {
+        return pdfRepository.resolveIdentity(context, uri)
     }
 
     fun displayFromUri(uri: Uri?, savePassword: Boolean = false) {
@@ -131,7 +134,7 @@ class DocumentLoader(
         val viewState = vm.pendingViewState
         state = LoadState.Loading
         scope.launch {
-            val hash = doc.fileHash ?: computeHash(context, doc.uri)
+            val hash = doc.fileHash ?: resolveDocumentIdentity(doc.uri)
             if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
@@ -421,7 +424,7 @@ class DocumentLoader(
         }
 
         if (doc.fileHash == null && expectedFileHash == null) {
-            val computedHash = computeHash(context, doc.uri)
+            val computedHash = resolveDocumentIdentity(doc.uri)
             if (!vm.isCurrent(loadToken, documentUri)) {
                 return
             }
@@ -551,7 +554,7 @@ class DocumentLoader(
             if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
-            val hash = doc.fileHash ?: expectedFileHash ?: computeHash(context, doc.uri)
+            val hash = doc.fileHash ?: expectedFileHash ?: resolveDocumentIdentity(doc.uri)
             if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }

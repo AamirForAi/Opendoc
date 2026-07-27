@@ -35,7 +35,6 @@ import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.ui.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoNightModeFromIntent
 import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoOverlayFromIntent
-import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Job
@@ -165,7 +164,7 @@ class TextModeActivity : AppCompatActivity() {
                 return@launch
             }
             if (fileHash == null) {
-                fileHash = computeHash(this@TextModeActivity, pdfUri)
+                fileHash = pdfRepository.resolveIdentity(this@TextModeActivity, pdfUri)
             }
             fileHash?.let { hash ->
                 pdfRepository.findTextModeReflow(hash)?.let { override ->

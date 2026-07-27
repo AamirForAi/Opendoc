@@ -160,6 +160,10 @@ class ReaderNavigationController(
         searchNavigationController.reset()
     }
 
+    fun onActivityDestroyed() {
+        searchNavigationController.onActivityDestroyed()
+    }
+
     fun startInlineSearch(query: String, ignoreAccents: Boolean) {
         searchNavigationController.startQuery(query, ignoreAccents)
     }

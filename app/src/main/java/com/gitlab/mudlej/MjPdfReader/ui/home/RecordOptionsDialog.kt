@@ -18,7 +18,7 @@ import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.ui.reader.showMetaDialog
 import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
 import com.gitlab.mudlej.MjPdfReader.core.io.appDateFormatter
-import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
+import com.gitlab.mudlej.MjPdfReader.core.io.DocumentIdentity
 import com.gitlab.mudlej.MjPdfReader.core.io.pdfShareIntent
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.shockwave.pdfium.PdfDocument
@@ -222,10 +222,11 @@ class RecordOptionsDialog(
     private suspend fun resolveContentHash(item: HomeItem): String? {
         val path = item.uri.path ?: return null
         val known = libraryScanner.index.value.entries.find { it.path == path }?.hash
+            ?.takeIf { !DocumentIdentity.isLegacy(it) }
         if (known != null) {
             return known
         }
-        val computed = withContext(Dispatchers.IO) { computeHash(File(path)) } ?: return null
+        val computed = withContext(Dispatchers.IO) { DocumentIdentity.of(File(path))?.identity } ?: return null
         libraryScanner.onHashComputed(path, computed)
         return computed
     }
