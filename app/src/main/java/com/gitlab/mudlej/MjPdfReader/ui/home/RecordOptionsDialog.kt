@@ -3,7 +3,6 @@
 package com.gitlab.mudlej.MjPdfReader.ui.home
 
 import android.net.Uri
-import android.provider.DocumentsContract
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -19,6 +18,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.reader.showMetaDialog
 import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
 import com.gitlab.mudlej.MjPdfReader.core.io.appDateFormatter
 import com.gitlab.mudlej.MjPdfReader.core.io.DocumentIdentity
+import com.gitlab.mudlej.MjPdfReader.core.io.DocumentRemover
 import com.gitlab.mudlej.MjPdfReader.core.io.pdfShareIntent
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.shockwave.pdfium.PdfDocument
@@ -355,23 +355,17 @@ class RecordOptionsDialog(
 
     private fun performDelete(item: HomeItem, record: PdfRecord?) {
         scope.launch {
-            val deleted = withContext(Dispatchers.IO) {
-                if (item.uri.scheme == "file") {
-                    item.uri.path?.let { File(it).delete() } ?: false
-                } else {
-                    runCatching {
-                        DocumentsContract.deleteDocument(activity.contentResolver, item.uri)
-                    }.getOrDefault(false)
-                }
+            val removal = withContext(Dispatchers.IO) {
+                DocumentRemover.remove(activity, item.uri)
             }
-            if (!deleted) {
+            if (!removal.deleted) {
                 Toast.makeText(activity, R.string.home_delete_failed, Toast.LENGTH_SHORT).show()
                 return@launch
             }
 
             historyCleaner.deleteDocument(record?.hash ?: item.hash)
             coverCache.invalidate(item.coverKey)
-            item.uri.path?.let { libraryScanner.onFileRemoved(it) }
+            removal.path?.let { libraryScanner.onFileRemoved(it) }
             onChanged()
         }
     }

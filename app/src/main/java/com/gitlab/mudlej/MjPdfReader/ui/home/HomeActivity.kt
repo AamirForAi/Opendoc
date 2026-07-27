@@ -5,7 +5,6 @@ package com.gitlab.mudlej.MjPdfReader.ui.home
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.provider.DocumentsContract
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -41,6 +40,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.intro.MainIntroActivity
 import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsPage
+import com.gitlab.mudlej.MjPdfReader.core.io.DocumentRemover
 import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
 import com.gitlab.mudlej.MjPdfReader.core.text.StringUtil.formatEnumToTitle
 import com.google.android.material.color.MaterialColors
@@ -692,21 +692,14 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             )
             .setPositiveButton(R.string.delete) { _, _ ->
                 lifecycleScope.launch {
-                    val deleted = withContext(Dispatchers.IO) {
-                        items.filter { item ->
-                            if (item.uri.scheme == "file") {
-                                item.uri.path?.let { File(it).delete() } ?: false
-                            } else {
-                                runCatching {
-                                    DocumentsContract.deleteDocument(contentResolver, item.uri)
-                                }.getOrDefault(false)
-                            }
-                        }
+                    val removals = withContext(Dispatchers.IO) {
+                        items.map { item -> item to DocumentRemover.remove(this@HomeActivity, item.uri) }
                     }
-                    deleted.forEach { item ->
+                    val deleted = removals.filter { it.second.deleted }
+                    deleted.forEach { (item, removal) ->
                         historyCleaner.deleteDocument(item.hash)
                         coverCache.invalidate(item.coverKey)
-                        item.uri.path?.let { libraryScanner.onFileRemoved(it) }
+                        removal.path?.let { libraryScanner.onFileRemoved(it) }
                     }
                     if (deleted.size < items.size) {
                         Toast.makeText(this@HomeActivity, R.string.home_delete_failed, Toast.LENGTH_SHORT).show()
