@@ -116,6 +116,9 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     namespace = 'com.gitlab.mudlej.MjPdfReader'
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
     lint {
         abortOnError = true
         checkReleaseBuilds = true
@@ -194,4 +197,6 @@ dependencies {
     implementation('ch.acra:acra-http:5.13.1') {
         exclude group: 'com.google.auto.service', module: 'auto-service'
     }
+
+    testImplementation 'junit:junit:4.13.2'
 }

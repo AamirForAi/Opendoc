@@ -2559,7 +2559,20 @@ JNI_FUNC(jobjectArray, PdfiumCore, nativeGetPageTextBounds)(JNI_ARGS, jlong page
         return env->NewObjectArray(0, rectCls, 0);
     }
 
-    int rectsCount = FPDFText_CountRects(pageText, start, count);
+    int charStart = -1;
+    for (int textIndex = start; textIndex < start + count && charStart < 0; ++textIndex) {
+        charStart = FPDFText_GetCharIndexFromTextIndex(pageText, textIndex);
+    }
+    int charLast = -1;
+    for (int textIndex = start + count - 1; textIndex >= start && charLast < 0; --textIndex) {
+        charLast = FPDFText_GetCharIndexFromTextIndex(pageText, textIndex);
+    }
+    if (charStart < 0 || charLast < charStart) {
+        FPDFText_ClosePage(pageText);
+        return env->NewObjectArray(0, rectCls, 0);
+    }
+
+    int rectsCount = FPDFText_CountRects(pageText, charStart, charLast - charStart + 1);
     if (rectsCount < 0) {
         FPDFText_ClosePage(pageText);
         return env->NewObjectArray(0, rectCls, 0);

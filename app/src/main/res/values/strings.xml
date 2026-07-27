@@ -288,7 +288,6 @@
     <string name="author_info">Author Info</string>
 
     <string name="file_metadata">File Properties</string>
-    <string name="app_settings">App Settings</string>
     <string name="quality">High Quality Rendering</string>
     <string name="quality_summary">Render pages with higher color fidelity using ARGB_8888 instead of RGB_565. May be slower and use more memory.</string>
     <string name="settings">Settings</string>
@@ -413,7 +412,7 @@
     <string name="dual_page_mode_summary">Show pages side by side while scrolling vertically. Useful for wide tables and book spreads. Ignored in horizontal scrolling mode.</string>
     <string name="dual_page_first_page_alone_title">First Page Alone</string>
     <string name="dual_page_first_page_alone_summary">Show the first page by itself so the following pages pair like a book.</string>
-    <string name="single_page_mode">Single Page Mode</string>
+    <string name="dual_page_off_action">Single Page Mode</string>
     <string name="double_tap_to_exit">Double Tap Back to Exit</string>
     <string name="double_tap_to_exit_summary">Require pressing Back twice to leave the reader. This applies when a PDF was opened from another app, or when the Home Page is disabled and Back returns to the file picker.</string>
     <string name="three_step_double_tap_zoom">Three-Step Double Tap Zoom</string>
@@ -433,7 +432,6 @@
     <string name="nav_back">Jump Back</string>
     <string name="nav_forward">Jump Forward</string>
     <string name="navigation_history">Navigation History</string>
-    <string name="history_entry_format">Page %1$d  ·  %2$s  ·  %3$s</string>
     <string name="history_entry_subtitle_format">%1$s · %2$s</string>
     <string name="history_origin_link">Link</string>
     <string name="history_origin_bookmark">Bookmark</string>
@@ -484,6 +482,7 @@
     <string name="backup_error_verification_failed">The backup file did not read back correctly and was discarded.</string>
     <string name="backup_error_finalize_failed">Could not finish writing the backup file in the backup folder.</string>
     <string name="backup_error_cleanup_failed">The backup was written but a leftover temporary file could not be deleted.</string>
+    <string name="backup_error_snapshot_not_retrievable">The safety snapshot was written but could not be found again afterwards.</string>
     <string name="backup_error_folder_unavailable">The backup folder is not set or is unavailable. Choose a folder in the backup settings.</string>
     <string name="backup_error_settings_write_failed">The restored settings could not be saved on this device.</string>
     <string name="backup_import_running">Importing backup…</string>
@@ -505,7 +504,6 @@
     <string name="previous_search_result">Previous result</string>
     <string name="next_search_result">Next result</string>
     <string name="failed_to_highlight_search_result">Failed to highlight the search result</string>
-    <string name="visual_settings">Visual</string>
     <string name="pdf_title">Title</string>
     <string name="pdf_author">Author</string>
 
@@ -528,7 +526,6 @@
     <string name="http_online_pdf_warning">HTTP links are not encrypted. Other people on the network may be able to see or modify the file. Tap Proceed Anyway to open it.</string>
     <string name="close">Close</string>
     <string name="exit_fullscreen_button">Exit Fullscreen Button</string>
-    <string name="ask_restore_zoom">Restore zoom?</string>
     <string name="rotate_screen">Rotate Screen</string>
     <string name="exit_fullscreen_message">Tapping the screen will show an X button in the top-left corner. Click it to exit full screen.</string>
     <string name="gitlab" translatable="false">GitLab</string>
@@ -544,31 +541,23 @@
     <string name="error_load_file_name">Couldn\'t retrieve file name</string>
     <string name="cannot_load_page">\"Cannot load page \"</string>
 
-    <string name="experimental">Experimental</string>
     <string name="actions">Actions</string>
-    <string name="caution">Caution</string>
-    <string name="app_dark_dialog_message">On some devices, this option may cause black rectangles to show when reading PDFs. If that happens, just turn this option off.</string>
     <string name="restore">Restore</string>
     <string name="discard">Discard</string>
     <string name="restore_unsaved_highlights_title">Restore unsaved highlights?</string>
     <string name="restore_unsaved_highlights_message">MJ PDF found an unsaved highlight recovery copy for this document. Restore it, or discard it and open the original file?</string>
     <string name="no_pdf_in_app">There is no PDF open in the app</string>
     <string name="advanced">Advanced</string>
-    <string name="advanced_config">Configuration</string>
     <string name="part_size">Rendering Tile Size</string>
     <string name="part_size_summary">Adjust the size of page rendering tiles. Smaller values may reduce memory use. Larger values may render faster.</string>
-    <string name="part_size_value">PART SIZE value</string>
     <string name="max_zoom">Maximum Zoom</string>
     <string name="max_zoom_summary">Set the highest zoom level allowed in the PDF viewer.</string>
-    <string name="max_zoom_value">MAX ZOOM value</string>
     <string name="settings_current_value">Current: %1$d</string>
     <string name="apply">Apply</string>
     <string name="reset">Reset</string>
     <string name="cancel">Cancel</string>
     <string name="page">Page</string>
     <string name="bookmarks">My Bookmarks</string>
-    <string name="no_bookmarks">This file doesn\'t contain bookmarks</string>
-    <string name="additional_options">More</string>
     <string name="search">Search</string>
     <string name="search_web">Search web</string>
     <string name="highlight_yellow">Highlight yellow</string>
@@ -601,12 +590,8 @@
     <string name="save_highlights">Save changes</string>
     <string name="update_existing_file">Update the same file</string>
     <string name="save_as_new_copy">Save as a new file</string>
-    <string name="saved_copy_found">Saved copy found</string>
-    <string name="saved_copy_found_message">This document matches a PDF you saved before. Update that saved copy next time, or save as a new copy?</string>
     <string name="highlights_saved">Changes saved</string>
     <string name="highlight_failed">Couldn\'t add highlight</string>
-    <string name="highlight_save_failed">Couldn\'t save changes. Choose a save location and try again.</string>
-    <string name="choose">Choose</string>
     <string name="annotation_save_failed_title">Couldn\'t save changes</string>
     <string name="annotation_save_failed_message">Your changes are still in the app, so nothing was lost. The original file was not changed. Choose Save a copy to write them to another location.</string>
     <string name="annotation_save_failed_rescue_message">Your changes are still in the app, so nothing was lost. The original file was not changed, and a finished copy was kept in the app as %1$s. Choose Save a copy to write them to another location.</string>
@@ -638,13 +623,7 @@
     <string name="signature_color_red">Red ink</string>
     <string name="signature_color_green">Green ink</string>
     <string name="signature_commit_failed">Couldn\'t add signature</string>
-    <string name="increase_text_size">Increase Size</string>
-    <string name="decrease_text_size">Decrease Size</string>
     <string name="search_dialog_message">This app tries to extract text from PDF, so it may not be accurate or correct</string>
-    <string name="enter_text_to_search">Enter text to look up</string>
-    <string name="this_is_experimental">This is experimental</string>
-    <string name="this_is_experimental_message">This feature of the app is still under development and is not stable or fully correct.</string>
-    <string name="go_back">Go Back</string>
     <string name="back_to_table_of_contents">Back to Table of Contents</string>
     <string name="back_to_page">Back to page %1$d</string>
     <string name="page_x_of_y">Page %1$d of %2$d</string>
@@ -669,7 +648,6 @@
     <string name="show_app_bar_page_count_title">Show Page Number in Toolbar</string>
     <string name="show_app_bar_page_count_summary">Show current page and total pages before the PDF title.</string>
     <string name="text_mode">Text Mode</string>
-    <string name="back_to_pdf">Back to PDF</string>
     <string name="text_mode_appearance">Reader Settings</string>
     <string name="text_mode_line_spacing">Line Spacing</string>
     <string name="text_mode_margins">Margins</string>
@@ -731,29 +709,15 @@
     <string name="no_app_to_open_link">Didn\'t find an appropriate app to open the link</string>
     <string name="copy_link_url">Copy link URL</string>
     <string name="failed_to_extract_text">Failed to extract text</string>
-    <string name="page_counter_label">Page: %1$d/%2$d</string>
     <string name="fullscreen_page_info">Page %1$d / %2$d · %3$d%%</string>
     <string name="fullscreen_page_number_info">Page %1$d / %2$d</string>
     <string name="fullscreen_percentage_info">%1$d%%</string>
     <string name="fullscreen_page_range_info">Pages %1$d-%2$d / %3$d · %4$d%%</string>
     <string name="fullscreen_page_range_number_info">Pages %1$d-%2$d / %3$d</string>
-    <string name="next_page">Next Page</string>
-    <string name="prev_page">Prev Page</string>
-    <string name="text_color">Text Color</string>
-    <string name="background_color">Background Color</string>
-    <string name="reset_to_default">Reset to Default</string>
     <string name="proceed_anyway">Proceed Anyway</string>
-    <string name="page_out_of_bound" tools:ignore="PluralsCandidate">Page #%d doesn\'t exist in this PDF.</string>
     <string name="press_back_again">Press back again to exit</string>
-    <string name="dracula_theme">Dracula Theme</string>
     <string name="delete">Delete</string>
     <string name="delete_dialog_title">Are you sure?</string>
-    <string name="list_mode">List Mode</string>
-    <string name="status">Status</string>
-    <string name="favorite_icon">favorite icon</string>
-    <string name="last_opened_key">Last Opened:</string>
-    <string name="pdf_cover_image">PDF cover Image</string>
-    <string name="pages">pages</string>
     <string name="exit">Exit Fullscreen</string>
     <string name="rotate">Rotate</string>
     <string name="auto_scroll">Auto Scroll</string>
@@ -775,18 +739,13 @@
     <string name="scrolling_info_pdf_name">PDF name</string>
     <string name="scrolling_info_page_number">Page number</string>
     <string name="scrolling_info_reading_percentage">Reading percentage</string>
-    <string name="behavior_settings">Behavior</string>
     <string name="auto_full_screen">Open in Fullscreen</string>
     <string name="auto_full_screen_summary">Enter fullscreen automatically when opening a document.</string>
     <string name="always_horizontal">Default to Landscape</string>
     <string name="always_horizontal_summary">Rotate the screen to landscape layout by default when opening PDFs.</string>
     <string name="dark_theme_for_app">Interface Theme</string>
-    <string name="app_dark_theme_summary">Enables the app\’s user interface (not PDF content) to automatically adapt to your system’s light or dark theme. \n\nNote: This option may affect PDF background colors on some devices.</string>
     <string name="dark_theme_for_pdf">PDF Pages Theme</string>
     <string name="pdf_theme_follows_system">PDF Pages Theme is set to System. Choose Light or Dark in Settings to use manual theme toggle.</string>
-    <string name="pdf_dark_theme_summary">Allows the PDF pages and content to automatically adapt to your system’s light or dark theme. \n\nNote: Enabling this option disables \'Toggle PDF Theme\' in the main menu.</string>
-    <string name="enable_reload_button">Show Reload Button in App Bar</string>
-    <string name="enable_reload_summary">Swiftly refreshes your content, ensuring that any updates to documents are immediately visible.</string>
     <string name="primary_button_action">Primary Toolbar Button</string>
     <string name="secondary_button_action">Secondary Toolbar Button</string>
     <string name="fullscreen_buttons">Fullscreen Buttons</string>
@@ -822,8 +781,6 @@
     <string name="font_embedded">embedded</string>
     <string name="font_not_embedded">not embedded</string>
     <string name="reload_pdf">Reload PDF</string>
-    <string name="text_extraction">Text Extraction</string>
-    <string name="search_in_page">Search in Page</string>
 
     <string name="storage_permission_rationale_title">Allow Access to All Files</string>
     <string name="storage_permission_rationale_message">To find and open the PDF files on this device, MJ PDF needs permission to access all files. Android will open a settings screen where you can allow it. Your files never leave your device.</string>
@@ -855,7 +812,6 @@
     <string name="home_empty_all_title">No PDFs found</string>
     <string name="home_empty_all_message">No PDF files were found on this device.</string>
     <string name="home_continue_reading">Continue Reading</string>
-    <string name="home_recents">Recents</string>
     <string name="home_chip_to_read">To Read</string>
     <string name="home_chip_reading">Reading</string>
     <string name="home_chip_on_hold">On Hold</string>

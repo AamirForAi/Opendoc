@@ -380,9 +380,12 @@ class SearchNavigationController(
         clearHighlight()
         val matchLength = if (hit.matchLength > 0) hit.matchLength else query.length
         val rawRange = NormalizedTextMapper.toRawRange(rawText, hit.originalIndex, matchLength)
-        val highlightStart = rawRange?.first ?: hit.originalIndex
-        val highlightCount = rawRange?.let { it.last + 1 - it.first } ?: matchLength
-        val textBounds = binding.pdfView.createHighlightText(hit.pageNumber, highlightStart, highlightCount, true)
+        val textBounds = if (rawRange == null) {
+            emptyArray<Rect>()
+        } else {
+            binding.pdfView.createHighlightText(
+                hit.pageNumber, rawRange.first, rawRange.last + 1 - rawRange.first, true)
+        }
         if (textBounds.isEmpty()) {
             showFailedToHighlightMessage()
             binding.pdfView.jumpUsingPageNumber(hit.pageNumber)

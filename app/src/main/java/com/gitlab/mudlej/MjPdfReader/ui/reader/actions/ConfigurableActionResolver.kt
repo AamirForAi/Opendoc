@@ -116,7 +116,7 @@ class ConfigurableActionResolver(
                 run = handlers.toggleCropMargins,
             )
             ConfigurableAction.DUAL_PAGE -> ConfiguredAction(
-                if (dualPageEnabled()) R.string.single_page_mode else R.string.dual_page_mode_title,
+                if (dualPageEnabled()) R.string.dual_page_off_action else R.string.dual_page_mode_title,
                 R.drawable.ic_dual_page,
                 visible = fileAvailable && !horizontalScrollEnabled(),
                 checked = dualPageEnabled(),

@@ -82,12 +82,16 @@ object BackupImportPipeline {
                 throw BackupException(R.string.backup_error_create_file)
             }
             val folder = DocumentFile.fromFile(dir)
+            val name = BackupFolder.newSafetySnapshotName()
             backupManager.export(
                 folder,
-                BackupFolder.newSafetySnapshotName(),
+                name,
                 BackupExportOptions(includeSettings = true, includeHistory = true, includePasswords = true),
             )
             BackupFolder.pruneSafetySnapshots(appContext)
+            if (BackupFolder.listSafetySnapshots(appContext).none { it.name == name }) {
+                throw BackupException(R.string.backup_error_snapshot_not_retrievable)
+            }
             null
         } catch (exception: Exception) {
             appContext.getString(
