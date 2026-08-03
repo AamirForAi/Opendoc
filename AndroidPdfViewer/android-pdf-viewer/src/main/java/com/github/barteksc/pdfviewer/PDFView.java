@@ -1944,27 +1944,6 @@ public class PDFView extends RelativeLayout {
         redraw();
     }
 
-    /*
-     * I have added this function to tap the PDF to show / hide the page scroll handler.
-     * I think I could've done it using the toggle functions in MainActivity
-     * */
-
-    public void performTap() {
-        // get the coordinates of the view
-        int[] coordinates = new int[2];
-        getRootView().getLocationOnScreen(coordinates);
-
-        MotionEvent event = MotionEvent.obtain(
-            SystemClock.uptimeMillis(),
-            SystemClock.uptimeMillis(),
-            MotionEvent.ACTION_DOWN,
-            coordinates[0], coordinates[1],
-            0);
-        getRootView().dispatchTouchEvent(event);
-        callbacks.callOnTap(event);
-        ScrollHandle handle = getScrollHandle();
-    }
-
     public void moveTo(float offsetX, float offsetY) {
         /*
          * Changing the 3rd argument (moveHandle) to false solved the issue with animation when
@@ -3060,6 +3039,15 @@ public class PDFView extends RelativeLayout {
 
     public void zoomWithAnimation(float centerX, float centerY, float scaleTo) {
         animationManager.startZoomAnimation(centerX, centerY, zoom, validZoom(scaleTo));
+    }
+
+    public boolean performLinkTap(float x, float y) {
+        LinkTapEvent event = findLinkAt(x, y);
+        if (event == null) {
+            return false;
+        }
+        callbacks.callLinkHandler(event);
+        return true;
     }
 
     public RectF focusOnPdfRect(int pageIndex, RectF pdfRect, float targetZoom) {

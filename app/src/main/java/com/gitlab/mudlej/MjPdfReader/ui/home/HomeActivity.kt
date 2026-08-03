@@ -156,12 +156,24 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
 
     private fun redirectToReaderIfHomeDisabled(): Boolean {
         if (pref.getHomeDisabled()) {
+            val whatsNewDue = consumeWhatsNewDue()
             startActivity(Intent(this, MainActivity::class.java))
+            if (whatsNewDue) {
+                startActivity(Intent(this, WhatsNewActivity::class.java))
+            }
             overridePendingTransition(0, 0)
             finish()
             return true
         }
         return false
+    }
+
+    private fun consumeWhatsNewDue(): Boolean {
+        if (pref.getLastSeenVersionCode() >= BuildConfig.VERSION_CODE) {
+            return false
+        }
+        pref.setLastSeenVersionCode(BuildConfig.VERSION_CODE)
+        return true
     }
 
     private fun setupWindowChrome() {
@@ -320,9 +332,8 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
 
     private fun maybeShowWhatsNew(launchIntro: Boolean) {
         if (!launchIntro) {
-            if (pref.getLastSeenVersionCode() < BuildConfig.VERSION_CODE) {
+            if (consumeWhatsNewDue()) {
                 pref.setShowFeaturesDialog(true)
-                pref.setLastSeenVersionCode(BuildConfig.VERSION_CODE)
             }
             showWhatsNewOnFirstRun()
         }

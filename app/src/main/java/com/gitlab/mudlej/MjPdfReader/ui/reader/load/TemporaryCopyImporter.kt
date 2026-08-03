@@ -7,6 +7,7 @@ import android.net.Uri
 import android.util.Log
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.core.io.DocumentSize
 import com.gitlab.mudlej.MjPdfReader.core.io.DurableCopyStore
 import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
 import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
@@ -14,6 +15,7 @@ import com.gitlab.mudlej.MjPdfReader.core.io.forLog
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.data.SharedCopyMode
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -26,10 +28,11 @@ class TemporaryCopyImporter(
     private val currentDocument: () -> Pair<Uri?, String>,
     private val scope: CoroutineScope,
     private val onCopySaved: (String, Int) -> Unit,
+    private val onCopyNeedsConsent: (CopyConsentRequest) -> Unit,
 ) : DocumentListener {
 
     override fun onRecordAvailable(fileHash: String) {
-        if (!pref.getKeepSharedCopies() || !historyPolicy.canRecord()) {
+        if (!historyPolicy.canRecord()) {
             return
         }
         val (uri, name) = currentDocument()
@@ -75,6 +78,29 @@ class TemporaryCopyImporter(
         if (record.uri != uri && isReadable(record.uri)) {
             return
         }
+        val sizeBytes = DocumentSize.of(context, uri)
+        val freeBytes = DocumentSize.availableBytes(context)
+        if (pref.getSharedCopyMode() == SharedCopyMode.ASK || needsConsent(sizeBytes, freeBytes)) {
+            val fits = sizeBytes == null || freeBytes == null ||
+                freeBytes - sizeBytes >= FREE_SPACE_FLOOR_BYTES
+            onCopyNeedsConsent(CopyConsentRequest(fileHash, uri, name, sizeBytes, fits))
+            return
+        }
+        performCopy(fileHash, uri, name)
+    }
+
+    private fun needsConsent(sizeBytes: Long?, freeBytes: Long?): Boolean {
+        if (sizeBytes == null) {
+            return false
+        }
+        if (sizeBytes > LARGE_FILE_BYTES) {
+            return true
+        }
+        return freeBytes != null && freeBytes - sizeBytes < FREE_SPACE_FLOOR_BYTES
+    }
+
+    suspend fun performCopy(fileHash: String, uri: Uri, name: String) {
+        val record = pdfRepository.findRecord(fileHash) ?: return
         val copy = DurableCopyStore.saveCopy(context, uri, name, fileHash) ?: return
         pdfRepository.updateRecordIdentity(fileHash, copy.uri, record.fileName, record.lastOpened)
         pdfRepository.setRecordSourceUri(fileHash, uri.toString())
@@ -93,6 +119,8 @@ class TemporaryCopyImporter(
 
     private companion object {
         const val TAG = "TemporaryCopyImporter"
+        const val LARGE_FILE_BYTES = 250L * 1024 * 1024
+        const val FREE_SPACE_FLOOR_BYTES = 500L * 1024 * 1024
         val inFlightHashes: MutableSet<String> = mutableSetOf()
         val EXCLUDED_AUTHORITIES = setOf(
             "media",

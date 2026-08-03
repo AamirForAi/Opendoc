@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.RectF
 import android.net.Uri
+import android.util.Patterns
 import android.text.InputType
 import android.util.TypedValue
 import android.view.Gravity
@@ -63,7 +64,9 @@ class InlineAnnotationActionController(
             }
         }
         binding.textSelectionSearchWebButton.setOnClickListener {
-            if (searchWebForSelectedText()) {
+            val link = linkInSelection()
+            val handled = if (link != null) openLink(link) else searchWebForSelectedText()
+            if (handled) {
                 dismissCard()
             }
         }
@@ -199,7 +202,40 @@ class InlineAnnotationActionController(
         params.verticalBias = if (selectionNearBottom) 0f else 1f
         card.layoutParams = params
         card.visibility = View.VISIBLE
+        applySearchWebButtonState()
         refreshCardRendering()
+    }
+
+    private fun applySearchWebButtonState() {
+        val hasLink = linkInSelection() != null
+        val button = binding.textSelectionSearchWebButton
+        button.setIconResource(if (hasLink) R.drawable.ic_link else R.drawable.ic_web)
+        button.contentDescription = activity.getString(
+            if (hasLink) R.string.open_link else R.string.search_web
+        )
+    }
+
+    private fun linkInSelection(): String? {
+        val text = selectedText()
+        if (text.isBlank()) {
+            return null
+        }
+        val matcher = Patterns.WEB_URL.matcher(text)
+        if (!matcher.find()) {
+            return null
+        }
+        val match = matcher.group()
+        return if (match.contains("://")) match else "https://$match"
+    }
+
+    private fun openLink(url: String): Boolean {
+        return try {
+            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            true
+        } catch (e: ActivityNotFoundException) {
+            AppSnackbar.make(binding.root, activity.getString(R.string.no_app_to_open_link), Snackbar.LENGTH_LONG).show()
+            false
+        }
     }
 
     private fun dismissCard() {

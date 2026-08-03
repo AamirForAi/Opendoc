@@ -1,3 +1,158 @@
+* 3.1.0
+  * A correctness and stability release. A few new reading options, much safer saving and backups, and a long list of fixes.
+  * New:
+    * Single Page Mode shows one page at a time regardless of the window size.
+    * Choose the page fit policy, so pages fit by width, by height, or whole.
+    * A Controls Hide Delay setting in Customize Controls picks how long the overlay stays visible.
+    * When the selected text contains a link, the web search button becomes an Open Link button.
+    * Searching now happens without leaving the document.
+    * The first jump lands in reading history, so Jump Back returns you where you were.
+    * The previous and next arrows wrap around at both ends in every search flow.
+    * When every match is behind you the search wraps to the first one, and says so when there are none.
+    * Double tap zoom now uses two states by default, with the old three states available in Advanced settings.
+    * The fullscreen exit button reads Exit Fullscreen instead of Exit.
+    * A file shared from another app now asks before copying when it is very large or space is tight.
+    * That dialog offers keeping a copy, granting file access, or just reading it once.
+    * Keep Copies of Shared Files becomes a choice between always keeping a copy and asking each time.
+    * The theme toggle button stays visible when the PDF theme follows the system.
+    * Tapping it then explains why it cannot toggle and lets you pick a theme right there.
+    * The book title snackbar fits longer titles.
+  * Library:
+    * Documents are identified by the hash of the first and the last MB of the file, so two files sharing a first megabyte no longer merge into one.
+    * Files under two megabytes are identified by their whole contents.
+    * Existing records convert quietly on open, keeping reading position and bookmarks.
+    * Conversion is anchored to the real file, so a copy can never claim another book's history.
+    * Home's relocate picker now heals the record even after the screen is recreated.
+    * The reader's relocate picker verifies the picked file before repointing the record.
+    * Backing out of that picker exits the reader again as intended.
+    * Deleting a document now removes it correctly for every kind of file location.
+    * Home no longer shows a stale list when two refreshes overlap.
+    * Relinking the library no longer scans files on the screen thread.
+    * A document with no address no longer displays the literal word null.
+  * Saving:
+    * Highlights made while a save is running are no longer thrown away.
+    * Saving no longer reports success when the written file might be damaged.
+    * The check now reads the end of the file, not just the start.
+    * A failed save no longer retries in a way that can ruin a good file.
+    * A spare copy is kept for password protected files too.
+    * Saving a copy can no longer overwrite the file you are reading.
+    * Updating a different file by mistake now asks you first.
+    * Annotations can no longer be written to another document's chosen destination.
+    * Saving no longer opens and re reads every highlighted page.
+    * Saved files no longer grow with pages that did not change.
+    * A saved file no longer balloons with a hidden copy of everything you read before saving.
+    * Saving a file that was inflated by an older version shrinks it back to its real size.
+    * Edits are refused politely while a save is running instead of being lost.
+    * Deleting a document no longer races a reader that still holds unsaved highlights.
+  * Highlights and Signatures:
+    * Fixed highlighting in books where it silently failed.
+    * Highlights no longer appear in a file that does not contain them.
+    * A highlight that cannot be drawn now says so instead of pointing somewhere else.
+    * Opening a highlight from the list centers the page counter and bookmark star correctly.
+    * Dragging a selection handle is smoother and no longer redoes work on every touch event.
+    * A signature no longer lands sideways on a rotated page.
+    * Dragging a signature now moves it the way you drag it.
+  * Reading:
+    * Reading position is no longer erased when Always Open at First Page is on.
+    * Right to left books no longer jump to the wrong end of the document.
+    * Right to left books no longer save the wrong page when you leave.
+    * Pages are centered instead of pushed to one side.
+    * A document no longer turns a page by itself when it opens.
+    * The first tap after opening toggles the controls instead of being swallowed.
+    * Contents entries no longer show page 0 or jump to page 1.
+    * Contents rows that resolve to nothing now show nothing and do nothing.
+    * A finished one page book shows 100 percent.
+    * Two page spreads show both page numbers when you jump.
+    * First Page Alone shows as overridden while Single Page Mode is on.
+    * Double tap zoom stays within your configured maximum zoom.
+    * A drag cancelled by the system snaps the page and hides the handle.
+    * A drag started right after a page turn is no longer ignored.
+    * Auto scroll stops when you leave the reader and stays consistent afterwards.
+    * Always Hide Margins now applies after you return from settings.
+    * Rotate reads the real screen orientation, and explains itself when the system controls the window.
+    * Rotation lock clears when you close the app.
+  * Text Mode:
+    * Hyphen wrapped words read as one word.
+    * Search boxes land on the right letters around ligatures.
+    * Arabic search boxes use the correct character positions.
+    * Text sizes and spacing are clamped to safe values when loaded.
+    * Web search no longer crashes when no browser is installed.
+    * Quote cards stay left to right for mostly English quotes.
+  * Search:
+    * Search next and previous can no longer freeze the screen, even in rare cases.
+    * Repeated presses land on the right match every time.
+    * Results are added to instead of being rebuilt from scratch.
+    * A running search no longer holds the whole reader in memory.
+  * Backup and Restore:
+    * Backups keep working on Arabic and Persian phones.
+    * Restore Pre Import Snapshot appears again after an import.
+    * Backup cleanup keeps the newest files instead of the oldest.
+    * An import stops safely when its snapshot cannot be found.
+    * An import can no longer be interrupted midway by leaving the app.
+    * The wipe warning now says that unsaved highlight recovery data and the stored signature are deleted too.
+    * Imported settings are rejected unless they are known and correctly typed.
+    * Two backups of the same name no longer corrupt each other on import.
+    * The Auto Backup switch no longer reads on while nothing is scheduled.
+    * The stalled backup notice now works for people who enabled automatic backup before it recorded a start date.
+    * The offline dictionary no longer eats most of the system backup quota.
+    * Backups record where a document came from, without changing the file format.
+  * Privacy and Permissions:
+    * Incognito stays incognito when the screen rotates while the file picker is open.
+    * No lasting file permission is kept for a file opened in incognito.
+    * Bookmarking a page in incognito now explains why it cannot, and offers to exit incognito.
+    * Placing a signature in incognito no longer stores the drawn signature for later sessions.
+    * Crash reports show the website instead of the file path.
+    * Three internal screens can no longer be opened by other apps.
+    * Android 10 and below now ask for write access as well as read access.
+    * Copies written to public storage appear in other apps right away.
+  * Design:
+    * Onboarding buttons no longer hide behind the three button navigation bar.
+    * The home open button no longer collides with the navigation buttons.
+    * The tip explaining how to leave fullscreen now actually appears, and stays gone once dismissed for good.
+    * Release notes now appear for people who turned the Home page off.
+    * Settings search says when nothing matched.
+    * Renamed a label that two unrelated features were sharing.
+    * Russian and Ukrainian delete warnings show the real count.
+  * Performance and Stability:
+    * Large scanned books no longer crash the reader on low memory phones.
+    * Memory stays bounded no matter how long the book or how far you scroll.
+    * The reader menu no longer slows the app down or pushes it toward a crash.
+    * Fixed a rare crash while scrolling caused by preview images being reused mid draw.
+    * Fixed a rare crash while cleaning up stored page previews.
+    * Urgent page renders no longer get stuck behind background ones.
+    * Cancelled renders restart instead of dying.
+    * A cancelled page preview no longer keeps its page open.
+    * A stale preview can no longer stick after an edit.
+    * Highlights are no longer regrouped on every drawn frame.
+    * Opening a highlight from the list no longer looks it up twice.
+    * Text screens no longer leak a document when closed while still opening.
+    * Go To Page no longer leaks its window and a document.
+    * Reopening the same reader now honors the newly opened document.
+    * An empty reader window no longer closes the window holding your document.
+    * Tapping a page no longer searches it for form fields.
+    * Low memory image allocation failures no longer crash the viewer.
+    * A failed image decode no longer loses a reusable image buffer.
+    * A missing gesture event no longer risks a crash while flinging.
+    * Android 6 no longer crashes on online PDFs.
+    * Android 6 no longer crashes while installing the dictionary.
+    * Document loading no longer reads settings off the wrong thread.
+    * Fixed a file reading bug that could feed the app garbage.
+    * Fixed a mismatch between two parts of the low level code.
+  * Development:
+    * The two native dependency build scripts merged into one.
+    * Building PDFium from source is now the default, with a prebuilt option.
+    * Build a single processor architecture or all four.
+    * A dry run mode previews the build before running it.
+    * libpng and FreeType versions are pinned and their checksums verified.
+    * The Gradle download is verified by checksum.
+    * Crash report settings moved into the committed project config.
+    * Fixed the crash dialog missing from store and F-Droid builds.
+    * A release runbook was added and the setup docs refreshed.
+    * The viewer library now ships its own shrinker rules.
+    * Removed 45 unused texts from all 16 languages.
+    * Removed nine dead color, size, and state values.
+    * Split large functions into focused pieces.
+
 * 3.0.0
   * The largest update so far. A new home screen, annotation tools, and a rework of nearly every part of the app.
   * Home Screen:

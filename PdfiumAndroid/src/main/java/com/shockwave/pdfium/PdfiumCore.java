@@ -34,6 +34,7 @@ public class PdfiumCore {
 
     private static final int MAX_BOOKMARK_DEPTH = 64;
 
+    private static final int FPDF_SAVE_NO_INCREMENTAL = 2;
     private static final int FPDF_SAVE_REMOVE_SECURITY = 3;
 
     static {
@@ -54,7 +55,6 @@ public class PdfiumCore {
 
     private native void nativeCloseDocument(long docPtr);
 
-    private native boolean nativeSaveAsCopy(long docPtr, int fd);
     private native boolean nativeSaveAsCopyWithFlags(long docPtr, int fd, int flags);
 
     private native int nativeGetPageCount(long docPtr);
@@ -257,7 +257,7 @@ public class PdfiumCore {
             if (doc == null || fd == null || doc.closed) {
                 return false;
             }
-            return nativeSaveAsCopy(doc.mNativeDocPtr, getNumFd(fd));
+            return nativeSaveAsCopyWithFlags(doc.mNativeDocPtr, getNumFd(fd), FPDF_SAVE_NO_INCREMENTAL);
         }
     }
 

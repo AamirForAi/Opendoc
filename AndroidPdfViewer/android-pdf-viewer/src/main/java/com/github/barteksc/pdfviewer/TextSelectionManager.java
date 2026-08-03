@@ -411,6 +411,10 @@ final class TextSelectionManager {
             caret = clamp(caret, 0, charCount);
         }
 
+        if (caret == selection.extentChar && !pdfRunRects.isEmpty()) {
+            return;
+        }
+
         int previousExtent = selection.extentChar;
         selection.extentChar = caret;
         rebuildRects();

@@ -82,6 +82,9 @@ import com.gitlab.mudlej.MjPdfReader.core.io.navIntent
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.load.TemporaryCopyImporter
+import com.gitlab.mudlej.MjPdfReader.core.PermissionManager
+import com.gitlab.mudlej.MjPdfReader.ui.reader.load.CopyConsentRequest
+import com.gitlab.mudlej.MjPdfReader.ui.reader.load.CopyConsentDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
@@ -241,7 +244,7 @@ class ReaderComposition(
     val autoScrollManager: AutoScrollManager =
         AutoScrollManager(binding, vm, pref, autoScrollSpeedStore::onSpeedChanged)
     val fullScreenOptionsManager: FullScreenOptionsManager =
-        FullScreenOptionsManager(binding, vm, pref.getHideDelay().toLong(), pref)
+        FullScreenOptionsManager(binding, vm, pref)
     val zoomSwipeLockController = ZoomSwipeLockController(binding, ::drawableOf)
     val brightnessController = BrightnessController(activity, binding, vm)
     val pdfThemeController = PdfThemeController(activity, binding, pref)
@@ -269,6 +272,7 @@ class ReaderComposition(
         ::onAnnotationEdit,
         ::canEditDocument,
         ui::updateDirtyUi,
+        { vm.incognito },
     )
     val dictionaryDefinitionController: DictionaryDefinitionController = DictionaryDefinitionController(
         activity,
@@ -349,6 +353,8 @@ class ReaderComposition(
         scope,
         ui,
         ::refreshActions,
+        { vm.incognito },
+        ::toggleIncognito,
     )
     val readerNavigationController: ReaderNavigationController = ReaderNavigationController(
         activity,
@@ -376,7 +382,6 @@ class ReaderComposition(
         { vm.cropMarginsEnabled },
         pref::getDualPageMode,
         { pdfThemeController.effectivePdfDarkTheme() },
-        { pref.getPdfPagesTheme() == Preferences.themeSystem },
         { readerHistory.canGoBack() },
         { readerHistory.canGoForward() },
         { userBookmarkController.isCurrentPageBookmarked },
@@ -418,6 +423,7 @@ class ReaderComposition(
     val tapDispatcher = TapDispatcher(listOf(
         { event -> inlineAnnotationActionController.handleImmediatePdfTap(event) },
         { event -> formFieldController.handlePdfTap(event) },
+        { event -> binding.pdfView.performLinkTap(event.x, event.y) },
         { event -> edgeTapPager.handleTap(event) },
         { _ ->
             inlineAnnotationActionController.handleEmptyTap()
@@ -454,11 +460,33 @@ class ReaderComposition(
         pref,
         { doc.uri to doc.name },
         backgroundSaveScope,
-    ) { fileHash, messageRes ->
-        binding.root.post {
-            if (!activity.isFinishing && !activity.isDestroyed && doc.fileHash == fileHash) {
-                AppSnackbar.make(binding.root, messageRes, Snackbar.LENGTH_SHORT).show()
+        { fileHash, messageRes ->
+            binding.root.post {
+                if (!activity.isFinishing && !activity.isDestroyed && doc.fileHash == fileHash) {
+                    AppSnackbar.make(binding.root, messageRes, Snackbar.LENGTH_SHORT).show()
+                }
             }
+        },
+        { request -> showCopyConsent(request) },
+    )
+
+    private val readerPermissionManager = PermissionManager(activity)
+
+    private fun showCopyConsent(request: CopyConsentRequest) {
+        binding.root.post {
+            if (activity.isFinishing || activity.isDestroyed || doc.fileHash != request.fileHash) {
+                return@post
+            }
+            CopyConsentDialog.show(
+                activity,
+                request,
+                onGrantAccess = { readerPermissionManager.requestFullAccess() },
+                onCopy = {
+                    backgroundSaveScope.launch {
+                        temporaryCopyImporter.performCopy(request.fileHash, request.uri, request.name)
+                    }
+                },
+            )
         }
     }
 
@@ -908,8 +936,10 @@ class ReaderComposition(
     }
 
     private fun switchPdfTheme() {
-        pdfThemeController.switchPdfTheme { ui.checkHasFile() }
-        refreshActions()
+        pdfThemeController.switchPdfTheme(
+            hasFile = { ui.checkHasFile() },
+            onThemeChanged = ::refreshActions,
+        )
     }
 
     private fun showReadingDirectionDialog() {

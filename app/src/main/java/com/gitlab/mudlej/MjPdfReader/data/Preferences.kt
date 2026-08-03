@@ -100,6 +100,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         // Preferences keys
         const val firstInstallKey = "firstInstall"
         const val showFeaturesDialogKey = "showFeaturesDialog"
+        const val showExitFullscreenTipKey = "showExitFullscreenTip"
         const val lastSeenVersionCodeKey = "lastSeenVersionCode"
         const val highQualityKey = "highQuality"
         const val antiAliasingKey = "antiAliasing"
@@ -182,6 +183,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val homeSortKey = "homeSort"
         const val historyEnabledKey = "historyEnabled"
         const val keepSharedCopiesKey = "keepSharedCopies"
+        const val sharedCopyModeKey = "sharedCopyMode"
         const val scanModeKey = "scanMode"
         const val scanLocationsKey = "scanLocations"
         const val translationModeKey = "translationMode"
@@ -199,6 +201,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         // Default values
         const val firstInstallDefault = true
         const val showFeaturesDialogDefault = true
+        const val showExitFullscreenTipDefault = true
         const val highQualityDefault = false
         const val antiAliasingDefault = true
         const val horizontalScrollDefault = false
@@ -255,7 +258,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val listFilterDefault = "RECENT"  // ListFilter.RECENT.name
         const val homeDisabledDefault = false
         const val homeShowPdfTitleDefault = true
-        const val homeTabDefault = "RECENT"
+        const val homeTabDefault = "LIBRARY"
         const val homeFolderFlatDefault = false
         const val homeViewModeDefault = "GRID"
         const val homeProgressStyleDefault = "RING"
@@ -267,6 +270,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val homeSortDefault = "NAME"
         const val historyEnabledDefault = true
         const val keepSharedCopiesDefault = true
+        const val sharedCopyModeDefault = "ALWAYS_COPY"
         const val scanModeDefault = "NOT_CONFIGURED"
         val scanLocationsDefault: Set<String> = emptySet()
         const val themeSystem = "system"
@@ -303,7 +307,7 @@ class Preferences(private val prefMan: SharedPreferences) {
 
         val backupSettingKinds: Map<String, String> = buildMap {
             listOf(
-                firstInstallKey, showFeaturesDialogKey, highQualityKey, antiAliasingKey,
+                firstInstallKey, showFeaturesDialogKey, showExitFullscreenTipKey, highQualityKey, antiAliasingKey,
                 horizontalScrollKey, dualPageModeKey, dualPageFirstPageAloneKey, pageSnapKey,
                 pageFlingKey, browserScrollModeKey, singlePageModeKey, turnPageByMouseButtonsKey, pdfDarkThemeKey,
                 appFollowSystemThemeKey, pdfFollowSystemThemeKey, enableReloadButtonKey, screenOnKey,
@@ -339,6 +343,7 @@ class Preferences(private val prefMan: SharedPreferences) {
                 tapToTurnKey, backupFolderTreeUriKey, autoBackupLastErrorKey, translationModeKey,
                 translationEngineKey, translationTargetLanguageKey, translationCustomUrlKey,
                 importResultPendingKey, textModeThemeKey, textModeFontFamilyKey,
+                sharedCopyModeKey,
             ).forEach { put(it, kindString) }
             listOf(
                 fullScreenOverlayActionsKey, shortcutBarActionsKey, scanLocationsKey,
@@ -358,12 +363,15 @@ class Preferences(private val prefMan: SharedPreferences) {
             tapToTurnKey to TapToTurnZones.entries.map { it.name }.toSet(),
             textModeThemeKey to ReaderTheme.entries.map { it.name }.toSet(),
             textModeFontFamilyKey to ReaderFontFamily.entries.map { it.name }.toSet(),
+            sharedCopyModeKey to SharedCopyMode.entries.map { it.name }.toSet(),
         )
     }
 
     // get values saved in Shared Preferences or return the default values
     fun getFirstInstall() = safeGetBoolean(firstInstallKey, firstInstallDefault)
     fun getShowFeaturesDialog() = safeGetBoolean(showFeaturesDialogKey, showFeaturesDialogDefault)
+
+    fun getShowExitFullscreenTip() = safeGetBoolean(showExitFullscreenTipKey, showExitFullscreenTipDefault)
     fun getLastSeenVersionCode() = safeGetInt(lastSeenVersionCodeKey, 0)
     fun getHighQuality() = safeGetBoolean(highQualityKey, highQualityDefault)
     fun getAntiAliasing() = safeGetBoolean(antiAliasingKey, antiAliasingDefault)
@@ -410,6 +418,16 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getAutoBackupErrorAcknowledgedRun() = safeGetLong(autoBackupErrorAcknowledgedRunKey, 0L)
 
     fun getAutoBackupEnabledAt() = safeGetLong(autoBackupEnabledAtKey, 0L)
+
+    fun ensureAutoBackupEnabledAt(): Long {
+        val stored = getAutoBackupEnabledAt()
+        if (stored > 0L || !getAutoBackupEnabled()) {
+            return stored
+        }
+        val now = System.currentTimeMillis()
+        setAutoBackupEnabledAt(now)
+        return now
+    }
 
     fun getImportResultPending(): String? = safeGetString(importResultPendingKey, null)
 
@@ -510,6 +528,10 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getHistoryEnabled() = safeGetBoolean(historyEnabledKey, historyEnabledDefault)
 
     fun getKeepSharedCopies() = safeGetBoolean(keepSharedCopiesKey, keepSharedCopiesDefault)
+    fun getSharedCopyMode(): SharedCopyMode {
+        val fallback = if (getKeepSharedCopies()) sharedCopyModeDefault else SharedCopyMode.ASK.name
+        return safeGetEnum(sharedCopyModeKey, fallback)
+    }
     fun getScanMode() = safeGetEnum<ScanMode>(scanModeKey, scanModeDefault)
     fun getScanLocations(): Set<String> {
         return safeGetStringSet(scanLocationsKey, scanLocationsDefault)?.toSet()
@@ -519,6 +541,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     // put values in Shared Preferences
     fun setFirstInstall(value: Boolean) = prefMan.edit().putBoolean(firstInstallKey, value).apply()
     fun setShowFeaturesDialog(value: Boolean) = prefMan.edit().putBoolean(showFeaturesDialogKey, value).apply()
+
+    fun setShowExitFullscreenTip(value: Boolean) = prefMan.edit().putBoolean(showExitFullscreenTipKey, value).apply()
     fun setLastSeenVersionCode(value: Int) = prefMan.edit().putInt(lastSeenVersionCodeKey, value).apply()
     fun setHighQuality(value: Boolean) = prefMan.edit().putBoolean(highQualityKey, value).apply()
     fun setAntiAliasing(value: Boolean) = prefMan.edit().putBoolean(antiAliasingKey, value).apply()
@@ -641,6 +665,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setHistoryEnabled(value: Boolean) = prefMan.edit().putBoolean(historyEnabledKey, value).apply()
 
     fun setKeepSharedCopies(value: Boolean) = prefMan.edit().putBoolean(keepSharedCopiesKey, value).apply()
+    fun setSharedCopyMode(value: SharedCopyMode) = prefMan.edit().putString(sharedCopyModeKey, value.name).apply()
     fun setScanMode(value: ScanMode) = prefMan.edit().putString(scanModeKey, value.name).apply()
     fun setScanLocations(value: Set<String>) = prefMan.edit().putStringSet(scanLocationsKey, value).apply()
 

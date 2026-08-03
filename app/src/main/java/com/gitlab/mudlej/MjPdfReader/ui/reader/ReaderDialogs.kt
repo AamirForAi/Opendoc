@@ -129,7 +129,7 @@ fun showHowToExitFullscreenDialog(context: Context, pref: Preferences) {
         .setTitle(context.getString(R.string.exit_fullscreen_title))
         .setMessage(context.getString(R.string.exit_fullscreen_message))
         .setPositiveButton(context.getString(R.string.exit_fullscreen_positive)) { _, _ ->
-            pref.setShowFeaturesDialog(false)
+            pref.setShowExitFullscreenTip(false)
         }
         .setNegativeButton(context.getString(R.string.ok)) {
                 dialog: DialogInterface, _ -> dialog.dismiss()

@@ -40,7 +40,7 @@ class FullscreenController(
             vm.isFullScreenToggled = true
             fullScreenOptionsManager.hideAll()
 
-            if (pref.getShowFeaturesDialog()) {
+            if (pref.getShowExitFullscreenTip()) {
                 showHowToExitFullscreenDialog(activity, pref)
             }
         }

@@ -451,11 +451,11 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     // It is deliberately not saved across app restarts.
     @SuppressLint("SourceLockedOrientationActivity")
     internal fun rotateScreen() {
-        val showingLandscape = when (requestedOrientation) {
-            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE -> true
-            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT -> false
-            else -> resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        if (!canControlOrientation()) {
+            AppSnackbar.make(binding.root, R.string.rotation_not_available, Snackbar.LENGTH_LONG).show()
+            return
         }
+        val showingLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         val lock = if (showingLandscape) {
             ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         } else {
@@ -463,6 +463,14 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         }
         requestedOrientation = lock
         vm.userOrientationLock = lock
+    }
+
+    private fun canControlOrientation(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInMultiWindowMode) {
+            return false
+        }
+        val largeScreen = resources.configuration.smallestScreenWidthDp >= LARGE_SCREEN_SW_DP
+        return !(largeScreen && Build.VERSION.SDK_INT >= ORIENTATION_REQUEST_IGNORED_SDK)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -925,3 +933,6 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     }
 
 }
+
+private const val LARGE_SCREEN_SW_DP = 600
+private const val ORIENTATION_REQUEST_IGNORED_SDK = 36

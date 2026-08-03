@@ -382,8 +382,6 @@ class DocumentLoader(
             }
 
         decorateConfigurator(configurator).load()
-
-        pdfView.performTap()
     }
 
     private fun createPdfRecord(

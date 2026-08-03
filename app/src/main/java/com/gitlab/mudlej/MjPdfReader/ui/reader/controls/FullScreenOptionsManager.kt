@@ -30,7 +30,6 @@ import kotlin.reflect.KFunction1
 class FullScreenOptionsManager(
     private val binding: ActivityMainBinding,
     private val vm: ReaderViewModel,
-    private val delay: Long,
     private val preferences: Preferences,
 ) {
 
@@ -337,13 +336,13 @@ class FullScreenOptionsManager(
     // -------------
     private fun delayAction(action: Runnable) {
         delayHandler.reset()
-        delayHandler.postDelayed(action, delay)
+        delayHandler.postDelayed(action, preferences.getHideDelay().toLong())
     }
 
     private fun doTemporarily(action: Runnable, undoAction: Runnable) {
         delayHandler.reset()
         action.run()
-        delayHandler.postDelayed(undoAction, delay)
+        delayHandler.postDelayed(undoAction, preferences.getHideDelay().toLong())
     }
 
     private fun showFullScreenButtons() = changeFullScreenButtonsVisibility(true)

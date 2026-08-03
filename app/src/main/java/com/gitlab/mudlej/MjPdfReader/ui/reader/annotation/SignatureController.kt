@@ -26,6 +26,7 @@ class SignatureController(
     private val onAnnotationEdit: (AnnotationEdit) -> Unit,
     private val canEditDocument: () -> Boolean,
     private val updateDirtyUi: () -> Unit,
+    private val isIncognito: () -> Boolean,
 ) {
 
     fun showSignatureDialog() {
@@ -46,7 +47,9 @@ class SignatureController(
         val positiveButton = dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
         positiveButton.setOnClickListener {
             val data = sheetBinding.signatureView.buildSignatureData() ?: return@setOnClickListener
-            store.save(data)
+            if (!isIncognito()) {
+                store.save(data)
+            }
             dialog.dismiss()
             startPlacement(data)
         }

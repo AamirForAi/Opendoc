@@ -20,7 +20,6 @@ class ConfigurableActionResolver(
     private val cropMarginsEnabled: () -> Boolean,
     private val dualPageEnabled: () -> Boolean,
     private val isPdfDarkTheme: () -> Boolean,
-    private val isPdfThemeSystem: () -> Boolean,
     private val canNavigateBack: () -> Boolean,
     private val canNavigateForward: () -> Boolean,
     private val isCurrentPageBookmarked: () -> Boolean,
@@ -131,7 +130,7 @@ class ConfigurableActionResolver(
             ConfigurableAction.SWITCH_THEME -> ConfiguredAction(
                 if (isPdfDarkTheme()) R.string.switch_to_light_mode else R.string.switch_to_dark_mode,
                 if (isPdfDarkTheme()) R.drawable.ic_light_mode else R.drawable.ic_dark_mode,
-                visible = fileAvailable && !isPdfThemeSystem(),
+                visible = fileAvailable,
                 checked = isPdfDarkTheme(),
                 run = handlers.switchTheme,
             )

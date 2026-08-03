@@ -43,6 +43,7 @@ enum class FeatureTopic(
         R.string.features_topic_reading_subtitle,
         listOf(
             FeatureEntry(R.string.features_reading_modes_title, R.string.features_reading_modes_body),
+            FeatureEntry(R.string.features_reading_fit_title, R.string.features_reading_fit_body),
             FeatureEntry(R.string.features_reading_dual_page_title, R.string.features_reading_dual_page_body),
             FeatureEntry(R.string.features_reading_snap_title, R.string.features_reading_snap_body),
             FeatureEntry(R.string.features_reading_browser_title, R.string.features_reading_browser_body),
@@ -112,6 +113,7 @@ enum class FeatureTopic(
         listOf(
             FeatureEntry(R.string.features_privacy_local_title, R.string.features_privacy_local_body),
             FeatureEntry(R.string.features_privacy_incognito_title, R.string.features_privacy_incognito_body),
+            FeatureEntry(R.string.features_privacy_shared_copies_title, R.string.features_privacy_shared_copies_body),
             FeatureEntry(R.string.features_privacy_history_switch_title, R.string.features_privacy_history_switch_body),
             FeatureEntry(R.string.features_privacy_history_screen_title, R.string.features_privacy_history_screen_body),
             FeatureEntry(R.string.features_privacy_clear_title, R.string.features_privacy_clear_body),

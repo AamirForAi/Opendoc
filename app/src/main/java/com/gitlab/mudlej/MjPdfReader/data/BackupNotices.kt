@@ -15,10 +15,7 @@ object BackupNotices {
         if (!preferences.getAutoBackupEnabled()) {
             return false
         }
-        val enabledAt = preferences.getAutoBackupEnabledAt()
-        if (enabledAt <= 0L) {
-            return false
-        }
+        val enabledAt = preferences.ensureAutoBackupEnabledAt()
         val freshest = maxOf(preferences.getAutoBackupLastRun(), enabledAt)
         return freshest < System.currentTimeMillis() - staleAfterMillis
     }

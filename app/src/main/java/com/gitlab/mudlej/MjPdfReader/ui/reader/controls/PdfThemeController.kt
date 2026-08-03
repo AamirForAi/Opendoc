@@ -9,9 +9,10 @@ import androidx.appcompat.app.AppCompatDelegate
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
-import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.ui.ColorUtil
-import com.google.android.material.snackbar.Snackbar
+import com.gitlab.mudlej.MjPdfReader.ui.settings.ThemeChoiceStrip
+import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class PdfThemeController(
     private val activity: AppCompatActivity,
@@ -34,25 +35,38 @@ class PdfThemeController(
 
     fun effectivePdfDarkTheme(): Boolean = effectivePdfDarkTheme(activity, pref)
 
-    fun switchPdfTheme(hasFile: () -> Boolean) {
+    fun switchPdfTheme(hasFile: () -> Boolean, onThemeChanged: () -> Unit) {
         if (pref.getPdfPagesTheme() == Preferences.themeSystem) {
-            AppSnackbar.make(
-                binding.root,
-                activity.getString(R.string.pdf_theme_follows_system),
-                Snackbar.LENGTH_LONG
-            ).show()
+            showFollowsSystemDialog(onThemeChanged)
         }
         else if (hasFile()) {
-            setPdfTheme(!pref.getPdfDarkTheme())
+            val mode = if (pref.getPdfDarkTheme()) Preferences.themeLight else Preferences.themeDark
+            setPdfThemeMode(mode)
+            onThemeChanged()
         }
     }
 
-    private fun setPdfTheme(darkTheme: Boolean) {
-        if (pref.getPdfPagesTheme() != Preferences.themeSystem && pref.getPdfDarkTheme() == darkTheme) {
+    private fun showFollowsSystemDialog(onThemeChanged: () -> Unit) {
+        val view = activity.layoutInflater.inflate(R.layout.dialog_pdf_theme_mode, null)
+        val group = view.findViewById<MaterialButtonToggleGroup>(R.id.theme_choice_group)
+        ThemeChoiceStrip.bind(group, pref.getPdfPagesTheme()) { mode ->
+            setPdfThemeMode(mode)
+            onThemeChanged()
+        }
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.dark_theme_for_pdf)
+            .setMessage(R.string.pdf_theme_follows_system_dialog)
+            .setView(view)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun setPdfThemeMode(mode: String) {
+        if (pref.getPdfPagesTheme() == mode) {
             return
         }
-        pref.setPdfPagesTheme(if (darkTheme) Preferences.themeDark else Preferences.themeLight)
-        applyPdfThemeToView(darkTheme, reloadPages = true)
+        pref.setPdfPagesTheme(mode)
+        applyPdfThemeToView(effectivePdfDarkTheme(), reloadPages = true)
     }
 
     private fun applyPdfThemeToView(darkTheme: Boolean, reloadPages: Boolean) {

@@ -177,16 +177,14 @@ class BackupManager(
         )
     }
 
-    suspend fun applyImport(plan: ImportPlan): ImportSummary = withContext(Dispatchers.IO) {
-        if (plan.includesHistory) {
-            pdfRepository.replaceAllHistory(plan.records, plan.bookmarks)
-        }
-        plan.settingsPuts?.let { puts -> applySettings(puts) }
+    suspend fun applyImport(plan: ImportPlan): ImportSummary = withContext(NonCancellable + Dispatchers.IO) {
         if (plan.includesHistory) {
             CoverCache.getInstance(context).clearAllBlocking()
             AnnotationJournal(context).deleteAllBlocking()
             SignatureStore(context).delete()
+            pdfRepository.replaceAllHistory(plan.records, plan.bookmarks)
         }
+        plan.settingsPuts?.let { puts -> applySettings(puts) }
         ImportSummary(
             plan.settingsPuts?.size ?: 0,
             plan.records.size,
@@ -355,6 +353,7 @@ class BackupManager(
         private val excludedSettingKeys = setOf(
             Preferences.firstInstallKey,
             Preferences.showFeaturesDialogKey,
+            Preferences.showExitFullscreenTipKey,
             Preferences.lastSeenVersionCodeKey,
             Preferences.backupFolderTreeUriKey,
             Preferences.autoBackupLastRunKey,

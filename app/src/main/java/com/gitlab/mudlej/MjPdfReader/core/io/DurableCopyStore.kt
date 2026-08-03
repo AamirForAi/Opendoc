@@ -7,6 +7,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -88,8 +89,19 @@ object DurableCopyStore {
                 partial.delete()
                 throw throwable
             }
+            if (isPublic) {
+                notifyMediaScanner(context, target)
+            }
             SavedCopy(Uri.fromFile(target), isPublic)
         }.getOrNull()
+    }
+
+    private fun notifyMediaScanner(context: Context, target: File) {
+        runCatching {
+            MediaScannerConnection.scanFile(
+                context, arrayOf(target.absolutePath), arrayOf(PDF.FILE_TYPE), null
+            )
+        }
     }
 
     private fun copySource(context: Context, source: Uri, output: java.io.OutputStream) {

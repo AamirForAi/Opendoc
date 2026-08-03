@@ -858,10 +858,6 @@ static jboolean saveDocumentToFd(DocumentFile *doc, jint fd, int flags){
     return saved;
 }
 
-JNI_FUNC(jboolean, PdfiumCore, nativeSaveAsCopy)(JNI_ARGS, jlong documentPtr, jint fd){
-    return saveDocumentToFd(reinterpret_cast<DocumentFile*>(documentPtr), fd, FPDF_INCREMENTAL);
-}
-
 JNI_FUNC(jboolean, PdfiumCore, nativeSaveAsCopyWithFlags)(JNI_ARGS, jlong documentPtr, jint fd, jint flags){
     return saveDocumentToFd(reinterpret_cast<DocumentFile*>(documentPtr), fd, (int)flags);
 }

@@ -26,7 +26,6 @@ import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewConfiguration;
 
-import com.github.barteksc.pdfviewer.model.LinkTapEvent;
 import com.github.barteksc.pdfviewer.scroll.ScrollHandle;
 import com.github.barteksc.pdfviewer.util.SnapEdge;
 
@@ -86,8 +85,9 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             return true;
         }
 
-        pdfView.callbacks.callOnTap(e);
-        checkLinkTapped(e.getX(), e.getY());
+        if (!pdfView.callbacks.callOnTap(e)) {
+            pdfView.performLinkTap(e.getX(), e.getY());
+        }
 
         /*
          * I added the following to update the scroll handle
@@ -105,15 +105,6 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         return true;
     }
 
-
-    private boolean checkLinkTapped(float x, float y) {
-        LinkTapEvent event = pdfView.findLinkAt(x, y);
-        if (event == null) {
-            return false;
-        }
-        pdfView.callbacks.callLinkHandler(event);
-        return true;
-    }
 
     private void startPageFling(MotionEvent downEvent, MotionEvent ev, float velocityX, float velocityY) {
         if (!checkDoPageFling(velocityX, velocityY)) {
