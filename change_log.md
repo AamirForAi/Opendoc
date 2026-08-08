@@ -53,6 +53,7 @@
     * A signature no longer lands sideways on a rotated page.
     * Dragging a signature now moves it the way you drag it.
   * Reading:
+    * Fullscreen now covers the camera cutout area instead of leaving a black band on notched phones.
     * Reading position is no longer erased when Always Open at First Page is on.
     * Right to left books no longer jump to the wrong end of the document.
     * Right to left books no longer save the wrong page when you leave.
