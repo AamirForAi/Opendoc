@@ -625,6 +625,7 @@
     <string name="default_text_mode_summary">Switch to Text Mode immediately after opening a PDF.</string>
     <string name="selected_text">Selected Text</string>
     <string name="copy_page_text">Page Text</string>
+    <string name="page_text_too_large">This page holds too much text to extract.</string>
     <string name="turn_page_by_volume_buttons_title">Turn Pages by Volume Buttons</string>
     <string name="turn_page_by_volume_buttons_summary">Go to the next or previous page using the physical volume buttons</string>
     <string name="show_scroll_handle_page_count_title">Show Page Count in Scroll Handle</string>

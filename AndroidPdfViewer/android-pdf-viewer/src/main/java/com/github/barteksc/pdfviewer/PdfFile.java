@@ -29,6 +29,7 @@ import com.github.barteksc.pdfviewer.model.CropBounds;
 import com.github.barteksc.pdfviewer.model.CropMargins;
 import com.github.barteksc.pdfviewer.util.FitPolicy;
 import com.github.barteksc.pdfviewer.util.PageSizeCalculator;
+import com.shockwave.pdfium.PageTextTooLargeException;
 import com.shockwave.pdfium.PdfDocument;
 import com.shockwave.pdfium.PdfiumCore;
 import com.shockwave.pdfium.util.Size;
@@ -1201,7 +1202,11 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return "";
         }
-        return pdfiumCore.getPageRawText(pdfDocument, docPage);
+        try {
+            return pdfiumCore.getPageRawText(pdfDocument, docPage);
+        } catch (PageTextTooLargeException e) {
+            return "";
+        }
     }
 
     public Map<Integer, String> getPagesText(int start, int end) {

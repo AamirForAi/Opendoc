@@ -501,6 +501,7 @@
     <string name="default_text_mode_summary">بلافاصله پس از باز کردن یک PDF، به حالت متنی سوییچ کنید.</string>
     <string name="selected_text">متن انتخاب‌شده</string>
     <string name="copy_page_text">رونویسی متن صفحه</string>
+    <string name="page_text_too_large">این صفحه متن بیش از حد زیادی برای استخراج دارد.</string>
     <string name="turn_page_by_volume_buttons_title">جابه‌جایی صفحه با دکمه‌های صدا</string>
     <string name="turn_page_by_volume_buttons_summary">با دکمه‌های فیزیکی صدا به صفحه پسین یا پیشین بروید.</string>
     <string name="show_scroll_handle_page_count_title">نمایش شمار صفحات در دستگیره پیمایش</string>

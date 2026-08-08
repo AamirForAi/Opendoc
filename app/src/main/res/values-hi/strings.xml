@@ -501,6 +501,7 @@
     <string name="default_text_mode_summary">पीडीएफ खोलने के तुरंत बाद टेक्स्ट मोड पर स्विच करें।</string>
     <string name="selected_text">चयनित पाठ</string>
     <string name="copy_page_text">पृष्ठ का पाठ कॉपी करें</string>
+    <string name="page_text_too_large">इस पृष्ठ में निकालने के लिए बहुत अधिक पाठ है।</string>
     <string name="turn_page_by_volume_buttons_title">वॉल्यूम बटन से पृष्ठ पलटें</string>
     <string name="turn_page_by_volume_buttons_summary">शारीरिक वॉल्यूम बटन का उपयोग करके अगले या पिछले पृष्ठ पर जाएं</string>
     <string name="show_scroll_handle_page_count_title">स्क्रॉल हैंडल में पृष्ठ गणना दिखाएँ</string>

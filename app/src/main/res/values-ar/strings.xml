@@ -501,6 +501,7 @@
     <string name="default_text_mode_summary">التبديل إلى وضع النص فورًا بعد فتح ملف PDF.</string>
     <string name="selected_text">النص المحدد</string>
     <string name="copy_page_text">نسخ نص الصفحة</string>
+    <string name="page_text_too_large">تحتوي هذه الصفحة على نص أكثر من أن يُستخرج.</string>
     <string name="turn_page_by_volume_buttons_title">تقليب الصفحات باستخدام أزرار الصوت</string>
     <string name="turn_page_by_volume_buttons_summary">الانتقال إلى الصفحة التالية أو السابقة باستخدام أزرار الصوت على جانب الهاتف</string>
     <string name="show_scroll_handle_page_count_title">عرض عدد الصفحات في مقبض التمرير</string>

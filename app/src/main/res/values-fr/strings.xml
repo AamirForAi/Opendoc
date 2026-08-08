@@ -501,6 +501,7 @@
     <string name="default_text_mode_summary">Bascule en mode texte immédiatement après l\'ouverture d\'un PDF.</string>
     <string name="selected_text">Texte sélectionné</string>
     <string name="copy_page_text">Copier le texte de la page</string>
+    <string name="page_text_too_large">Cette page contient trop de texte pour être extrait.</string>
     <string name="turn_page_by_volume_buttons_title">Tourner la page par les boutons de volume</string>
     <string name="turn_page_by_volume_buttons_summary">Aller à la page suivante ou précédente en utilisant les boutons physiques de volume</string>
     <string name="show_scroll_handle_page_count_title">Afficher le nombre de pages dans la poignée de défilement</string>

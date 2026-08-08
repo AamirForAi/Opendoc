@@ -501,6 +501,7 @@
     <string name="default_text_mode_summary">Перемикатися в текстовий режим одразу після відкриття PDF-файлу.</string>
     <string name="selected_text">Виділений текст</string>
     <string name="copy_page_text">Витягнути текст</string>
+    <string name="page_text_too_large">На цій сторінці забагато тексту, щоб його витягнути.</string>
     <string name="turn_page_by_volume_buttons_title">Гортати сторінки кнопками гучності</string>
     <string name="turn_page_by_volume_buttons_summary">Гортайте сторінки фізичними кнопками гучності.</string>
     <string name="show_scroll_handle_page_count_title">Показувати кількість сторінок у повзунку гортання</string>

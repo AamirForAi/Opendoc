@@ -115,6 +115,7 @@
     * Renamed a label that two unrelated features were sharing.
     * Russian and Ukrainian delete warnings show the real count.
   * Performance and Stability:
+    * A page carrying an enormous amount of text now says so instead of killing the app.
     * Large scanned books no longer crash the reader on low memory phones.
     * Memory stays bounded no matter how long the book or how far you scroll.
     * The reader menu no longer slows the app down or pushes it toward a crash.

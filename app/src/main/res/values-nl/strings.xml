@@ -501,6 +501,7 @@
     <string name="default_text_mode_summary">Schakel meteen na het openen van een PDF over naar Tekstmodus.</string>
     <string name="selected_text">Geselecteerde tekst</string>
     <string name="copy_page_text">Paginatekst kopiëren</string>
+    <string name="page_text_too_large">Deze pagina bevat te veel tekst om te extraheren.</string>
     <string name="turn_page_by_volume_buttons_title">Bladzijde omslaan met volumeknoppen</string>
     <string name="turn_page_by_volume_buttons_summary">Ga naar de volgende of vorige pagina met de volumeknoppen</string>
     <string name="show_scroll_handle_page_count_title">Aantal pagina\'s tonen in bladergreep</string>

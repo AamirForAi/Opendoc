@@ -3,12 +3,14 @@
 package com.gitlab.mudlej.MjPdfReader.ui.reader.actions
 
 import android.util.Log
+import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.showCopyPageTextDialog
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.google.android.material.snackbar.Snackbar
+import com.shockwave.pdfium.PageTextTooLargeException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,8 +40,13 @@ class PageTextCopier(
         scope.launch(Dispatchers.IO) {
             var pageText = ""
             var extractionFailed = false
+            var pageTooLarge = false
             try {
                 pageText = binding.pdfView.getPageText(pageNumber)
+            }
+            catch (e: PageTextTooLargeException) {
+                Log.w("PDFium", "extractPageText($pageNumber): ${e.message}")
+                pageTooLarge = true
             }
             catch (e: Throwable) {
                 Log.e("PDFium", "extractPageText($pageNumber): error while extracting text", e)
@@ -47,7 +54,10 @@ class PageTextCopier(
             }
 
             withContext(Dispatchers.Main) {
-                if (extractionFailed) {
+                if (pageTooLarge) {
+                    AppSnackbar.make(binding.root, R.string.page_text_too_large, Snackbar.LENGTH_LONG).show()
+                }
+                else if (extractionFailed) {
                     showFailedExtractTextSnackbar(pageNumber)
                 }
                 else if (pageText.isBlank()) {

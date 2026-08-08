@@ -501,6 +501,7 @@
     <string name="default_text_mode_summary">PDF açıldıktan hemen sonra metin moduna geç.</string>
     <string name="selected_text">Seçilen metin</string>
     <string name="copy_page_text">Sayfanın Metnini Kopyala</string>
+    <string name="page_text_too_large">Bu sayfa çıkarılamayacak kadar çok metin içeriyor.</string>
     <string name="turn_page_by_volume_buttons_title">Sayfa Çevirme Ses Düğmeleri ile</string>
     <string name="turn_page_by_volume_buttons_summary">Fiziksel ses düğmelerini kullanarak bir sonraki veya önceki sayfaya geçin</string>
     <string name="show_scroll_handle_page_count_title">Kaydırma tutamacında sayfa sayısını göster</string>

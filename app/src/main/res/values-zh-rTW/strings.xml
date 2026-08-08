@@ -501,6 +501,7 @@
     <string name="default_text_mode_summary">開啟 PDF 後立即切換到文字模式。</string>
     <string name="selected_text">已選取的文字</string>
     <string name="copy_page_text">複製頁面文字</string>
+    <string name="page_text_too_large">此頁面的文字過多，無法擷取。</string>
     <string name="turn_page_by_volume_buttons_title">用音量鍵翻頁</string>
     <string name="turn_page_by_volume_buttons_summary">使用實體音量鍵前往下一頁或上一頁</string>
     <string name="show_scroll_handle_page_count_title">在捲動控制中顯示頁數</string>

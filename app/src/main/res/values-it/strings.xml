@@ -501,6 +501,7 @@
     <string name="default_text_mode_summary">Passa immediatamente alla modalità testo dopo l\'apertura di un PDF.</string>
     <string name="selected_text">Testo selezionato</string>
     <string name="copy_page_text">Copia il testo della pagina</string>
+    <string name="page_text_too_large">Questa pagina contiene troppo testo per essere estratto.</string>
     <string name="turn_page_by_volume_buttons_title">Gira pagina con i pulsanti del volume</string>
     <string name="turn_page_by_volume_buttons_summary">Passare alla pagina successiva o precedente utilizzando i pulsanti fisici del volume</string>
     <string name="show_scroll_handle_page_count_title">Mostra conteggio pagine nel cursore di scorrimento</string>

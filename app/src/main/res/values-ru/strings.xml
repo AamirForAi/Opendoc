@@ -501,6 +501,7 @@
     <string name="default_text_mode_summary">Сразу переключаться в текстовый режим после открытия PDF.</string>
     <string name="selected_text">Выделенный текст</string>
     <string name="copy_page_text">Копировать текст страницы</string>
+    <string name="page_text_too_large">На этой странице слишком много текста для извлечения.</string>
     <string name="turn_page_by_volume_buttons_title">Листать страницы кнопками громкости</string>
     <string name="turn_page_by_volume_buttons_summary">Перелистывайте на следующую или предыдущую страницу с помощью физических кнопок громкости</string>
     <string name="show_scroll_handle_page_count_title">Показывать количество страниц в ползунке прокрутки</string>

@@ -501,6 +501,7 @@
     <string name="default_text_mode_summary">Przełącz na tryb tekstowy zaraz po otwarciu pliku PDF.</string>
     <string name="selected_text">Zaznaczony tekst</string>
     <string name="copy_page_text">Kopiuj tekst strony</string>
+    <string name="page_text_too_large">Ta strona zawiera zbyt dużo tekstu, aby go wyodrębnić.</string>
     <string name="turn_page_by_volume_buttons_title">Przewracaj strony przyciskami głośności</string>
     <string name="turn_page_by_volume_buttons_summary">Przejdź do następnej lub poprzedniej strony za pomocą fizycznych przycisków głośności</string>
     <string name="show_scroll_handle_page_count_title">Pokazuj liczbę stron w uchwycie przewijania</string>

@@ -70,6 +70,12 @@ class TextModePageViewHolder(
                 ) + " " + context.getString(R.string.text_mode_retry)
                 binding.pageMessage.setOnClickListener { onRetry(state.pageIndex) }
             }
+            is TextModePageState.TooLarge -> {
+                binding.pageMessage.visibility = View.VISIBLE
+                binding.pageMessage.text = context.getString(R.string.page_text_too_large)
+                binding.pageMessage.setOnClickListener(null)
+                binding.pageMessage.isClickable = false
+            }
         }
     }
 

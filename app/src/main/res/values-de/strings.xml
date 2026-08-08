@@ -501,6 +501,7 @@
     <string name="default_text_mode_summary">Sofort nach dem Öffnen einer PDF in den Textmodus wechseln.</string>
     <string name="selected_text">Ausgewählter Text</string>
     <string name="copy_page_text">Seitentext kopieren</string>
+    <string name="page_text_too_large">Diese Seite enthält zu viel Text zum Extrahieren.</string>
     <string name="turn_page_by_volume_buttons_title">Seite mit Lautstärketasten umblättern</string>
     <string name="turn_page_by_volume_buttons_summary">Mit den physischen Lautstärketasten zur nächsten oder vorherigen Seite gehen</string>
     <string name="show_scroll_handle_page_count_title">Seitenanzahl im Scroll-Handle anzeigen</string>
