@@ -18,6 +18,8 @@
     * Tapping it then explains why it cannot toggle and lets you pick a theme right there.
     * The book title snackbar fits longer titles.
   * Library:
+    * A document can no longer land in the library with an unknown page count.
+    * A document already stored with the wrong page count is corrected the next time you open it.
     * Documents are identified by the hash of the first and the last MB of the file, so two files sharing a first megabyte no longer merge into one.
     * Files under two megabytes are identified by their whole contents.
     * Existing records convert quietly on open, keeping reading position and bookmarks.

@@ -305,6 +305,15 @@ class PdfRepository(private val database: AppDatabase) {
         }
     }
 
+    suspend fun setLength(fileHash: String, length: Int) {
+        if (length <= 0) {
+            return
+        }
+        safeWrite {
+            database.pdfRecordDao().updateLength(fileHash, length)
+        }
+    }
+
     suspend fun removeRecord(record: PdfRecord) {
         safeWrite {
             database.pdfRecordDao().delete(record)

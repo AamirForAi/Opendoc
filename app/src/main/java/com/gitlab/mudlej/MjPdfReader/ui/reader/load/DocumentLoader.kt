@@ -368,6 +368,7 @@ class DocumentLoader(
                     vm.pendingViewState = null
                 }
                 state = LoadState.Loaded(pageCount)
+                doc.initPdfLength(pageCount)
                 hideProgressBar(loadToken, documentUri)
                 createPdfRecord(savePassword, fileHash, loadToken, documentUri)
                 val event = DocumentLoadedEvent(
@@ -449,6 +450,10 @@ class DocumentLoader(
                 return
             }
             pdfRepository.setLastOpened(fileHash, LocalDateTime.now())
+            if (!vm.isCurrent(loadToken, documentUri)) {
+                return
+            }
+            pdfRepository.setLength(fileHash, doc.length)
             if (!vm.isCurrent(loadToken, documentUri)) {
                 return
             }

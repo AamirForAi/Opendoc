@@ -54,6 +54,9 @@ interface PdfRecordDao {
     @Query("UPDATE PdfRecord SET lastOpened = :lastOpened WHERE hash = :fileHash")
     fun updateLastOpened(fileHash: String?, lastOpened: LocalDateTime)
 
+    @Query("UPDATE PdfRecord SET length = :length WHERE hash = :fileHash AND length != :length")
+    fun updateLength(fileHash: String, length: Int): Int
+
     @Query("UPDATE PdfRecord SET uri = :uri, fileName = :fileName, lastOpened = :lastOpened WHERE hash = :fileHash")
     fun updateIdentity(fileHash: String, uri: android.net.Uri, fileName: String, lastOpened: LocalDateTime): Int
 
