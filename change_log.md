@@ -53,6 +53,9 @@
     * A signature no longer lands sideways on a rotated page.
     * Dragging a signature now moves it the way you drag it.
   * Reading:
+    * The page you are on is now tracked wherever the view moves, so the number in the bar is always the page you are looking at.
+    * Jumping to a search result or a highlight now leaves you on that page, so leaving and returning brings you back to it.
+    * Auto scroll now keeps the page number, the reading history and the saved position up to date as it goes.
     * Fullscreen now covers the camera cutout area instead of leaving a black band on notched phones.
     * Reading position is no longer erased when Always Open at First Page is on.
     * Right to left books no longer jump to the wrong end of the document.

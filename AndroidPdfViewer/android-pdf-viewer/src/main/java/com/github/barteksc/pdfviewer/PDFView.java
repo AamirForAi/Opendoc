@@ -630,6 +630,8 @@ public class PDFView extends RelativeLayout {
      */
     private int currentPage;
 
+    private boolean pageTrackingSuppressed = false;
+
     /**
      * If you picture all the pages side by side in their optimal width,
      * and taking into account the zoom level, the current offset is the
@@ -915,18 +917,23 @@ public class PDFView extends RelativeLayout {
         float offset = jumpShouldCenterPage(page)
                 ? -snapOffsetForPage(page, SnapEdge.CENTER)
                 : -pdfFile.getPageOffset(page, zoom);
-        if (swipeVertical) {
-            if (withAnimation) {
-                animationManager.startYAnimation(currentYOffset, offset);
+        pageTrackingSuppressed = true;
+        try {
+            if (swipeVertical) {
+                if (withAnimation) {
+                    animationManager.startYAnimation(currentYOffset, offset);
+                } else {
+                    moveTo(currentXOffset, offset);
+                }
             } else {
-                moveTo(currentXOffset, offset);
+                if (withAnimation) {
+                    animationManager.startXAnimation(currentXOffset, offset);
+                } else {
+                    moveTo(offset, currentYOffset);
+                }
             }
-        } else {
-            if (withAnimation) {
-                animationManager.startXAnimation(currentXOffset, offset);
-            } else {
-                moveTo(offset, currentYOffset);
-            }
+        } finally {
+            pageTrackingSuppressed = false;
         }
         showPage(page);
     }
@@ -1895,7 +1902,12 @@ public class PDFView extends RelativeLayout {
             offsetY = -(relativeCrossAxisCenter * crossAxisSize) + getHeight() * 0.5f;
         }
 
-        moveTo(offsetX, offsetY);
+        pageTrackingSuppressed = true;
+        try {
+            moveTo(offsetX, offsetY);
+        } finally {
+            pageTrackingSuppressed = false;
+        }
         showPage(pageIndex);
         return true;
     }
@@ -2054,11 +2066,22 @@ public class PDFView extends RelativeLayout {
         callbacks.callOnPageScroll(getCurrentPage(), positionOffset);
 
         redraw();
+
+        showPageAtOffset();
     }
 
     void loadPageByOffset() {
         if (pdfFile == null || 0 == pdfFile.getPagesCount()) {
             return;
+        }
+        if (!showPageAtOffset()) {
+            loadPages();
+        }
+    }
+
+    private boolean showPageAtOffset() {
+        if (pdfFile == null || 0 == pdfFile.getPagesCount() || pageTrackingSuppressed) {
+            return false;
         }
 
         float offset, screenCenter;
@@ -2072,11 +2095,17 @@ public class PDFView extends RelativeLayout {
 
         int page = pdfFile.getPageAtOffset(-(offset - screenCenter), zoom);
 
-        if (page >= 0 && page <= pdfFile.getPagesCount() - 1 && page != getCurrentPage()) {
-            showPage(page);
-        } else {
-            loadPages();
+        if (page < 0 || page > pdfFile.getPagesCount() - 1 || page == getCurrentPage()) {
+            return false;
         }
+
+        pageTrackingSuppressed = true;
+        try {
+            showPage(page);
+        } finally {
+            pageTrackingSuppressed = false;
+        }
+        return true;
     }
 
     /**
