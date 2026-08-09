@@ -816,7 +816,10 @@
     <string name="clear_annotation_journals_title">Limpar Destaques Não Salvos e Assinatura</string>
     <string name="clear_annotation_journals_summary">Exclua os dados de recuperação de falhas de destaques e a assinatura armazenada</string>
     <string name="clear_annotation_journals_message">Excluir todos os dados de recuperação de destaques não salvos e a assinatura armazenada? Destaques já salvos nos arquivos não são afetados.</string>
-    <string name="cleared_entries">%1$d itens excluídos</string>
+    <plurals name="cleared_entries">
+        <item quantity="one">%d item excluído</item>
+        <item quantity="other">%d itens excluídos</item>
+    </plurals>
     <string name="cleared_done">Concluído</string>
     <string name="home_share_pdf">Compartilhar Arquivo PDF</string>
     <string name="home_share_failed">Não foi possível compartilhar o arquivo.</string>

@@ -804,7 +804,9 @@
     <string name="clear_annotation_journals_title">清除未保存的高亮和签名</string>
     <string name="clear_annotation_journals_summary">删除高亮的崩溃恢复数据和已存储的签名</string>
     <string name="clear_annotation_journals_message">是否删除所有未保存的高亮恢复数据和已存储的签名？已保存到文件中的高亮不受影响。</string>
-    <string name="cleared_entries">已删除 %1$d 项</string>
+    <plurals name="cleared_entries">
+        <item quantity="other">已删除 %d 项</item>
+    </plurals>
     <string name="cleared_done">完成</string>
     <string name="home_share_pdf">分享 PDF 文件</string>
     <string name="home_share_failed">无法分享文件。</string>

@@ -810,7 +810,10 @@
     <string name="clear_annotation_journals_title">پاک کردن هایلایت‌ها و امضای ذخیره‌نشده</string>
     <string name="clear_annotation_journals_summary">حذف داده‌های بازیابی خرابی برای هایلایت‌ها و امضای ذخیره‌شده</string>
     <string name="clear_annotation_journals_message">همه داده‌های بازیابی هایلایت ذخیره‌نشده و امضای ذخیره‌شده حذف شوند؟ هایلایت‌هایی که از پیش در پرونده‌ها ذخیره شده‌اند تحت تأثیر قرار نمی‌گیرند.</string>
-    <string name="cleared_entries">%1$d مدخل حذف شد</string>
+    <plurals name="cleared_entries">
+        <item quantity="one">%d مدخل حذف شد</item>
+        <item quantity="other">%d مدخل حذف شد</item>
+    </plurals>
     <string name="cleared_done">انجام شد</string>
     <string name="home_share_pdf">هم‌رسانی فایل PDF</string>
     <string name="home_share_failed">هم‌رسانی فایل ممکن نشد.</string>

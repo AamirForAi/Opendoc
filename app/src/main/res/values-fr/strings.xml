@@ -816,7 +816,10 @@
     <string name="clear_annotation_journals_title">Effacer les surlignages non enregistrés et la signature</string>
     <string name="clear_annotation_journals_summary">Supprime les données de récupération après crash des surlignages et la signature enregistrée</string>
     <string name="clear_annotation_journals_message">Supprimer toutes les données de récupération de surlignages non enregistrés et la signature enregistrée ? Les surlignages déjà enregistrés dans les fichiers ne sont pas affectés.</string>
-    <string name="cleared_entries">%1$d entrées supprimées</string>
+    <plurals name="cleared_entries">
+        <item quantity="one">%d entrée supprimée</item>
+        <item quantity="other">%d entrées supprimées</item>
+    </plurals>
     <string name="cleared_done">Terminé</string>
     <string name="home_share_pdf">Partager le fichier PDF</string>
     <string name="home_share_failed">Impossible de partager le fichier.</string>

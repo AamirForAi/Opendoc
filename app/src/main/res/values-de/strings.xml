@@ -810,7 +810,10 @@
     <string name="clear_annotation_journals_title">Nicht gespeicherte Hervorhebungen und Signatur löschen</string>
     <string name="clear_annotation_journals_summary">Löscht Absturzwiederherstellungsdaten für Hervorhebungen und die gespeicherte Signatur</string>
     <string name="clear_annotation_journals_message">Alle nicht gespeicherten Hervorhebungswiederherstellungsdaten und die gespeicherte Signatur löschen? Bereits in Dateien gespeicherte Hervorhebungen sind davon nicht betroffen.</string>
-    <string name="cleared_entries">%1$d Einträge gelöscht</string>
+    <plurals name="cleared_entries">
+        <item quantity="one">%d Eintrag gelöscht</item>
+        <item quantity="other">%d Einträge gelöscht</item>
+    </plurals>
     <string name="cleared_done">Fertig</string>
     <string name="home_share_pdf">PDF-Datei teilen</string>
     <string name="home_share_failed">Datei konnte nicht geteilt werden.</string>

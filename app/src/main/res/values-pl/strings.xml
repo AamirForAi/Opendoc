@@ -822,7 +822,12 @@
     <string name="clear_annotation_journals_title">Wyczyść niezapisane zaznaczenia i podpis</string>
     <string name="clear_annotation_journals_summary">Usuń dane odzyskiwania po awarii dla zaznaczeń i zapisany podpis</string>
     <string name="clear_annotation_journals_message">Usunąć wszystkie niezapisane dane odzyskiwania zaznaczeń i zapisany podpis? Zaznaczenia już zapisane w plikach nie zostaną naruszone.</string>
-    <string name="cleared_entries">Usunięto wpisów: %1$d</string>
+    <plurals name="cleared_entries">
+        <item quantity="one">Usunięto %d wpis</item>
+        <item quantity="few">Usunięto %d wpisy</item>
+        <item quantity="many">Usunięto %d wpisów</item>
+        <item quantity="other">Usunięto %d wpisu</item>
+    </plurals>
     <string name="cleared_done">Gotowe</string>
     <string name="home_share_pdf">Udostępnij plik PDF</string>
     <string name="home_share_failed">Nie można udostępnić pliku.</string>

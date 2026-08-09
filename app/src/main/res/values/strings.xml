@@ -952,7 +952,10 @@
     <string name="clear_annotation_journals_title">Clear Unsaved Highlights and Signature</string>
     <string name="clear_annotation_journals_summary">Delete crash recovery data for highlights and the stored signature</string>
     <string name="clear_annotation_journals_message">Delete all unsaved highlight recovery data and the stored signature? Highlights already saved into files are not affected.</string>
-    <string name="cleared_entries">%1$d entries deleted</string>
+    <plurals name="cleared_entries">
+        <item quantity="one">%d entry deleted</item>
+        <item quantity="other">%d entries deleted</item>
+    </plurals>
     <string name="cleared_done">Done</string>
     <string name="clear_data_failed">Couldn\'t clear the data.</string>
 

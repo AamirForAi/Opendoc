@@ -453,7 +453,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
             if (!isAdded) {
                 return@launch
             }
-            val message = count?.let { getString(R.string.cleared_entries, it) }
+            val message = count?.let { resources.getQuantityString(R.plurals.cleared_entries, it, it) }
                 ?: getString(R.string.cleared_done)
             Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
         }

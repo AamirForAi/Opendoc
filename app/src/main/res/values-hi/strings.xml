@@ -810,7 +810,10 @@
     <string name="clear_annotation_journals_title">असहेजित हाइलाइट्स और हस्ताक्षर साफ़ करें</string>
     <string name="clear_annotation_journals_summary">हाइलाइट्स के लिए क्रैश रिकवरी डेटा और संग्रहीत हस्ताक्षर हटाएं</string>
     <string name="clear_annotation_journals_message">सभी असहेजित हाइलाइट रिकवरी डेटा और संग्रहीत हस्ताक्षर हटाएं? फ़ाइलों में पहले से सहेजी गई हाइलाइट्स प्रभावित नहीं होतीं।</string>
-    <string name="cleared_entries">%1$d प्रविष्टियाँ हटा दी गईं</string>
+    <plurals name="cleared_entries">
+        <item quantity="one">%d प्रविष्टि हटा दी गई</item>
+        <item quantity="other">%d प्रविष्टियाँ हटा दी गईं</item>
+    </plurals>
     <string name="cleared_done">हो गया</string>
     <string name="home_share_pdf">PDF फ़ाइल साझा करें</string>
     <string name="home_share_failed">फ़ाइल साझा नहीं की जा सकी.</string>

@@ -822,7 +822,12 @@
     <string name="clear_annotation_journals_title">Очистити незбережені виділення й підпис</string>
     <string name="clear_annotation_journals_summary">Видалити дані відновлення після збою для виділень і збережений підпис</string>
     <string name="clear_annotation_journals_message">Видалити всі дані відновлення незбережених виділень і збережений підпис? Виділення, уже збережені у файли, не зачіпаються.</string>
-    <string name="cleared_entries">Видалено %1$d записів</string>
+    <plurals name="cleared_entries">
+        <item quantity="one">Видалено %d запис</item>
+        <item quantity="few">Видалено %d записи</item>
+        <item quantity="many">Видалено %d записів</item>
+        <item quantity="other">Видалено %d запису</item>
+    </plurals>
     <string name="cleared_done">Готово</string>
     <string name="home_share_pdf">Поділитися файлом PDF</string>
     <string name="home_share_failed">Не вдалося поділитися файлом.</string>

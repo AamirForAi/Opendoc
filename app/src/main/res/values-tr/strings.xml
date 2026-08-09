@@ -810,7 +810,10 @@
     <string name="clear_annotation_journals_title">Kaydedilmemiş Vurguları ve İmzayı Temizle</string>
     <string name="clear_annotation_journals_summary">Vurgular için çökme kurtarma verilerini ve kayıtlı imzayı siler</string>
     <string name="clear_annotation_journals_message">Tüm kaydedilmemiş vurgu kurtarma verileri ve kayıtlı imza silinsin mi? Dosyalara zaten kaydedilmiş vurgular etkilenmez.</string>
-    <string name="cleared_entries">%1$d girdi silindi</string>
+    <plurals name="cleared_entries">
+        <item quantity="one">%d girdi silindi</item>
+        <item quantity="other">%d girdi silindi</item>
+    </plurals>
     <string name="cleared_done">Tamamlandı</string>
     <string name="home_share_pdf">PDF Dosyasını Paylaş</string>
     <string name="home_share_failed">Dosya paylaşılamadı.</string>

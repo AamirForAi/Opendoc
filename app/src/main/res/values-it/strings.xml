@@ -810,7 +810,10 @@
     <string name="clear_annotation_journals_title">Cancella evidenziazioni non salvate e firma</string>
     <string name="clear_annotation_journals_summary">Elimina i dati di ripristino per le evidenziazioni e la firma memorizzata</string>
     <string name="clear_annotation_journals_message">Eliminare tutti i dati di ripristino delle evidenziazioni non salvate e la firma memorizzata? Le evidenziazioni già salvate nei file non vengono toccate.</string>
-    <string name="cleared_entries">%1$d voci eliminate</string>
+    <plurals name="cleared_entries">
+        <item quantity="one">%d voce eliminata</item>
+        <item quantity="other">%d voci eliminate</item>
+    </plurals>
     <string name="cleared_done">Fatto</string>
     <string name="home_share_pdf">Condividi file PDF</string>
     <string name="home_share_failed">Impossibile condividere il file.</string>

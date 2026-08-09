@@ -810,7 +810,10 @@
     <string name="clear_annotation_journals_title">Borrar Resaltados No Guardados y Firma</string>
     <string name="clear_annotation_journals_summary">Elimine los datos de recuperación ante fallos de los resaltados y la firma almacenada</string>
     <string name="clear_annotation_journals_message">¿Eliminar todos los datos de recuperación de resaltados no guardados y la firma almacenada? Los resaltados ya guardados en archivos no se ven afectados.</string>
-    <string name="cleared_entries">%1$d entradas eliminadas</string>
+    <plurals name="cleared_entries">
+        <item quantity="one">%d entrada eliminada</item>
+        <item quantity="other">%d entradas eliminadas</item>
+    </plurals>
     <string name="cleared_done">Hecho</string>
     <string name="home_share_pdf">Compartir Archivo PDF</string>
     <string name="home_share_failed">No se pudo compartir el archivo.</string>

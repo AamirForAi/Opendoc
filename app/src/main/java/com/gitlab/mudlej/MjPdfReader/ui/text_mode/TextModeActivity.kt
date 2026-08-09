@@ -80,6 +80,8 @@ class TextModeActivity : AppCompatActivity() {
     private var tableOfContentsState = TableOfContentsState()
     private var savedPageIndex = -1
     private var setupJob: Job? = null
+    private var requestedPageIndex = RecyclerView.NO_POSITION
+    private var holdAttempts = 0
 
     private val tableOfContentsLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -210,7 +212,14 @@ class TextModeActivity : AppCompatActivity() {
         controlsController.attachTapListener()
         binding.textPagesRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                holdRequestedPage()
                 updateCurrentPageFromScroll()
+            }
+
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                if (newState != RecyclerView.SCROLL_STATE_IDLE) {
+                    requestedPageIndex = RecyclerView.NO_POSITION
+                }
             }
         })
         binding.textPagesRecyclerView.addOnChildAttachStateChangeListener(
@@ -374,15 +383,35 @@ class TextModeActivity : AppCompatActivity() {
             layoutManager.findFirstVisibleItemPosition() == currentPageIndex &&
             anchoredView.top == binding.textPagesRecyclerView.paddingTop
         ) {
+            requestedPageIndex = RecyclerView.NO_POSITION
             updatePageControls()
             saveCurrentPage()
             return
         }
-        layoutManager.scrollToPositionWithOffset(currentPageIndex, 0)
+        requestedPageIndex = currentPageIndex
+        holdAttempts = 0
+        anchorRequestedPage()
         contentLoader.loadTargetWindow(currentPageIndex)
         binding.textPagesRecyclerView.doOnNextLayout { contentLoader.loadVisiblePages() }
         updatePageControls()
         saveCurrentPage()
+    }
+
+    private fun anchorRequestedPage() {
+        binding.textPagesRecyclerView.focusedChild?.clearFocus()
+        layoutManager.scrollToPositionWithOffset(requestedPageIndex, 0)
+    }
+
+    private fun holdRequestedPage() {
+        val requested = requestedPageIndex
+        if (requested == RecyclerView.NO_POSITION) return
+        if (layoutManager.findFirstVisibleItemPosition() == requested) return
+        if (holdAttempts >= MAX_HOLD_ATTEMPTS) {
+            requestedPageIndex = RecyclerView.NO_POSITION
+            return
+        }
+        holdAttempts++
+        anchorRequestedPage()
     }
 
     private fun seekToPage(pageIndex: Int) {
@@ -516,5 +545,6 @@ class TextModeActivity : AppCompatActivity() {
         private const val DEFAULT_JOIN_PARAGRAPHS = true
         private const val DEFAULT_DETECT_HEADINGS = true
         private const val DEFAULT_CODE_BLOCKS = true
+        private const val MAX_HOLD_ATTEMPTS = 4
     }
 }

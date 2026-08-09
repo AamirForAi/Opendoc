@@ -79,6 +79,8 @@
     * Rotate reads the real screen orientation, and explains itself when the system controls the window.
     * Rotation lock clears when you close the app.
   * Text Mode:
+    * Going to a page now moves the text, not just the page number.
+    * A page you jumped to stays put while the pages around it load.
     * Hyphen wrapped words read as one word.
     * Search boxes land on the right letters around ligatures.
     * Arabic search boxes use the correct character positions.
@@ -125,6 +127,7 @@
     * Settings search says when nothing matched.
     * Renamed a label that two unrelated features were sharing.
     * Russian and Ukrainian delete warnings show the real count.
+    * Clearing a single item no longer reports it in the plural, in every language.
   * Performance and Stability:
     * A page carrying an enormous amount of text now says so instead of killing the app.
     * Large scanned books no longer crash the reader on low memory phones.

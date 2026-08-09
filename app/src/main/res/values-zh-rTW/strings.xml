@@ -804,7 +804,9 @@
     <string name="clear_annotation_journals_title">清除未儲存的醒目標示與簽名</string>
     <string name="clear_annotation_journals_summary">刪除醒目標示的當機還原資料與已儲存的簽名</string>
     <string name="clear_annotation_journals_message">要刪除所有未儲存的醒目標示還原資料與已儲存的簽名嗎？已儲存到檔案中的醒目標示不受影響。</string>
-    <string name="cleared_entries">已刪除 %1$d 筆項目</string>
+    <plurals name="cleared_entries">
+        <item quantity="other">已刪除 %d 筆項目</item>
+    </plurals>
     <string name="cleared_done">完成</string>
     <string name="home_share_pdf">分享 PDF 檔案</string>
     <string name="home_share_failed">無法分享檔案。</string>

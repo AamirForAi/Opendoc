@@ -810,7 +810,10 @@
     <string name="clear_annotation_journals_title">Niet-opgeslagen markeringen en handtekening wissen</string>
     <string name="clear_annotation_journals_summary">Verwijder herstelgegevens na een crash voor markeringen en de opgeslagen handtekening</string>
     <string name="clear_annotation_journals_message">Alle niet-opgeslagen herstelgegevens van markeringen en de opgeslagen handtekening verwijderen? Markeringen die al in bestanden zijn opgeslagen, blijven ongewijzigd.</string>
-    <string name="cleared_entries">%1$d items verwijderd</string>
+    <plurals name="cleared_entries">
+        <item quantity="one">%d item verwijderd</item>
+        <item quantity="other">%d items verwijderd</item>
+    </plurals>
     <string name="cleared_done">Klaar</string>
     <string name="home_share_pdf">PDF-bestand delen</string>
     <string name="home_share_failed">Kan het bestand niet delen.</string>

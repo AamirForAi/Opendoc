@@ -834,7 +834,14 @@
     <string name="clear_annotation_journals_title">مسح التظليلات والتوقيع غير المحفوظة</string>
     <string name="clear_annotation_journals_summary">احذف بيانات استعادة الأعطال للتظليلات والتوقيع المخزن</string>
     <string name="clear_annotation_journals_message">حذف كل بيانات استعادة التظليلات غير المحفوظة والتوقيع المخزن؟ لن تتأثر التظليلات المحفوظة بالفعل في الملفات.</string>
-    <string name="cleared_entries">تم حذف %1$d عناصر</string>
+    <plurals name="cleared_entries">
+        <item quantity="zero">لم يُحذف أي عنصر</item>
+        <item quantity="one">تم حذف عنصر واحد</item>
+        <item quantity="two">تم حذف عنصرين</item>
+        <item quantity="few">تم حذف %d عناصر</item>
+        <item quantity="many">تم حذف %d عنصرًا</item>
+        <item quantity="other">تم حذف %d عنصر</item>
+    </plurals>
     <string name="cleared_done">تم</string>
     <string name="home_share_pdf">مشاركة ملف PDF</string>
     <string name="home_share_failed">تعذّرت مشاركة الملف.</string>

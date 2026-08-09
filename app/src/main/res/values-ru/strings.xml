@@ -822,7 +822,12 @@
     <string name="clear_annotation_journals_title">Очистить несохранённые подсветки и подпись</string>
     <string name="clear_annotation_journals_summary">Удалить данные восстановления подсветок после сбоя и сохранённую подпись</string>
     <string name="clear_annotation_journals_message">Удалить все данные восстановления несохранённых подсветок и сохранённую подпись? Подсветки, уже сохранённые в файлах, не пострадают.</string>
-    <string name="cleared_entries">Удалено записей: %1$d</string>
+    <plurals name="cleared_entries">
+        <item quantity="one">Удалена %d запись</item>
+        <item quantity="few">Удалено %d записи</item>
+        <item quantity="many">Удалено %d записей</item>
+        <item quantity="other">Удалено %d записи</item>
+    </plurals>
     <string name="cleared_done">Готово</string>
     <string name="home_share_pdf">Поделиться PDF-файлом</string>
     <string name="home_share_failed">Не удалось поделиться файлом.</string>
