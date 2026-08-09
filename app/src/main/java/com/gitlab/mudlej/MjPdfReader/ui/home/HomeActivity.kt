@@ -85,9 +85,12 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     private var relinkRunning = false
     private val renderMutex = Mutex()
 
-    private val foldersBackCallback = object : OnBackPressedCallback(false) {
+    private val homeBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
-            foldersTab.goBack()
+            when {
+                selectionController.wantsBackButton -> selectionController.finish()
+                foldersCanGoBack() -> foldersTab.goBack()
+            }
         }
     }
 
@@ -253,19 +256,6 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             onScanSetupClicked = { scanSetupDialog.show() },
             onFilterChanged = ::refresh,
         )
-        foldersTab = FoldersTabController(
-            this,
-            pref,
-            coverCache,
-            lifecycleScope,
-            this,
-            onGrantAccessClicked = { permissionManager.requestFullAccess() },
-            hasFullAccess = { permissionManager.hasFullAccess() },
-            libraryController = libraryController,
-            onNavigationChanged = ::updateFoldersBackState,
-            selection = { selectionController.selectedHashes },
-        )
-
         selectionController = HomeSelectionController(
             this,
             binding,
@@ -276,6 +266,19 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             onRemoveRecentBatch = ::removeRecentBatch,
             onHideBatch = ::hideBatch,
             onDeleteBatch = ::deleteBatch,
+        )
+
+        foldersTab = FoldersTabController(
+            this,
+            pref,
+            coverCache,
+            lifecycleScope,
+            this,
+            onGrantAccessClicked = { permissionManager.requestFullAccess() },
+            hasFullAccess = { permissionManager.hasFullAccess() },
+            libraryController = libraryController,
+            onNavigationChanged = ::updateBackState,
+            selection = { selectionController.selectedHashes },
         )
         relocateController = RelocateController(
             this,
@@ -303,7 +306,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             hasFullAccess = { permissionManager.hasFullAccess() },
             onScanLocations = { scanSetupDialog.show() },
         )
-        onBackPressedDispatcher.addCallback(this, foldersBackCallback)
+        onBackPressedDispatcher.addCallback(this, homeBackCallback)
         binding.searchBar.inflateMenu(R.menu.home_search_bar)
         binding.searchBar.setOnMenuItemClickListener { menuItem ->
             if (menuItem.itemId == R.id.homeMenuOption) {
@@ -365,14 +368,17 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             override fun onPageSelected(position: Int) {
                 pref.setHomeTab(HomeTab.entries[position])
                 selectionController.finish()
-                updateFoldersBackState()
+                updateBackState()
             }
         })
     }
 
-    private fun updateFoldersBackState() {
-        foldersBackCallback.isEnabled =
-            currentTab() == HomeTab.FOLDERS && foldersTab.canGoBack()
+    private fun updateBackState() {
+        homeBackCallback.isEnabled = selectionController.wantsBackButton || foldersCanGoBack()
+    }
+
+    private fun foldersCanGoBack(): Boolean {
+        return currentTab() == HomeTab.FOLDERS && foldersTab.canGoBack()
     }
 
     private fun currentTab(): HomeTab = HomeTab.entries[binding.homePager.currentItem]
@@ -640,6 +646,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     }
 
     private fun notifySelectionChanged() {
+        updateBackState()
         recentTab.notifySelectionChanged()
         libraryTab.notifySelectionChanged()
         foldersTab.notifySelectionChanged()

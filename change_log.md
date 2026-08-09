@@ -112,6 +112,8 @@
     * Three internal screens can no longer be opened by other apps.
     * Android 10 and below now ask for write access as well as read access.
     * Copies written to public storage appear in other apps right away.
+  * Home:
+    * Back ends an active selection on the Folders tab instead of walking up a folder, matching the other two tabs.
   * Design:
     * Onboarding buttons no longer hide behind the three button navigation bar.
     * The home open button no longer collides with the navigation buttons.
