@@ -125,15 +125,13 @@ class ReaderNavigationController(
     }
 
     fun showNavigationHistory() {
-        val backEntries = historyManager.backEntries()
-        val forwardEntries = historyManager.forwardEntries()
-        if (backEntries.isEmpty() && forwardEntries.isEmpty()) {
+        if (!historyManager.hasTrail()) {
             return
         }
         val historyIntent = NavigationHistoryActivity.createIntent(
             activity,
-            backEntries,
-            forwardEntries,
+            historyManager.backEntries(),
+            historyManager.forwardEntries(),
             binding.pdfView.currentPage,
         )
         historyIntent.putExtra(PDF.filePathKey, pdf.uri.toString())

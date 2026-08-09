@@ -22,6 +22,7 @@ class ConfigurableActionResolver(
     private val isPdfDarkTheme: () -> Boolean,
     private val canNavigateBack: () -> Boolean,
     private val canNavigateForward: () -> Boolean,
+    private val canShowNavigationHistory: () -> Boolean,
     private val isCurrentPageBookmarked: () -> Boolean,
     private val isIncognito: () -> Boolean,
     private val handlers: Handlers,
@@ -149,7 +150,7 @@ class ConfigurableActionResolver(
             ConfigurableAction.NAV_HISTORY -> ConfiguredAction(
                 R.string.navigation_history,
                 R.drawable.ic_history,
-                visible = fileAvailable && canNavigateBack(),
+                visible = fileAvailable && canShowNavigationHistory(),
                 run = handlers.showNavigationHistory,
             )
             ConfigurableAction.RELOAD -> ConfiguredAction(

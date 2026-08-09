@@ -42,6 +42,8 @@ class ReaderHistoryManager(
 
     fun canGoForward() = forwardStack.isNotEmpty()
 
+    fun hasTrail() = canGoBack() || canGoForward()
+
     fun backEntries(): List<Entry> = backStack.toList()
 
     fun forwardEntries(): List<Entry> = forwardStack.toList()

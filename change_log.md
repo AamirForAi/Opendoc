@@ -53,6 +53,7 @@
     * A signature no longer lands sideways on a rotated page.
     * Dragging a signature now moves it the way you drag it.
   * Reading:
+    * Navigation History opens whenever the trail holds anything, even when every entry is ahead of you.
     * The page you are on is now tracked wherever the view moves, so the number in the bar is always the page you are looking at.
     * Jumping to a search result or a highlight now leaves you on that page, so leaving and returning brings you back to it.
     * Auto scroll now keeps the page number, the reading history and the saved position up to date as it goes.

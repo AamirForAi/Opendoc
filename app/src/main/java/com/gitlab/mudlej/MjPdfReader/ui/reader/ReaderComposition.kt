@@ -384,6 +384,7 @@ class ReaderComposition(
         { pdfThemeController.effectivePdfDarkTheme() },
         { readerHistory.canGoBack() },
         { readerHistory.canGoForward() },
+        { readerHistory.hasTrail() },
         { userBookmarkController.isCurrentPageBookmarked },
         { vm.incognito },
         createHandlers(),
