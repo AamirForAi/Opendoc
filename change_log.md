@@ -109,6 +109,9 @@
     * Bookmarking a page in incognito now explains why it cannot, and offers to exit incognito.
     * Placing a signature in incognito no longer stores the drawn signature for later sessions.
     * Crash reports show the website instead of the file path.
+    * A crash report is never sent unless you agree to it first.
+    * Internal warnings about slow document work are no longer reported at all.
+    * A report left over from an older version is deleted instead of sent.
     * Three internal screens can no longer be opened by other apps.
     * Android 10 and below now ask for write access as well as read access.
     * Copies written to public storage appear in other apps right away.

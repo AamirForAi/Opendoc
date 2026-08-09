@@ -6,6 +6,7 @@ import android.app.Application
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.PreferenceManager
+import com.gitlab.mudlej.MjPdfReader.core.crash.ConsentPluginLoader
 import com.gitlab.mudlej.MjPdfReader.data.AutoBackupScheduler
 import com.gitlab.mudlej.MjPdfReader.data.OnlineDocumentStore
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
@@ -17,7 +18,6 @@ import org.acra.ReportField
 import org.acra.config.dialog
 import org.acra.config.httpSender
 import org.acra.data.StringFormat
-import com.github.barteksc.pdfviewer.PDFView
 import org.acra.ktx.initAcra
 
 class App : Application() {
@@ -32,9 +32,6 @@ class App : Application() {
             }
             OnlineDocumentStore.sweepIncognito(this)
             PrintController.sweepStaging(this)
-            PDFView.setMainThreadViolationReporter { _, stack ->
-                runCatching { ACRA.errorReporter.handleSilentException(stack) }
-            }
         }
     }
 
@@ -44,6 +41,7 @@ class App : Application() {
         initAcra {
             buildConfigClass = BuildConfig::class.java
             reportFormat = StringFormat.JSON
+            pluginLoader = ConsentPluginLoader()
             reportContent = listOf(
                 ReportField.STACK_TRACE,
                 ReportField.APP_VERSION_CODE,
