@@ -402,6 +402,11 @@
     <string name="online_pdf_link">رابط PDF عبر الإنترنت</string>
     <string name="invalid_online_pdf_link">أدخل رابط HTTP أو HTTPS صالحًا.</string>
     <string name="http_online_pdf_warning">روابط HTTP غير مشفرة. قد يتمكن الآخرون على الشبكة من رؤية الملف أو تعديله. اضغط \"متابعة على أي حال\" لفتحه.</string>
+    <string name="insecure_redirect_title">الاتصال لم يعد مشفرًا</string>
+    <string name="insecure_redirect_message">أرسل هذا الرابط التنزيل إلى %1$s عبر HTTP، وهو غير مشفر. قد يتمكن الآخرون على الشبكة من رؤية الملف أو تعديله.</string>
+    <string name="toast_insecure_redirect_refused">توقف التنزيل لأن الاتصال لم يعد مشفرًا.</string>
+    <string name="toast_download_too_large">هذا الملف أكبر من أن يتم تنزيله هنا.</string>
+    <string name="toast_download_not_a_pdf">لم يُرجع هذا الرابط ملف PDF.</string>
     <string name="close">إغلاق</string>
     <string name="exit_fullscreen_button">زر الخروج من وضع الشاشة الكاملة</string>
     <string name="rotate_screen">تدوير الشاشة</string>

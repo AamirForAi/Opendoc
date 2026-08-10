@@ -402,6 +402,11 @@
     <string name="online_pdf_link">Çevrimiçi PDF bağlantısı</string>
     <string name="invalid_online_pdf_link">Geçerli bir HTTP veya HTTPS bağlantısı girin.</string>
     <string name="http_online_pdf_warning">HTTP bağlantıları şifrelenmemiştir. Ağdaki diğer kişiler dosyayı görebilir veya değiştirebilir. Açmak için Yine de Devam Et\'e dokunun.</string>
+    <string name="insecure_redirect_title">Bağlantı artık şifrelenmiyor</string>
+    <string name="insecure_redirect_message">Bu bağlantı indirmeyi şifrelenmemiş olan HTTP üzerinden %1$s adresine yönlendirdi. Ağdaki diğer kişiler dosyayı görebilir veya değiştirebilir.</string>
+    <string name="toast_insecure_redirect_refused">Bağlantı artık şifrelenmediği için indirme durduruldu.</string>
+    <string name="toast_download_too_large">Bu dosya burada indirilemeyecek kadar büyük.</string>
+    <string name="toast_download_not_a_pdf">Bu bağlantı bir PDF dosyası döndürmedi.</string>
     <string name="close">Kapat</string>
     <string name="exit_fullscreen_button">Tam Ekranı Kapatma Düğmesi</string>
     <string name="rotate_screen">Ekranı Döndür</string>

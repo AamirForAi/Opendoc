@@ -45,6 +45,9 @@ class OnlinePdfController(
 
     private sealed class DownloadResult {
         class Success(val file: File?) : DownloadResult()
+        class InsecureRedirect(val target: String) : DownloadResult()
+        data object TooLarge : DownloadResult()
+        data object NotPdf : DownloadResult()
         data object HttpError : DownloadResult()
         data object SslError : DownloadResult()
         data object GenericError : DownloadResult()
@@ -109,13 +112,13 @@ class OnlinePdfController(
         }
     }
 
-    private fun startDownload(url: String) {
+    private fun startDownload(url: String, allowInsecureRedirect: Boolean = false) {
         binding.progressBar.isIndeterminate = true
         binding.progressBar.progress = 0
         binding.progressBar.visibility = View.VISIBLE
         binding.pickFileButton.visibility = View.GONE
         scope.launch {
-            val result = withContext(Dispatchers.IO) { download(url) }
+            val result = withContext(Dispatchers.IO) { download(url, allowInsecureRedirect) }
             if (!activity.isDisplayingUri(url)) {
                 return@launch
             }
@@ -124,6 +127,9 @@ class OnlinePdfController(
                     binding.progressBar.isIndeterminate = true
                     saveToFileAndDisplay(result.file)
                 }
+                is DownloadResult.InsecureRedirect -> askToProceedOverCleartext(url, result.target)
+                is DownloadResult.TooLarge -> showDownloadError(R.string.toast_download_too_large)
+                is DownloadResult.NotPdf -> showDownloadError(R.string.toast_download_not_a_pdf)
                 is DownloadResult.HttpError -> showDownloadError(R.string.toast_http_code_error)
                 is DownloadResult.SslError -> showDownloadError(R.string.toast_ssl_error)
                 is DownloadResult.GenericError -> showDownloadError(R.string.toast_generic_download_error)
@@ -131,8 +137,36 @@ class OnlinePdfController(
         }
     }
 
-    private fun download(url: String): DownloadResult {
+    private fun askToProceedOverCleartext(url: String, target: String) {
+        activity.hideProgress()
+        if (activity.isFinishing || activity.isDestroyed) {
+            return
+        }
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.insecure_redirect_title)
+            .setMessage(activity.getString(R.string.insecure_redirect_message, target.hostForDisplay()))
+            .setPositiveButton(R.string.proceed_anyway) { dialog, _ ->
+                dialog.dismiss()
+                startDownload(url, allowInsecureRedirect = true)
+            }
+            .setNegativeButton(R.string.cancel) { dialog, _ ->
+                dialog.dismiss()
+                showDownloadError(R.string.toast_insecure_redirect_refused)
+            }
+            .setOnCancelListener { showDownloadError(R.string.toast_insecure_redirect_refused) }
+            .show()
+    }
+
+    private fun String.hostForDisplay(): String = runCatching { URL(this).host }.getOrNull().orEmpty()
+
+    private fun downloadByteCeiling(): Long {
+        val usable = activity.cacheDir.usableSpace - FREE_SPACE_RESERVE_BYTES
+        return minOf(MAX_DOWNLOAD_BYTES, usable)
+    }
+
+    private fun download(url: String, allowInsecureRedirect: Boolean): DownloadResult {
         var currentUrl = URL(url)
+        val startedSecure = currentUrl.protocol.equals("https", ignoreCase = true)
         var redirects = 0
         var connection: HttpURLConnection? = null
         try {
@@ -149,6 +183,11 @@ class OnlinePdfController(
                 when (val responseCode = conn.responseCode) {
                     HttpURLConnection.HTTP_OK -> {
                         val contentLength = conn.contentLengthCompat()
+                        val ceiling = downloadByteCeiling()
+                        if (ceiling <= 0L || contentLength > ceiling) {
+                            Log.e(TAG, "Refusing a download of $contentLength bytes against a ceiling of $ceiling")
+                            return DownloadResult.TooLarge
+                        }
                         if (contentLength > 0) {
                             binding.progressBar.post {
                                 binding.progressBar.isIndeterminate = false
@@ -156,11 +195,12 @@ class OnlinePdfController(
                             }
                         }
                         var lastPercent = -1
-                        val file = OnlineDocumentStore.write(
+                        val written = OnlineDocumentStore.write(
                             activity,
                             url,
                             isIncognito(),
                             conn.inputStream,
+                            ceiling,
                         ) { totalBytes ->
                             if (contentLength > 0) {
                                 val percent = ((totalBytes * 100) / contentLength).toInt()
@@ -170,7 +210,12 @@ class OnlinePdfController(
                                 }
                             }
                         }
-                        return DownloadResult.Success(file)
+                        return when (written) {
+                            is OnlineDocumentStore.WriteResult.Stored -> DownloadResult.Success(written.file)
+                            is OnlineDocumentStore.WriteResult.TooLarge -> DownloadResult.TooLarge
+                            is OnlineDocumentStore.WriteResult.NotPdf -> DownloadResult.NotPdf
+                            is OnlineDocumentStore.WriteResult.Failed -> DownloadResult.GenericError
+                        }
                     }
                     HttpURLConnection.HTTP_MOVED_PERM,
                     HttpURLConnection.HTTP_MOVED_TEMP,
@@ -182,8 +227,18 @@ class OnlinePdfController(
                             Log.e(TAG, "Redirect could not be followed for URL : ${url.urlForLog()}")
                             return DownloadResult.HttpError
                         }
+                        val target = runCatching { URL(currentUrl, location) }.getOrNull()
+                        if (target == null || !target.protocol.isOnlinePdfScheme()) {
+                            Log.e(TAG, "Redirect target is not an http or https address for URL : ${url.urlForLog()}")
+                            return DownloadResult.HttpError
+                        }
+                        val downgrades = startedSecure && target.protocol.equals("http", ignoreCase = true)
+                        if (downgrades && !allowInsecureRedirect) {
+                            Log.e(TAG, "Redirect downgrades to cleartext for URL : ${url.urlForLog()}")
+                            return DownloadResult.InsecureRedirect(target.toString())
+                        }
                         redirects++
-                        currentUrl = URL(currentUrl, location)
+                        currentUrl = target
                         conn.disconnect()
                     }
                     else -> {
@@ -290,6 +345,8 @@ class OnlinePdfController(
         const val CONNECT_TIMEOUT_MS = 20_000
         const val READ_TIMEOUT_MS = 30_000
         const val MAX_REDIRECTS = 5
+        const val MAX_DOWNLOAD_BYTES = 4L * 1024 * 1024 * 1024
+        const val FREE_SPACE_RESERVE_BYTES = 250L * 1024 * 1024
         const val HTTP_TEMPORARY_REDIRECT = 307
         const val HTTP_PERMANENT_REDIRECT = 308
     }

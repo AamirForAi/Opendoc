@@ -402,6 +402,11 @@
     <string name="online_pdf_link">Link do PDF online</string>
     <string name="invalid_online_pdf_link">Wprowadź prawidłowy link HTTP lub HTTPS.</string>
     <string name="http_online_pdf_warning">Linki HTTP nie są szyfrowane. Inne osoby w sieci mogą zobaczyć lub zmodyfikować ten plik. Dotknij Kontynuuj mimo to, aby go otworzyć.</string>
+    <string name="insecure_redirect_title">Połączenie nie jest już szyfrowane</string>
+    <string name="insecure_redirect_message">Ten link przekierował pobieranie do %1$s przez HTTP, które nie jest szyfrowane. Inne osoby w sieci mogą zobaczyć lub zmodyfikować ten plik.</string>
+    <string name="toast_insecure_redirect_refused">Pobieranie zostało zatrzymane, ponieważ połączenie nie było już szyfrowane.</string>
+    <string name="toast_download_too_large">Ten plik jest za duży, aby go tutaj pobrać.</string>
+    <string name="toast_download_not_a_pdf">Ten link nie zwrócił pliku PDF.</string>
     <string name="close">Zamknij</string>
     <string name="exit_fullscreen_button">Przycisk wyjścia z pełnego ekranu</string>
     <string name="rotate_screen">Obróć ekran</string>

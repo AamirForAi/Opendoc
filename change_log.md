@@ -114,6 +114,9 @@
     * A crash report is never sent unless you agree to it first.
     * Internal warnings about slow document work are no longer reported at all.
     * A report left over from an older version is deleted instead of sent.
+    * A download that stops being encrypted part way asks before it continues.
+    * A download that is not a PDF is refused instead of saved.
+    * A download stops if it grows past a sane size or would fill the device.
     * Three internal screens can no longer be opened by other apps.
     * Android 10 and below now ask for write access as well as read access.
     * Copies written to public storage appear in other apps right away.

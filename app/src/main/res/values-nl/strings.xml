@@ -402,6 +402,11 @@
     <string name="online_pdf_link">Online PDF-koppeling</string>
     <string name="invalid_online_pdf_link">Voer een geldige HTTP- of HTTPS-koppeling in.</string>
     <string name="http_online_pdf_warning">HTTP-koppelingen zijn niet versleuteld. Andere mensen op het netwerk kunnen mogelijk het bestand zien of wijzigen. Tik op Toch verder gaan om het te openen.</string>
+    <string name="insecure_redirect_title">Verbinding is niet meer versleuteld</string>
+    <string name="insecure_redirect_message">Deze koppeling stuurde de download via HTTP naar %1$s, wat niet versleuteld is. Andere mensen op het netwerk kunnen het bestand mogelijk zien of wijzigen.</string>
+    <string name="toast_insecure_redirect_refused">De download is gestopt omdat de verbinding niet meer versleuteld was.</string>
+    <string name="toast_download_too_large">Dit bestand is te groot om hier te downloaden.</string>
+    <string name="toast_download_not_a_pdf">Deze koppeling heeft geen PDF-bestand opgeleverd.</string>
     <string name="close">Sluiten</string>
     <string name="exit_fullscreen_button">Knop Volledig scherm afsluiten</string>
     <string name="rotate_screen">Scherm draaien</string>

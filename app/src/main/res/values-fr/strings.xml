@@ -402,6 +402,11 @@
     <string name="online_pdf_link">Lien du PDF en ligne</string>
     <string name="invalid_online_pdf_link">Saisissez un lien HTTP ou HTTPS valide.</string>
     <string name="http_online_pdf_warning">Les liens HTTP ne sont pas chiffrés. D\'autres personnes sur le réseau pourraient voir ou modifier le fichier. Touchez Continuer malgré tout pour l\'ouvrir.</string>
+    <string name="insecure_redirect_title">La connexion n\'est plus chiffrée</string>
+    <string name="insecure_redirect_message">Ce lien a envoyé le téléchargement vers %1$s en HTTP, qui n\'est pas chiffré. D\'autres personnes sur le réseau pourraient voir ou modifier le fichier.</string>
+    <string name="toast_insecure_redirect_refused">Le téléchargement a été arrêté car la connexion n\'était plus chiffrée.</string>
+    <string name="toast_download_too_large">Ce fichier est trop volumineux pour être téléchargé ici.</string>
+    <string name="toast_download_not_a_pdf">Ce lien n\'a pas renvoyé de fichier PDF.</string>
     <string name="close">Fermer</string>
     <string name="exit_fullscreen_button">Bouton de fermeture du plein écran</string>
     <string name="rotate_screen">Pivoter l\'écran</string>

@@ -402,6 +402,11 @@
     <string name="online_pdf_link">Online-PDF-Link</string>
     <string name="invalid_online_pdf_link">Geben Sie einen gültigen HTTP- oder HTTPS-Link ein.</string>
     <string name="http_online_pdf_warning">HTTP-Links sind nicht verschlüsselt. Andere Personen im Netzwerk könnten die Datei sehen oder ändern können. Tippen Sie trotzdem fortfahren, um sie zu öffnen.</string>
+    <string name="insecure_redirect_title">Verbindung ist nicht mehr verschlüsselt</string>
+    <string name="insecure_redirect_message">Dieser Link hat den Download über HTTP an %1$s weitergeleitet, was nicht verschlüsselt ist. Andere Personen im Netzwerk könnten die Datei sehen oder ändern.</string>
+    <string name="toast_insecure_redirect_refused">Der Download wurde gestoppt, weil die Verbindung nicht mehr verschlüsselt war.</string>
+    <string name="toast_download_too_large">Diese Datei ist zu groß, um sie hier herunterzuladen.</string>
+    <string name="toast_download_not_a_pdf">Dieser Link hat keine PDF-Datei geliefert.</string>
     <string name="close">Schließen</string>
     <string name="exit_fullscreen_button">Vollbildmodus beenden</string>
     <string name="rotate_screen">Bildschirm drehen</string>

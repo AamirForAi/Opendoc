@@ -434,7 +434,7 @@ class AnnotationSaveController(
         runCatching {
             val saved = destinationUri.path?.let { File(it) }?.takeIf { it.isFile } ?: return@runCatching
             saved.inputStream().use { input ->
-                OnlineDocumentStore.write(activity, sourceUri.toString(), vm.incognito, input)
+                OnlineDocumentStore.write(activity, sourceUri.toString(), vm.incognito, input, saved.length())
             }
         }
     }

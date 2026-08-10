@@ -402,6 +402,11 @@
     <string name="online_pdf_link">Link de PDF online</string>
     <string name="invalid_online_pdf_link">Insira um link HTTP ou HTTPS válido.</string>
     <string name="http_online_pdf_warning">Links HTTP não são criptografados. Outras pessoas na rede podem ver ou modificar o arquivo. Toque em Prosseguir mesmo assim para abri-lo.</string>
+    <string name="insecure_redirect_title">A conexão não está mais criptografada</string>
+    <string name="insecure_redirect_message">Este link enviou o download para %1$s por HTTP, que não é criptografado. Outras pessoas na rede podem ver ou modificar o arquivo.</string>
+    <string name="toast_insecure_redirect_refused">O download foi interrompido porque a conexão não estava mais criptografada.</string>
+    <string name="toast_download_too_large">Este arquivo é grande demais para ser baixado aqui.</string>
+    <string name="toast_download_not_a_pdf">Este link não retornou um arquivo PDF.</string>
     <string name="close">Fechar</string>
     <string name="exit_fullscreen_button">Botão de Sair do Modo Tela Cheia</string>
     <string name="rotate_screen">Rotacionar Tela</string>

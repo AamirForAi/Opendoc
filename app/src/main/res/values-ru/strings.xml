@@ -402,6 +402,11 @@
     <string name="online_pdf_link">Ссылка на онлайн-PDF</string>
     <string name="invalid_online_pdf_link">Введите действительную HTTP- или HTTPS-ссылку.</string>
     <string name="http_online_pdf_warning">HTTP-ссылки не зашифрованы. Другие люди в сети могут видеть или изменять файл. Нажмите «Всё равно продолжить», чтобы открыть его.</string>
+    <string name="insecure_redirect_title">Соединение больше не зашифровано</string>
+    <string name="insecure_redirect_message">Эта ссылка направила загрузку на %1$s по HTTP, который не зашифрован. Другие люди в сети могут видеть или изменять файл.</string>
+    <string name="toast_insecure_redirect_refused">Загрузка остановлена, потому что соединение больше не было зашифровано.</string>
+    <string name="toast_download_too_large">Этот файл слишком велик для загрузки здесь.</string>
+    <string name="toast_download_not_a_pdf">Эта ссылка не вернула файл PDF.</string>
     <string name="close">Закрыть</string>
     <string name="exit_fullscreen_button">Кнопка выхода из полноэкранного режима</string>
     <string name="rotate_screen">Поворот экрана</string>

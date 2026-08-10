@@ -402,6 +402,11 @@
     <string name="online_pdf_link">Enlace PDF en línea</string>
     <string name="invalid_online_pdf_link">Ingrese un enlace HTTP o HTTPS válido.</string>
     <string name="http_online_pdf_warning">Los enlaces HTTP no están cifrados. Otras personas en la red pueden ver o modificar el archivo. Toque Proceder de todos modos para abrirlo.</string>
+    <string name="insecure_redirect_title">La conexión ya no está cifrada</string>
+    <string name="insecure_redirect_message">Este enlace envió la descarga a %1$s por HTTP, que no está cifrado. Otras personas en la red pueden ver o modificar el archivo.</string>
+    <string name="toast_insecure_redirect_refused">La descarga se detuvo porque la conexión ya no estaba cifrada.</string>
+    <string name="toast_download_too_large">Este archivo es demasiado grande para descargarlo aquí.</string>
+    <string name="toast_download_not_a_pdf">Este enlace no devolvió un archivo PDF.</string>
     <string name="close">Cerrar</string>
     <string name="exit_fullscreen_button">Botón para Salir de Pantalla Completa</string>
     <string name="rotate_screen">Girar Pantalla</string>

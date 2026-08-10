@@ -402,6 +402,11 @@
     <string name="online_pdf_link">پیوند PDF برخط</string>
     <string name="invalid_online_pdf_link">یک پیوند معتبر HTTP یا HTTPS وارد کنید.</string>
     <string name="http_online_pdf_warning">پیوندهای HTTP رمزنگاری نشده‌اند. دیگران روی شبکه ممکن است بتوانند پرونده را ببینند یا تغییر دهند. برای باز کردن آن روی هرحال ادامه بده ضربه بزنید.</string>
+    <string name="insecure_redirect_title">اتصال دیگر رمزنگاری‌شده نیست</string>
+    <string name="insecure_redirect_message">این پیوند بارگیری را از طریق HTTP به %1$s فرستاد که رمزنگاری نشده است. دیگران روی شبکه ممکن است بتوانند پرونده را ببینند یا تغییر دهند.</string>
+    <string name="toast_insecure_redirect_refused">بارگیری متوقف شد زیرا اتصال دیگر رمزنگاری‌شده نبود.</string>
+    <string name="toast_download_too_large">این پرونده برای بارگیری در اینجا بسیار بزرگ است.</string>
+    <string name="toast_download_not_a_pdf">این پیوند پرونده PDF بازنگرداند.</string>
     <string name="close">بستن</string>
     <string name="exit_fullscreen_button">خروج از حالت تمام‌صفحه</string>
     <string name="rotate_screen">چرخاندن صفحه</string>

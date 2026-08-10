@@ -402,6 +402,11 @@
     <string name="online_pdf_link">線上 PDF 連結</string>
     <string name="invalid_online_pdf_link">請輸入有效的 HTTP 或 HTTPS 連結。</string>
     <string name="http_online_pdf_warning">HTTP 連結未加密。網路上的其他人可能會看到或修改檔案。點選「仍要繼續」以開啟。</string>
+    <string name="insecure_redirect_title">連線不再加密</string>
+    <string name="insecure_redirect_message">此連結將下載導向 %1$s，使用未加密的 HTTP。網路上的其他人可能會看到或修改檔案。</string>
+    <string name="toast_insecure_redirect_refused">由於連線不再加密，下載已停止。</string>
+    <string name="toast_download_too_large">此檔案太大，無法在此下載。</string>
+    <string name="toast_download_not_a_pdf">此連結未傳回 PDF 檔案。</string>
     <string name="close">關閉</string>
     <string name="exit_fullscreen_button">退出全螢幕按鈕</string>
     <string name="rotate_screen">旋轉螢幕</string>

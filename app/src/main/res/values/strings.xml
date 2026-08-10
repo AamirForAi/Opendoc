@@ -497,6 +497,11 @@
     <string name="online_pdf_link">Online PDF Link</string>
     <string name="invalid_online_pdf_link">Enter a valid HTTP or HTTPS link.</string>
     <string name="http_online_pdf_warning">HTTP links are not encrypted. Other people on the network may be able to see or modify the file. Tap Proceed Anyway to open it.</string>
+    <string name="insecure_redirect_title">Connection Is No Longer Encrypted</string>
+    <string name="insecure_redirect_message">This link sent the download to %1$s over HTTP, which is not encrypted. Other people on the network may be able to see or modify the file.</string>
+    <string name="toast_insecure_redirect_refused">Download stopped because the connection was no longer encrypted.</string>
+    <string name="toast_download_too_large">This file is too large to download here.</string>
+    <string name="toast_download_not_a_pdf">This link did not return a PDF file.</string>
     <string name="close">Close</string>
     <string name="exit_fullscreen_button">Exit Fullscreen Button</string>
     <string name="rotate_screen">Rotate Screen</string>
