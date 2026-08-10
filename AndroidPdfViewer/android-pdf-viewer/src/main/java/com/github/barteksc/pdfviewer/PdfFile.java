@@ -29,6 +29,7 @@ import com.github.barteksc.pdfviewer.model.CropBounds;
 import com.github.barteksc.pdfviewer.model.CropMargins;
 import com.github.barteksc.pdfviewer.util.FitPolicy;
 import com.github.barteksc.pdfviewer.util.PageSizeCalculator;
+import com.shockwave.pdfium.PageTextTooLargeException;
 import com.shockwave.pdfium.PdfDocument;
 import com.shockwave.pdfium.PdfiumCore;
 import com.shockwave.pdfium.util.Size;
@@ -39,10 +40,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.locks.ReentrantLock;
 
 class PdfFile {
@@ -50,6 +56,10 @@ class PdfFile {
     private static final String TAG = PdfFile.class.getSimpleName();
     private static final Object lock = new Object();
     private static volatile boolean debugChecksEnabled = false;
+    private static volatile boolean mainThreadChecksEnabled = false;
+    private static volatile PDFView.MainThreadViolationReporter mainThreadViolationReporter = null;
+    private static final int MAIN_THREAD_VIOLATION_REPORT_LIMIT = 3;
+    private static final ConcurrentHashMap<String, AtomicInteger> mainThreadViolationCounts = new ConcurrentHashMap<>();
     private final ReentrantLock renderGate = new ReentrantLock(true);
     private volatile AtomicBoolean activeRenderCancel = null;
     private volatile boolean fenceRequested = false;
@@ -63,14 +73,20 @@ class PdfFile {
     private List<Size> originalFullPageSizes = new ArrayList<>();
     /** Full page sizes in PDF points before optional margin cropping */
     private List<SizeF> originalFullPagePointSizes = new ArrayList<>();
+    private AtomicReferenceArray<PageGeometry> pageGeometries = new AtomicReferenceArray<>(0);
     /** Scaled page sizes */
     private List<SizeF> pageSizes = new ArrayList<>();
     /** Opened pages with indicator whether opening was successful */
     private SparseBooleanArray openedPages = new SparseBooleanArray();
     /** Pages opened only to back a pinned text page. */
     private SparseBooleanArray textOpenedPages = new SparseBooleanArray();
+    private final LinkedHashSet<Integer> renderPageOrder = new LinkedHashSet<>();
+    private static final int MAX_OPEN_RENDER_PAGES = 12;
+    private volatile int pinnedRenderPage = -1;
     private final Map<Integer, List<PdfDocument.HighlightAnnotation>> highlightAnnotationCache = new ConcurrentHashMap<>();
     private final Map<Integer, float[]> formFieldRectCache = new ConcurrentHashMap<>();
+    private final Map<Integer, Map<String, List<PdfDocument.HighlightAnnotation>>> highlightGroupCache =
+            new ConcurrentHashMap<>();
     /** Page with maximum width */
     private Size originalMaxWidthPageSize = new Size(0, 0);
     /** Page with maximum height */
@@ -152,6 +168,8 @@ class PdfFile {
             originalFullPagePointSizes.add(pdfiumCore.getPageSizePoint(pdfDocument, docPage));
         }
 
+        pageGeometries = new AtomicReferenceArray<>(pagesCount);
+
         for (int i = 0; i < pagesCount; i++) {
             Size pageSize = calculateOriginalPageSize(i);
             if (pageSize.getWidth() > originalMaxWidthPageSize.getWidth()) {
@@ -198,6 +216,64 @@ class PdfFile {
             return new SizeF(0, 0);
         }
         return originalFullPagePointSizes.get(pageIndex);
+    }
+
+    private PageGeometry getPageGeometry(int pageIndex) {
+        if (pageIndex >= 0 && pageIndex < pageGeometries.length()) {
+            PageGeometry geometry = pageGeometries.get(pageIndex);
+            if (geometry != null) {
+                return geometry;
+            }
+        }
+        SizeF fullSize = getOriginalFullPagePointSize(pageIndex);
+        return new PageGeometry(0, 0, fullSize.getWidth(), fullSize.getHeight(), 0);
+    }
+
+    private void userToFrameTopDown(PageGeometry g, float ux, float uy, float[] out) {
+        float frameX;
+        float frameY;
+        switch (g.rotation) {
+            case 1:
+                frameX = uy - g.bottom;
+                frameY = g.right - ux;
+                break;
+            case 2:
+                frameX = g.right - ux;
+                frameY = g.top - uy;
+                break;
+            case 3:
+                frameX = g.top - uy;
+                frameY = ux - g.left;
+                break;
+            default:
+                frameX = ux - g.left;
+                frameY = uy - g.bottom;
+                break;
+        }
+        out[0] = frameX;
+        out[1] = g.frameHeight() - frameY;
+    }
+
+    private void frameTopDownToUser(PageGeometry g, float frameX, float frameYFromTop, float[] out) {
+        float frameY = g.frameHeight() - frameYFromTop;
+        switch (g.rotation) {
+            case 1:
+                out[0] = g.right - frameY;
+                out[1] = g.bottom + frameX;
+                break;
+            case 2:
+                out[0] = g.right - frameX;
+                out[1] = g.top - frameY;
+                break;
+            case 3:
+                out[0] = g.left + frameY;
+                out[1] = g.top - frameX;
+                break;
+            default:
+                out[0] = g.left + frameX;
+                out[1] = g.bottom + frameY;
+                break;
+        }
     }
 
     public float fullPageAspectRatio(int pageIndex) {
@@ -535,6 +611,24 @@ class PdfFile {
         return rowIndexesByOffset.get(limitedIndex);
     }
 
+    private void capturePageGeometry(int pageIndex, int docPage) {
+        if (pageIndex < 0 || pageIndex >= pageGeometries.length() || pageGeometries.get(pageIndex) != null) {
+            return;
+        }
+        float[] values = pdfiumCore.getPageGeometry(pdfDocument, docPage);
+        if (values.length < 5) {
+            return;
+        }
+        float left = values[0];
+        float bottom = values[1];
+        float right = values[2];
+        float top = values[3];
+        int rotation = (int) values[4];
+        if (right - left > 0 && top - bottom > 0 && rotation >= 0 && rotation <= 3) {
+            pageGeometries.set(pageIndex, new PageGeometry(left, bottom, right, top, rotation));
+        }
+    }
+
     public boolean openPage(int pageIndex) throws PageRenderingException {
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
@@ -548,12 +642,19 @@ class PdfFile {
             if (openedPages.indexOfKey(docPage) >= 0) {
                 if (openedPages.get(docPage, false)) {
                     textOpenedPages.delete(docPage);
+                    renderPageOrder.remove(docPage);
+                    renderPageOrder.add(docPage);
+                    capturePageGeometry(pageIndex, docPage);
                 }
                 return false;
             }
             try {
+                warnIfMainThreadFill("openPage");
                 pdfiumCore.openPage(pdfDocument, docPage);
                 openedPages.put(docPage, true);
+                renderPageOrder.add(docPage);
+                capturePageGeometry(pageIndex, docPage);
+                evictOverCap();
                 return true;
             } catch (Exception e) {
                 openedPages.put(docPage, false);
@@ -571,6 +672,7 @@ class PdfFile {
         if (disposed || pdfiumCore == null || pdfDocument == null) {
             return;
         }
+        warnIfMainThreadFill("ensureTextPage");
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return;
@@ -588,7 +690,39 @@ class PdfFile {
             } else if (!openedPages.get(docPage, false)) {
                 return;
             }
+            capturePageGeometry(pageIndex, docPage);
             pdfiumCore.openTextPage(pdfDocument, docPage);
+        }
+    }
+
+    public void ensurePageGeometry(int pageIndex) {
+        if (pageIndex >= 0 && pageIndex < pageGeometries.length()
+                && pageGeometries.get(pageIndex) != null) {
+            return;
+        }
+        if (disposed || pdfiumCore == null || pdfDocument == null) {
+            return;
+        }
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return;
+        }
+        synchronized (lock) {
+            if (disposed || pdfDocument == null) {
+                return;
+            }
+            if (openedPages.indexOfKey(docPage) < 0) {
+                try {
+                    pdfiumCore.openPage(pdfDocument, docPage);
+                    openedPages.put(docPage, true);
+                } catch (Exception e) {
+                    openedPages.put(docPage, false);
+                    return;
+                }
+            } else if (!openedPages.get(docPage, false)) {
+                return;
+            }
+            capturePageGeometry(pageIndex, docPage);
         }
     }
 
@@ -628,7 +762,56 @@ class PdfFile {
         }
         pdfiumCore.closePage(pdfDocument, docPage);
         openedPages.delete(docPage);
+        renderPageOrder.remove(docPage);
         textOpenedPages.delete(docPage);
+    }
+
+    private void evictOverCap() {
+        if (renderPageOrder.size() <= MAX_OPEN_RENDER_PAGES) {
+            return;
+        }
+        Iterator<Integer> order = renderPageOrder.iterator();
+        while (order.hasNext() && renderPageOrder.size() > MAX_OPEN_RENDER_PAGES) {
+            int docPage = order.next();
+            if (docPage == pinnedRenderPage || textOpenedPages.get(docPage, false) || hasOpenTextPage(docPage)) {
+                continue;
+            }
+            pdfiumCore.closePage(pdfDocument, docPage);
+            openedPages.delete(docPage);
+            order.remove();
+        }
+    }
+
+    private boolean hasOpenTextPage(int docPage) {
+        return pdfDocument != null && pdfiumCore.hasTextPage(pdfDocument, docPage);
+    }
+
+    void closeRenderOwnedPage(int pageIndex) {
+        int docPage = documentPage(pageIndex);
+        if (docPage < 0) {
+            return;
+        }
+        synchronized (lock) {
+            if (disposed || pdfDocument == null) {
+                return;
+            }
+            if (!openedPages.get(docPage, false) || docPage == pinnedRenderPage
+                    || textOpenedPages.get(docPage, false) || hasOpenTextPage(docPage)) {
+                return;
+            }
+            pdfiumCore.closePage(pdfDocument, docPage);
+            openedPages.delete(docPage);
+            renderPageOrder.remove(docPage);
+        }
+    }
+
+    void pinPage(int pageIndex) {
+        int docPage = documentPage(pageIndex);
+        pinnedRenderPage = docPage >= 0 ? docPage : -1;
+    }
+
+    void unpinPage() {
+        pinnedRenderPage = -1;
     }
 
     public int pageCharCount(int pageIndex) {
@@ -709,9 +892,11 @@ class PdfFile {
     }
 
     public PointF documentToPdf(int pageIndex, float zoom, float docX, float docY) {
-        SizeF fullSize = getOriginalFullPagePointSize(pageIndex);
+        PageGeometry geometry = getPageGeometry(pageIndex);
         SizeF renderedSize = getScaledPageSize(pageIndex, zoom);
-        if (fullSize.getWidth() <= 0 || fullSize.getHeight() <= 0
+        float frameWidth = geometry.frameWidth();
+        float frameHeight = geometry.frameHeight();
+        if (frameWidth <= 0 || frameHeight <= 0
                 || renderedSize.getWidth() <= 0 || renderedSize.getHeight() <= 0) {
             return new PointF(0, 0);
         }
@@ -722,14 +907,16 @@ class PdfFile {
         float localY = docY - pageOriginY;
 
         CropBounds crop = getCropBounds(pageIndex);
-        float cropLeft = crop.getLeft() * fullSize.getWidth();
-        float cropTop = crop.getTop() * fullSize.getHeight();
-        float cropWidth = Math.max(1f, crop.getWidth() * fullSize.getWidth());
-        float cropHeight = Math.max(1f, crop.getHeight() * fullSize.getHeight());
+        float cropLeft = crop.getLeft() * frameWidth;
+        float cropTop = crop.getTop() * frameHeight;
+        float cropWidth = Math.max(1f, crop.getWidth() * frameWidth);
+        float cropHeight = Math.max(1f, crop.getHeight() * frameHeight);
 
-        float fullX = cropLeft + localX * cropWidth / renderedSize.getWidth();
-        float fullYFromTop = cropTop + localY * cropHeight / renderedSize.getHeight();
-        return new PointF(fullX, fullSize.getHeight() - fullYFromTop);
+        float frameX = cropLeft + localX * cropWidth / renderedSize.getWidth();
+        float frameYFromTop = cropTop + localY * cropHeight / renderedSize.getHeight();
+        float[] user = new float[2];
+        frameTopDownToUser(geometry, frameX, frameYFromTop, user);
+        return new PointF(user[0], user[1]);
     }
 
     public RectF pdfRectToDocument(int pageIndex, float zoom, float left, float bottom, float right, float top) {
@@ -738,37 +925,88 @@ class PdfFile {
 
     public RectF pdfRectToDocument(int pageIndex, float zoom, float left, float bottom, float right, float top,
                                    boolean clipToPage) {
-        SizeF fullSize = getOriginalFullPagePointSize(pageIndex);
+        PageGeometry geometry = getPageGeometry(pageIndex);
+        float[] cornerA = new float[2];
+        float[] cornerB = new float[2];
+        userToFrameTopDown(geometry, left, bottom, cornerA);
+        userToFrameTopDown(geometry, right, top, cornerB);
+        return frameRectToDocument(pageIndex, zoom, cornerA[0], cornerA[1], cornerB[0], cornerB[1], clipToPage);
+    }
+
+    public RectF frameRectToDocument(int pageIndex, float zoom, float frameLeft, float frameTop,
+                                     float frameRight, float frameBottom, boolean clipToPage) {
+        PageGeometry geometry = getPageGeometry(pageIndex);
         SizeF renderedSize = getScaledPageSize(pageIndex, zoom);
-        if (fullSize.getWidth() <= 0 || fullSize.getHeight() <= 0
+        float frameWidth = geometry.frameWidth();
+        float frameHeight = geometry.frameHeight();
+        if (frameWidth <= 0 || frameHeight <= 0
                 || renderedSize.getWidth() <= 0 || renderedSize.getHeight() <= 0) {
             return null;
         }
 
         CropBounds crop = getCropBounds(pageIndex);
-        float cropLeft = crop.getLeft() * fullSize.getWidth();
-        float cropTop = crop.getTop() * fullSize.getHeight();
-        float cropWidth = Math.max(1f, crop.getWidth() * fullSize.getWidth());
-        float cropHeight = Math.max(1f, crop.getHeight() * fullSize.getHeight());
+        float cropLeft = crop.getLeft() * frameWidth;
+        float cropTop = crop.getTop() * frameHeight;
+        float cropWidth = Math.max(1f, crop.getWidth() * frameWidth);
+        float cropHeight = Math.max(1f, crop.getHeight() * frameHeight);
 
         float pageOriginX = isVertical ? getSecondaryPageOffset(pageIndex, zoom) : getPageOffset(pageIndex, zoom);
         float pageOriginY = isVertical ? getPageOffset(pageIndex, zoom) : getSecondaryPageOffset(pageIndex, zoom);
 
-        float localLeft = (left - cropLeft) * renderedSize.getWidth() / cropWidth;
-        float localRight = (right - cropLeft) * renderedSize.getWidth() / cropWidth;
-        float localTop = (fullSize.getHeight() - top - cropTop) * renderedSize.getHeight() / cropHeight;
-        float localBottom = (fullSize.getHeight() - bottom - cropTop) * renderedSize.getHeight() / cropHeight;
+        float scaleX = renderedSize.getWidth() / cropWidth;
+        float scaleY = renderedSize.getHeight() / cropHeight;
         RectF rect = new RectF(
-                pageOriginX + localLeft,
-                pageOriginY + localTop,
-                pageOriginX + localRight,
-                pageOriginY + localBottom
+                pageOriginX + (frameLeft - cropLeft) * scaleX,
+                pageOriginY + (frameTop - cropTop) * scaleY,
+                pageOriginX + (frameRight - cropLeft) * scaleX,
+                pageOriginY + (frameBottom - cropTop) * scaleY
         );
         rect.sort();
         if (!clipToPage) {
             return rect;
         }
         return clipToPageBounds(rect, pageOriginX, pageOriginY, renderedSize.getWidth(), renderedSize.getHeight());
+    }
+
+    public SizeF getPageFrameSize(int pageIndex) {
+        PageGeometry geometry = getPageGeometry(pageIndex);
+        return new SizeF(geometry.frameWidth(), geometry.frameHeight());
+    }
+
+    public PointF userToFrame(int pageIndex, float userX, float userY) {
+        PageGeometry geometry = getPageGeometry(pageIndex);
+        float[] out = new float[2];
+        userToFrameTopDown(geometry, userX, userY, out);
+        return new PointF(out[0], out[1]);
+    }
+
+    public RectF userRectToFrame(int pageIndex, float left, float bottom, float right, float top) {
+        PageGeometry geometry = getPageGeometry(pageIndex);
+        float[] cornerA = new float[2];
+        float[] cornerB = new float[2];
+        userToFrameTopDown(geometry, left, bottom, cornerA);
+        userToFrameTopDown(geometry, right, top, cornerB);
+        return new RectF(
+                Math.min(cornerA[0], cornerB[0]),
+                Math.min(cornerA[1], cornerB[1]),
+                Math.max(cornerA[0], cornerB[0]),
+                Math.max(cornerA[1], cornerB[1])
+        );
+    }
+
+    public RectF frameRectToUser(int pageIndex, float frameLeft, float frameTop,
+                                 float frameRight, float frameBottom) {
+        PageGeometry geometry = getPageGeometry(pageIndex);
+        float[] cornerA = new float[2];
+        float[] cornerB = new float[2];
+        frameTopDownToUser(geometry, frameLeft, frameTop, cornerA);
+        frameTopDownToUser(geometry, frameRight, frameBottom, cornerB);
+        return new RectF(
+                Math.min(cornerA[0], cornerB[0]),
+                Math.max(cornerA[1], cornerB[1]),
+                Math.max(cornerA[0], cornerB[0]),
+                Math.min(cornerA[1], cornerB[1])
+        );
     }
 
     private CropBounds getCropBounds(int pageIndex) {
@@ -784,6 +1022,12 @@ class PdfFile {
 
     public CropBounds getPageCropBounds(int pageIndex) {
         return getCropBounds(pageIndex);
+    }
+
+    @Deprecated
+    public RectF getPageUserBounds(int pageIndex) {
+        PageGeometry g = getPageGeometry(pageIndex);
+        return new RectF(g.left, g.top, g.right, g.bottom);
     }
 
     private RectF clipToPageBounds(RectF rect, float pageOriginX, float pageOriginY, float width, float height) {
@@ -919,6 +1163,7 @@ class PdfFile {
         if (disposed || pdfDocument == null) {
             return new ArrayList<>();
         }
+        warnIfMainThreadFill("getPageLinks");
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return new ArrayList<>();
@@ -930,6 +1175,7 @@ class PdfFile {
         if (disposed || pdfDocument == null) {
             return "";
         }
+        warnIfMainThreadFill("getPageText");
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return "";
@@ -946,6 +1192,7 @@ class PdfFile {
         if (disposed || pdfDocument == null) {
             return "";
         }
+        warnIfMainThreadFill("getPageRawText");
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return "";
@@ -955,7 +1202,11 @@ class PdfFile {
         } catch (PageRenderingException e) {
             return "";
         }
-        return pdfiumCore.getPageRawText(pdfDocument, docPage);
+        try {
+            return pdfiumCore.getPageRawText(pdfDocument, docPage);
+        } catch (PageTextTooLargeException e) {
+            return "";
+        }
     }
 
     public Map<Integer, String> getPagesText(int start, int end) {
@@ -1030,19 +1281,33 @@ class PdfFile {
             } catch (PageRenderingException e) {
                 return false;
             }
-            float rectWidth = pdfRect.width();
-            float top = Math.max(pdfRect.top, pdfRect.bottom);
+            PageGeometry geometry = getPageGeometry(pageIndex);
+            float[] cornerA = new float[2];
+            float[] cornerB = new float[2];
+            userToFrameTopDown(geometry, pdfRect.left, pdfRect.top, cornerA);
+            userToFrameTopDown(geometry, pdfRect.right, pdfRect.bottom, cornerB);
+            float frameLeft = Math.min(cornerA[0], cornerB[0]);
+            float frameTop = Math.min(cornerA[1], cornerB[1]);
+            float frameRectWidth = Math.abs(cornerA[0] - cornerB[0]);
+            if (frameRectWidth <= 0) {
+                return false;
+            }
+            float[] user = new float[2];
             float[][] pdfStrokes = new float[normalizedStrokes.length][];
             for (int i = 0; i < normalizedStrokes.length; i++) {
                 float[] stroke = normalizedStrokes[i];
                 float[] mapped = new float[stroke.length];
                 for (int k = 0; k + 1 < stroke.length; k += 2) {
-                    mapped[k] = pdfRect.left + stroke[k] * rectWidth;
-                    mapped[k + 1] = top - stroke[k + 1] * rectWidth;
+                    frameTopDownToUser(geometry,
+                            frameLeft + stroke[k] * frameRectWidth,
+                            frameTop + stroke[k + 1] * frameRectWidth,
+                            user);
+                    mapped[k] = user[0];
+                    mapped[k + 1] = user[1];
                 }
                 pdfStrokes[i] = mapped;
             }
-            float strokeWidthPts = normalizedStrokeWidth * rectWidth;
+            float strokeWidthPts = normalizedStrokeWidth * frameRectWidth;
             return pdfiumCore.addSignatureContent(pdfDocument, docPage, pdfStrokes, color, strokeWidthPts);
         } finally {
             renderGate.unlock();
@@ -1074,6 +1339,7 @@ class PdfFile {
         List<PdfDocument.HighlightAnnotation> snapshot = annotations == null
                 ? Collections.<PdfDocument.HighlightAnnotation>emptyList()
                 : Collections.unmodifiableList(annotations);
+        highlightGroupCache.remove(pageIndex);
         highlightAnnotationCache.put(pageIndex, snapshot);
         return snapshot;
     }
@@ -1111,12 +1377,39 @@ class PdfFile {
         List<PdfDocument.HighlightAnnotation> snapshot = annotations == null
                 ? Collections.<PdfDocument.HighlightAnnotation>emptyList()
                 : Collections.unmodifiableList(annotations);
+        highlightGroupCache.remove(pageIndex);
         highlightAnnotationCache.put(pageIndex, snapshot);
         formFieldRectCache.put(pageIndex, rects);
     }
 
     public List<PdfDocument.HighlightAnnotation> peekHighlightAnnotations(int pageIndex) {
         return highlightAnnotationCache.get(pageIndex);
+    }
+
+    Map<String, List<PdfDocument.HighlightAnnotation>> peekHighlightAnnotationGroups(
+            int pageIndex, List<PdfDocument.HighlightAnnotation> annotations) {
+        Map<String, List<PdfDocument.HighlightAnnotation>> cached = highlightGroupCache.get(pageIndex);
+        if (cached != null) {
+            return cached;
+        }
+        Map<String, List<PdfDocument.HighlightAnnotation>> groups = new LinkedHashMap<>();
+        for (PdfDocument.HighlightAnnotation annotation : annotations) {
+            if (annotation.getBounds() == null || annotation.isSearchResult()) {
+                continue;
+            }
+            String groupKey = annotation.getGroupKey();
+            String key = groupKey == null || groupKey.isEmpty()
+                    ? "i" + annotation.getAnnotationIndex()
+                    : "g" + groupKey + "#" + annotation.getColor() + "#" + annotation.isAppOwned();
+            List<PdfDocument.HighlightAnnotation> members = groups.get(key);
+            if (members == null) {
+                members = new ArrayList<>();
+                groups.put(key, members);
+            }
+            members.add(annotation);
+        }
+        highlightGroupCache.put(pageIndex, groups);
+        return groups;
     }
 
     public float[] peekFormFieldRects(int pageIndex) {
@@ -1131,6 +1424,14 @@ class PdfFile {
         return debugChecksEnabled;
     }
 
+    static void setMainThreadChecksEnabled(boolean enabled) {
+        mainThreadChecksEnabled = enabled;
+    }
+
+    static void setMainThreadViolationReporter(PDFView.MainThreadViolationReporter reporter) {
+        mainThreadViolationReporter = reporter;
+    }
+
     private static void throwIfMainThreadFill(String path) {
         if (debugChecksEnabled && Looper.getMainLooper().isCurrentThread()) {
             throw new IllegalStateException("pdfium fill on main thread: " + path);
@@ -1138,16 +1439,39 @@ class PdfFile {
     }
 
     private static void warnIfMainThreadFill(String path) {
-        if (debugChecksEnabled && Looper.getMainLooper().isCurrentThread()) {
-            Log.w(TAG, "pdfium fill on main thread: " + path, new Throwable());
+        if (!mainThreadChecksEnabled || !Looper.getMainLooper().isCurrentThread()) {
+            return;
+        }
+        AtomicInteger counter = mainThreadViolationCounts.get(path);
+        if (counter == null) {
+            counter = new AtomicInteger();
+            AtomicInteger existing = mainThreadViolationCounts.putIfAbsent(path, counter);
+            if (existing != null) {
+                counter = existing;
+            }
+        }
+        int count = counter.incrementAndGet();
+        if (count > MAIN_THREAD_VIOLATION_REPORT_LIMIT) {
+            if (debugChecksEnabled) {
+                Log.w(TAG, "pdfium work on main thread: " + path + " x" + count);
+            }
+            return;
+        }
+        Throwable stack = new Throwable("pdfium work on main thread: " + path + " x" + count);
+        Log.w(TAG, "pdfium work on main thread: " + path + " x" + count, stack);
+        PDFView.MainThreadViolationReporter reporter = mainThreadViolationReporter;
+        if (reporter != null) {
+            reporter.onMainThreadPdfiumWork(path, stack);
         }
     }
 
     public void invalidateHighlightAnnotationCache(int pageIndex) {
+        highlightGroupCache.remove(pageIndex);
         highlightAnnotationCache.remove(pageIndex);
     }
 
     public void invalidateHighlightAnnotationCache() {
+        highlightGroupCache.clear();
         highlightAnnotationCache.clear();
     }
 
@@ -1251,6 +1575,7 @@ class PdfFile {
         if (disposed || pdfDocument == null) {
             return null;
         }
+        warnIfMainThreadFill("getFormFieldAtPoint");
         int docPage = documentPage(pageIndex);
         if (docPage < 0) {
             return null;
@@ -1412,8 +1737,14 @@ class PdfFile {
                 originalUserPages = null;
                 originalFullPageSizes.clear();
                 originalFullPagePointSizes.clear();
+                for (int i = 0; i < pageGeometries.length(); i++) {
+                    pageGeometries.set(i, null);
+                }
                 openedPages.clear();
                 textOpenedPages.clear();
+                renderPageOrder.clear();
+                pinnedRenderPage = -1;
+                highlightGroupCache.clear();
                 highlightAnnotationCache.clear();
                 formFieldRectCache.clear();
                 pageRowIndexes = new int[0];
@@ -1467,5 +1798,29 @@ class PdfFile {
         }
 
         return documentPage;
+    }
+
+    static final class PageGeometry {
+        final float left;
+        final float bottom;
+        final float right;
+        final float top;
+        final int rotation;
+
+        PageGeometry(float left, float bottom, float right, float top, int rotation) {
+            this.left = left;
+            this.bottom = bottom;
+            this.right = right;
+            this.top = top;
+            this.rotation = rotation;
+        }
+
+        float frameWidth() {
+            return rotation % 2 == 1 ? top - bottom : right - left;
+        }
+
+        float frameHeight() {
+            return rotation % 2 == 1 ? right - left : top - bottom;
+        }
     }
 }

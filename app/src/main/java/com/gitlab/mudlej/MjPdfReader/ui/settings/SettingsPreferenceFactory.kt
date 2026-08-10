@@ -19,7 +19,14 @@ import androidx.preference.PreferenceViewHolder
 import androidx.preference.SwitchPreferenceCompat
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.BackupFolder
+import com.gitlab.mudlej.MjPdfReader.data.PageFitPolicy
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.data.ReadingMode
+import com.gitlab.mudlej.MjPdfReader.data.SharedCopyMode
+import com.gitlab.mudlej.MjPdfReader.data.TapToTurnZones
+import com.gitlab.mudlej.MjPdfReader.data.getReadingMode
+import com.gitlab.mudlej.MjPdfReader.data.readingModePreferenceKey
+import com.gitlab.mudlej.MjPdfReader.data.setReadingMode
 import com.gitlab.mudlej.MjPdfReader.data.translation.DictionaryInstaller
 import com.gitlab.mudlej.MjPdfReader.data.translation.DictionaryStore
 import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationEngine
@@ -30,7 +37,6 @@ import com.gitlab.mudlej.MjPdfReader.ui.home.HomeProgressStyle
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeTitleEllipsize
 import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableAction
 import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.PdfThemeController
-import com.gitlab.mudlej.MjPdfReader.core.ui.SegmentedButtonStyler
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputLayout
@@ -100,6 +106,7 @@ internal class SettingsPreferenceFactory(
     }
 
     private val titleLineOptions = listOf(1, 2, 3, 4, 5)
+    private val hideDelayOptions = listOf(2000, 3000, 5000, 10000)
 
     private fun progressStyleLabel(style: HomeProgressStyle): String {
         return when (style) {
@@ -182,6 +189,35 @@ internal class SettingsPreferenceFactory(
         )
     }
 
+    fun hideDelayPreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val labels = hideDelayOptions.map {
+            context.resources.getQuantityString(R.plurals.hide_delay_seconds, it / 1000, it / 1000)
+        }
+        val currentValue = appPreferences.getHideDelay()
+        return Preference(context).apply {
+            title = getString(R.string.hide_delay_title)
+            this.key = Preferences.hideDelayKey
+            summary = formatSummary(breadcrumb, labels.getOrNull(hideDelayOptions.indexOf(currentValue)))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showSingleChoiceDialog(
+                    title = getString(R.string.hide_delay_title),
+                    items = labels,
+                    checkedIndex = hideDelayOptions.indexOf(currentValue),
+                    onReset = {
+                        appPreferences.setHideDelay(Preferences.hideDelayDefault)
+                        host?.refreshPreferences()
+                    },
+                ) { index ->
+                    appPreferences.setHideDelay(hideDelayOptions[index])
+                    host?.refreshPreferences()
+                }
+                true
+            }
+        }
+    }
+
     private fun titleLinesPreference(
         @StringRes titleRes: Int,
         key: String,
@@ -217,6 +253,87 @@ internal class SettingsPreferenceFactory(
         }
     }
 
+    fun readingModePreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val options = ReadingMode.entries
+        return Preference(context).apply {
+            title = getString(R.string.reading_mode_title)
+            key = readingModePreferenceKey
+            summary = formatSummary(breadcrumb, appPreferences.getReadingMode().let {
+                "${getString(it.labelRes)}\n${getString(it.summaryRes)}"
+            })
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showSingleChoiceDialog(
+                    title = getString(R.string.reading_mode_title),
+                    items = options.map { getString(it.labelRes) },
+                    checkedIndex = options.indexOf(appPreferences.getReadingMode()),
+                    onReset = {
+                        appPreferences.setReadingMode(ReadingMode.CONTINUOUS)
+                        host?.refreshPreferences()
+                    },
+                ) { index ->
+                    appPreferences.setReadingMode(options[index])
+                    host?.refreshPreferences()
+                }
+                true
+            }
+        }
+    }
+
+    fun pageFitPreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val options = PageFitPolicy.entries
+        return Preference(context).apply {
+            title = getString(R.string.page_fit_title)
+            key = Preferences.pageFitPolicyKey
+            summary = formatSummary(breadcrumb, getString(appPreferences.getPageFitPolicy().labelRes))
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showSingleChoiceDialog(
+                    title = getString(R.string.page_fit_title),
+                    items = options.map { getString(it.labelRes) },
+                    checkedIndex = options.indexOf(appPreferences.getPageFitPolicy()),
+                    onReset = {
+                        appPreferences.setPageFitPolicy(PageFitPolicy.valueOf(Preferences.pageFitPolicyDefault))
+                        host?.refreshPreferences()
+                    },
+                ) { index ->
+                    appPreferences.setPageFitPolicy(options[index])
+                    host?.refreshPreferences()
+                }
+                true
+            }
+        }
+    }
+
+    fun tapToTurnPreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val options = TapToTurnZones.entries
+        return Preference(context).apply {
+            title = getString(R.string.tap_to_turn_title)
+            key = Preferences.tapToTurnKey
+            summary = formatSummary(breadcrumb, getString(appPreferences.getTapToTurnZones().labelRes))
+            isEnabled = appPreferences.getSinglePageMode()
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showSingleChoiceDialog(
+                    title = getString(R.string.tap_to_turn_title),
+                    items = options.map { getString(it.labelRes) },
+                    checkedIndex = options.indexOf(appPreferences.getTapToTurnZones()),
+                    onReset = {
+                        appPreferences.setTapToTurnZones(TapToTurnZones.valueOf(Preferences.tapToTurnDefault))
+                        host?.refreshPreferences()
+                    },
+                ) { index ->
+                    appPreferences.setTapToTurnZones(options[index])
+                    host?.refreshPreferences()
+                }
+                true
+            }
+        }
+    }
+
     fun switchPreference(
         @StringRes titleRes: Int,
         key: String,
@@ -230,6 +347,28 @@ internal class SettingsPreferenceFactory(
             setDefaultValue(defaultValue)
             summary = formatSummary(breadcrumb, summaryRes?.let(::getString))
             isIconSpaceReserved = false
+        }
+    }
+
+    fun refreshingSwitchPreference(
+        @StringRes titleRes: Int,
+        key: String,
+        defaultValue: Boolean,
+        @StringRes summaryRes: Int?,
+        breadcrumb: String?,
+    ): SwitchPreferenceCompat {
+        val host = fragment as? SettingsFragment
+        return switchPreference(
+            titleRes = titleRes,
+            key = key,
+            defaultValue = defaultValue,
+            summaryRes = summaryRes,
+            breadcrumb = breadcrumb,
+        ).apply {
+            setOnPreferenceChangeListener { _, _ ->
+                host?.refreshPreferencesAfterChange()
+                true
+            }
         }
     }
 
@@ -315,6 +454,34 @@ internal class SettingsPreferenceFactory(
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
                 showShortcutBarButtonsPreferenceDialog(context, appPreferences) {}
+                true
+            }
+        }
+    }
+
+    fun sharedCopyModePreference(breadcrumb: String?): Preference {
+        val host = fragment as? SettingsFragment
+        val options = SharedCopyMode.entries
+        return Preference(context).apply {
+            title = getString(R.string.keep_shared_copies_title)
+            key = Preferences.sharedCopyModeKey
+            summary = formatSummary(breadcrumb, appPreferences.getSharedCopyMode().let {
+                "${getString(it.labelRes)}\n${getString(it.summaryRes)}"
+            })
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                showSingleChoiceDialog(
+                    title = getString(R.string.keep_shared_copies_title),
+                    items = options.map { getString(it.labelRes) },
+                    checkedIndex = options.indexOf(appPreferences.getSharedCopyMode()),
+                    onReset = {
+                        appPreferences.setSharedCopyMode(SharedCopyMode.ALWAYS_COPY)
+                        host?.refreshPreferences()
+                    },
+                ) { index ->
+                    appPreferences.setSharedCopyMode(options[index])
+                    host?.refreshPreferences()
+                }
                 true
             }
         }
@@ -940,34 +1107,9 @@ internal class SettingsPreferenceFactory(
             (holder.findViewById(R.id.theme_choice_title) as TextView).text = titleText
 
             val group = holder.findViewById(R.id.theme_choice_group) as MaterialButtonToggleGroup
-            group.clearOnButtonCheckedListeners()
-            group.check(selectedMode.toButtonId())
-            styleSegments(group)
-            group.addOnButtonCheckedListener { _, checkedId, isChecked ->
-                if (!isChecked) return@addOnButtonCheckedListener
-                selectedMode = checkedId.toThemeMode()
-                styleSegments(group)
-                onModeSelected(selectedMode)
-            }
-        }
-
-        private fun styleSegments(group: MaterialButtonToggleGroup) {
-            SegmentedButtonStyler.style(group)
-        }
-
-        private fun String.toButtonId(): Int {
-            return when (this) {
-                Preferences.themeDark -> R.id.theme_choice_dark
-                Preferences.themeLight -> R.id.theme_choice_light
-                else -> R.id.theme_choice_system
-            }
-        }
-
-        private fun Int.toThemeMode(): String {
-            return when (this) {
-                R.id.theme_choice_dark -> Preferences.themeDark
-                R.id.theme_choice_light -> Preferences.themeLight
-                else -> Preferences.themeSystem
+            ThemeChoiceStrip.bind(group, selectedMode) { mode ->
+                selectedMode = mode
+                onModeSelected(mode)
             }
         }
     }

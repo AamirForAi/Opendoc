@@ -15,10 +15,13 @@
  */
 package com.github.barteksc.pdfviewer;
 
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import com.github.barteksc.pdfviewer.model.CropMargins;
 import com.github.barteksc.pdfviewer.source.DocumentSource;
+import com.github.barteksc.pdfviewer.util.FitPolicy;
 import com.shockwave.pdfium.PdfDocument;
 import com.shockwave.pdfium.PdfiumCore;
 import com.shockwave.pdfium.util.Size;
@@ -37,6 +40,19 @@ class DecodingAsyncTask extends AsyncTask<Void, Void, Throwable> {
     private int[] userPages;
     private PdfFile pdfFile;
 
+    private final Context context;
+    private final Size viewSize;
+    private final FitPolicy pageFitPolicy;
+    private final boolean swipeVertical;
+    private final int spacingPx;
+    private final boolean autoSpacingEnabled;
+    private final boolean fitEachPage;
+    private final boolean cropMarginsEnabled;
+    private final CropMargins cachedCropMargins;
+    private final boolean horizontalReadingDirectionRtl;
+    private final int pagesPerRow;
+    private final boolean firstPageAlone;
+
     DecodingAsyncTask(DocumentSource docSource, String password, int[] userPages, PDFView pdfView, PdfiumCore pdfiumCore) {
         this.docSource = docSource;
         this.userPages = userPages;
@@ -44,19 +60,30 @@ class DecodingAsyncTask extends AsyncTask<Void, Void, Throwable> {
         this.pdfViewReference = new WeakReference<>(pdfView);
         this.password = password;
         this.pdfiumCore = pdfiumCore;
+        this.context = pdfView.getContext();
+        this.viewSize = new Size(pdfView.getWidth(), pdfView.getHeight());
+        this.pageFitPolicy = pdfView.getPageFitPolicy();
+        this.swipeVertical = pdfView.isSwipeVertical();
+        this.spacingPx = pdfView.getSpacingPx();
+        this.autoSpacingEnabled = pdfView.isAutoSpacingEnabled();
+        this.fitEachPage = pdfView.isFitEachPage();
+        this.cropMarginsEnabled = pdfView.isCropMarginsEnabled();
+        this.cachedCropMargins = pdfView.getCachedCropMargins();
+        this.horizontalReadingDirectionRtl = pdfView.isHorizontalReadingDirectionRtl();
+        this.pagesPerRow = pdfView.getPagesPerRow();
+        this.firstPageAlone = pdfView.isFirstPageAlone();
     }
 
     @Override
     protected Throwable doInBackground(Void... params) {
         PdfDocument pdfDocument = null;
         try {
-            PDFView pdfView = pdfViewReference.get();
-            if (pdfView != null) {
-                pdfDocument = docSource.createDocument(pdfView.getContext(), pdfiumCore, password);
-                pdfFile = new PdfFile(pdfiumCore, pdfDocument, pdfView.getPageFitPolicy(), getViewSize(pdfView),
-                        userPages, pdfView.isSwipeVertical(), pdfView.getSpacingPx(), pdfView.isAutoSpacingEnabled(),
-                        pdfView.isFitEachPage(), pdfView.isCropMarginsEnabled(), pdfView.getCachedCropMargins(),
-                        pdfView.isHorizontalReadingDirectionRtl(), pdfView.getPagesPerRow(), pdfView.isFirstPageAlone());
+            if (pdfViewReference.get() != null) {
+                pdfDocument = docSource.createDocument(context, pdfiumCore, password);
+                pdfFile = new PdfFile(pdfiumCore, pdfDocument, pageFitPolicy, viewSize,
+                        userPages, swipeVertical, spacingPx, autoSpacingEnabled,
+                        fitEachPage, cropMarginsEnabled, cachedCropMargins,
+                        horizontalReadingDirectionRtl, pagesPerRow, firstPageAlone);
                 return null;
             } else {
                 return new NullPointerException("pdfView == null");
@@ -73,10 +100,6 @@ class DecodingAsyncTask extends AsyncTask<Void, Void, Throwable> {
             Log.e(DecodingAsyncTask.class.getSimpleName(), "doInBackground: ", t);
             return t;
         }
-    }
-
-    private Size getViewSize(PDFView pdfView) {
-        return new Size(pdfView.getWidth(), pdfView.getHeight());
     }
 
     @Override

@@ -11,6 +11,7 @@ import android.text.StaticLayout
 import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import android.text.TextUtils
+import com.gitlab.mudlej.MjPdfReader.core.text.TextDirection
 
 enum class QuoteCardTheme(
     val backgroundColor: Int,
@@ -52,7 +53,7 @@ object QuoteImageRenderer {
         val theme = options.theme
         canvas.drawColor(theme.backgroundColor)
 
-        val rtl = isRtlText(options.quote)
+        val rtl = TextDirection.isRtlBaseDirection(options.quote)
         drawDecorativeQuoteMark(canvas, theme, rtl)
         drawQuote(canvas, options, rtl)
         drawBookAndAuthor(canvas, options)
@@ -60,16 +61,6 @@ object QuoteImageRenderer {
             drawMadeBy(canvas, theme)
         }
         return bitmap
-    }
-
-    private fun isRtlText(text: String): Boolean {
-        for (char in text) {
-            when (Character.getDirectionality(char)) {
-                Character.DIRECTIONALITY_RIGHT_TO_LEFT,
-                Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC -> return true
-            }
-        }
-        return false
     }
 
     private fun drawDecorativeQuoteMark(canvas: Canvas, theme: QuoteCardTheme, rtl: Boolean) {

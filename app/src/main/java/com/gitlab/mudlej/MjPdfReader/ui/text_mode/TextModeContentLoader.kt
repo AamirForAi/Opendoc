@@ -8,8 +8,10 @@ import androidx.core.view.doOnNextLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.pdf.PdfExtractor
 import com.gitlab.mudlej.MjPdfReader.pdf.createPdfExtractor
+import com.shockwave.pdfium.PageTextTooLargeException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -181,7 +183,8 @@ class TextModeContentLoader(
             when (adapter.pageState(pageIndex)) {
                 is TextModePageState.Ready,
                 is TextModePageState.Empty,
-                is TextModePageState.Error -> return
+                is TextModePageState.Error,
+                is TextModePageState.TooLarge -> return
                 else -> Unit
             }
         }
@@ -205,6 +208,8 @@ class TextModeContentLoader(
                         } else {
                             TextModePageState.Ready(pageIndex, text)
                         }
+                    } catch (tooLarge: PageTextTooLargeException) {
+                        TextModePageState.TooLarge(pageIndex)
                     } catch (throwable: Throwable) {
                         TextModePageState.Error(pageIndex, throwable.message.orEmpty())
                     }

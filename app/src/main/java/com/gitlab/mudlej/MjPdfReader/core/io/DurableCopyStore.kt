@@ -7,6 +7,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -15,6 +16,7 @@ import androidx.core.content.ContextCompat
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
 import java.io.File
 import java.io.IOException
+import java.util.UUID
 
 object DurableCopyStore {
 
@@ -77,7 +79,7 @@ object DurableCopyStore {
             if (target.exists()) {
                 return@runCatching SavedCopy(Uri.fromFile(target), isPublic)
             }
-            val partial = File(directory, target.name + PARTIAL_SUFFIX)
+            val partial = File(directory, "${target.name}.${UUID.randomUUID()}$PARTIAL_SUFFIX")
             try {
                 partial.outputStream().use { output -> copySource(context, source, output) }
                 if (!partial.renameTo(target)) {
@@ -87,8 +89,19 @@ object DurableCopyStore {
                 partial.delete()
                 throw throwable
             }
+            if (isPublic) {
+                notifyMediaScanner(context, target)
+            }
             SavedCopy(Uri.fromFile(target), isPublic)
         }.getOrNull()
+    }
+
+    private fun notifyMediaScanner(context: Context, target: File) {
+        runCatching {
+            MediaScannerConnection.scanFile(
+                context, arrayOf(target.absolutePath), arrayOf(PDF.FILE_TYPE), null
+            )
+        }
     }
 
     private fun copySource(context: Context, source: Uri, output: java.io.OutputStream) {
@@ -105,7 +118,7 @@ object DurableCopyStore {
         var candidate = File(directory, fileName)
         var index = 2
         while (candidate.exists()) {
-            if (expectedHash != null && computeHash(candidate) == expectedHash) {
+            if (expectedHash != null && DocumentIdentity.of(candidate)?.matches(expectedHash) == true) {
                 return candidate
             }
             if (index > MAX_NAME_ATTEMPTS) {

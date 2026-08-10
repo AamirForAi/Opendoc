@@ -177,16 +177,14 @@ class BackupManager(
         )
     }
 
-    suspend fun applyImport(plan: ImportPlan): ImportSummary = withContext(Dispatchers.IO) {
-        if (plan.includesHistory) {
-            pdfRepository.replaceAllHistory(plan.records, plan.bookmarks)
-        }
-        plan.settingsPuts?.let { puts -> applySettings(puts) }
+    suspend fun applyImport(plan: ImportPlan): ImportSummary = withContext(NonCancellable + Dispatchers.IO) {
         if (plan.includesHistory) {
             CoverCache.getInstance(context).clearAllBlocking()
             AnnotationJournal(context).deleteAllBlocking()
             SignatureStore(context).delete()
+            pdfRepository.replaceAllHistory(plan.records, plan.bookmarks)
         }
+        plan.settingsPuts?.let { puts -> applySettings(puts) }
         ImportSummary(
             plan.settingsPuts?.size ?: 0,
             plan.records.size,
@@ -211,48 +209,6 @@ class BackupManager(
                 else -> null
             }
         }.sortedBy { it.key }
-    }
-
-    private fun validateSettings(settings: List<BackupSetting>): Pair<List<(SharedPreferences.Editor) -> Unit>, Int> {
-        val puts = mutableListOf<(SharedPreferences.Editor) -> Unit>()
-        var skipped = 0
-        settings.forEach { setting ->
-            val key = setting.key ?: return@forEach
-            if (key in excludedSettingKeys) {
-                return@forEach
-            }
-            val expectedKind = Preferences.backupSettingKinds[key]
-            if (expectedKind != null && expectedKind != setting.type) {
-                skipped++
-                return@forEach
-            }
-            val enumDomain = Preferences.backupSettingEnumDomains[key]
-            if (enumDomain != null && setting.value !in enumDomain) {
-                skipped++
-                return@forEach
-            }
-            val put: ((SharedPreferences.Editor) -> Unit)? = when (setting.type) {
-                Preferences.kindBoolean -> setting.value?.toBooleanStrictOrNull()
-                    ?.let { parsed -> { editor -> editor.putBoolean(key, parsed) } }
-                Preferences.kindInt -> setting.value?.toIntOrNull()
-                    ?.let { parsed -> { editor -> editor.putInt(key, parsed) } }
-                Preferences.kindLong -> setting.value?.toLongOrNull()
-                    ?.let { parsed -> { editor -> editor.putLong(key, parsed) } }
-                Preferences.kindFloat -> setting.value?.toFloatOrNull()
-                    ?.let { parsed -> { editor -> editor.putFloat(key, parsed) } }
-                Preferences.kindString -> setting.value
-                    ?.let { parsed -> { editor -> editor.putString(key, parsed) } }
-                Preferences.kindStringSet -> setting.values
-                    ?.let { parsed -> { editor -> editor.putStringSet(key, parsed.toSet()) } }
-                else -> null
-            }
-            if (put != null) {
-                puts.add(put)
-            } else {
-                skipped++
-            }
-        }
-        return puts to skipped
     }
 
     private fun applySettings(puts: List<(SharedPreferences.Editor) -> Unit>) {
@@ -301,6 +257,7 @@ class BackupManager(
                 textModeDetectHeadings = backup.textModeDetectHeadings,
                 textModeCodeBlocks = backup.textModeCodeBlocks,
                 hidden = backup.hidden,
+                sourceUri = backup.sourceUri,
             )
         }
     }
@@ -342,6 +299,7 @@ class BackupManager(
             textModeDetectHeadings = textModeDetectHeadings,
             textModeCodeBlocks = textModeCodeBlocks,
             hidden = hidden,
+            sourceUri = sourceUri,
         )
     }
 
@@ -395,6 +353,7 @@ class BackupManager(
         private val excludedSettingKeys = setOf(
             Preferences.firstInstallKey,
             Preferences.showFeaturesDialogKey,
+            Preferences.showExitFullscreenTipKey,
             Preferences.lastSeenVersionCodeKey,
             Preferences.backupFolderTreeUriKey,
             Preferences.autoBackupLastRunKey,
@@ -403,5 +362,49 @@ class BackupManager(
             Preferences.autoBackupEnabledAtKey,
             Preferences.importResultPendingKey,
         )
+
+        internal fun validateSettings(
+            settings: List<BackupSetting>,
+        ): Pair<List<(SharedPreferences.Editor) -> Unit>, Int> {
+            val puts = mutableListOf<(SharedPreferences.Editor) -> Unit>()
+            var skipped = 0
+            settings.forEach { setting ->
+                val key = setting.key ?: return@forEach
+                if (key in excludedSettingKeys) {
+                    return@forEach
+                }
+                val expectedKind = Preferences.backupSettingKinds[key]
+                if (expectedKind == null || expectedKind != setting.type) {
+                    skipped++
+                    return@forEach
+                }
+                val enumDomain = Preferences.backupSettingEnumDomains[key]
+                if (enumDomain != null && setting.value !in enumDomain) {
+                    skipped++
+                    return@forEach
+                }
+                val put: ((SharedPreferences.Editor) -> Unit)? = when (setting.type) {
+                    Preferences.kindBoolean -> setting.value?.toBooleanStrictOrNull()
+                        ?.let { parsed -> { editor -> editor.putBoolean(key, parsed) } }
+                    Preferences.kindInt -> setting.value?.toIntOrNull()
+                        ?.let { parsed -> { editor -> editor.putInt(key, parsed) } }
+                    Preferences.kindLong -> setting.value?.toLongOrNull()
+                        ?.let { parsed -> { editor -> editor.putLong(key, parsed) } }
+                    Preferences.kindFloat -> setting.value?.toFloatOrNull()
+                        ?.let { parsed -> { editor -> editor.putFloat(key, parsed) } }
+                    Preferences.kindString -> setting.value
+                        ?.let { parsed -> { editor -> editor.putString(key, parsed) } }
+                    Preferences.kindStringSet -> setting.values
+                        ?.let { parsed -> { editor -> editor.putStringSet(key, parsed.toSet()) } }
+                    else -> null
+                }
+                if (put != null) {
+                    puts.add(put)
+                } else {
+                    skipped++
+                }
+            }
+            return puts to skipped
+        }
     }
 }

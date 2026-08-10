@@ -8,6 +8,7 @@ import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
 import java.io.File
 import java.time.LocalDateTime
+import java.util.Locale
 
 object BackupFolder {
 
@@ -19,8 +20,10 @@ object BackupFolder {
     private const val safetySnapshotPrefix = "mj-pdf-pre-import"
     private const val safetyFolderName = "backup-safety"
     private const val staleTmpAgeMillis = 60L * 60L * 1000L
-    private val autoBackupNameRegex = Regex("mj-pdf-auto-backup-\\d{8}(-\\d{6})?( ?\\(\\d+\\))?\\.json")
-    private val safetySnapshotNameRegex = Regex("mj-pdf-pre-import-\\d{8}-\\d{6}\\.json")
+    private const val unknownSafetyFileAgeMillis = 24L * 60L * 60L * 1000L
+    private val autoBackupNameRegex =
+        Regex("mj-pdf-auto-backup-\\p{Nd}{8}(-\\p{Nd}{6})?( ?\\(\\p{Nd}+\\))?\\.json")
+    private val safetySnapshotNameRegex = Regex("mj-pdf-pre-import-\\p{Nd}{8}-\\p{Nd}{6}\\.json")
 
     fun resolve(context: Context, treeUriString: String?): DocumentFile? {
         if (treeUriString.isNullOrBlank()) {
@@ -71,13 +74,14 @@ object BackupFolder {
     private fun timestampedFileName(prefix: String): String {
         val now = LocalDateTime.now()
         return "%s-%04d%02d%02d-%02d%02d%02d.json".format(
+            Locale.US,
             prefix, now.year, now.monthValue, now.dayOfMonth, now.hour, now.minute, now.second)
     }
 
     fun enforceRetention(folder: DocumentFile) {
         folder.listFiles()
             .filter { it.isFile && it.name?.matches(autoBackupNameRegex) == true }
-            .sortedByDescending { it.name }
+            .sortedWith(compareByDescending<DocumentFile> { it.lastModified() }.thenByDescending { it.name })
             .drop(retainedAutoBackups)
             .forEach { it.delete() }
     }
@@ -91,17 +95,23 @@ object BackupFolder {
 
     fun safetyDir(context: Context): File = File(context.filesDir, safetyFolderName)
 
-    fun listSafetySnapshots(context: Context): List<File> {
-        val files = safetyDir(context).listFiles() ?: return emptyList()
+    fun listSafetySnapshots(context: Context): List<File> = listSafetySnapshots(safetyDir(context))
+
+    fun listSafetySnapshots(dir: File): List<File> {
+        val files = dir.listFiles() ?: return emptyList()
         return files
             .filter { it.isFile && it.name.matches(safetySnapshotNameRegex) }
-            .sortedByDescending { it.name }
+            .sortedWith(compareByDescending<File> { it.lastModified() }.thenByDescending { it.name })
     }
 
-    fun pruneSafetySnapshots(context: Context) {
-        listSafetySnapshots(context).drop(retainedSafetySnapshots).forEach { it.delete() }
-        safetyDir(context).listFiles()
+    fun pruneSafetySnapshots(context: Context) = pruneSafetySnapshots(safetyDir(context))
+
+    fun pruneSafetySnapshots(dir: File) {
+        listSafetySnapshots(dir).drop(retainedSafetySnapshots).forEach { it.delete() }
+        val cutoff = System.currentTimeMillis() - unknownSafetyFileAgeMillis
+        dir.listFiles()
             ?.filter { it.isFile && !it.name.matches(safetySnapshotNameRegex) }
+            ?.filter { it.name.contains(".tmp") || it.lastModified() < cutoff }
             ?.forEach { it.delete() }
     }
 }

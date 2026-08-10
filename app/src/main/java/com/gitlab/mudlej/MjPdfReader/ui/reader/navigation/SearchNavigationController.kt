@@ -31,6 +31,11 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.shape.ShapeAppearanceModel
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.max
 
 class SearchNavigationController(
@@ -40,6 +45,7 @@ class SearchNavigationController(
     private val pref: Preferences,
     private val isIncognito: () -> Boolean,
     private val historyManager: ReaderHistoryManager,
+    private val scope: CoroutineScope,
     private val launchSearch: (Intent) -> Unit,
 ) {
 
@@ -49,6 +55,8 @@ class SearchNavigationController(
     private var subscribedToActiveSearch = false
     private var query = ""
     private var ignoreAccents = false
+    private var pendingAutoJump = false
+    private var autoJumpAnchorPage = 0
     private var activeHighlightPageNumber: Int? = null
     private var snackbar: Snackbar? = null
     private var counterView: TextView? = null
@@ -56,6 +64,9 @@ class SearchNavigationController(
     private var pendingLabelRestore: Runnable? = null
     private var previousButton: ImageButton? = null
     private var nextButton: ImageButton? = null
+    private var showHitJob: Job? = null
+    private var rawTextCachePage = -1
+    private var rawTextCache: String? = null
 
     private val activeSearchListener = object : SearchCoordinator.Listener {
         override fun onProgress(pagesScanned: Int, pageCount: Int) = Unit
@@ -65,15 +76,20 @@ class SearchNavigationController(
                 return
             }
             val currentResultIndex = hits.getOrNull(currentPosition)?.resultIndex
-            hits = SearchCoordinator.cacheHits(results)
-            currentPosition = hits
-                .indexOfFirst { it.resultIndex == currentResultIndex }
-                .takeIf { it >= 0 }
-                ?: currentPosition.coerceIn(0, hits.lastIndex.coerceAtLeast(0))
+            hits = SearchCoordinator.appendHits(hits, results)
             if (finished) {
                 subscribedToActiveSearch = false
                 hasFullSession = hits.isNotEmpty()
             }
+            if (pendingAutoJump) {
+                maybeAutoJump(finished)
+                updateControls()
+                return
+            }
+            currentPosition = hits
+                .indexOfFirst { it.resultIndex == currentResultIndex }
+                .takeIf { it >= 0 }
+                ?: currentPosition.coerceIn(0, hits.lastIndex.coerceAtLeast(0))
             updateControls()
         }
     }
@@ -112,7 +128,68 @@ class SearchNavigationController(
         showCurrentHit()
     }
 
+    fun startQuery(rawQuery: String, rawIgnoreAccents: Boolean) {
+        reset()
+        query = rawQuery.trim()
+        ignoreAccents = rawIgnoreAccents
+        autoJumpAnchorPage = binding.pdfView.visiblePageIndex
+        val session = SearchSessionCache.get(pdf.fileHash, query, ignoreAccents)
+        if (session != null) {
+            hasFullSession = true
+            hits = session.hits.sortedBy { it.resultIndex }
+            showSnackbar()
+            if (hits.isEmpty()) {
+                enterNoResultsState()
+                updateControls()
+                return
+            }
+            currentPosition = hits
+                .indexOfFirst { it.pageNumber - 1 >= autoJumpAnchorPage }
+                .takeIf { it >= 0 }
+                ?: 0
+            historyManager.recordJump(ReaderHistoryManager.Origin.SEARCH, hits[currentPosition].pageNumber - 1)
+            showCurrentHit()
+            return
+        }
+        pendingAutoJump = true
+        subscribedToActiveSearch = true
+        showSnackbar()
+        updateControls()
+        SearchCoordinator.startOrSubscribe(
+            activity,
+            pdf.uri?.toString(),
+            pdf.password,
+            pdf.fileHash,
+            query,
+            ignoreAccents,
+            activeSearchListener,
+        )
+    }
+
+    private fun maybeAutoJump(finished: Boolean) {
+        val position = hits.indexOfFirst { it.pageNumber - 1 >= autoJumpAnchorPage }
+        if (position >= 0) {
+            pendingAutoJump = false
+            currentPosition = position
+            historyManager.recordJump(ReaderHistoryManager.Origin.SEARCH, hits[position].pageNumber - 1)
+            showCurrentHit()
+            return
+        }
+        if (!finished) {
+            return
+        }
+        pendingAutoJump = false
+        if (hits.isEmpty()) {
+            enterNoResultsState()
+            return
+        }
+        currentPosition = 0
+        historyManager.recordJump(ReaderHistoryManager.Origin.SEARCH, hits[0].pageNumber - 1)
+        showCurrentHit()
+    }
+
     private fun unsubscribeFromActiveSearch() {
+        pendingAutoJump = false
         subscribedToActiveSearch = false
         SearchCoordinator.unsubscribe(activeSearchListener)
     }
@@ -126,6 +203,10 @@ class SearchNavigationController(
 
     fun reset() {
         unsubscribeFromActiveSearch()
+        showHitJob?.cancel()
+        showHitJob = null
+        rawTextCachePage = -1
+        rawTextCache = null
         clearHighlight()
         dismissSnackbar()
         hits = emptyList()
@@ -138,6 +219,11 @@ class SearchNavigationController(
             return
         }
         reset()
+    }
+
+    fun onActivityDestroyed() {
+        unsubscribeFromActiveSearch()
+        dismissSnackbar()
     }
 
     private fun dismissSnackbar() {
@@ -244,29 +330,67 @@ class SearchNavigationController(
     }
 
     private fun showPrevious() {
-        if (currentPosition > 0) {
-            currentPosition--
-            showCurrentHit()
+        if (hits.isEmpty()) {
+            return
         }
+        if (pendingAutoJump) {
+            pendingAutoJump = false
+            currentPosition = hits.lastIndex
+        }
+        else if (hits.size < 2) {
+            return
+        }
+        else {
+            currentPosition = if (currentPosition > 0) currentPosition - 1 else hits.lastIndex
+        }
+        showCurrentHit()
     }
 
     private fun showNext() {
-        if (currentPosition < hits.lastIndex) {
-            currentPosition++
-            showCurrentHit()
+        if (hits.isEmpty()) {
+            return
         }
+        if (pendingAutoJump) {
+            pendingAutoJump = false
+            currentPosition = 0
+        }
+        else if (hits.size < 2) {
+            return
+        }
+        else {
+            currentPosition = if (currentPosition < hits.lastIndex) currentPosition + 1 else 0
+        }
+        showCurrentHit()
     }
 
     private fun showCurrentHit() {
         cancelPendingLabelRestore()
         val hit = hits.getOrNull(currentPosition) ?: return
+        showHitJob?.cancel()
+        showHitJob = scope.launch {
+            val cached = if (rawTextCachePage == hit.pageNumber) rawTextCache else null
+            val rawText = cached ?: withContext(Dispatchers.IO) {
+                binding.pdfView.getPageRawText(hit.pageNumber)
+            }
+            if (hits.getOrNull(currentPosition) !== hit) {
+                return@launch
+            }
+            rawTextCachePage = hit.pageNumber
+            rawTextCache = rawText
+            applyCurrentHit(hit, rawText)
+        }
+    }
+
+    private fun applyCurrentHit(hit: SearchSessionCache.Hit, rawText: String) {
         clearHighlight()
         val matchLength = if (hit.matchLength > 0) hit.matchLength else query.length
-        val rawText = binding.pdfView.getPageRawText(hit.pageNumber)
         val rawRange = NormalizedTextMapper.toRawRange(rawText, hit.originalIndex, matchLength)
-        val highlightStart = rawRange?.first ?: hit.originalIndex
-        val highlightCount = rawRange?.let { it.last + 1 - it.first } ?: matchLength
-        val textBounds = binding.pdfView.createHighlightText(hit.pageNumber, highlightStart, highlightCount, true)
+        val textBounds = if (rawRange == null) {
+            emptyArray<Rect>()
+        } else {
+            binding.pdfView.createHighlightText(
+                hit.pageNumber, rawRange.first, rawRange.last + 1 - rawRange.first, true)
+        }
         if (textBounds.isEmpty()) {
             showFailedToHighlightMessage()
             binding.pdfView.jumpUsingPageNumber(hit.pageNumber)
@@ -338,7 +462,7 @@ class SearchNavigationController(
     }
 
     private fun updateControls() {
-        val controlsVisible = hasFullSession || subscribedToActiveSearch
+        val controlsVisible = (hasFullSession || subscribedToActiveSearch) && hits.isNotEmpty()
         val visibility = if (controlsVisible) View.VISIBLE else View.GONE
         previousButton?.visibility = visibility
         counterView?.visibility = visibility
@@ -347,8 +471,8 @@ class SearchNavigationController(
             return
         }
         counterView?.text = activity.getString(R.string.search_result_counter, currentPosition + 1, hits.size)
-        setButtonEnabled(previousButton, currentPosition > 0)
-        setButtonEnabled(nextButton, currentPosition < hits.lastIndex)
+        setButtonEnabled(previousButton, hits.size > 1)
+        setButtonEnabled(nextButton, hits.size > 1)
     }
 
     private fun setButtonEnabled(button: ImageButton?, enabled: Boolean) {
@@ -356,7 +480,16 @@ class SearchNavigationController(
         button?.alpha = if (enabled) 1f else 0.35f
     }
 
+    private fun enterNoResultsState() {
+        val label = messageView ?: return
+        label.text = activity.getString(R.string.search_no_results)
+        label.paintFlags = label.paintFlags and Paint.UNDERLINE_TEXT_FLAG.inv()
+        label.setOnClickListener(null)
+        label.isClickable = false
+    }
+
     private fun openResultsList() {
+        pendingAutoJump = false
         Intent(activity, SearchActivity::class.java).also { searchIntent ->
             searchIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
             searchIntent.putExtra(PDF.passwordKey, pdf.password)

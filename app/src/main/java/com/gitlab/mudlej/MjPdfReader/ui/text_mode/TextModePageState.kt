@@ -8,4 +8,5 @@ sealed class TextModePageState(open val pageIndex: Int) {
     data class Ready(override val pageIndex: Int, val text: CharSequence) : TextModePageState(pageIndex)
     data class Empty(override val pageIndex: Int) : TextModePageState(pageIndex)
     data class Error(override val pageIndex: Int, val message: String) : TextModePageState(pageIndex)
+    data class TooLarge(override val pageIndex: Int) : TextModePageState(pageIndex)
 }

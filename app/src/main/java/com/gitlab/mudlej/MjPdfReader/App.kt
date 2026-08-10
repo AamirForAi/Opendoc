@@ -6,6 +6,7 @@ import android.app.Application
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.PreferenceManager
+import com.gitlab.mudlej.MjPdfReader.core.crash.ConsentPluginLoader
 import com.gitlab.mudlej.MjPdfReader.data.AutoBackupScheduler
 import com.gitlab.mudlej.MjPdfReader.data.OnlineDocumentStore
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
@@ -40,6 +41,7 @@ class App : Application() {
         initAcra {
             buildConfigClass = BuildConfig::class.java
             reportFormat = StringFormat.JSON
+            pluginLoader = ConsentPluginLoader()
             reportContent = listOf(
                 ReportField.STACK_TRACE,
                 ReportField.APP_VERSION_CODE,

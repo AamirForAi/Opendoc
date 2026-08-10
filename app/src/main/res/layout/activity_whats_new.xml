@@ -31,8 +31,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:clickable="true"
-            android:focusable="true"
             app:cardBackgroundColor="?attr/colorSecondaryContainer"
             app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
@@ -65,18 +63,6 @@
                         android:text="@string/whats_new_intro"
                         android:textAppearance="?attr/textAppearanceBodyLarge"
                         android:textColor="?attr/colorOnSecondaryContainer" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:drawablePadding="8dp"
-                        android:gravity="center_vertical"
-                        android:text="@string/whats_new_release_link"
-                        android:textAppearance="?attr/textAppearanceLabelLarge"
-                        android:textColor="?attr/colorOnSecondaryContainer"
-                        app:drawableEndCompat="@drawable/ic_link"
-                        app:drawableTint="?attr/colorOnSecondaryContainer" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

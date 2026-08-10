@@ -12,6 +12,7 @@ import android.text.format.Formatter
 import android.widget.FrameLayout
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
+import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceGroup
@@ -19,6 +20,8 @@ import androidx.preference.PreferenceScreen
 import android.widget.Toast
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.data.ReadingLayout
+import com.gitlab.mudlej.MjPdfReader.data.resolveReadingLayout
 import com.gitlab.mudlej.MjPdfReader.data.AutoBackupScheduler
 import com.gitlab.mudlej.MjPdfReader.data.BackupData
 import com.gitlab.mudlej.MjPdfReader.data.BackupException
@@ -126,6 +129,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 includePasswords = savedInstanceState.getBoolean(STATE_EXPORT_PASSWORDS, false),
             )
             pendingExportToFolder = savedInstanceState.getBoolean(STATE_EXPORT_PENDING, false)
+            pendingAutoBackupEnable = savedInstanceState.getBoolean(STATE_AUTO_BACKUP_PENDING, false)
         }
     }
 
@@ -134,6 +138,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         outState.putBoolean(STATE_EXPORT_HISTORY, exportOptions.includeHistory)
         outState.putBoolean(STATE_EXPORT_PASSWORDS, exportOptions.includePasswords)
         outState.putBoolean(STATE_EXPORT_PENDING, pendingExportToFolder)
+        outState.putBoolean(STATE_AUTO_BACKUP_PENDING, pendingAutoBackupEnable)
         super.onSaveInstanceState(outState)
     }
 
@@ -152,18 +157,27 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     fun refreshPreferences() = rebuildPreferences()
 
+    fun refreshPreferencesAfterChange() {
+        listView.post {
+            if (isAdded) {
+                rebuildPreferences()
+            }
+        }
+    }
+
     private fun rebuildPreferences() {
         val screen = preferenceManager.createPreferenceScreen(requireContext())
         val currentPage = page
+        val layout = resolveReadingLayout(appPreferences)
         if (currentPage == null) {
-            buildRootScreen(screen)
+            buildRootScreen(screen, layout)
         } else {
-            buildPageScreen(screen, currentPage)
+            buildPageScreen(screen, currentPage, layout)
         }
         preferenceScreen = screen
     }
 
-    private fun buildRootScreen(screen: PreferenceScreen) {
+    private fun buildRootScreen(screen: PreferenceScreen, layout: ReadingLayout) {
         val query = searchQuery.trim()
         if (query.isBlank()) {
             SettingsPage.values().forEach { page ->
@@ -172,22 +186,32 @@ class SettingsFragment : PreferenceFragmentCompat() {
             return
         }
 
-        val results = preferenceFactory.entries().filter { it.matches(requireContext(), query) }
+        val results = preferenceFactory.entries()
+            .filter { it.matches(requireContext(), query) }
+            .map { entry -> entry.createPreference(preferenceFactory, getString(entry.page.titleRes)) }
+            .filter { preference -> preference.isVisible }
         if (results.isEmpty()) {
             screen.addPreference(preferenceFactory.noSearchResultsPreference())
             return
         }
 
-        results.forEach { entry ->
-            screen.addPreference(entry.createPreference(preferenceFactory, getString(entry.page.titleRes)))
+        results.forEach { preference ->
+            applyReadingLayoutOverride(preference, layout)
+            screen.addPreference(preference)
         }
     }
 
-    private fun buildPageScreen(screen: PreferenceScreen, page: SettingsPage) {
+    private fun buildPageScreen(screen: PreferenceScreen, page: SettingsPage, layout: ReadingLayout) {
         var target: PreferenceGroup = screen
         var currentSection: Int? = null
+        var emittedAny = false
         preferenceFactory.entriesFor(page).forEach { entry ->
-            if (entry.sectionRes != currentSection) {
+            val preference = entry.createPreference(preferenceFactory, breadcrumb = null)
+            if (!preference.isVisible) {
+                return@forEach
+            }
+            if (!emittedAny || entry.sectionRes != currentSection) {
+                emittedAny = true
                 currentSection = entry.sectionRes
                 target = entry.sectionRes?.let { sectionRes ->
                     PreferenceCategory(requireContext()).apply {
@@ -197,7 +221,17 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     }
                 } ?: screen
             }
-            target.addPreference(entry.createPreference(preferenceFactory, breadcrumb = null))
+            applyReadingLayoutOverride(preference, layout)
+            target.addPreference(preference)
+        }
+    }
+
+    private fun applyReadingLayoutOverride(preference: Preference, layout: ReadingLayout) {
+        layout.overridden[preference.key]?.let { reasonRes ->
+            preference.isEnabled = false
+            val reason = getString(R.string.overridden_by, getString(reasonRes))
+            val summary = preference.summary
+            preference.summary = if (summary.isNullOrBlank()) reason else "$summary\n$reason"
         }
     }
 
@@ -419,7 +453,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
             if (!isAdded) {
                 return@launch
             }
-            val message = count?.let { getString(R.string.cleared_entries, it) }
+            val message = count?.let { resources.getQuantityString(R.plurals.cleared_entries, it, it) }
                 ?: getString(R.string.cleared_done)
             Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
         }
@@ -618,6 +652,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         private const val STATE_EXPORT_HISTORY = "settingsExportIncludeHistory"
         private const val STATE_EXPORT_PASSWORDS = "settingsExportIncludePasswords"
         private const val STATE_EXPORT_PENDING = "settingsExportPendingFolderPick"
+        private const val STATE_AUTO_BACKUP_PENDING = "settingsAutoBackupPendingEnable"
 
         fun root(searchQuery: String = ""): SettingsFragment {
             return SettingsFragment().apply {

@@ -20,9 +20,9 @@ class ConfigurableActionResolver(
     private val cropMarginsEnabled: () -> Boolean,
     private val dualPageEnabled: () -> Boolean,
     private val isPdfDarkTheme: () -> Boolean,
-    private val isPdfThemeSystem: () -> Boolean,
     private val canNavigateBack: () -> Boolean,
     private val canNavigateForward: () -> Boolean,
+    private val canShowNavigationHistory: () -> Boolean,
     private val isCurrentPageBookmarked: () -> Boolean,
     private val isIncognito: () -> Boolean,
     private val handlers: Handlers,
@@ -116,7 +116,7 @@ class ConfigurableActionResolver(
                 run = handlers.toggleCropMargins,
             )
             ConfigurableAction.DUAL_PAGE -> ConfiguredAction(
-                if (dualPageEnabled()) R.string.single_page_mode else R.string.dual_page_mode_title,
+                if (dualPageEnabled()) R.string.dual_page_off_action else R.string.dual_page_mode_title,
                 R.drawable.ic_dual_page,
                 visible = fileAvailable && !horizontalScrollEnabled(),
                 checked = dualPageEnabled(),
@@ -131,7 +131,7 @@ class ConfigurableActionResolver(
             ConfigurableAction.SWITCH_THEME -> ConfiguredAction(
                 if (isPdfDarkTheme()) R.string.switch_to_light_mode else R.string.switch_to_dark_mode,
                 if (isPdfDarkTheme()) R.drawable.ic_light_mode else R.drawable.ic_dark_mode,
-                visible = fileAvailable && !isPdfThemeSystem(),
+                visible = fileAvailable,
                 checked = isPdfDarkTheme(),
                 run = handlers.switchTheme,
             )
@@ -150,7 +150,7 @@ class ConfigurableActionResolver(
             ConfigurableAction.NAV_HISTORY -> ConfiguredAction(
                 R.string.navigation_history,
                 R.drawable.ic_history,
-                visible = fileAvailable && canNavigateBack(),
+                visible = fileAvailable && canShowNavigationHistory(),
                 run = handlers.showNavigationHistory,
             )
             ConfigurableAction.RELOAD -> ConfiguredAction(

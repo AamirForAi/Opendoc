@@ -50,6 +50,18 @@ ARCH_NAMES = {
     Arch.armeabi: "armeabi-v7a",
 }
 
+ARCH_BY_NAME = {ARCH_NAMES[a]: a for a in ARCH_NAMES}
+
+ALL_ARCHES = [Arch.arm64, Arch.armeabi, Arch.x86_64, Arch.x86]
+ABI_CHOICES = [ARCH_NAMES[arch] for arch in ALL_ARCHES]
+
+
+def resolve_arches(selection):
+    if selection == "all":
+        return list(ALL_ARCHES)
+    return [ARCH_BY_NAME[selection]]
+
+
 PDFIUM_URLS = {
     # Arch.x86: "https://github.com/bblanchon/pdfium-binaries/releases/latest/download/pdfium-android-x86.tgz",
     # Arch.x86_64: "https://github.com/bblanchon/pdfium-binaries/releases/latest/download/pdfium-android-x64.tgz",
@@ -59,13 +71,6 @@ PDFIUM_URLS = {
     Arch.x86_64: "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7920/pdfium-android-x64.tgz",
     Arch.arm64: "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7920/pdfium-android-arm64.tgz",
     Arch.armeabi: "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7920/pdfium-android-arm.tgz",
-}
-
-PDFIUM_PATHS = {
-    Arch.x86: "../../../../bblanchon/pdfium-android-x86.tgz",
-    Arch.x86_64: "../../../../bblanchon/pdfium-android-x64.tgz",
-    Arch.arm64: "../../../../bblanchon/pdfium-android-arm64.tgz",
-    Arch.armeabi: "../../../../bblanchon/pdfium-android-arm.tgz",
 }
 
 PDFIUM_GIT_URL = "https://pdfium.googlesource.com/pdfium.git"
@@ -106,9 +111,10 @@ LIB_CPP_DIR_NAMES = {
     Arch.armeabi: "arm-linux-androideabi",
 }
 
-LIBPNG_URL = "https://sourceforge.net/projects/libpng/files/latest/download"
-FREETYPE_URL = "https://sourceforge.net/projects/freetype/files/latest/download"
+LIBPNG_VERSION = "1.6.58"
+LIBPNG_URL = f"https://download.sourceforge.net/libpng/libpng-{LIBPNG_VERSION}.tar.xz"
+LIBPNG_SHA256 = "28eb403f51f0f7405249132cecfe82ea5c0ef97f1b32c5a65828814ae0d34775"
 
-# LIBPNG_URL = "https://sourceforge.net/projects/libpng/files/libpng16/1.6.37/libpng-1.6.37.tar.xz/download"
-# FREETYPE_URL_TEMPLATE = "https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-{VERSION}/freetype-VER-{VERSION}.tar"
-# FREETYPE_URL = "https://gitlab.freedesktop.org/freetype/freetype/-/archive/master/freetype-master.tar.gz"
+FREETYPE_VERSION = "2.14.3"
+FREETYPE_URL = f"https://download.savannah.gnu.org/releases/freetype/freetype-{FREETYPE_VERSION}.tar.xz"
+FREETYPE_SHA256 = "36bc4f1cc413335368ee656c42afca65c5a3987e8768cc28cf11ba775e785a5f"

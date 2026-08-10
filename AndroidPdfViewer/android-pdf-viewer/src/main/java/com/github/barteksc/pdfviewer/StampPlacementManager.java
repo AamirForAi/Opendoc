@@ -45,7 +45,7 @@ final class StampPlacementManager {
 
     private boolean active;
     private int pageIndex = -1;
-    private final RectF pdfRect = new RectF();
+    private final RectF frameRect = new RectF();
     private float[][] strokes;
     private int color = Color.BLACK;
     private float normalizedStrokeWidth;
@@ -84,12 +84,20 @@ final class StampPlacementManager {
         if (rect == null || rect.width() <= 0 || strokes == null || strokes.length == 0) {
             return;
         }
+        PdfFile pdfFile = pdfView.pdfFile;
+        if (pdfFile == null) {
+            return;
+        }
+        RectF frame = pdfFile.userRectToFrame(pageIndex, rect.left, rect.bottom, rect.right, rect.top);
+        if (frame.width() <= 0 || frame.height() <= 0) {
+            return;
+        }
         this.pageIndex = pageIndex;
-        this.pdfRect.set(rect);
+        this.frameRect.set(frame);
         this.strokes = strokes;
         this.color = color;
         this.normalizedStrokeWidth = normalizedStrokeWidth;
-        this.aspect = Math.abs(rect.height()) / rect.width();
+        this.aspect = frame.height() / frame.width();
         this.normalizedPath = buildPath(strokes);
         this.dragMode = DragMode.NONE;
         this.active = true;
@@ -112,7 +120,12 @@ final class StampPlacementManager {
     }
 
     RectF getPendingRect() {
-        return new RectF(pdfRect);
+        PdfFile pdfFile = pdfView.pdfFile;
+        if (pdfFile == null) {
+            return new RectF();
+        }
+        return pdfFile.frameRectToUser(pageIndex, frameRect.left, frameRect.top,
+                frameRect.right, frameRect.bottom);
     }
 
     float[][] getPendingStrokes() {
@@ -139,7 +152,7 @@ final class StampPlacementManager {
         if (!active || normalizedPath == null) {
             return;
         }
-        RectF docRect = docRectFor(pageIndex, pdfRect);
+        RectF docRect = docRectFor(pageIndex, frameRect);
         if (docRect == null || docRect.width() <= 0) {
             return;
         }
@@ -204,7 +217,7 @@ final class StampPlacementManager {
     }
 
     private boolean beginDrag(float docX, float docY) {
-        RectF docRect = docRectFor(pageIndex, pdfRect);
+        RectF docRect = docRectFor(pageIndex, frameRect);
         if (docRect == null || docRect.width() <= 0) {
             return false;
         }
@@ -245,59 +258,59 @@ final class StampPlacementManager {
         if (pdfFile == null) {
             return;
         }
-        RectF docRect = docRectFor(pageIndex, pdfRect);
+        RectF docRect = docRectFor(pageIndex, frameRect);
         if (docRect == null || docRect.width() <= 0 || docRect.height() <= 0) {
             return;
         }
-        SizeF pageSize = pdfFile.getPagePointSize(pageIndex);
-        float pageWidth = pageSize.getWidth();
-        float pageHeight = pageSize.getHeight();
-        if (pageWidth <= 0 || pageHeight <= 0) {
+        SizeF frameSize = pdfFile.getPageFrameSize(pageIndex);
+        float frameWidth = frameSize.getWidth();
+        float frameHeight = frameSize.getHeight();
+        if (frameWidth <= 0 || frameHeight <= 0) {
             return;
         }
-        float scaleX = pdfRect.width() / docRect.width();
-        float scaleY = Math.abs(pdfRect.height()) / docRect.height();
-        float dxPdf = (docX - lastDocX) * scaleX;
-        float dyPdf = -(docY - lastDocY) * scaleY;
+        float scaleX = frameRect.width() / docRect.width();
+        float scaleY = frameRect.height() / docRect.height();
+        float dxFrame = (docX - lastDocX) * scaleX;
+        float dyFrame = (docY - lastDocY) * scaleY;
 
         if (dragMode == DragMode.MOVE) {
-            float clampedDx = clamp(dxPdf, -pdfRect.left, pageWidth - pdfRect.right);
-            float clampedDy = clamp(dyPdf, -pdfRect.bottom, pageHeight - pdfRect.top);
-            pdfRect.offset(clampedDx, clampedDy);
+            float clampedDx = clamp(dxFrame, -frameRect.left, frameWidth - frameRect.right);
+            float clampedDy = clamp(dyFrame, -frameRect.top, frameHeight - frameRect.bottom);
+            frameRect.offset(clampedDx, clampedDy);
         } else {
-            resize(dxPdf, pageWidth, pageHeight);
+            resize(dxFrame, frameWidth, frameHeight);
         }
         lastDocX = docX;
         lastDocY = docY;
         pdfView.invalidate();
     }
 
-    private void resize(float dxPdf, float pageWidth, float pageHeight) {
-        float minWidth = MIN_WIDTH_PAGE_FRACTION * pageWidth;
-        float width = pdfRect.width();
+    private void resize(float dxFrame, float frameWidth, float frameHeight) {
+        float minWidth = MIN_WIDTH_PAGE_FRACTION * frameWidth;
+        float width = frameRect.width();
         float newWidth;
         float maxWidth;
         switch (dragMode) {
             case RESIZE_TL:
-                newWidth = width - dxPdf;
-                maxWidth = Math.min(pdfRect.right, (pageHeight - pdfRect.bottom) / aspect);
+                newWidth = width - dxFrame;
+                maxWidth = Math.min(frameRect.right, frameRect.bottom / aspect);
                 newWidth = clamp(newWidth, minWidth, maxWidth);
-                pdfRect.left = pdfRect.right - newWidth;
-                pdfRect.top = pdfRect.bottom + newWidth * aspect;
+                frameRect.left = frameRect.right - newWidth;
+                frameRect.top = frameRect.bottom - newWidth * aspect;
                 break;
             case RESIZE_BL:
-                newWidth = width - dxPdf;
-                maxWidth = Math.min(pdfRect.right, pdfRect.top / aspect);
+                newWidth = width - dxFrame;
+                maxWidth = Math.min(frameRect.right, (frameHeight - frameRect.top) / aspect);
                 newWidth = clamp(newWidth, minWidth, maxWidth);
-                pdfRect.left = pdfRect.right - newWidth;
-                pdfRect.bottom = pdfRect.top - newWidth * aspect;
+                frameRect.left = frameRect.right - newWidth;
+                frameRect.bottom = frameRect.top + newWidth * aspect;
                 break;
             case RESIZE_BR:
-                newWidth = width + dxPdf;
-                maxWidth = Math.min(pageWidth - pdfRect.left, pdfRect.top / aspect);
+                newWidth = width + dxFrame;
+                maxWidth = Math.min(frameWidth - frameRect.left, (frameHeight - frameRect.top) / aspect);
                 newWidth = clamp(newWidth, minWidth, maxWidth);
-                pdfRect.right = pdfRect.left + newWidth;
-                pdfRect.bottom = pdfRect.top - newWidth * aspect;
+                frameRect.right = frameRect.left + newWidth;
+                frameRect.bottom = frameRect.top + newWidth * aspect;
                 break;
             default:
                 break;
@@ -309,8 +322,8 @@ final class StampPlacementManager {
         if (pdfFile == null) {
             return null;
         }
-        return pdfFile.pdfRectToDocument(page, pdfView.getZoom(),
-                rect.left, rect.bottom, rect.right, rect.top, false);
+        return pdfFile.frameRectToDocument(page, pdfView.getZoom(),
+                rect.left, rect.top, rect.right, rect.bottom, false);
     }
 
     private static int invertColor(int color) {

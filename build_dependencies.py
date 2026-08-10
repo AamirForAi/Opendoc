@@ -1,21 +1,58 @@
+#!/usr/bin/env python3
 import argparse
 import os
 import shutil
 from pathlib import Path
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--fresh", action="store_true", help="Clean generated native outputs before building.")
-parser.add_argument("--native-only", action="store_true",
-                    help="Skip fetching/building dependencies and only rebuild the native code (ndk-build).")
-args = parser.parse_args()
-
 from build_dependencies.common import log, error
+from build_dependencies.values import ABI_CHOICES, ALL_ARCHES, ARCH_NAMES, LIB_DIR_PATH, resolve_arches, \
+    FILE_NAMES, LIB_EXTENSION, Lib
 from build_dependencies.pdfium import fetch_prebuilt_pdfium
+from build_dependencies.pdfium_source import build_pdfium_from_source
 from build_dependencies.libpng import build_libpng_libs
 from build_dependencies.freetype2 import build_freetype_libs
 from build_dependencies.shared_cpp_lib import copy_shared_cpp_libs
 from build_dependencies.native_code import build_native_code
-from build_dependencies.values import LIB_DIR_PATH, ARCH_NAMES, FILE_NAMES, LIB_EXTENSION, Lib
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Build MJ PDF's native dependencies (PDFium, libpng, FreeType, JNI bridge).")
+    parser.add_argument("--pdfium", choices=["from-source", "prebuilt"], default="from-source",
+                        help="Build PDFium from source (default), or download the prebuilt library.")
+    parser.add_argument("--abi", choices=["all", *ABI_CHOICES], default="all",
+                        help="Build every ABI (default), or a single ABI.")
+    parser.add_argument("--fresh", action="store_true",
+                        help="Delete generated native outputs before building.")
+    parser.add_argument("--native-only", action="store_true",
+                        help="Skip dependencies and only rebuild the JNI bridge (ndk-build).")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Print what would be built and exit without building.")
+    return parser.parse_args()
+
+
+def build_pdfium(mode, arches):
+    if mode == "from-source":
+        build_pdfium_from_source(arches)
+    else:
+        fetch_prebuilt_pdfium(arches)
+
+
+def summarize(args, arches):
+    steps = []
+    if args.fresh:
+        steps.append("clean outputs")
+    if args.native_only:
+        steps.append("ndk-build (JNI only)")
+    else:
+        steps.append("PDFium (" + args.pdfium + ")")
+        steps.extend(["libpng", "FreeType", "libc++_shared", "ndk-build (JNI)"])
+    log("Dry run, nothing will be built.")
+    log("PDFium source: " + args.pdfium)
+    log("ABIs: " + ", ".join(ARCH_NAMES[arch] for arch in arches))
+    log("NDK: " + os.environ.get("ANDROID_NDK", "<not set>"))
+    log("Output: " + LIB_DIR_PATH)
+    log("Steps: " + " -> ".join(steps))
 
 
 def clean_native_outputs():
@@ -37,13 +74,13 @@ def clean_native_outputs():
         lib.unlink()
 
 
-def verify_native_deps():
+def verify_native_deps(arches):
     required = [FILE_NAMES[lib] + LIB_EXTENSION
                 for lib in (Lib.pdfium, Lib.freetype2, Lib.libpng, Lib.cpp_shared)]
-    missing = [str(Path(LIB_DIR_PATH) / arch_name / lib_filename)
-               for arch_name in ARCH_NAMES.values()
+    missing = [str(Path(LIB_DIR_PATH) / ARCH_NAMES[arch] / lib_filename)
+               for arch in arches
                for lib_filename in required
-               if not (Path(LIB_DIR_PATH) / arch_name / lib_filename).exists()]
+               if not (Path(LIB_DIR_PATH) / ARCH_NAMES[arch] / lib_filename).exists()]
 
     if missing:
         log("Missing prebuilt dependencies (run a full build first, without --native-only):")
@@ -52,19 +89,26 @@ def verify_native_deps():
         error("Cannot build native code because dependency libraries are missing.")
 
 
-log("Start " + __file__)
-log("INSTALL_PATH: " + LIB_DIR_PATH)
+def main():
+    args = parse_args()
+    arches = resolve_arches(args.abi)
+    if args.dry_run:
+        summarize(args, arches)
+        return
+    if args.fresh:
+        clean_native_outputs()
+    if args.native_only:
+        verify_native_deps(arches)
+    log("Start " + __file__)
+    log("INSTALL_PATH: " + LIB_DIR_PATH)
+    os.chdir("build_dependencies")
+    if not args.native_only:
+        build_pdfium(args.pdfium, arches)
+        build_libpng_libs(arches)
+        build_freetype_libs(arches)
+        copy_shared_cpp_libs(arches)
+    build_native_code(arches)
 
-if args.fresh:
-    clean_native_outputs()
 
-if args.native_only:
-    verify_native_deps()
-
-os.chdir("build_dependencies")
-if not args.native_only:
-    fetch_prebuilt_pdfium()
-    build_libpng_libs()
-    build_freetype_libs()
-    copy_shared_cpp_libs()
-build_native_code()
+if __name__ == "__main__":
+    main()

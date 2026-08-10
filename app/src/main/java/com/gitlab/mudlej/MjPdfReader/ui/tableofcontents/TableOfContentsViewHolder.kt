@@ -24,12 +24,19 @@ class TableOfContentsViewHolder(
         indent(entry.level)
         highlightCurrentEntry(entry.path)
 
+        val resolvable = entry.pageIdx >= 0
         binding.bookmarkText.text = entry.title
         binding.bookmarkText.textSize = textSize
-        binding.bookmarkPageNumber.text = (entry.pageIdx + 1).toString()
+        binding.bookmarkText.alpha = if (resolvable) 1f else UNRESOLVED_ENTRY_ALPHA
+        binding.bookmarkPageNumber.text = if (resolvable) (entry.pageIdx + 1).toString() else ""
         binding.bookmarkPageNumber.textSize = textSize
 
-        val onClick = View.OnClickListener { tableOfContentsAdapter.bookmarkFunctions.onEntryClicked(entry) }
+        val onClick = if (resolvable) {
+            View.OnClickListener { tableOfContentsAdapter.bookmarkFunctions.onEntryClicked(entry) }
+        } else {
+            null
+        }
+        binding.root.isClickable = resolvable
         binding.root.setOnClickListener(onClick)
         binding.bookmarkText.setOnClickListener(onClick)
         binding.bookmarkPageNumber.setOnClickListener(onClick)
@@ -79,5 +86,9 @@ class TableOfContentsViewHolder(
         val params = binding.root.layoutParams as ViewGroup.MarginLayoutParams
         params.marginStart = baseMargin + level * step
         binding.root.layoutParams = params
+    }
+
+    private companion object {
+        const val UNRESOLVED_ENTRY_ALPHA = 0.5f
     }
 }

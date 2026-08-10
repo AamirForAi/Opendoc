@@ -10,6 +10,7 @@ import com.gitlab.mudlej.MjPdfReader.data.entity.UserBookmark
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderUi
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
+import com.gitlab.mudlej.MjPdfReader.core.ui.confirmDialog
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -22,6 +23,8 @@ class UserBookmarkController(
     private val scope: CoroutineScope,
     private val ui: ReaderUi,
     private val onBookmarkStateChanged: () -> Unit,
+    private val isIncognito: () -> Boolean,
+    private val onExitIncognito: () -> Unit,
 ) {
 
     private val doc get() = vm.doc
@@ -52,6 +55,17 @@ class UserBookmarkController(
         val rowPages = visibleRowPages(pageIndex)
         val bookmarkedRowPages = rowPages.filter { vm.bookmarkedPages.contains(it) }
         val adding = bookmarkedRowPages.isEmpty()
+        if (adding && isIncognito()) {
+            val context = binding.root.context
+            confirmDialog(
+                context,
+                R.string.bookmark_incognito_blocked_title,
+                context.getString(R.string.bookmark_incognito_blocked_message),
+                R.string.incognito_exit,
+                onExitIncognito,
+            )
+            return
+        }
         if (adding && !historyPolicy.canRecord()) {
             AppSnackbar.make(binding.root, R.string.history_action_blocked, Snackbar.LENGTH_SHORT).show()
             return

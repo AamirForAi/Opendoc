@@ -18,6 +18,9 @@ interface PdfAnnotationSaveDestinationDao {
     @Query("SELECT * FROM PdfAnnotationSaveDestination WHERE lastSavedHash = :hash LIMIT 1")
     fun findByLastSavedHash(hash: String): PdfAnnotationSaveDestination?
 
+    @Query("UPDATE PdfAnnotationSaveDestination SET lastSavedHash = :newHash WHERE lastSavedHash = :oldHash")
+    fun rekeyLastSavedHash(oldHash: String, newHash: String): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun upsert(destination: PdfAnnotationSaveDestination)
 

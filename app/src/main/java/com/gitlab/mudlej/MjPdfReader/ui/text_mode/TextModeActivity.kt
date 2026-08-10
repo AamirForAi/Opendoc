@@ -35,7 +35,6 @@ import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.ui.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoNightModeFromIntent
 import com.gitlab.mudlej.MjPdfReader.core.ui.applyIncognitoOverlayFromIntent
-import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Job
@@ -81,6 +80,8 @@ class TextModeActivity : AppCompatActivity() {
     private var tableOfContentsState = TableOfContentsState()
     private var savedPageIndex = -1
     private var setupJob: Job? = null
+    private var requestedPageIndex = RecyclerView.NO_POSITION
+    private var holdAttempts = 0
 
     private val tableOfContentsLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -110,6 +111,15 @@ class TextModeActivity : AppCompatActivity() {
         applyIncognitoOverlayFromIntent()
         binding = ActivityTextModeBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setupWindowChrome()
+        createCoreServices()
+        restoreState(savedInstanceState)
+        initPdfProperties()
+        if (!::pdfUri.isInitialized) return
+        startDocumentSetup()
+    }
+
+    private fun setupWindowChrome() {
         ColorUtil.colorize(this, window, supportActionBar)
         ColorUtil.enterFullscreen(window)
         ViewCompat.setOnApplyWindowInsetsListener(binding.readerControlsCard) { view, insets ->
@@ -122,7 +132,9 @@ class TextModeActivity : AppCompatActivity() {
             }
             insets
         }
+    }
 
+    private fun createCoreServices() {
         pdfRepository = PdfRepository(AppDatabase.getInstance(applicationContext))
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         settings = TextModeSettings.load(sharedPreferences)
@@ -137,10 +149,9 @@ class TextModeActivity : AppCompatActivity() {
             { codeBlocksEnabled },
         )
         controlsController = TextModeControlsController(binding, hideDelayMillis)
-        restoreState(savedInstanceState)
-        initPdfProperties()
-        if (!::pdfUri.isInitialized) return
+    }
 
+    private fun startDocumentSetup() {
         setupJob = lifecycleScope.launch {
             showLoading()
             if (!contentLoader.open(pdfUri, pdfPassword)) {
@@ -155,7 +166,7 @@ class TextModeActivity : AppCompatActivity() {
                 return@launch
             }
             if (fileHash == null) {
-                fileHash = computeHash(this@TextModeActivity, pdfUri)
+                fileHash = pdfRepository.resolveIdentity(this@TextModeActivity, pdfUri)
             }
             fileHash?.let { hash ->
                 pdfRepository.findTextModeReflow(hash)?.let { override ->
@@ -176,6 +187,7 @@ class TextModeActivity : AppCompatActivity() {
             ?: intent.getIntExtra(PDF.pageNumberKey, 0)
         fileHash = savedInstanceState?.getString(PDF.fileHashKey)
             ?: intent.getStringExtra(PDF.fileHashKey)
+        savedPageIndex = currentPageIndex
     }
 
     private fun initPdfProperties() {
@@ -200,7 +212,14 @@ class TextModeActivity : AppCompatActivity() {
         controlsController.attachTapListener()
         binding.textPagesRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                holdRequestedPage()
                 updateCurrentPageFromScroll()
+            }
+
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                if (newState != RecyclerView.SCROLL_STATE_IDLE) {
+                    requestedPageIndex = RecyclerView.NO_POSITION
+                }
             }
         })
         binding.textPagesRecyclerView.addOnChildAttachStateChangeListener(
@@ -364,15 +383,35 @@ class TextModeActivity : AppCompatActivity() {
             layoutManager.findFirstVisibleItemPosition() == currentPageIndex &&
             anchoredView.top == binding.textPagesRecyclerView.paddingTop
         ) {
+            requestedPageIndex = RecyclerView.NO_POSITION
             updatePageControls()
             saveCurrentPage()
             return
         }
-        layoutManager.scrollToPositionWithOffset(currentPageIndex, 0)
+        requestedPageIndex = currentPageIndex
+        holdAttempts = 0
+        anchorRequestedPage()
         contentLoader.loadTargetWindow(currentPageIndex)
         binding.textPagesRecyclerView.doOnNextLayout { contentLoader.loadVisiblePages() }
         updatePageControls()
         saveCurrentPage()
+    }
+
+    private fun anchorRequestedPage() {
+        binding.textPagesRecyclerView.focusedChild?.clearFocus()
+        layoutManager.scrollToPositionWithOffset(requestedPageIndex, 0)
+    }
+
+    private fun holdRequestedPage() {
+        val requested = requestedPageIndex
+        if (requested == RecyclerView.NO_POSITION) return
+        if (layoutManager.findFirstVisibleItemPosition() == requested) return
+        if (holdAttempts >= MAX_HOLD_ATTEMPTS) {
+            requestedPageIndex = RecyclerView.NO_POSITION
+            return
+        }
+        holdAttempts++
+        anchorRequestedPage()
     }
 
     private fun seekToPage(pageIndex: Int) {
@@ -506,5 +545,6 @@ class TextModeActivity : AppCompatActivity() {
         private const val DEFAULT_JOIN_PARAGRAPHS = true
         private const val DEFAULT_DETECT_HEADINGS = true
         private const val DEFAULT_CODE_BLOCKS = true
+        private const val MAX_HOLD_ATTEMPTS = 4
     }
 }

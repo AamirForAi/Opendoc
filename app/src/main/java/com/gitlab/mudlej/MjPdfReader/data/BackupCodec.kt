@@ -123,6 +123,7 @@ object BackupCodec {
         record.textModeDetectHeadings?.let { json.addProperty(canonical.recordTextModeDetectHeadings, it) }
         record.textModeCodeBlocks?.let { json.addProperty(canonical.recordTextModeCodeBlocks, it) }
         json.addProperty(canonical.recordHidden, record.hidden)
+        record.sourceUri?.let { json.addProperty(canonical.recordSourceUri, it) }
         return json
     }
 
@@ -148,6 +149,7 @@ object BackupCodec {
             textModeDetectHeadings = json.nullableBooleanMember(names.recordTextModeDetectHeadings),
             textModeCodeBlocks = json.nullableBooleanMember(names.recordTextModeCodeBlocks),
             hidden = json.booleanMember(names.recordHidden, false),
+            sourceUri = json.stringMember(names.recordSourceUri),
         )
     }
 
@@ -235,6 +237,7 @@ object BackupCodec {
         val recordTextModeDetectHeadings: String,
         val recordTextModeCodeBlocks: String,
         val recordHidden: String,
+        val recordSourceUri: String,
         val bookmarkFileHash: String,
         val bookmarkPageIndex: String,
         val bookmarkLabel: String,
@@ -284,6 +287,7 @@ object BackupCodec {
         recordTextModeDetectHeadings = "textModeDetectHeadings",
         recordTextModeCodeBlocks = "textModeCodeBlocks",
         recordHidden = "hidden",
+        recordSourceUri = "sourceUri",
         bookmarkFileHash = "fileHash",
         bookmarkPageIndex = "pageIndex",
         bookmarkLabel = "label",
@@ -320,6 +324,7 @@ object BackupCodec {
         recordTextModeDetectHeadings = "q",
         recordTextModeCodeBlocks = "r",
         recordHidden = "s",
+        recordSourceUri = "t",
         bookmarkFileHash = "a",
         bookmarkPageIndex = "b",
         bookmarkLabel = "c",

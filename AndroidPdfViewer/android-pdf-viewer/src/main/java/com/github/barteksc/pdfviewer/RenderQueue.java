@@ -21,6 +21,7 @@ class RenderQueue {
     private final List<RenderTask> queued = new ArrayList<>();
 
     private RenderTask inFlight;
+    private int inFlightPriority;
     private boolean inFlightOrphanPending;
 
     private long liveWaveId;
@@ -66,26 +67,41 @@ class RenderQueue {
         }
         task.generation = generationSource.generationOf(task.page);
 
-        if (inFlight != null && task.kind != RenderTask.Kind.PREWARM && inFlight.equivalentTo(task)) {
+        if (inFlight != null && task.kind != RenderTask.Kind.PREWARM && canAbsorb(inFlight, task)) {
             inFlight.waveId = liveWaveId;
             inFlightOrphanPending = false;
+            if (task.priorityClass < inFlightPriority) {
+                inFlightPriority = task.priorityClass;
+            }
+            notifyAll();
             return;
         }
         if ((task.priorityClass == RenderTask.P0 || task.priorityClass == RenderTask.P1)
-                && inFlight != null && inFlight.priorityClass == RenderTask.P2) {
+                && inFlight != null && inFlightPriority == RenderTask.P2) {
             inFlight.cancelFromQueue();
         }
-        for (RenderTask candidate : queued) {
-            if (candidate.equivalentTo(task)) {
-                candidate.waveId = liveWaveId;
-                return;
+        for (Iterator<RenderTask> iterator = queued.iterator(); iterator.hasNext(); ) {
+            RenderTask candidate = iterator.next();
+            if (!candidate.equivalentTo(task)) {
+                continue;
             }
+            if (task.priorityClass < candidate.priorityClass) {
+                iterator.remove();
+                break;
+            }
+            candidate.waveId = liveWaveId;
+            notifyAll();
+            return;
         }
 
         task.waveId = liveWaveId;
         task.seq = nextSeq++;
         queued.add(task);
         notifyAll();
+    }
+
+    private boolean canAbsorb(RenderTask holder, RenderTask incoming) {
+        return !holder.isQueueCancelled() && holder.equivalentTo(incoming);
     }
 
     RenderTask pollNext() {
@@ -207,6 +223,7 @@ class RenderQueue {
         if (chosen != null) {
             queued.remove(chosen);
             inFlight = chosen;
+            inFlightPriority = chosen.priorityClass;
             inFlightOrphanPending = false;
         }
         return chosen;

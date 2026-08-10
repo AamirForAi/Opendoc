@@ -51,7 +51,7 @@ class HomeLibraryController(
                     length = if (match.length > 0) match.length else entry.pageCount,
                 ) ?: HomeItem.fromScan(entry)
             }
-            .distinctBy { it.hash }
+            .distinctBy { it.uri }
     }
 
     fun filterByChip(items: List<HomeItem>, filter: ListFilter): List<HomeItem> {

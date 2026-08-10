@@ -11,7 +11,6 @@ import com.github.barteksc.pdfviewer.PDFView
 import com.github.barteksc.pdfviewer.PDFView.Configurator
 import com.github.barteksc.pdfviewer.model.CropMargins
 import com.github.barteksc.pdfviewer.util.Constants
-import com.github.barteksc.pdfviewer.util.FitPolicy
 import com.gitlab.mudlej.MjPdfReader.BuildConfig
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.OnlineDocumentStore
@@ -19,13 +18,13 @@ import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
+import com.gitlab.mudlej.MjPdfReader.data.resolveReadingLayout
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderUi
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
 import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.readingdirection.ReadingDirectionResolver
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
-import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.gitlab.mudlej.MjPdfReader.core.io.getFileName
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.snackbar.Snackbar
@@ -85,11 +84,15 @@ class DocumentLoader(
         prepareNewDocument(uri)
         val loadToken = vm.currentLoadToken
         scope.launch {
-            val hash = computeHash(context, doc.uri)
+            val hash = resolveDocumentIdentity(doc.uri)
             if (vm.isCurrent(loadToken, uri)) {
                 doc.fileHash = hash
             }
         }
+    }
+
+    private suspend fun resolveDocumentIdentity(uri: Uri?): String? {
+        return pdfRepository.resolveIdentity(context, uri)
     }
 
     fun displayFromUri(uri: Uri?, savePassword: Boolean = false) {
@@ -131,7 +134,7 @@ class DocumentLoader(
         val viewState = vm.pendingViewState
         state = LoadState.Loading
         scope.launch {
-            val hash = doc.fileHash ?: computeHash(context, doc.uri)
+            val hash = doc.fileHash ?: resolveDocumentIdentity(doc.uri)
             if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
@@ -176,7 +179,8 @@ class DocumentLoader(
                 return@launch
             }
 
-            val pageNumber = if (doc.pageNumber == 0 && hash != null && !pref.getAlwaysOpenAtFirstPage()) {
+            val openAtFirstPageOverride = doc.pageNumber == 0 && pref.getAlwaysOpenAtFirstPage()
+            val pageNumber = if (doc.pageNumber == 0 && hash != null && !openAtFirstPageOverride) {
                 pdfRepository.findPageNumber(hash)
             } else {
                 doc.pageNumber
@@ -200,6 +204,11 @@ class DocumentLoader(
                 return@launch
             }
             vm.setPage(pageNumber)
+            if (openAtFirstPageOverride) {
+                vm.suppressPositionPersistAt(pageNumber)
+            } else {
+                vm.clearPositionPersistSuppression()
+            }
             doc.autoScrollSpeed = doc.autoScrollSpeed ?: autoScrollSpeed
             doc.readingDirectionOverride = readingDirectionState.overrideDirection
             doc.detectedReadingDirection = readingDirectionState.detectedDirection
@@ -319,8 +328,7 @@ class DocumentLoader(
         pdfView.midZoom = Preferences.midZoomDefault
         pdfView.maxZoom = pref.getMaxZoom()
         val spacing = if (pref.getSpaceBetweenPages()) Preferences.spacingDefault else 0
-        val browserScrollMode = pref.getBrowserScrollMode() && !pref.getHorizontalScroll()
-        val dualPageMode = pref.getDualPageMode() && !pref.getHorizontalScroll()
+        val layout = resolveReadingLayout(pref)
 
         val configurator = viewConfigurator
             .defaultPage(pageNumber)
@@ -330,6 +338,7 @@ class DocumentLoader(
             .enableAntialiasing(pref.getAntiAliasing())
             .renderDuringScale(true)
             .debugChecks(BuildConfig.DEBUG)
+            .mainThreadChecks(true)
             .spacing(spacing)
             .onError { exception: Throwable ->
                 state = if (exception is PdfPasswordException) LoadState.PasswordRequired else LoadState.Failed(exception)
@@ -337,18 +346,19 @@ class DocumentLoader(
                 emit { it.onLoadFailed(exception) }
             }
             .onPageError { page: Int, error: Throwable -> reportLoadPageError(page, error) }
-            .pageFitPolicy(FitPolicy.WIDTH)
+            .pageFitPolicy(layout.fitPolicy)
+            .threeStepDoubleTapZoom(pref.getDoubleTapThreeStepZoom())
             .password(doc.password)
-            .swipeHorizontal(pref.getHorizontalScroll())
-            .horizontalReadingDirectionRtl(pref.getHorizontalScroll() && readingDirectionRtl)
+            .swipeHorizontal(layout.swipeHorizontal)
+            .horizontalReadingDirectionRtl(layout.swipeHorizontal && readingDirectionRtl)
             .disableHorizontalSwipe(horizontalSwipeDisabled)
             .zoomDisabled(zoomDisabled)
-            .autoSpacing(pref.getHorizontalScroll())
-            .pagesPerRow(if (dualPageMode) 2 else 1)
+            .autoSpacing(layout.autoSpacing)
+            .pagesPerRow(if (layout.dualPage) 2 else 1)
             .firstPageAlone(pref.getDualPageFirstPageAlone())
-            .pageSnap(pref.getPageSnap() && !browserScrollMode)
-            .pageFling(pref.getPageFling() && !browserScrollMode)
-            .freeScrollMode(browserScrollMode)
+            .pageSnap(layout.pageSnap)
+            .pageFling(layout.pageFling)
+            .freeScrollMode(layout.freeScroll)
             .enableTextSelection(pref.getInlineTextSelection())
             .textSelectionColor(MaterialColors.getColor(binding.root, R.attr.colorPrimary))
             .cropMargins(vm.cropMarginsEnabled)
@@ -358,6 +368,7 @@ class DocumentLoader(
                     vm.pendingViewState = null
                 }
                 state = LoadState.Loaded(pageCount)
+                doc.initPdfLength(pageCount)
                 hideProgressBar(loadToken, documentUri)
                 createPdfRecord(savePassword, fileHash, loadToken, documentUri)
                 val event = DocumentLoadedEvent(
@@ -372,8 +383,6 @@ class DocumentLoader(
             }
 
         decorateConfigurator(configurator).load()
-
-        pdfView.performTap()
     }
 
     private fun createPdfRecord(
@@ -414,7 +423,7 @@ class DocumentLoader(
         }
 
         if (doc.fileHash == null && expectedFileHash == null) {
-            val computedHash = computeHash(context, doc.uri)
+            val computedHash = resolveDocumentIdentity(doc.uri)
             if (!vm.isCurrent(loadToken, documentUri)) {
                 return
             }
@@ -441,6 +450,10 @@ class DocumentLoader(
                 return
             }
             pdfRepository.setLastOpened(fileHash, LocalDateTime.now())
+            if (!vm.isCurrent(loadToken, documentUri)) {
+                return
+            }
+            pdfRepository.setLength(fileHash, doc.length)
             if (!vm.isCurrent(loadToken, documentUri)) {
                 return
             }
@@ -527,12 +540,14 @@ class DocumentLoader(
             return
         }
         vm.setPage(pageNumber)
+        doc.pageRangeStart = binding.pdfView.getRowFirstPage(pageNumber)
         doc.pageRangeEnd = binding.pdfView.getRowLastPage(pageNumber)
         doc.initPdfLength(pageCount)
         ui.updateTitle()
         emit { it.onPageChanged(pageNumber) }
-        val announcement = if (doc.pageRangeEnd > pageNumber) {
-            context.getString(R.string.pages_x_to_y_of_z, pageNumber + 1, doc.pageRangeEnd + 1, pageCount)
+        val rangeStart = minOf(doc.pageRangeStart, pageNumber)
+        val announcement = if (doc.pageRangeEnd > rangeStart) {
+            context.getString(R.string.pages_x_to_y_of_z, rangeStart + 1, doc.pageRangeEnd + 1, pageCount)
         } else {
             context.getString(R.string.page_x_of_y, pageNumber + 1, pageCount)
         }
@@ -542,7 +557,7 @@ class DocumentLoader(
             if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
-            val hash = doc.fileHash ?: expectedFileHash ?: computeHash(context, doc.uri)
+            val hash = doc.fileHash ?: expectedFileHash ?: resolveDocumentIdentity(doc.uri)
             if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
@@ -550,7 +565,7 @@ class DocumentLoader(
                 doc.fileHash = hash
                 emit { it.onFileHashComputed() }
                 attachPreviewDiskIfCurrent(hash, loadToken, documentUri)
-                if (historyPolicy.canRecord()) {
+                if (historyPolicy.canRecord() && vm.canPersistPosition(pageNumber)) {
                     pdfRepository.setPageNumber(hash, pageNumber)
                 }
             }

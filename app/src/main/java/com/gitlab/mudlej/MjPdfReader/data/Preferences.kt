@@ -13,6 +13,8 @@ import com.gitlab.mudlej.MjPdfReader.ui.home.HomeTitleEllipsize
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeViewMode
 import com.gitlab.mudlej.MjPdfReader.ui.home.ListFilter
 import com.gitlab.mudlej.MjPdfReader.ui.home.ScanMode
+import com.gitlab.mudlej.MjPdfReader.ui.text_mode.ReaderFontFamily
+import com.gitlab.mudlej.MjPdfReader.ui.text_mode.ReaderTheme
 
 class Preferences(private val prefMan: SharedPreferences) {
 
@@ -98,15 +100,19 @@ class Preferences(private val prefMan: SharedPreferences) {
         // Preferences keys
         const val firstInstallKey = "firstInstall"
         const val showFeaturesDialogKey = "showFeaturesDialog"
+        const val showExitFullscreenTipKey = "showExitFullscreenTip"
         const val lastSeenVersionCodeKey = "lastSeenVersionCode"
         const val highQualityKey = "highQuality"
         const val antiAliasingKey = "antiAliasing"
         const val horizontalScrollKey = "horizontalScroll"
         const val dualPageModeKey = "dualPageMode"
         const val dualPageFirstPageAloneKey = "dualPageFirstPageAlone"
+        const val pageFitPolicyKey = "pageFitPolicy"
         const val pageSnapKey = "pageSnap"
         const val pageFlingKey = "pageFling"
         const val browserScrollModeKey = "browserScrollMode"
+        const val singlePageModeKey = "singlePageMode"
+        const val tapToTurnKey = "tapToTurnPages"
         const val turnPageByMouseButtonsKey = "turnPageByMouseButtons"
         const val pdfDarkThemeKey = "pdfDarkTheme"
         const val appFollowSystemThemeKey = "appFollowSystemTheme"
@@ -142,6 +148,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val fullScreenInfoShowPageNumberKey = "fullScreenInfoShowPageNumber"
         const val fullScreenInfoShowReadingPercentageKey = "fullScreenInfoShowReadingPercentage"
         const val doubleTapToExitEnabledKey = "doubleTapToExitEnabled"
+        const val doubleTapThreeStepZoomKey = "doubleTapThreeStepZoom"
+        const val openPdfsInSeparateWindowsKey = "openPdfsInSeparateWindows"
         const val alwaysOpenAtFirstPageKey = "alwaysOpenAtFirstPage"
         const val autoFullScreenKey = "autoFullScreenSwitch"
         const val alwaysHorizontalKey = "alwaysHorizontal"
@@ -175,6 +183,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val homeSortKey = "homeSort"
         const val historyEnabledKey = "historyEnabled"
         const val keepSharedCopiesKey = "keepSharedCopies"
+        const val sharedCopyModeKey = "sharedCopyMode"
         const val scanModeKey = "scanMode"
         const val scanLocationsKey = "scanLocations"
         const val translationModeKey = "translationMode"
@@ -182,18 +191,28 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val translationTargetLanguageKey = "translationTargetLanguage"
         const val translationCustomUrlKey = "translationCustomUrl"
         const val dictionaryDefineWordsKey = "dictionaryDefineWords"
+        const val textModeFontSizeKey = "textModeFontSize"
+        const val textModeLineSpacingKey = "textModeLineSpacing"
+        const val textModeHorizontalMarginKey = "textModeHorizontalMargin"
+        const val textModeThemeKey = "textModeTheme"
+        const val textModeFontFamilyKey = "textModeFontFamily"
+        const val textModeReadableLineLengthKey = "textModeReadableLineLength"
 
         // Default values
         const val firstInstallDefault = true
         const val showFeaturesDialogDefault = true
+        const val showExitFullscreenTipDefault = true
         const val highQualityDefault = false
         const val antiAliasingDefault = true
         const val horizontalScrollDefault = false
         const val dualPageModeDefault = false
         const val dualPageFirstPageAloneDefault = false
+        const val pageFitPolicyDefault = "WIDTH"
         const val pageSnapDefault = false
         const val pageFlingDefault = false
         const val browserScrollModeDefault = false
+        const val singlePageModeDefault = false
+        const val tapToTurnDefault = "LEFT_RIGHT"
         const val turnPageByMouseButtonsDefault = true
         const val pdfDarkThemeDefault = false
         const val appFollowSystemThemeDefault = true    // NEW: for version v2.1 M3 Theme
@@ -230,6 +249,8 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val fullScreenInfoShowPageNumberDefault = true
         const val fullScreenInfoShowReadingPercentageDefault = true
         const val doubleTapToExitEnabledDefault = false
+        const val doubleTapThreeStepZoomDefault = false
+        const val openPdfsInSeparateWindowsDefault = true
         const val alwaysOpenAtFirstPageDefault = false
         const val autoFullScreenDefault = false
         const val alwaysHorizontalDefault = false
@@ -237,7 +258,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val listFilterDefault = "RECENT"  // ListFilter.RECENT.name
         const val homeDisabledDefault = false
         const val homeShowPdfTitleDefault = true
-        const val homeTabDefault = "RECENT"
+        const val homeTabDefault = "LIBRARY"
         const val homeFolderFlatDefault = false
         const val homeViewModeDefault = "GRID"
         const val homeProgressStyleDefault = "RING"
@@ -249,6 +270,7 @@ class Preferences(private val prefMan: SharedPreferences) {
         const val homeSortDefault = "NAME"
         const val historyEnabledDefault = true
         const val keepSharedCopiesDefault = true
+        const val sharedCopyModeDefault = "ALWAYS_COPY"
         const val scanModeDefault = "NOT_CONFIGURED"
         val scanLocationsDefault: Set<String> = emptySet()
         const val themeSystem = "system"
@@ -285,9 +307,9 @@ class Preferences(private val prefMan: SharedPreferences) {
 
         val backupSettingKinds: Map<String, String> = buildMap {
             listOf(
-                firstInstallKey, showFeaturesDialogKey, highQualityKey, antiAliasingKey,
+                firstInstallKey, showFeaturesDialogKey, showExitFullscreenTipKey, highQualityKey, antiAliasingKey,
                 horizontalScrollKey, dualPageModeKey, dualPageFirstPageAloneKey, pageSnapKey,
-                pageFlingKey, browserScrollModeKey, turnPageByMouseButtonsKey, pdfDarkThemeKey,
+                pageFlingKey, browserScrollModeKey, singlePageModeKey, turnPageByMouseButtonsKey, pdfDarkThemeKey,
                 appFollowSystemThemeKey, pdfFollowSystemThemeKey, enableReloadButtonKey, screenOnKey,
                 spaceBetweenPagesKey, inlineTextSelectionKey, detectExistingHighlightsKey,
                 searchIgnoreAccentsKey, searchZoomToResultKey, defaultTextModeKey,
@@ -295,28 +317,33 @@ class Preferences(private val prefMan: SharedPreferences) {
                 alwaysHideMarginsKey, secondBarEnabledKey, hideButtonsLabelsKey,
                 fullScreenInfoShowTimeKey, fullScreenInfoShowPdfNameKey,
                 fullScreenInfoShowPageNumberKey, fullScreenInfoShowReadingPercentageKey,
-                doubleTapToExitEnabledKey, alwaysOpenAtFirstPageKey, autoFullScreenKey,
-                alwaysHorizontalKey, homeDisabledKey, homeShowPdfTitleKey, homeFolderFlatKey,
-                homeBadgePagesKey, homeBadgeProgressKey, homeBadgeLastOpenedKey,
+                doubleTapToExitEnabledKey, doubleTapThreeStepZoomKey, alwaysOpenAtFirstPageKey,
+                autoFullScreenKey, alwaysHorizontalKey, homeDisabledKey, homeShowPdfTitleKey,
+                homeFolderFlatKey, homeBadgePagesKey, homeBadgeProgressKey, homeBadgeLastOpenedKey,
                 homeBadgeFileSizeKey, homeBadgeStatusKey, historyEnabledKey, keepSharedCopiesKey,
-                dictionaryDefineWordsKey, autoBackupEnabledKey,
+                dictionaryDefineWordsKey, autoBackupEnabledKey, openPdfsInSeparateWindowsKey,
+                textModeReadableLineLengthKey,
             ).forEach { put(it, kindBoolean) }
             listOf(
                 hideDelayKey, goToPageGridColumnsKey, scrollSpeedKey, homeListTitleLinesKey,
                 homeGridTitleLinesKey, autoBackupHourKey, autoBackupMinuteKey, lastSeenVersionCodeKey,
+                textModeHorizontalMarginKey,
             ).forEach { put(it, kindInt) }
             listOf(
                 autoBackupLastRunKey, autoBackupErrorAcknowledgedRunKey, autoBackupEnabledAtKey,
             ).forEach { put(it, kindLong) }
-            listOf(partSizeKey, maxZoomKey).forEach { put(it, kindFloat) }
+            listOf(
+                partSizeKey, maxZoomKey, textModeFontSizeKey, textModeLineSpacingKey,
+            ).forEach { put(it, kindFloat) }
             listOf(
                 interfaceThemeKey, pdfPagesThemeKey, primaryButtonActionKey,
                 secondaryButtonActionKey, fullScreenOverlayActionOrderKey, shortcutBarActionOrderKey,
                 highlightColorsKey, listFilterKey, homeTabKey, homeViewModeKey, homeProgressStyleKey,
-                homeGridSizeKey, homeTitleEllipsizeKey, homeSortKey, scanModeKey,
-                backupFolderTreeUriKey, autoBackupLastErrorKey, translationModeKey,
+                homeGridSizeKey, homeTitleEllipsizeKey, homeSortKey, scanModeKey, pageFitPolicyKey,
+                tapToTurnKey, backupFolderTreeUriKey, autoBackupLastErrorKey, translationModeKey,
                 translationEngineKey, translationTargetLanguageKey, translationCustomUrlKey,
-                importResultPendingKey,
+                importResultPendingKey, textModeThemeKey, textModeFontFamilyKey,
+                sharedCopyModeKey,
             ).forEach { put(it, kindString) }
             listOf(
                 fullScreenOverlayActionsKey, shortcutBarActionsKey, scanLocationsKey,
@@ -332,21 +359,31 @@ class Preferences(private val prefMan: SharedPreferences) {
             homeTitleEllipsizeKey to HomeTitleEllipsize.entries.map { it.name }.toSet(),
             homeSortKey to HomeSortOrder.entries.map { it.name }.toSet(),
             scanModeKey to ScanMode.entries.map { it.name }.toSet(),
+            pageFitPolicyKey to PageFitPolicy.entries.map { it.name }.toSet(),
+            tapToTurnKey to TapToTurnZones.entries.map { it.name }.toSet(),
+            textModeThemeKey to ReaderTheme.entries.map { it.name }.toSet(),
+            textModeFontFamilyKey to ReaderFontFamily.entries.map { it.name }.toSet(),
+            sharedCopyModeKey to SharedCopyMode.entries.map { it.name }.toSet(),
         )
     }
 
     // get values saved in Shared Preferences or return the default values
     fun getFirstInstall() = safeGetBoolean(firstInstallKey, firstInstallDefault)
     fun getShowFeaturesDialog() = safeGetBoolean(showFeaturesDialogKey, showFeaturesDialogDefault)
+
+    fun getShowExitFullscreenTip() = safeGetBoolean(showExitFullscreenTipKey, showExitFullscreenTipDefault)
     fun getLastSeenVersionCode() = safeGetInt(lastSeenVersionCodeKey, 0)
     fun getHighQuality() = safeGetBoolean(highQualityKey, highQualityDefault)
     fun getAntiAliasing() = safeGetBoolean(antiAliasingKey, antiAliasingDefault)
     fun getHorizontalScroll() = safeGetBoolean(horizontalScrollKey, horizontalScrollDefault)
     fun getDualPageMode() = safeGetBoolean(dualPageModeKey, dualPageModeDefault)
     fun getDualPageFirstPageAlone() = safeGetBoolean(dualPageFirstPageAloneKey, dualPageFirstPageAloneDefault)
+    fun getPageFitPolicy() = safeGetEnum<PageFitPolicy>(pageFitPolicyKey, pageFitPolicyDefault)
     fun getPageSnap() = safeGetBoolean(pageSnapKey, pageSnapDefault)
     fun getPageFling() = safeGetBoolean(pageFlingKey, pageFlingDefault)
     fun getBrowserScrollMode() = safeGetBoolean(browserScrollModeKey, browserScrollModeDefault)
+    fun getSinglePageMode() = safeGetBoolean(singlePageModeKey, singlePageModeDefault)
+    fun getTapToTurnZones() = safeGetEnum<TapToTurnZones>(tapToTurnKey, tapToTurnDefault)
     fun getTurnPageByMouseButtons() = safeGetBoolean(turnPageByMouseButtonsKey, turnPageByMouseButtonsDefault)
     fun getPdfDarkTheme() = safeGetBoolean(pdfDarkThemeKey, pdfDarkThemeDefault)
     fun getAppFollowSystemTheme() = safeGetBoolean(appFollowSystemThemeKey, appFollowSystemThemeDefault)
@@ -381,6 +418,16 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getAutoBackupErrorAcknowledgedRun() = safeGetLong(autoBackupErrorAcknowledgedRunKey, 0L)
 
     fun getAutoBackupEnabledAt() = safeGetLong(autoBackupEnabledAtKey, 0L)
+
+    fun ensureAutoBackupEnabledAt(): Long {
+        val stored = getAutoBackupEnabledAt()
+        if (stored > 0L || !getAutoBackupEnabled()) {
+            return stored
+        }
+        val now = System.currentTimeMillis()
+        setAutoBackupEnabledAt(now)
+        return now
+    }
 
     fun getImportResultPending(): String? = safeGetString(importResultPendingKey, null)
 
@@ -423,6 +470,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getFullScreenInfoShowPageNumber() = safeGetBoolean(fullScreenInfoShowPageNumberKey, fullScreenInfoShowPageNumberDefault)
     fun getFullScreenInfoShowReadingPercentage() = safeGetBoolean(fullScreenInfoShowReadingPercentageKey, fullScreenInfoShowReadingPercentageDefault)
     fun getDoubleTapToExitEnabled() = safeGetBoolean(doubleTapToExitEnabledKey, doubleTapToExitEnabledDefault)
+    fun getDoubleTapThreeStepZoom() = safeGetBoolean(doubleTapThreeStepZoomKey, doubleTapThreeStepZoomDefault)
+    fun getOpenPdfsInSeparateWindows() = safeGetBoolean(openPdfsInSeparateWindowsKey, openPdfsInSeparateWindowsDefault)
 
     fun getAlwaysOpenAtFirstPage() = safeGetBoolean(alwaysOpenAtFirstPageKey, alwaysOpenAtFirstPageDefault)
     fun getAutoFullScreen() = safeGetBoolean(autoFullScreenKey, autoFullScreenDefault)
@@ -479,6 +528,10 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun getHistoryEnabled() = safeGetBoolean(historyEnabledKey, historyEnabledDefault)
 
     fun getKeepSharedCopies() = safeGetBoolean(keepSharedCopiesKey, keepSharedCopiesDefault)
+    fun getSharedCopyMode(): SharedCopyMode {
+        val fallback = if (getKeepSharedCopies()) sharedCopyModeDefault else SharedCopyMode.ASK.name
+        return safeGetEnum(sharedCopyModeKey, fallback)
+    }
     fun getScanMode() = safeGetEnum<ScanMode>(scanModeKey, scanModeDefault)
     fun getScanLocations(): Set<String> {
         return safeGetStringSet(scanLocationsKey, scanLocationsDefault)?.toSet()
@@ -488,15 +541,20 @@ class Preferences(private val prefMan: SharedPreferences) {
     // put values in Shared Preferences
     fun setFirstInstall(value: Boolean) = prefMan.edit().putBoolean(firstInstallKey, value).apply()
     fun setShowFeaturesDialog(value: Boolean) = prefMan.edit().putBoolean(showFeaturesDialogKey, value).apply()
+
+    fun setShowExitFullscreenTip(value: Boolean) = prefMan.edit().putBoolean(showExitFullscreenTipKey, value).apply()
     fun setLastSeenVersionCode(value: Int) = prefMan.edit().putInt(lastSeenVersionCodeKey, value).apply()
     fun setHighQuality(value: Boolean) = prefMan.edit().putBoolean(highQualityKey, value).apply()
     fun setAntiAliasing(value: Boolean) = prefMan.edit().putBoolean(antiAliasingKey, value).apply()
     fun setHorizontalScroll(value: Boolean) = prefMan.edit().putBoolean(horizontalScrollKey, value).apply()
     fun setDualPageMode(value: Boolean) = prefMan.edit().putBoolean(dualPageModeKey, value).apply()
     fun setDualPageFirstPageAlone(value: Boolean) = prefMan.edit().putBoolean(dualPageFirstPageAloneKey, value).apply()
+    fun setPageFitPolicy(value: PageFitPolicy) = prefMan.edit().putString(pageFitPolicyKey, value.name).apply()
     fun setPageSnap(value: Boolean) = prefMan.edit().putBoolean(pageSnapKey, value).apply()
     fun setPageFling(value: Boolean) = prefMan.edit().putBoolean(pageFlingKey, value).apply()
     fun setBrowserScrollMode(value: Boolean) = prefMan.edit().putBoolean(browserScrollModeKey, value).apply()
+    fun setSinglePageMode(value: Boolean) = prefMan.edit().putBoolean(singlePageModeKey, value).apply()
+    fun setTapToTurnZones(value: TapToTurnZones) = prefMan.edit().putString(tapToTurnKey, value.name).apply()
     fun setTurnPageByMouseButtons(value: Boolean) = prefMan.edit().putBoolean(turnPageByMouseButtonsKey, value).apply()
     fun setPdfDarkTheme(value: Boolean) = prefMan.edit().putBoolean(pdfDarkThemeKey, value).apply()
     fun setAppFollowSystemTheme(value: Boolean) = prefMan.edit().putBoolean(appFollowSystemThemeKey, value).apply()
@@ -566,6 +624,8 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setAlwaysHideMargins(value: Boolean) = prefMan.edit().putBoolean(alwaysHideMarginsKey, value).apply()
     fun setSecondBarEnabled(value: Boolean) = prefMan.edit().putBoolean(secondBarEnabledKey, value).apply()
     fun setDoubleTapToExitEnabled(value: Boolean) = prefMan.edit().putBoolean(doubleTapToExitEnabledKey, value).apply()
+    fun setDoubleTapThreeStepZoom(value: Boolean) = prefMan.edit().putBoolean(doubleTapThreeStepZoomKey, value).apply()
+    fun setOpenPdfsInSeparateWindows(value: Boolean) = prefMan.edit().putBoolean(openPdfsInSeparateWindowsKey, value).apply()
     fun setAutoFullScreen(value: Boolean) = prefMan.edit().putBoolean(autoFullScreenKey, value).apply()
     fun setAlwaysHorizontal(value: Boolean) = prefMan.edit().putBoolean(alwaysHorizontalKey, value).apply()
     fun setHideButtonsLabels(value: Boolean) = prefMan.edit().putBoolean(hideButtonsLabelsKey, value).apply()
@@ -605,6 +665,7 @@ class Preferences(private val prefMan: SharedPreferences) {
     fun setHistoryEnabled(value: Boolean) = prefMan.edit().putBoolean(historyEnabledKey, value).apply()
 
     fun setKeepSharedCopies(value: Boolean) = prefMan.edit().putBoolean(keepSharedCopiesKey, value).apply()
+    fun setSharedCopyMode(value: SharedCopyMode) = prefMan.edit().putString(sharedCopyModeKey, value.name).apply()
     fun setScanMode(value: ScanMode) = prefMan.edit().putString(scanModeKey, value.name).apply()
     fun setScanLocations(value: Set<String>) = prefMan.edit().putStringSet(scanLocationsKey, value).apply()
 

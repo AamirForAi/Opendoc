@@ -6,7 +6,6 @@ package com.gitlab.mudlej.MjPdfReader.ui.reader
 import android.app.Activity
 import android.content.Context
 import android.content.DialogInterface
-import android.content.Intent
 import android.graphics.Typeface
 import android.net.Uri
 import android.util.Log
@@ -20,12 +19,10 @@ import androidx.core.text.isDigitsOnly
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
-import com.gitlab.mudlej.MjPdfReader.pdf.grantPdfReadAccess
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.databinding.PasswordDialogBinding
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
-import com.gitlab.mudlej.MjPdfReader.ui.search.SearchActivity
 import com.gitlab.mudlej.MjPdfReader.core.ui.copyToClipboard
 import com.gitlab.mudlej.MjPdfReader.core.io.convertDateString
 import com.gitlab.mudlej.MjPdfReader.core.io.sizeInMb
@@ -132,7 +129,7 @@ fun showHowToExitFullscreenDialog(context: Context, pref: Preferences) {
         .setTitle(context.getString(R.string.exit_fullscreen_title))
         .setMessage(context.getString(R.string.exit_fullscreen_message))
         .setPositiveButton(context.getString(R.string.exit_fullscreen_positive)) { _, _ ->
-            pref.setShowFeaturesDialog(false)
+            pref.setShowExitFullscreenTip(false)
         }
         .setNegativeButton(context.getString(R.string.ok)) {
                 dialog: DialogInterface, _ -> dialog.dismiss()
@@ -189,7 +186,7 @@ fun showCopyPageTextDialog(
         .show()
 }
 
-fun showSearchDialog(activity: Activity, pdf: DocumentState, isIncognito: Boolean, launchSearch: (Intent) -> Unit) {
+fun showSearchDialog(activity: Activity, pdf: DocumentState, onQueryConfirmed: (query: String, ignoreAccents: Boolean) -> Unit) {
     val pref = Preferences(PreferenceManager.getDefaultSharedPreferences(activity))
     val searchLayout = LayoutInflater.from(activity).inflate(R.layout.input_layout, null) as TextInputLayout
     val ignoreAccentsCheckBox = MaterialCheckBox(activity).apply {
@@ -217,34 +214,26 @@ fun showSearchDialog(activity: Activity, pdf: DocumentState, isIncognito: Boolea
         .setPositiveButton(activity.getText(R.string.search)) { searchDialog, _ ->
             val query = searchLayout.editText?.text ?: return@setPositiveButton
             val queryText = query.toString().trim()
-            fun startSearchActivity() {
-                Intent(activity, SearchActivity::class.java).also { searchIntent ->
-                    searchIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
-                    searchIntent.putExtra(PDF.passwordKey, pdf.password)
-                    pdf.fileHash?.let { searchIntent.putExtra(PDF.fileHashKey, it) }
-                    searchIntent.putExtra(PDF.searchQueryKey, queryText)
-                    searchIntent.putExtra(PDF.incognitoKey, isIncognito)
-                    searchIntent.grantPdfReadAccess(pdf.uri.toString())
-                    pdf.lastQuery = queryText
-                    launchSearch(searchIntent)
-                }
+            fun confirmSearch() {
+                pdf.lastQuery = queryText
+                onQueryConfirmed(queryText, ignoreAccentsCheckBox.isChecked)
             }
             if (queryText.isBlank() || queryText.length < PDF.MIN_SEARCH_QUERY) {
                 MaterialAlertDialogBuilder(activity)
                     .setTitle(activity.getString(R.string.too_short_query))
                     .setMessage(activity.getString(R.string.too_short_query_message).format(queryText))
                     .setNeutralButton(activity.getString(R.string.proceed_anyway)) { _, _ ->
-                        startSearchActivity()
+                        confirmSearch()
                     }
                     .setPositiveButton(activity.getText(R.string.ok)) { badQueryDialog, _ ->
                         searchDialog.dismiss()
                         badQueryDialog.dismiss()
-                        showSearchDialog(activity, pdf, isIncognito, launchSearch)
+                        showSearchDialog(activity, pdf, onQueryConfirmed)
                     }
                     .show()
             }
             else {
-                startSearchActivity()
+                confirmSearch()
             }
         }
         .setNegativeButton(activity.getText(R.string.cancel)) { dialog, _ ->

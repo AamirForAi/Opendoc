@@ -30,15 +30,18 @@ data class HomeItem(
     val available: Boolean
         get() = availability == Availability.AVAILABLE
 
-    val progressPercent: Int
-        get() = if (pageNumber <= 0 || length <= 0) {
-            0
-        } else {
-            ((pageNumber + 1) * 100 / length).coerceIn(0, 100)
-        }
-
     val hasBeenOpened: Boolean
         get() = lastOpened != LocalDateTime.parse(PdfRecord.UNSET_DATE)
+
+    val readingStarted: Boolean
+        get() = length > 0 && (hasBeenOpened || pageNumber > 0)
+
+    val progressPercent: Int
+        get() = if (!readingStarted) {
+            0
+        } else {
+            ((pageNumber + 1) * 100 / length).coerceIn(1, 100)
+        }
 
     companion object {
 

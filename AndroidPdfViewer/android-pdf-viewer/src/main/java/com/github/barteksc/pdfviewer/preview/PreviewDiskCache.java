@@ -81,7 +81,7 @@ final class PreviewDiskCache {
     }
 
     void trim(long budgetBytes) {
-        List<File> files = new ArrayList<>();
+        List<TrimEntry> files = new ArrayList<>();
         File[] docDirs = root.listFiles();
         if (docDirs != null) {
             for (File docDir : docDirs) {
@@ -94,28 +94,27 @@ final class PreviewDiskCache {
                 }
                 for (File pageFile : pageFiles) {
                     if (pageFile.isFile() && !pageFile.getName().endsWith(".tmp")) {
-                        files.add(pageFile);
+                        files.add(new TrimEntry(pageFile));
                     }
                 }
             }
         }
-        Collections.sort(files, new Comparator<File>() {
+        Collections.sort(files, new Comparator<TrimEntry>() {
             @Override
-            public int compare(File left, File right) {
-                return Long.compare(left.lastModified(), right.lastModified());
+            public int compare(TrimEntry left, TrimEntry right) {
+                return Long.compare(left.modified, right.modified);
             }
         });
         long total = 0;
-        for (File file : files) {
-            total += file.length();
+        for (TrimEntry entry : files) {
+            total += entry.length;
         }
-        for (File file : files) {
+        for (TrimEntry entry : files) {
             if (total <= budgetBytes) {
                 break;
             }
-            long length = file.length();
-            if (file.delete()) {
-                total -= length;
+            if (entry.file.delete()) {
+                total -= entry.length;
             }
         }
     }
@@ -140,5 +139,17 @@ final class PreviewDiskCache {
             in.close();
         }
         return out.toByteArray();
+    }
+
+    private static final class TrimEntry {
+        final File file;
+        final long modified;
+        final long length;
+
+        TrimEntry(File file) {
+            this.file = file;
+            this.modified = file.lastModified();
+            this.length = file.length();
+        }
     }
 }

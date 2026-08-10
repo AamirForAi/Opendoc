@@ -215,9 +215,14 @@ class RenderScheduler {
             }
 
             if (task.kind == RenderTask.Kind.PREWARM) {
-                pdfView.onPrewarmStarted(task.page);
-                pdfFile.refillPageCaches(task.page);
-                pdfView.onPrewarmComplete(task.page);
+                pdfFile.pinPage(task.page);
+                try {
+                    pdfView.onPrewarmStarted(task.page);
+                    pdfFile.refillPageCaches(task.page);
+                    pdfView.onPrewarmComplete(task.page);
+                } finally {
+                    pdfFile.unpinPage();
+                }
                 return RenderResult.NONE;
             }
 
@@ -225,74 +230,92 @@ class RenderScheduler {
                 return executePreview(pdfFile, task);
             }
 
-            pdfFile.openPage(task.page);
-
-            int w = Math.round(task.renderWidth);
-            int h = Math.round(task.renderHeight);
-            if (w == 0 || h == 0 || pdfFile.pageHasError(task.page)) {
-                return RenderResult.NONE;
-            }
-
-            Bitmap render;
+            pdfFile.pinPage(task.page);
             try {
-                render = Bitmap.createBitmap(w, h, task.bestQuality ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565);
-            } catch (IllegalArgumentException | OutOfMemoryError e) {
-                Log.e(TAG, "Cannot create bitmap", e);
-                return RenderResult.NONE;
+                pdfFile.openPage(task.page);
+
+                int w = Math.round(task.renderWidth);
+                int h = Math.round(task.renderHeight);
+                if (w == 0 || h == 0 || pdfFile.pageHasError(task.page)) {
+                    return RenderResult.NONE;
+                }
+
+                Bitmap render;
+                try {
+                    render = Bitmap.createBitmap(w, h, task.bestQuality ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565);
+                } catch (IllegalArgumentException | OutOfMemoryError e) {
+                    Log.e(TAG, "Cannot create bitmap", e);
+                    return RenderResult.NONE;
+                }
+                try {
+                    calculateBounds(w, h, task);
+                    pdfFile.renderPageBitmap(render, task.page, roundedRenderBounds, task.annotationRendering);
+                    pdfFile.prewarmPageCaches(task.page);
+                } catch (RuntimeException | Error e) {
+                    render.recycle();
+                    throw e;
+                }
+
+                PagePart part = new PagePart(task.page, render,
+                        new RectF(task.boundsLeft, task.boundsTop, task.boundsRight, task.boundsBottom),
+                        task.cacheOrder);
+                if (task.snapshot) {
+                    part.markSnapshot();
+                }
+                part.setGeneration(task.generation);
+                return RenderResult.delivered(part);
+            } finally {
+                pdfFile.unpinPage();
             }
-            calculateBounds(w, h, task);
-
-            pdfFile.renderPageBitmap(render, task.page, roundedRenderBounds, task.annotationRendering);
-
-            pdfFile.prewarmPageCaches(task.page);
-
-            PagePart part = new PagePart(task.page, render,
-                    new RectF(task.boundsLeft, task.boundsTop, task.boundsRight, task.boundsBottom),
-                    task.cacheOrder);
-            if (task.snapshot) {
-                part.markSnapshot();
-            }
-            part.setGeneration(task.generation);
-            return RenderResult.delivered(part);
         }
 
         private RenderResult executePreview(PdfFile pdfFile, RenderTask task) throws PageRenderingException {
             long startMs = SystemClock.uptimeMillis();
             pdfView.onPreviewStarted(task.page);
-            pdfFile.openPage(task.page);
-
-            int w = Math.round(task.renderWidth);
-            int h = Math.round(task.renderHeight);
-            if (w <= 0 || h <= 0 || pdfFile.pageHasError(task.page)) {
-                return RenderResult.NONE;
-            }
-
-            Bitmap render;
+            boolean freshlyOpened = pdfFile.openPage(task.page);
+            boolean closeAfter = freshlyOpened;
+            RenderResult result;
+            pdfFile.pinPage(task.page);
             try {
-                render = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
-            } catch (IllegalArgumentException | OutOfMemoryError e) {
-                Log.e(TAG, "Cannot create preview bitmap", e);
-                return RenderResult.NONE;
+                int w = Math.round(task.renderWidth);
+                int h = Math.round(task.renderHeight);
+                if (w <= 0 || h <= 0 || pdfFile.pageHasError(task.page)) {
+                    result = RenderResult.NONE;
+                } else {
+                    Bitmap render = null;
+                    try {
+                        render = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
+                    } catch (IllegalArgumentException | OutOfMemoryError e) {
+                        Log.e(TAG, "Cannot create preview bitmap", e);
+                    }
+                    if (render == null) {
+                        result = RenderResult.NONE;
+                    } else {
+                        boolean completed = pdfFile.renderFullPageBitmapCancellable(render, task.page,
+                                task.annotationRendering, pdfView.previewExtraFlags(), task.cancel);
+                        if (!completed) {
+                            recyclePart(render);
+                            result = RenderResult.aborted();
+                        } else if (schedulerEpoch != pdfView.getCurrentRenderEpoch()) {
+                            recyclePart(render);
+                            result = RenderResult.aborted();
+                        } else {
+                            boolean repainted = pdfView.onPreviewRendered(task.page, render, task.generation);
+                            if (PdfFile.isDebugChecksEnabled()) {
+                                Log.d("MjPdfPerf", "preview p" + task.page + " " + (SystemClock.uptimeMillis() - startMs) + "ms "
+                                        + (repainted ? "repaint" : "skipped-repaint"));
+                            }
+                            result = RenderResult.NONE;
+                        }
+                    }
+                }
+            } finally {
+                pdfFile.unpinPage();
             }
-
-            boolean completed = pdfFile.renderFullPageBitmapCancellable(render, task.page,
-                    task.annotationRendering, pdfView.previewExtraFlags(), task.cancel);
-            if (!completed) {
-                recyclePart(render);
-                return RenderResult.aborted();
+            if (closeAfter) {
+                pdfFile.closeRenderOwnedPage(task.page);
             }
-
-            if (schedulerEpoch != pdfView.getCurrentRenderEpoch()) {
-                recyclePart(render);
-                return RenderResult.aborted();
-            }
-
-            boolean repainted = pdfView.onPreviewRendered(task.page, render, task.generation);
-            if (PdfFile.isDebugChecksEnabled()) {
-                Log.d("MjPdfPerf", "preview p" + task.page + " " + (SystemClock.uptimeMillis() - startMs) + "ms "
-                        + (repainted ? "repaint" : "skipped-repaint"));
-            }
-            return RenderResult.NONE;
+            return result;
         }
 
         private void calculateBounds(int width, int height, RenderTask task) {

@@ -16,17 +16,18 @@ object NormalizedTextMapper {
         var normalizedCount = 0
         var rawStart = -1
         while (rawIndex < rawText.length) {
-            if (rawStart < 0 && normalizedCount >= normalizedStart) {
+            val chunkEnd = chunkEnd(rawText, rawIndex)
+            val chunkLength = normalizedLength(rawText.substring(rawIndex, chunkEnd))
+            if (rawStart < 0 && normalizedCount + chunkLength > normalizedStart) {
                 rawStart = rawIndex
             }
-            if (rawStart >= 0 && normalizedCount >= normalizedEnd) {
-                return if (rawIndex > rawStart) rawStart until rawIndex else null
-            }
-            val chunkEnd = chunkEnd(rawText, rawIndex)
-            normalizedCount += normalizedLength(rawText.substring(rawIndex, chunkEnd))
+            normalizedCount += chunkLength
             rawIndex = chunkEnd
+            if (rawStart >= 0 && normalizedCount >= normalizedEnd) {
+                return rawStart until rawIndex
+            }
         }
-        return if (rawStart in 0 until rawText.length) rawStart until rawText.length else null
+        return if (rawStart >= 0) rawStart until rawText.length else null
     }
 
     private fun chunkEnd(text: String, start: Int): Int {

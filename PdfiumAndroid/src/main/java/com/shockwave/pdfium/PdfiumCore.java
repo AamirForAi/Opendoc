@@ -34,6 +34,9 @@ public class PdfiumCore {
 
     private static final int MAX_BOOKMARK_DEPTH = 64;
 
+    public static final int MAX_PAGE_TEXT_CHARS = 1_000_000;
+
+    private static final int FPDF_SAVE_NO_INCREMENTAL = 2;
     private static final int FPDF_SAVE_REMOVE_SECURITY = 3;
 
     static {
@@ -54,7 +57,6 @@ public class PdfiumCore {
 
     private native void nativeCloseDocument(long docPtr);
 
-    private native boolean nativeSaveAsCopy(long docPtr, int fd);
     private native boolean nativeSaveAsCopyWithFlags(long docPtr, int fd, int flags);
 
     private native int nativeGetPageCount(long docPtr);
@@ -112,6 +114,8 @@ public class PdfiumCore {
     private native Size nativeGetPageSizeByIndex(long docPtr, int pageIndex, int dpi);
 
     private native SizeF nativeGetPageSizePointByIndex(long docPtr, int pageIndex);
+
+    private native float[] nativeGetPageGeometry(long pagePtr);
 
     private native long[] nativeGetPageLinks(long pagePtr);
 
@@ -255,7 +259,7 @@ public class PdfiumCore {
             if (doc == null || fd == null || doc.closed) {
                 return false;
             }
-            return nativeSaveAsCopy(doc.mNativeDocPtr, getNumFd(fd));
+            return nativeSaveAsCopyWithFlags(doc.mNativeDocPtr, getNumFd(fd), FPDF_SAVE_NO_INCREMENTAL);
         }
     }
 
@@ -343,6 +347,13 @@ public class PdfiumCore {
                 }
             }
             doc.mNativeTextPagesPtr.clear();
+        }
+    }
+
+    public boolean hasTextPage(PdfDocument doc, int pageIndex) {
+        synchronized (lock) {
+            Long textPagePtr = doc.mNativeTextPagesPtr.get(pageIndex);
+            return textPagePtr != null && textPagePtr != 0L;
         }
     }
 
@@ -526,6 +537,20 @@ public class PdfiumCore {
                 return new SizeF(0, 0);
             }
             return nativeGetPageSizePointByIndex(doc.mNativeDocPtr, index);
+        }
+    }
+
+    public float[] getPageGeometry(PdfDocument doc, int pageIndex) {
+        synchronized (lock) {
+            if (doc.closed) {
+                return new float[0];
+            }
+            Long pagePtr = doc.mNativePagesPtr.get(pageIndex);
+            if (pagePtr == null) {
+                return new float[0];
+            }
+            float[] geometry = nativeGetPageGeometry(pagePtr);
+            return geometry == null ? new float[0] : geometry;
         }
     }
 
@@ -751,30 +776,41 @@ public class PdfiumCore {
     }
 
     public String getPageText(PdfDocument doc, int pageIndex) {
-        synchronized (lock) {
-            Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
-            if (nativePagePtr == null) {
-                return "";
-            }
-            String text = normalizeExtractedText(nativeGetPageText(nativePagePtr));
-
-            // ------------------ Unrelated Code:
-            // Size size = nativeGetPageSizeByIndex(doc.mNativeDocPtr, pageIndex, mCurrentDpi);
-            // Log.d(TAG, "getPageText: size-width:" + size.getWidth());
-            // Log.d(TAG, "getPageText: size-height:" + size.getHeight());
-            // ------------------
-            return text == null ? "" : text;
-        }
+        String text = extractPageText(doc, pageIndex);
+        return text.isEmpty() ? text : normalizeExtractedText(text);
     }
 
     public String getPageRawText(PdfDocument doc, int pageIndex) {
+        return extractPageText(doc, pageIndex);
+    }
+
+    private String extractPageText(PdfDocument doc, int pageIndex) {
         synchronized (lock) {
             Long nativePagePtr = doc.mNativePagesPtr.get(pageIndex);
             if (nativePagePtr == null) {
                 return "";
             }
-            String text = nativeGetPageText(nativePagePtr);
-            return text == null ? "" : text;
+            boolean openedHere = !hasTextPage(doc, pageIndex);
+            long textPagePtr = openTextPage(doc, pageIndex);
+            if (textPagePtr == 0L) {
+                return "";
+            }
+            try {
+                int charCount = textCountChars(doc, pageIndex);
+                if (charCount > MAX_PAGE_TEXT_CHARS) {
+                    throw new PageTextTooLargeException(charCount, MAX_PAGE_TEXT_CHARS);
+                }
+                if (charCount <= 0) {
+                    return "";
+                }
+                String text = nativeTextRange(textPagePtr, 0, charCount);
+                return text == null ? "" : text;
+            }
+            finally {
+                if (openedHere) {
+                    closeTextPage(doc, pageIndex);
+                }
+            }
         }
     }
 

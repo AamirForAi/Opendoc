@@ -9,6 +9,7 @@ import android.view.MotionEvent
 import android.view.View
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
+import com.gitlab.mudlej.MjPdfReader.data.resolveReadingLayout
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
 import kotlin.math.absoluteValue
@@ -179,7 +180,7 @@ class AutoScrollManager(
                 .coerceAtMost(MAX_FRAME_DELTA_SECONDS)
             val distance = (scrollBy * SPEED_FACTOR * deltaSeconds).toFloat()
 
-            if (preferences.getHorizontalScroll()) {
+            if (resolveReadingLayout(preferences).swipeHorizontal) {
                 binding.pdfView.moveRelativeTo(distance, 0F)
             }
             else {
