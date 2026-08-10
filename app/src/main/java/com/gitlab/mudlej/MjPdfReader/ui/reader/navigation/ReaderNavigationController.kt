@@ -12,7 +12,9 @@ import com.github.barteksc.pdfviewer.model.LinkTapEvent
 import com.gitlab.mudlej.MjPdfReader.R
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
+import android.graphics.RectF
 import com.gitlab.mudlej.MjPdfReader.pdf.PDF
+import kotlinx.coroutines.CoroutineScope
 import com.gitlab.mudlej.MjPdfReader.pdf.SearchResult
 import com.gitlab.mudlej.MjPdfReader.pdf.grantPdfReadAccess
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
@@ -35,6 +37,7 @@ class ReaderNavigationController(
     private val pref: Preferences,
     private val isIncognito: () -> Boolean,
     private val historyManager: ReaderHistoryManager,
+    private val scope: CoroutineScope,
     private val onPageDisplayed: (Int) -> Unit,
     private val updateAppTitle: () -> Unit,
     private val launchTableOfContents: (Intent) -> Unit,
@@ -48,7 +51,7 @@ class ReaderNavigationController(
 ) {
 
     private val searchNavigationController =
-        SearchNavigationController(activity, binding, pdf, pref, isIncognito, historyManager, launchSearch)
+        SearchNavigationController(activity, binding, pdf, pref, isIncognito, historyManager, scope, launchSearch)
     private val tableOfContentsSnackbar = JumpBackSnackbar(binding.root)
     private val linkJumpSnackbar = JumpBackSnackbar(binding.root)
     private var tableOfContentsState = TableOfContentsState()
@@ -122,15 +125,13 @@ class ReaderNavigationController(
     }
 
     fun showNavigationHistory() {
-        val backEntries = historyManager.backEntries()
-        val forwardEntries = historyManager.forwardEntries()
-        if (backEntries.isEmpty() && forwardEntries.isEmpty()) {
+        if (!historyManager.hasTrail()) {
             return
         }
         val historyIntent = NavigationHistoryActivity.createIntent(
             activity,
-            backEntries,
-            forwardEntries,
+            historyManager.backEntries(),
+            historyManager.forwardEntries(),
             binding.pdfView.currentPage,
         )
         historyIntent.putExtra(PDF.filePathKey, pdf.uri.toString())
@@ -155,6 +156,14 @@ class ReaderNavigationController(
 
     fun resetSearchResultState() {
         searchNavigationController.reset()
+    }
+
+    fun onActivityDestroyed() {
+        searchNavigationController.onActivityDestroyed()
+    }
+
+    fun startInlineSearch(query: String, ignoreAccents: Boolean) {
+        searchNavigationController.startQuery(query, ignoreAccents)
     }
 
     fun resetTableOfContentsState() {
@@ -204,16 +213,24 @@ class ReaderNavigationController(
         if (resultCode == PDF.TABLE_OF_CONTENTS_RESULT_OK) {
             val pageIndex = intent?.getIntExtra(PDF.chosenTableOfContentsEntryKey, pdf.pageNumber) ?: return
             historyManager.recordJump(ReaderHistoryManager.Origin.BOOKMARK, pageIndex)
+            @Suppress("DEPRECATION")
             focusOnHighlight(
                 pageIndex,
                 intent.getStringExtra(PDF.chosenHighlightGroupKey),
                 intent.getIntExtra(PDF.chosenHighlightAnnotationIndexKey, -1),
+                intent.getParcelableExtra(PDF.chosenHighlightBoundsKey),
             )
         }
     }
 
-    private fun focusOnHighlight(pageIndex: Int, groupKey: String?, annotationIndex: Int) {
-        val bounds = binding.pdfView.findHighlightPdfBounds(pageIndex, groupKey, annotationIndex)
+    private fun focusOnHighlight(
+        pageIndex: Int,
+        groupKey: String?,
+        annotationIndex: Int,
+        knownBounds: RectF? = null,
+    ) {
+        val bounds = knownBounds
+            ?: binding.pdfView.findHighlightPdfBounds(pageIndex, groupKey, annotationIndex)
         if (bounds == null) {
             binding.pdfView.jumpTo(pageIndex)
             return

@@ -5,7 +5,7 @@
 **MJ PDF** is a fast, simple, powerful and totally private PDF reader made by [Mudlej](https://mudlej.com).
 
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-3.0.0-2ea44f.svg)](change_log.md)
+[![Version](https://img.shields.io/badge/Version-3.1.0-2ea44f.svg)](change_log.md)
 [![API](https://img.shields.io/badge/API-23%2B-brightgreen.svg)](https://developer.android.com/about/versions/marshmallow)
 [![IzzyOnDroid](https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/com.gitlab.mudlej.MjPdfReader)](https://apt.izzysoft.de/fdroid/index/apk/com.gitlab.mudlej.MjPdfReader)
 
@@ -35,24 +35,20 @@
 
 More screenshots are in the [MJ PDF Gallery](http://mudlej.com/projects/mj-pdf/supplements/gallery/).
 
-## What's new in 3.0
-Check MJ PDF v3.0.0's [**Official Release Page**](http://mudlej.com/projects/mj-pdf/supplements/v3.0.0-release/)
+## What's new in 3.1
+Version 3.1 is a correctness and stability release: a few new reading options, much safer saving and backups, and a long list of fixes.
 
-Version 3.0 is the biggest update in MJ PDF's history, closer to a rewrite of the app. The short version:
+- Single Page Mode shows one full page per screen and turns pages like a book, with taps on the screen edges flipping the page.
+- Pick a page fit policy: fit pages by width, by height, or show the whole page.
+- One Reading Mode setting gathers continuous, horizontal, single page, and dual page.
+- Search happens without leaving the document, and results wrap around at both ends.
+- Files shared by other apps ask before a copy is kept, or always keep one, your choice.
+- Saving is far safer: every write is verified, failed saves keep a rescue copy, and saved files no longer grow.
+- Documents are identified more reliably, so two similar files never share reading history.
+- The theme toggle stays visible when the PDF theme follows the system, and lets you pick a theme on the spot.
+- Dozens of fixes across search, gestures, backups, rotation, and right to left reading.
 
-- A new Home screen with a library, reading statuses, recent files, and a real folder browser.
-- Highlight text, add notes, and save them into the PDF.
-- Draw handwritten signatures and save them into the PDF.
-- Fill PDF forms.
-- A new Text Mode that reads like an e-book.
-- Turn selected text into a beautiful, shareable quote image.
-- Translate selected text and define words with an offline dictionary.
-- Dual page mode, RTL reading, hide margins, incognito mode.
-- User bookmarks and browser-like navigation history.
-- Backup and restore for your data.
-- Much faster rendering after rebuilding PDFium for speed.
-
-The full list is in the [changelog](change_log.md).
+The full list is in the [changelog](change_log.md). Coming from 2.x? See what 3.0 added on the [v3.0 release page](http://mudlej.com/projects/mj-pdf/supplements/v3.0.0-release/).
 
 ## MJ PDF Features
 
@@ -71,6 +67,7 @@ The full list is in the [changelog](change_log.md).
 - True full screen with configurable buttons, reading progress, time, and page info.
 - Rotate, brightness bar, auto-scroll with adjustable speed, zoom lock, screenshots.
 - Dual page mode that pairs pages like an open book.
+- Single Page Mode and a page fit policy: by width, by height, or whole page.
 - Hide PDF margins to make the page fill your screen.
 - Right-to-left reading with automatic detection.
 - Open password-protected PDFs and online PDFs through links.
@@ -102,6 +99,7 @@ The full list is in the [changelog](change_log.md).
 - Open source with total privacy.
 - No data collection, no ads, no tracking.
 - Incognito mode that saves nothing about what you read.
+- Shared files can be kept as private copies so they reopen reliably: always, or ask each time.
 
 ## Permissions and privacy
 This app does not collect any data.

@@ -6,7 +6,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.view.ActionMode
 import androidx.core.view.ViewCompat
@@ -36,11 +35,8 @@ class HomeSelectionController(
     val active: Boolean
         get() = actionMode != null || toolbarActive
 
-    private val backCallback = object : OnBackPressedCallback(false) {
-        override fun handleOnBackPressed() {
-            finish()
-        }
-    }
+    val wantsBackButton: Boolean
+        get() = toolbarActive
 
     init {
         binding.selectionToolbar.inflateMenu(R.menu.home_action_mode)
@@ -55,7 +51,6 @@ class HomeSelectionController(
             }
             insets
         }
-        activity.onBackPressedDispatcher.addCallback(activity, backCallback)
     }
 
     fun begin(item: HomeItem): Boolean {
@@ -98,14 +93,12 @@ class HomeSelectionController(
     private fun showSelectionToolbar() {
         applyContextVisibility(binding.selectionToolbar.menu)
         toolbarActive = true
-        backCallback.isEnabled = true
         binding.searchBar.visibility = View.GONE
         binding.selectionToolbar.visibility = View.VISIBLE
     }
 
     private fun hideSelectionToolbar() {
         toolbarActive = false
-        backCallback.isEnabled = false
         binding.selectionToolbar.visibility = View.GONE
         binding.searchBar.visibility = View.VISIBLE
     }

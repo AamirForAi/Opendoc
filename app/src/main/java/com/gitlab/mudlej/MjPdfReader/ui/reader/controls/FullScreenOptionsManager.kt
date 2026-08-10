@@ -30,7 +30,6 @@ import kotlin.reflect.KFunction1
 class FullScreenOptionsManager(
     private val binding: ActivityMainBinding,
     private val vm: ReaderViewModel,
-    private val delay: Long,
     private val preferences: Preferences,
 ) {
 
@@ -229,10 +228,10 @@ class FullScreenOptionsManager(
     }
 
     private fun getPageInfo(context: Context, settings: FullScreenInfoSettings): String? {
-        val pageNumber = vm.doc.pageNumber + 1
+        val pageNumber = minOf(vm.doc.pageRangeStart, vm.doc.pageNumber) + 1
         val rangeEnd = (vm.doc.pageRangeEnd + 1).coerceAtLeast(pageNumber)
         val pageCount = vm.doc.length.coerceAtLeast(rangeEnd)
-        val percentage = rangeEnd.divideToPercent(pageCount)
+        val percentage = rangeEnd.divideToPercent(pageCount).coerceIn(1, 100)
 
         return when {
             settings.showPageNumber && settings.showReadingPercentage && rangeEnd > pageNumber -> context.getString(
@@ -330,20 +329,20 @@ class FullScreenOptionsManager(
         button.iconGravity = MaterialButton.ICON_GRAVITY_START
         button.iconPadding = button.resources.getDimensionPixelSize(R.dimen.fs_button_icon_padding)
         button.setPaddingRelative(padding, button.paddingTop, paddingEnd, button.paddingBottom)
-        button.layoutParams.width = LinearLayout.LayoutParams.WRAP_CONTENT
+        button.layoutParams.width = LinearLayout.LayoutParams.MATCH_PARENT
         button.requestLayout()
     }
 
     // -------------
     private fun delayAction(action: Runnable) {
         delayHandler.reset()
-        delayHandler.postDelayed(action, delay)
+        delayHandler.postDelayed(action, preferences.getHideDelay().toLong())
     }
 
     private fun doTemporarily(action: Runnable, undoAction: Runnable) {
         delayHandler.reset()
         action.run()
-        delayHandler.postDelayed(undoAction, delay)
+        delayHandler.postDelayed(undoAction, preferences.getHideDelay().toLong())
     }
 
     private fun showFullScreenButtons() = changeFullScreenButtonsVisibility(true)

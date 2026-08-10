@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.RectF
 import android.net.Uri
+import android.util.Patterns
 import android.text.InputType
 import android.util.TypedValue
 import android.view.Gravity
@@ -43,6 +44,7 @@ class InlineAnnotationActionController(
     private val binding: ActivityMainBinding,
     private val clearActiveSearchResultHighlight: () -> Unit,
     private val onAnnotationEdit: (AnnotationEdit) -> Unit,
+    private val canEditDocument: () -> Boolean,
     private val updateSaveUiPosition: () -> Unit,
     private val isDetectExistingHighlightsEnabled: () -> Boolean,
     private val getHighlightColors: () -> List<Int>,
@@ -62,7 +64,9 @@ class InlineAnnotationActionController(
             }
         }
         binding.textSelectionSearchWebButton.setOnClickListener {
-            if (searchWebForSelectedText()) {
+            val link = linkInSelection()
+            val handled = if (link != null) openLink(link) else searchWebForSelectedText()
+            if (handled) {
                 dismissCard()
             }
         }
@@ -198,7 +202,40 @@ class InlineAnnotationActionController(
         params.verticalBias = if (selectionNearBottom) 0f else 1f
         card.layoutParams = params
         card.visibility = View.VISIBLE
+        applySearchWebButtonState()
         refreshCardRendering()
+    }
+
+    private fun applySearchWebButtonState() {
+        val hasLink = linkInSelection() != null
+        val button = binding.textSelectionSearchWebButton
+        button.setIconResource(if (hasLink) R.drawable.ic_link else R.drawable.ic_web)
+        button.contentDescription = activity.getString(
+            if (hasLink) R.string.open_link else R.string.search_web
+        )
+    }
+
+    private fun linkInSelection(): String? {
+        val text = selectedText()
+        if (text.isBlank()) {
+            return null
+        }
+        val matcher = Patterns.WEB_URL.matcher(text)
+        if (!matcher.find()) {
+            return null
+        }
+        val match = matcher.group()
+        return if (match.contains("://")) match else "https://$match"
+    }
+
+    private fun openLink(url: String): Boolean {
+        return try {
+            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            true
+        } catch (e: ActivityNotFoundException) {
+            AppSnackbar.make(binding.root, activity.getString(R.string.no_app_to_open_link), Snackbar.LENGTH_LONG).show()
+            false
+        }
     }
 
     private fun dismissCard() {
@@ -222,6 +259,9 @@ class InlineAnnotationActionController(
         val request = binding.pdfView.getHighlightRequest()
         val groupKey = UUID.randomUUID().toString()
         val createdDate = pdfDateNow()
+        if (!canEditDocument()) {
+            return
+        }
         if (request == null || !binding.pdfView.addHighlight(request, color, groupKey, createdDate)) {
             AppSnackbar.make(binding.root, R.string.highlight_failed, Snackbar.LENGTH_SHORT).show()
             return
@@ -318,6 +358,9 @@ class InlineAnnotationActionController(
         val groupKey = UUID.randomUUID().toString()
         val createdDate = pdfDateNow()
         val color = HighlightPalette.noteHighlight.colorValue
+        if (!canEditDocument()) {
+            return
+        }
         if (request == null || !binding.pdfView.addHighlight(request, color, groupKey, createdDate)) {
             AppSnackbar.make(binding.root, R.string.highlight_failed, Snackbar.LENGTH_SHORT).show()
             return
@@ -349,6 +392,9 @@ class InlineAnnotationActionController(
 
     private fun deleteActiveHighlightAnnotation() {
         val annotation = activeHighlightAnnotation ?: return
+        if (!canEditDocument()) {
+            return
+        }
         val removed = binding.pdfView.removeHighlightAnnotation(annotation)
         if (!removed) {
             AppSnackbar.make(binding.root, R.string.highlight_update_failed, Snackbar.LENGTH_SHORT).show()

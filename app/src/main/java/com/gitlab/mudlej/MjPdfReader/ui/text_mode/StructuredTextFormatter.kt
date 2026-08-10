@@ -188,7 +188,10 @@ object StructuredTextFormatter {
                 if (!joinWrapPending) softBreakPending = true
                 continue
             }
-            if (codePoint == 0xFFFE) {
+            if (codePoint == 0xFFFE || codePoint == 0x02) {
+                if (!joinWrapPending && accumulator.cells.isNotEmpty()) {
+                    accumulator.cells.add(Cell("­", false, false, 0f, 0f, 0f, 0f, -1f))
+                }
                 joinWrapPending = true
                 continue
             }
@@ -628,6 +631,9 @@ object StructuredTextFormatter {
                 val lineText = paragraph.lines[k].text
                 joined = TextModeTextFormatter.joinFragments(joined, lineText)
                 bases[k] = joined.length - lineText.length
+            }
+            if (joined.endsWith('­')) {
+                joined = joined.dropLast(1)
             }
             builder.append(joined)
 

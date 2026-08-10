@@ -4,14 +4,14 @@ import shutil
 
 from build_dependencies.common import download_file, extract_tar_file, log, delete_if_exists, \
     delete_file_if_exists, get_lib_path, run_cmd, get_toolchain
-from build_dependencies.values import Arch, FILE_NAMES, LIB_EXTENSION, Lib, FREETYPE_BUILD, \
-    ARCH_NAMES, LIBPNG_BUILD, FREETYPE_URL, ANDROID_PLATFORM, BUILD_TYPE, LINKER_FLAGS_16KB
+from build_dependencies.values import FILE_NAMES, LIB_EXTENSION, Lib, FREETYPE_BUILD, \
+    ARCH_NAMES, LIBPNG_BUILD, FREETYPE_URL, FREETYPE_SHA256, ANDROID_PLATFORM, BUILD_TYPE, LINKER_FLAGS_16KB, ALL_ARCHES
 
 BUILT_LIB_NAME = "libfreetype.so"
 DOWNLOADED_LIB_PATH = f"{FREETYPE_BUILD}/{BUILT_LIB_NAME}"
 
 
-def build_freetype_libs():
+def build_freetype_libs(arches):
     LIBPNG_DEPENDENCY_PATH = os.path.join(os.getcwd(), LIBPNG_BUILD)
 
     log(f"Downloading FreeType source code.")
@@ -19,8 +19,8 @@ def build_freetype_libs():
     os.chdir(FREETYPE_BUILD)
     FREETYPE_ROOT_PATH = os.getcwd()
 
-    temp_file_name = "freetype.tar.gz"
-    download_file(FREETYPE_URL, temp_file_name)
+    temp_file_name = "freetype.tar.xz"
+    download_file(FREETYPE_URL, temp_file_name, sha256=FREETYPE_SHA256)
 
     extract_tar_file(temp_file_name)
     delete_file_if_exists(temp_file_name)
@@ -29,7 +29,7 @@ def build_freetype_libs():
     files = glob.glob("./freetype-*")
     os.chdir(files[0])                    # there should be only one file
 
-    for arch in [Arch.x86_64, Arch.arm64, Arch.x86, Arch.armeabi]:
+    for arch in arches:
         log(f"Building FreeType for {ARCH_NAMES[arch]}.")
 
         # create build folder
@@ -96,4 +96,4 @@ def build_freetype(arch, FREETYPE_DIR, LIBPNG_DEPENDENCY_PATH):
 
 
 if __name__ == "__main__":
-    build_freetype_libs()
+    build_freetype_libs(ALL_ARCHES)

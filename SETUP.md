@@ -47,12 +47,11 @@ Create `local.properties` in the project root if it does not already exist:
 
 ```properties
 sdk.dir=/home/user/Android/Sdk
-AI=
-AK=
-AU=
 ```
 
-`AI`, `AK`, and `AU` are crash-reporting values. Leave them empty for local debug builds.
+The crash-reporting values (`AI`, `AK`, `AU`) are committed in `gradle.properties`, so no
+extra setup is needed. To send crash reports to a different backend for local testing,
+override them in `~/.gradle/gradle.properties` or pass `-PAI=... -PAK=... -PAU=...`.
 
 ## 4. Build Native Dependencies
 
@@ -69,6 +68,8 @@ ANDROID_NDK=/home/user/Android/Sdk/ndk/30.0.14904198 python build_dependencies.p
 ```
 
 Replace `30.0.14904198` with the NDK version installed on your machine.
+
+By default the script builds PDFium from source, which needs depot_tools plus gn and ninja and takes a while. For a faster setup, pass `--pdfium prebuilt` to download the prebuilt PDFium instead. Add `--abi <abi>` (for example `--abi arm64-v8a`) to build a single architecture rather than all four.
 
 The script downloads/builds the native PDF dependencies and places the resulting `.so` files under:
 

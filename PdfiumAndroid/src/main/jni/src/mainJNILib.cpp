@@ -552,7 +552,7 @@ class DocumentFile {
     public:
     FPDF_DOCUMENT pdfDocument = NULL;
     jbyte *memBuffer = NULL;
-    std::set<int> pagesWithAppHighlights;
+    std::set<FPDF_PAGE> pagesWithAppHighlights;
     FPDF_FORMFILLINFO formFillInfo;
     FPDF_FORMHANDLE formHandle = NULL;
 
@@ -703,10 +703,22 @@ extern "C" { //For JNI support
 static int getBlock(void* param, unsigned long position, unsigned char* outBuffer,
         unsigned long size) {
     const int fd = reinterpret_cast<intptr_t>(param);
-    const int readCount = pread(fd, outBuffer, size, position);
-    if (readCount < 0) {
-        LOGE("Cannot read from file descriptor. Error:%d", errno);
-        return 0;
+    unsigned long totalRead = 0;
+    while (totalRead < size) {
+        const ssize_t readCount = pread(fd, outBuffer + totalRead, size - totalRead,
+                                        position + totalRead);
+        if (readCount < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            LOGE("Cannot read from file descriptor. Error:%d", errno);
+            return 0;
+        }
+        if (readCount == 0) {
+            LOGE("Short read: wanted %lu bytes at %lu, got %lu", size, position, totalRead);
+            return 0;
+        }
+        totalRead += (unsigned long) readCount;
     }
     return 1;
 }
@@ -823,14 +835,13 @@ static jboolean saveDocumentToFd(DocumentFile *doc, jint fd, int flags){
     }
 
     std::vector<FPDF_PAGE> unhiddenPages;
-    for (std::set<int>::const_iterator it = doc->pagesWithAppHighlights.begin();
+    for (std::set<FPDF_PAGE>::const_iterator it = doc->pagesWithAppHighlights.begin();
          it != doc->pagesWithAppHighlights.end(); ++it) {
-        FPDF_PAGE page = FPDF_LoadPage(doc->pdfDocument, *it);
-        if (page == NULL) {
+        if (*it == NULL) {
             continue;
         }
-        setAppHighlightsHidden(page, false);
-        unhiddenPages.push_back(page);
+        setAppHighlightsHidden(*it, false);
+        unhiddenPages.push_back(*it);
     }
 
     FdFileWrite writer;
@@ -842,17 +853,9 @@ static jboolean saveDocumentToFd(DocumentFile *doc, jint fd, int flags){
     for (std::vector<FPDF_PAGE>::const_iterator it = unhiddenPages.begin();
          it != unhiddenPages.end(); ++it) {
         setAppHighlightsHidden(*it, true);
-        if (doc->formHandle != NULL) {
-            FORM_OnBeforeClosePage(*it, doc->formHandle);
-        }
-        FPDF_ClosePage(*it);
     }
 
     return saved;
-}
-
-JNI_FUNC(jboolean, PdfiumCore, nativeSaveAsCopy)(JNI_ARGS, jlong documentPtr, jint fd){
-    return saveDocumentToFd(reinterpret_cast<DocumentFile*>(documentPtr), fd, FPDF_INCREMENTAL);
 }
 
 JNI_FUNC(jboolean, PdfiumCore, nativeSaveAsCopyWithFlags)(JNI_ARGS, jlong documentPtr, jint fd, jint flags){
@@ -870,7 +873,7 @@ static jlong loadPageInternal(JNIEnv *env, DocumentFile *doc, int pageIndex){
                 throw "Loaded page is null";
             }
             if (setAppHighlightsHidden(page, true)) {
-                doc->pagesWithAppHighlights.insert(pageIndex);
+                doc->pagesWithAppHighlights.insert(page);
             }
             return reinterpret_cast<jlong>(page);
         }
@@ -887,6 +890,9 @@ static jlong loadPageInternal(JNIEnv *env, DocumentFile *doc, int pageIndex){
 
 static void closePageInternal(DocumentFile *doc, jlong pagePtr) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (doc != NULL && doc->pagesWithAppHighlights.erase(page) > 0) {
+        setAppHighlightsHidden(page, false);
+    }
     if (doc != NULL && doc->formHandle != NULL) {
         FORM_OnBeforeClosePage(page, doc->formHandle);
     }
@@ -993,6 +999,29 @@ JNI_FUNC(jobject, PdfiumCore, nativeGetPageSizePointByIndex)(JNI_ARGS, jlong doc
     jclass clazz = env->FindClass("com/shockwave/pdfium/util/SizeF");
     jmethodID constructorID = env->GetMethodID(clazz, "<init>", "(FF)V");
     return env->NewObject(clazz, constructorID, static_cast<jfloat>(width), static_cast<jfloat>(height));
+}
+
+JNI_FUNC(jfloatArray, PdfiumCore, nativeGetPageGeometry)(JNI_ARGS, jlong pagePtr){
+    FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
+    if (page == NULL) {
+        return NULL;
+    }
+    FS_RECTF box;
+    if (!FPDF_GetPageBoundingBox(page, &box)) {
+        return NULL;
+    }
+    jfloat values[5];
+    values[0] = box.left;
+    values[1] = box.bottom;
+    values[2] = box.right;
+    values[3] = box.top;
+    values[4] = (jfloat) FPDFPage_GetRotation(page);
+    jfloatArray result = env->NewFloatArray(5);
+    if (result == NULL) {
+        return NULL;
+    }
+    env->SetFloatArrayRegion(result, 0, 5, values);
+    return result;
 }
 
 static void renderPageInternal(
@@ -1179,8 +1208,14 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
     void *tmp;
     int format;
     int sourceStride;
-    if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
-        tmp = malloc(canvasVerSize * canvasHorSize * sizeof(rgb));
+    bool usesScratchBuffer = info.format == ANDROID_BITMAP_FORMAT_RGB_565;
+    if (usesScratchBuffer) {
+        tmp = malloc((size_t) canvasVerSize * canvasHorSize * sizeof(rgb));
+        if (tmp == NULL) {
+            LOGE("Scratch buffer allocation failed for %dx%d", canvasHorSize, canvasVerSize);
+            AndroidBitmap_unlockPixels(env, bitmap);
+            return;
+        }
         sourceStride = canvasHorSize * sizeof(rgb);
         format = FPDFBitmap_BGR;
     } else {
@@ -1191,6 +1226,14 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
 
     FPDF_BITMAP pdfBitmap = FPDFBitmap_CreateEx( canvasHorSize, canvasVerSize,
                                                      format, tmp, sourceStride);
+    if (pdfBitmap == NULL) {
+        LOGE("FPDFBitmap_CreateEx failed for %dx%d", canvasHorSize, canvasVerSize);
+        if (usesScratchBuffer) {
+            free(tmp);
+        }
+        AndroidBitmap_unlockPixels(env, bitmap);
+        return;
+    }
 
     /*LOGD("Start X: %d", startX);
     LOGD("Start Y: %d", startY);
@@ -1234,7 +1277,7 @@ JNI_FUNC(void, PdfiumCore, nativeRenderPageBitmap)(JNI_ARGS, jlong docPtr, jlong
 
     double convertStartMs = monotonicMillis();
     FPDFBitmap_Destroy(pdfBitmap);
-    if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
+    if (usesScratchBuffer) {
         rgbBitmapTo565(tmp, sourceStride, addr, &info);
         free(tmp);
     }
@@ -1334,7 +1377,12 @@ JNI_FUNC(jlong, PdfiumCore, nativeRenderChunkedStart)(JNI_ARGS, jlong docPtr, jl
     int format;
     int sourceStride;
     if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
-        tmp = malloc(canvasVerSize * canvasHorSize * sizeof(rgb));
+        tmp = malloc((size_t) canvasVerSize * canvasHorSize * sizeof(rgb));
+        if (tmp == NULL) {
+            LOGE("Scratch buffer allocation failed for %dx%d", canvasHorSize, canvasVerSize);
+            AndroidBitmap_unlockPixels(env, bitmap);
+            return 0;
+        }
         sourceStride = canvasHorSize * sizeof(rgb);
         format = FPDFBitmap_BGR;
     } else {
@@ -1345,6 +1393,14 @@ JNI_FUNC(jlong, PdfiumCore, nativeRenderChunkedStart)(JNI_ARGS, jlong docPtr, jl
 
     FPDF_BITMAP pdfBitmap = FPDFBitmap_CreateEx( canvasHorSize, canvasVerSize,
                                                      format, tmp, sourceStride);
+    if (pdfBitmap == NULL) {
+        LOGE("FPDFBitmap_CreateEx failed for %dx%d", canvasHorSize, canvasVerSize);
+        if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
+            free(tmp);
+        }
+        AndroidBitmap_unlockPixels(env, bitmap);
+        return 0;
+    }
 
     if(drawSizeHor < canvasHorSize || drawSizeVer < canvasVerSize){
         FPDFBitmap_FillRect( pdfBitmap, 0, 0, canvasHorSize, canvasVerSize,
@@ -1447,7 +1503,7 @@ JNI_FUNC(void, PdfiumCore, nativeRenderChunkedClose)(JNI_ARGS, jlong ctxPtr, jlo
 
     double convertStartMs = monotonicMillis();
     FPDFBitmap_Destroy(ctx->pdfBitmap);
-    if (completed && ctx->info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
+    if (completed && ctx->tmp != NULL) {
         rgbBitmapTo565(ctx->tmp, ctx->sourceStride, ctx->addr, &ctx->info);
     }
     if (ctx->tmp != NULL) {
@@ -1658,7 +1714,7 @@ JNI_FUNC(jboolean, PdfiumCore, nativeCreateHighlightAnnotation)(JNI_ARGS,
             FPDFPage_RemoveAnnot(page, *it);
         }
     } else {
-        doc->pagesWithAppHighlights.insert(pageIndex);
+        doc->pagesWithAppHighlights.insert(page);
     }
 
     return success;
@@ -2257,7 +2313,7 @@ JNI_FUNC(jboolean, PdfiumCore, nativeSetFormFieldChecked)(JNI_ARGS,
     return result;
 }
 
-JNI_FUNC(jint, PdfiumCore, nativeClearSearchResultAnnot)(JNI_ARGS, jlong pagePtr) {
+JNI_FUNC(jint, PdfiumCore, nativeClearSearchResultAnnot)(JNI_ARGS, jlong pagePtr, jint pageIndex) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
     if (page == NULL) {
         return 0;
@@ -2526,7 +2582,20 @@ JNI_FUNC(jobjectArray, PdfiumCore, nativeGetPageTextBounds)(JNI_ARGS, jlong page
         return env->NewObjectArray(0, rectCls, 0);
     }
 
-    int rectsCount = FPDFText_CountRects(pageText, start, count);
+    int charStart = -1;
+    for (int textIndex = start; textIndex < start + count && charStart < 0; ++textIndex) {
+        charStart = FPDFText_GetCharIndexFromTextIndex(pageText, textIndex);
+    }
+    int charLast = -1;
+    for (int textIndex = start + count - 1; textIndex >= start && charLast < 0; --textIndex) {
+        charLast = FPDFText_GetCharIndexFromTextIndex(pageText, textIndex);
+    }
+    if (charStart < 0 || charLast < charStart) {
+        FPDFText_ClosePage(pageText);
+        return env->NewObjectArray(0, rectCls, 0);
+    }
+
+    int rectsCount = FPDFText_CountRects(pageText, charStart, charLast - charStart + 1);
     if (rectsCount < 0) {
         FPDFText_ClosePage(pageText);
         return env->NewObjectArray(0, rectCls, 0);
@@ -2862,6 +2931,12 @@ JNI_FUNC(jlong, PdfiumCore, nativeGetBookmarkDestIndex)(JNI_ARGS, jlong docPtr, 
     FPDF_BOOKMARK bookmark = reinterpret_cast<FPDF_BOOKMARK>(bookmarkPtr);
 
     FPDF_DEST dest = FPDFBookmark_GetDest(doc->pdfDocument, bookmark);
+    if (dest == NULL) {
+        FPDF_ACTION action = FPDFBookmark_GetAction(bookmark);
+        if (action != NULL && FPDFAction_GetType(action) == PDFACTION_GOTO) {
+            dest = FPDFAction_GetDest(doc->pdfDocument, action);
+        }
+    }
     if (dest == NULL) {
         return -1;
     }

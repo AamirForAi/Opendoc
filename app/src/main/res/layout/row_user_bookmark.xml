@@ -19,7 +19,8 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/drag_to_reorder"
         android:src="@drawable/ic_burger_menu"
-        android:tint="?attr/colorOnSurfaceVariant" />
+        android:tint="?attr/colorOnSurfaceVariant"
+        tools:ignore="UseAppTint" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -96,7 +97,8 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/rename_bookmark"
         android:src="@drawable/ic_edit"
-        android:tint="?attr/colorOnSurfaceVariant" />
+        android:tint="?attr/colorOnSurfaceVariant"
+        tools:ignore="UseAppTint" />
 
     <ImageButton
         android:id="@+id/userBookmarkDelete"
@@ -105,5 +107,6 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/delete"
         android:src="@drawable/ic_delete"
-        android:tint="?attr/colorOnSurfaceVariant" />
+        android:tint="?attr/colorOnSurfaceVariant"
+        tools:ignore="UseAppTint" />
 </LinearLayout>

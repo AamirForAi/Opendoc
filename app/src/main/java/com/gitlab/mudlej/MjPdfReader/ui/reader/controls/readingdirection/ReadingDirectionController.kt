@@ -8,10 +8,10 @@ import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.pdf.ReadingDirection
 import com.gitlab.mudlej.MjPdfReader.data.HistoryPolicy
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
+import com.gitlab.mudlej.MjPdfReader.data.resolveReadingLayout
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.ReaderViewModel
 import com.gitlab.mudlej.MjPdfReader.ui.reader.load.DocumentLoader
-import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -42,7 +42,7 @@ class ReadingDirectionController(
                 applyOverride(selectedOverride)
             }
             .setNegativeButton(android.R.string.cancel, null)
-        if (!pref.getHorizontalScroll()) {
+        if (!resolveReadingLayout(pref).swipeHorizontal) {
             dialogBuilder.setMessage(R.string.reading_direction_message)
         }
         dialogBuilder.show()
@@ -83,7 +83,7 @@ class ReadingDirectionController(
         val documentUri = pdf.uri
         val oldEffectiveDirection = pdf.effectiveReadingDirection
         scope.launch {
-            val hash = pdf.fileHash ?: computeHash(activity, pdf.uri)
+            val hash = pdf.fileHash ?: pdfRepository.resolveIdentity(activity, pdf.uri)
             if (!vm.isCurrent(loadToken, documentUri)) {
                 return@launch
             }
@@ -115,7 +115,7 @@ class ReadingDirectionController(
             pdf.readingDirectionOverride = direction
             pdf.detectedReadingDirection = detectedDirection
             pdf.effectiveReadingDirection = ReadingDirection.effective(direction, detectedDirection)
-            if (pref.getHorizontalScroll() && pdf.effectiveReadingDirection != oldEffectiveDirection) {
+            if (resolveReadingLayout(pref).swipeHorizontal && pdf.effectiveReadingDirection != oldEffectiveDirection) {
                 activity.recreate()
             }
         }

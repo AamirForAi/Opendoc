@@ -45,22 +45,24 @@ plugins {
 }
 
 android {
+    def fdroidAbi = project.findProperty("fdroidAbi")
+
     defaultConfig {
         applicationId "com.gitlab.mudlej.MjPdfReader"
         minSdkVersion 23
         compileSdkVersion 36
         targetSdkVersion 36
-        versionCode 57
-        versionName "3.0.0"
+        versionCode 58
+        versionName "3.1.0"
         multiDexEnabled = true
         vectorDrawables.useSupportLibrary = true
 
-        Properties properties = new Properties()
-        properties.load(project.rootProject.file("local.properties").newDataInputStream())
-
-        resValue "string", "CRASH_REPORT_APP_ID", "\"${properties.getProperty("AI")}\""
-        resValue "string", "CRASH_REPORT_API_KEY", "\"${properties.getProperty("AK")}\""
-        resValue "string", "CRASH_REPORT_API_URI", "\"${properties.getProperty("AU")}\""
+        def crashAppId = project.findProperty("AI") ?: ""
+        def crashApiKey = project.findProperty("AK") ?: ""
+        def crashApiUri = project.findProperty("AU") ?: ""
+        resValue "string", "CRASH_REPORT_APP_ID", "\"${crashAppId}\""
+        resValue "string", "CRASH_REPORT_API_KEY", "\"${crashApiKey}\""
+        resValue "string", "CRASH_REPORT_API_URI", "\"${crashApiUri}\""
     }
 
     buildFeatures {
@@ -79,8 +81,13 @@ android {
         abi {
             enable gradle.startParameter.taskNames.any { it.toLowerCase(Locale.ROOT).contains('release') }
             reset()
-            include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
-            universalApk true
+            if (fdroidAbi != null) {
+                include fdroidAbi
+                universalApk false
+            } else {
+                include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
+                universalApk true
+            }
         }
     }
 
@@ -109,9 +116,13 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     namespace = 'com.gitlab.mudlej.MjPdfReader'
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
     lint {
-        abortOnError = false
-        checkReleaseBuilds = false
+        abortOnError = true
+        checkReleaseBuilds = true
+        fatal += 'NewApi'
     }
 }
 
@@ -186,4 +197,6 @@ dependencies {
     implementation('ch.acra:acra-http:5.13.1') {
         exclude group: 'com.google.auto.service', module: 'auto-service'
     }
+
+    testImplementation 'junit:junit:4.13.2'
 }

@@ -2,11 +2,13 @@
 
 package com.gitlab.mudlej.MjPdfReader.ui.gotopage
 
-import android.app.Activity
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
+import androidx.activity.ComponentActivity
 import androidx.core.widget.doAfterTextChanged
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -20,7 +22,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 
 fun showGoToPageDialog(
-    activity: Activity,
+    activity: ComponentActivity,
     view: View,
     pageIndex: Int,
     pdfLength: Int,
@@ -62,7 +64,16 @@ fun showGoToPageDialog(
     }
 
     val dialog = builder.create()
-    dialog.setOnDismissListener { cache?.close() }
+    val destroyObserver = object : DefaultLifecycleObserver {
+        override fun onDestroy(owner: LifecycleOwner) {
+            dialog.dismiss()
+        }
+    }
+    dialog.setOnDismissListener {
+        cache?.close()
+        activity.lifecycle.removeObserver(destroyObserver)
+    }
+    activity.lifecycle.addObserver(destroyObserver)
 
     if (cache != null) {
         val strip = binding.thumbnailStrip

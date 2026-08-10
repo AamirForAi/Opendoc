@@ -99,20 +99,25 @@ final class AndroidPreviewBitmaps implements PreviewBitmapAdapter<Bitmap>, Previ
         if (reuse != null) {
             options.inMutable = true;
             options.inBitmap = reuse;
+            synchronized (reuse) {
+                if (!reuse.isRecycled()) {
+                    try {
+                        Bitmap decoded = BitmapFactory.decodeByteArray(data, 0, data.length, options);
+                        if (decoded != null) {
+                            return decoded;
+                        }
+                    } catch (IllegalArgumentException e) {
+                    }
+                }
+            }
+            recycle(reuse);
+            options.inBitmap = null;
+            options.inMutable = false;
         }
         try {
             return BitmapFactory.decodeByteArray(data, 0, data.length, options);
-        } catch (IllegalArgumentException e) {
-            if (reuse != null) {
-                recycle(reuse);
-            }
-            options.inBitmap = null;
-            options.inMutable = false;
-            try {
-                return BitmapFactory.decodeByteArray(data, 0, data.length, options);
-            } catch (RuntimeException retry) {
-                return null;
-            }
+        } catch (RuntimeException retry) {
+            return null;
         }
     }
 }

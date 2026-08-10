@@ -273,6 +273,7 @@ class UserHighlightsActivity : AppCompatActivity() {
         resultIntent.putExtra(PDF.chosenTableOfContentsEntryKey, item.pageIndex)
         resultIntent.putExtra(PDF.chosenHighlightGroupKey, item.groupKey)
         resultIntent.putExtra(PDF.chosenHighlightAnnotationIndexKey, item.annotationIndex)
+        item.bounds?.let { resultIntent.putExtra(PDF.chosenHighlightBoundsKey, it) }
         setResult(PDF.TABLE_OF_CONTENTS_RESULT_OK, resultIntent)
         finish()
     }

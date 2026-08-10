@@ -8,6 +8,7 @@ import android.os.Build
 import android.view.Gravity
 import android.view.View
 import android.view.Window
+import android.view.WindowManager
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.appcompat.app.ActionBar
@@ -28,6 +29,7 @@ object ColorUtil {
         val color = getBarColor(context)
 
         WindowCompat.setDecorFitsSystemWindows(window, true)
+        setCutoutMode(window, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT)
         window.statusBarColor = color
         window.navigationBarColor = color
         showSystemBars(window)
@@ -41,6 +43,7 @@ object ColorUtil {
     }
 
     fun enterFullscreen(window: Window) {
+        setCutoutMode(window, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES)
         setSystemBarBackgroundsVisible(window, false)
         setContentFitsSystemBars(window, false)
 
@@ -55,6 +58,10 @@ object ColorUtil {
             R.attr.colorSurfaceContainerHigh,
             0
         )
+    }
+
+    fun applySystemBarIconColors(context: Context, window: Window) {
+        setSystemBarIconColors(window, getBarColor(context))
     }
 
     private fun setSystemBarIconColors(window: Window, color: Int) {
@@ -157,6 +164,18 @@ object ColorUtil {
             root.setPadding(0, 0, 0, 0)
         }
         ViewCompat.requestApplyInsets(root)
+    }
+
+    private fun setCutoutMode(window: Window, mode: Int) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            return
+        }
+        val attributes = window.attributes
+        if (attributes.layoutInDisplayCutoutMode == mode) {
+            return
+        }
+        attributes.layoutInDisplayCutoutMode = mode
+        window.attributes = attributes
     }
 
     private fun showSystemBars(window: Window) {

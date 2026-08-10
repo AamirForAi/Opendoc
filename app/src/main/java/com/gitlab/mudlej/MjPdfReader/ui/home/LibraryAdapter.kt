@@ -187,7 +187,7 @@ class LibraryAdapter(
             val context = binding.root.context
             val parts = mutableListOf<Pair<String, Boolean>>()
             if (pref.getHomeBadgePages() && item.length > 0) {
-                if (item.pageNumber > 0) {
+                if (item.readingStarted) {
                     parts.add("${item.pageNumber + 1}/${item.length}" to false)
                 } else {
                     parts.add(

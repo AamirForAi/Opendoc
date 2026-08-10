@@ -21,6 +21,7 @@ class FormFieldController(
     private val activity: Activity,
     private val binding: ActivityMainBinding,
     private val onAnnotationEdit: (AnnotationEdit) -> Unit,
+    private val canEditDocument: () -> Boolean,
 ) {
 
     fun handlePdfTap(event: MotionEvent): Boolean {
@@ -84,6 +85,9 @@ class FormFieldController(
         if (text == field.value) {
             return
         }
+        if (!canEditDocument()) {
+            return
+        }
         if (!binding.pdfView.setFormFieldText(field.pageIndex, field.annotationIndex, text)) {
             showUpdateFailed()
             return
@@ -93,6 +97,9 @@ class FormFieldController(
 
     private fun setChecked(field: PDFView.FormField, checked: Boolean): Boolean {
         if (field.checked == checked) {
+            return true
+        }
+        if (!canEditDocument()) {
             return true
         }
         if (!binding.pdfView.setFormFieldChecked(field.pageIndex, field.annotationIndex, checked)) {

@@ -244,6 +244,9 @@ class TableOfContentsActivity : AppCompatActivity(), TableOfContentsFunctions {
     }
 
     override fun onEntryClicked(entry: TableOfContentsEntry) {
+        if (entry.pageIdx < 0) {
+            return
+        }
         setResultWithTableOfContentsState(PDF.TABLE_OF_CONTENTS_RESULT_OK, entry.pageIdx.toInt())
         finish()
     }

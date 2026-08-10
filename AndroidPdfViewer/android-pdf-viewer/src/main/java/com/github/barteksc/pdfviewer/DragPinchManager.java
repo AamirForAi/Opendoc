@@ -20,18 +20,14 @@ import static com.github.barteksc.pdfviewer.util.Constants.Pinch.MINIMUM_ZOOM;
 import static com.github.barteksc.pdfviewer.util.Constants.Pinch.RENDER_DURING_SCALE_STEP;
 
 import android.graphics.PointF;
-import android.graphics.RectF;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewConfiguration;
 
-import com.github.barteksc.pdfviewer.model.LinkTapEvent;
 import com.github.barteksc.pdfviewer.scroll.ScrollHandle;
 import com.github.barteksc.pdfviewer.util.SnapEdge;
-import com.shockwave.pdfium.PdfDocument;
-import com.shockwave.pdfium.util.SizeF;
 
 /**
  * This Manager takes care of moving the PDFView,
@@ -89,8 +85,9 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             return true;
         }
 
-        boolean onTapHandled = pdfView.callbacks.callOnTap(e);
-        boolean linkTapped = checkLinkTapped(e.getX(), e.getY());
+        if (!pdfView.callbacks.callOnTap(e)) {
+            pdfView.performLinkTap(e.getX(), e.getY());
+        }
 
         /*
          * I added the following to update the scroll handle
@@ -109,39 +106,6 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
     }
 
 
-    private boolean checkLinkTapped(float x, float y) {
-        PdfFile pdfFile = pdfView.pdfFile;
-        if (pdfFile == null) {
-            return false;
-        }
-        float mappedX = -pdfView.getCurrentXOffset() + x;
-        float mappedY = -pdfView.getCurrentYOffset() + y;
-        int page = pdfFile.getPageAtOffset(pdfView.isSwipeVertical() ? mappedY : mappedX,
-                pdfView.isSwipeVertical() ? mappedX : mappedY, pdfView.getZoom());
-        SizeF pageSize = pdfFile.getScaledPageSize(page, pdfView.getZoom());
-        int pageX, pageY;
-        if (pdfView.isSwipeVertical()) {
-            pageX = (int) pdfFile.getSecondaryPageOffset(page, pdfView.getZoom());
-            pageY = (int) pdfFile.getPageOffset(page, pdfView.getZoom());
-        } else {
-            pageY = (int) pdfFile.getSecondaryPageOffset(page, pdfView.getZoom());
-            pageX = (int) pdfFile.getPageOffset(page, pdfView.getZoom());
-        }
-        for (PdfDocument.Link link : pdfFile.getPageLinks(page)) {
-            RectF mapped = pdfFile.mapRectToDevice(page, pageX, pageY, (int) pageSize.getWidth(),
-                    (int) pageSize.getHeight(), link.getBounds());
-            if (mapped == null) {
-                continue;
-            }
-            mapped.sort();
-            if (mapped.contains(mappedX, mappedY)) {
-                pdfView.callbacks.callLinkHandler(new LinkTapEvent(x, y, mappedX, mappedY, mapped, link));
-                return true;
-            }
-        }
-        return false;
-    }
-
     private void startPageFling(MotionEvent downEvent, MotionEvent ev, float velocityX, float velocityY) {
         if (!checkDoPageFling(velocityX, velocityY)) {
             return;
@@ -157,7 +121,10 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             }
         }
         // get the focused page during the down event to ensure only a single page is changed
-        float delta = pdfView.isSwipeVertical() ? ev.getY() - downEvent.getY() : ev.getX() - downEvent.getX();
+        float delta = 0;
+        if (downEvent != null) {
+            delta = pdfView.isSwipeVertical() ? ev.getY() - downEvent.getY() : ev.getX() - downEvent.getX();
+        }
         float offsetX = pdfView.getCurrentXOffset() - delta * pdfView.getZoom();
         float offsetY = pdfView.getCurrentYOffset() - delta * pdfView.getZoom();
         int startingPage = pdfView.findFocusPage(offsetX, offsetY);
@@ -174,13 +141,14 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             return false;
         }
 
+        float midZoom = Math.min(pdfView.getMidZoom(), pdfView.getMaxZoom());
         if (pdfView.getZoom() < PDFView.NORMAL_SCALE) {
             pdfView.zoomWithAnimation(e.getX(), e.getY(), PDFView.NORMAL_SCALE);
         }
-        else if (pdfView.getZoom() < pdfView.getMidZoom()) {
-            pdfView.zoomWithAnimation(e.getX(), e.getY(), pdfView.getMidZoom());
+        else if (pdfView.getZoom() < midZoom) {
+            pdfView.zoomWithAnimation(e.getX(), e.getY(), midZoom);
         }
-        else if (pdfView.getZoom() < pdfView.getMaxZoom()) {
+        else if (pdfView.isThreeStepDoubleTapZoom() && pdfView.getZoom() < pdfView.getMaxZoom()) {
             pdfView.zoomWithAnimation(e.getX(), e.getY(), pdfView.getMaxZoom());
         }
         else {
@@ -224,6 +192,9 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             return true;
         }
 
+        if (!scrolling) {
+            animationManager.stopScrollAnimation();
+        }
         scrolling = true;
         pdfView.setRenderInteractionActive(true);
         if (pdfView.isZooming() || pdfView.isSwipeEnabled()) {
@@ -379,6 +350,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
             return false;
         }
         scaling = true;
+        animationManager.stopScrollAnimation();
         scaleRenderZoom = pdfView.getZoom();
         pdfView.cacheManager.setScaling(true);
         pdfView.setRenderInteractionActive(true);
@@ -425,16 +397,10 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         retVal = gestureDetector.onTouchEvent(event) || retVal;
 
         int action = event.getActionMasked();
-        if (action == MotionEvent.ACTION_UP) {
+        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
             if (scrolling) {
                 scrolling = false;
                 onScrollEnd(event);
-            }
-        } else if (action == MotionEvent.ACTION_CANCEL) {
-            if (scrolling) {
-                scrolling = false;
-                pdfView.setRenderInteractionActive(false);
-                pdfView.loadPages();
             }
         }
         return retVal;

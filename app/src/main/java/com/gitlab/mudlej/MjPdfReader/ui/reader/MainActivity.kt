@@ -8,7 +8,9 @@ import android.app.ActivityManager
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
 import android.util.Log
@@ -94,6 +96,29 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     private val fullscreenController get() = reader.fullscreenController
     private val pdfRepository get() = reader.pdfRepository
 
+    private val readerBackCallback = object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            if (annotationController.hasUnsavedAnnotations) {
+                runAfterDirtyAnnotationPrompt(PostSaveAction.LEAVE_READER)
+                return
+            }
+            if (!pref.getDoubleTapToExitEnabled()
+                || intent.getBooleanExtra(HomeActivity.EXTRA_FROM_HOME, false)
+                || doubleBackToExitPressedOnce
+            ) {
+                leaveReader(this)
+            } else {
+                AppSnackbar.make(binding.root, getString(R.string.press_back_again), Snackbar.LENGTH_LONG).show()
+                doubleBackToExitPressedOnce = true
+
+                lifecycleScope.launch {
+                    delay(2500)
+                    doubleBackToExitPressedOnce = false
+                }
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val incognito = if (savedInstanceState?.containsKey(PDF.incognitoKey) == true) {
             savedInstanceState.getBoolean(PDF.incognitoKey)
@@ -177,10 +202,18 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        val newUri = intent.data
         if (intent.action == Intent.ACTION_SEND) {
             if (!openSharedTextLink()) {
                 AppSnackbar.make(binding.root, R.string.share_text_no_link, Snackbar.LENGTH_LONG).show()
             }
+        } else if (newUri != null) {
+            if (!isDisplayingUri(newUri.toString())) {
+                runAfterDirtyAnnotationPrompt(PostSaveAction.DISPLAY_URI, newUri)
+            }
+        } else if (intent.getBooleanExtra(HomeActivity.EXTRA_OPEN_ONLINE_DIALOG, false)) {
+            intent.removeExtra(HomeActivity.EXTRA_OPEN_ONLINE_DIALOG)
+            onlinePdfController.showOpenOnlinePdfDialog()
         }
     }
 
@@ -206,7 +239,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         fun titleClickListener() {
             val title = pdf.getTitle()
             if (title.isNotBlank()) {
-                AppSnackbar.make(binding.root, title, Snackbar.LENGTH_LONG).show()
+                AppSnackbar.make(binding.root, title, Snackbar.LENGTH_LONG).setTextMaxLines(5).show()
             }
         }
         appTitle.setOnClickListener { titleClickListener() }
@@ -225,43 +258,54 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         }
     }
 
-    override fun runAfterDirtyAnnotationPrompt(discardAction: () -> Unit) {
+    override fun runAfterDirtyAnnotationPrompt(action: PostSaveAction, uri: Uri?) {
         if (!annotationController.hasUnsavedAnnotations) {
-            discardAction()
+            performPostSaveAction(action, uri)
             return
         }
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.unsaved_highlights)
             .setMessage(R.string.unsaved_highlights_prompt)
             .setPositiveButton(R.string.save_highlights) { _, _ ->
-                annotationSaveController.saveHighlights(postSaveAction = discardAction)
+                annotationSaveController.saveHighlights(action, uri)
             }
             .setNegativeButton(R.string.discard) { _, _ ->
                 clearUnsavedAnnotationState()
-                discardAction()
+                performPostSaveAction(action, uri)
             }
             .setNeutralButton(R.string.cancel, null)
             .show()
     }
 
-    internal fun runAfterAnnotationSaveGate(action: () -> Unit) {
+    internal fun runAfterAnnotationSaveGate(action: PostSaveAction, uri: Uri? = null) {
         if (!annotationController.hasUnsavedAnnotations) {
-            action()
+            performPostSaveAction(action, uri)
             return
         }
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.unsaved_highlights)
             .setMessage(R.string.unsaved_highlights_prompt)
             .setPositiveButton(R.string.save_highlights) { _, _ ->
-                annotationSaveController.saveHighlights(postSaveAction = action)
+                annotationSaveController.saveHighlights(action, uri)
             }
             .setNegativeButton(R.string.discard) { _, _ ->
                 clearUnsavedAnnotationState()
                 reloadPdf()
-                action()
+                performPostSaveAction(action, uri)
             }
             .setNeutralButton(R.string.cancel, null)
             .show()
+    }
+
+    internal fun performPostSaveAction(action: PostSaveAction, uri: Uri?) {
+        when (action) {
+            PostSaveAction.DISPLAY_URI -> uri?.let { displayFromUri(it, savePassword = true) }
+            PostSaveAction.OPEN_PICKER -> reader.openPickerWithoutPrompt()
+            PostSaveAction.SHOW_USER_NOTES -> readerNavigationController.showUserNotes()
+            PostSaveAction.SHOW_USER_HIGHLIGHTS -> readerNavigationController.showUserHighlights()
+            PostSaveAction.GO_HOME -> goHomeNow()
+            PostSaveAction.LEAVE_READER -> leaveReader(readerBackCallback)
+        }
     }
 
     private fun clearUnsavedAnnotationState() {
@@ -285,6 +329,9 @@ class MainActivity : AppCompatActivity(), ReaderUi {
 
     fun displayFromUri(uri: Uri?, savePassword: Boolean = false) {
         documentLoader.displayFromUri(uri, savePassword)
+        if (uri != null) {
+            closeOtherReaderWindows()
+        }
     }
 
     override fun updateTitle() {
@@ -310,12 +357,17 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         reader.toolbarActionController.update(actionBarMenu)
     }
 
-    internal fun checkAlwaysHorizontal() {
-        if (pref.getAlwaysHorizontal() && vm.isPortrait) {
-            rotateScreen()
+    @SuppressLint("SourceLockedOrientationActivity")
+    internal fun applyOrientationPolicy() {
+        val docId = pdf.uri?.toString()
+        if (docId != vm.orientationDocId) {
+            vm.orientationDocId = docId
+            vm.userOrientationLock = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
-        if (!pref.getAlwaysHorizontal() && !vm.isPortrait) {
-            rotateScreen()
+        requestedOrientation = when {
+            vm.userOrientationLock != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED -> vm.userOrientationLock
+            pref.getAlwaysHorizontal() -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            else -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
     }
 
@@ -392,14 +444,33 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         }
     }
 
+    // Intentional behavior:
+    // Once the user taps rotate, the app owns rotation for this document.
+    // The button toggles landscape and portrait only, with no automatic option.
+    // The lock clears when another document is opened, and when the app closes.
+    // It is deliberately not saved across app restarts.
     @SuppressLint("SourceLockedOrientationActivity")
     internal fun rotateScreen() {
-        requestedOrientation = if (vm.isPortrait) {
-            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        } else {
-            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        if (!canControlOrientation()) {
+            AppSnackbar.make(binding.root, R.string.rotation_not_available, Snackbar.LENGTH_LONG).show()
+            return
         }
-        vm.togglePortrait()
+        val showingLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val lock = if (showingLandscape) {
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
+        requestedOrientation = lock
+        vm.userOrientationLock = lock
+    }
+
+    private fun canControlOrientation(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInMultiWindowMode) {
+            return false
+        }
+        val largeScreen = resources.configuration.smallestScreenWidthDp >= LARGE_SCREEN_SW_DP
+        return !(largeScreen && Build.VERSION.SDK_INT >= ORIENTATION_REQUEST_IGNORED_SDK)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -407,8 +478,16 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         fullscreenController.refreshOnWindowFocus(hasFocus)
     }
 
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (savingProgressVisible) {
+            return true
+        }
+        return super.dispatchTouchEvent(event)
+    }
+
     public override fun onResume() {
         super.onResume()
+        closeOtherReaderWindows()
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         if (pref.getScreenOn()) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -437,6 +516,29 @@ class MainActivity : AppCompatActivity(), ReaderUi {
 
         if (BuildConfig.DEBUG) {
             stallWatchdog.start()
+        }
+    }
+
+    private fun closeOtherReaderWindows() {
+        if (pref.getOpenPdfsInSeparateWindows()) return
+        if (isFinishing) return
+        if (pdf.uri == null) return
+        val activityManager = getSystemService(ActivityManager::class.java)
+        for (task in activityManager.appTasks) {
+            try {
+                val taskInfo = task.taskInfo
+                val id = if (Build.VERSION.SDK_INT >= 29) {
+                    taskInfo.taskId
+                } else {
+                    @Suppress("DEPRECATION")
+                    taskInfo.persistentId
+                }
+                if (id == taskId) continue
+                if (taskInfo.baseIntent.component?.className != MainActivity::class.java.name) continue
+                task.finishAndRemoveTask()
+            } catch (e: IllegalArgumentException) {
+                continue
+            }
         }
     }
 
@@ -659,6 +761,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
 
     override fun onStop() {
         if (::reader.isInitialized) {
+            reader.autoScrollManager.stop()
             reader.autoScrollSpeedStore.flushPendingSave()
         }
         super.onStop()
@@ -711,10 +814,12 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     }
 
     private fun navigateHome() {
-        runAfterDirtyAnnotationPrompt {
-            startActivity(Intent(this, HomeActivity::class.java))
-            finish()
-        }
+        runAfterDirtyAnnotationPrompt(PostSaveAction.GO_HOME)
+    }
+
+    private fun goHomeNow() {
+        startActivity(Intent(this, HomeActivity::class.java))
+        finish()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -809,29 +914,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     }
 
     private fun overrideOnBackButtonPressed() {
-        val onBackPressedCallback = object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (annotationController.hasUnsavedAnnotations) {
-                    runAfterDirtyAnnotationPrompt { leaveReader(this) }
-                    return
-                }
-                if (!pref.getDoubleTapToExitEnabled()
-                    || intent.getBooleanExtra(HomeActivity.EXTRA_FROM_HOME, false)
-                    || doubleBackToExitPressedOnce
-                ) {
-                    leaveReader(this)
-                } else {
-                    AppSnackbar.make(binding.root, getString(R.string.press_back_again), Snackbar.LENGTH_LONG).show()
-                    doubleBackToExitPressedOnce = true
-
-                    lifecycleScope.launch {
-                        delay(2500)
-                        doubleBackToExitPressedOnce = false
-                    }
-                }
-            }
-        }
-        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+        onBackPressedDispatcher.addCallback(this, readerBackCallback)
     }
 
     private fun leaveReader(callback: OnBackPressedCallback) {
@@ -850,3 +933,6 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     }
 
 }
+
+private const val LARGE_SCREEN_SW_DP = 600
+private const val ORIENTATION_REQUEST_IGNORED_SDK = 36

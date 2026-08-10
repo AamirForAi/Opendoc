@@ -4,6 +4,9 @@ package com.gitlab.mudlej.MjPdfReader.data
 
 import android.util.Log
 import androidx.room.withTransaction
+import com.gitlab.mudlej.MjPdfReader.core.io.DocumentIdentities
+import com.gitlab.mudlej.MjPdfReader.core.io.DocumentIdentity
+import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
 import com.gitlab.mudlej.MjPdfReader.data.entity.ReadingStatus
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfAnnotationSaveDestination
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
@@ -151,6 +154,66 @@ class PdfRepository(private val database: AppDatabase) {
         }
     }
 
+    suspend fun resolveIdentity(context: android.content.Context, uri: android.net.Uri?): String? {
+        val identities = DocumentIdentity.of(context, uri) ?: return null
+        return resolveIdentity(identities, uri, context)
+    }
+
+    suspend fun resolveIdentity(
+        identities: DocumentIdentities,
+        uri: android.net.Uri? = null,
+        context: android.content.Context? = null,
+    ): String {
+        val dao = database.pdfRecordDao()
+        val shouldConvert = withContext(Dispatchers.IO) {
+            if (dao.hasRecord(identities.identity)) {
+                false
+            } else {
+                val legacyRecord = dao.findByHash(identities.legacy)
+                legacyRecord != null && (uri == null || sameDocumentUri(context, legacyRecord.uri, uri))
+            }
+        }
+        if (shouldConvert) {
+            rekeyDocument(identities.legacy, identities.identity)
+        }
+        return identities.identity
+    }
+
+    private fun sameDocumentUri(
+        context: android.content.Context?,
+        recordUri: android.net.Uri,
+        openedUri: android.net.Uri,
+    ): Boolean {
+        if (recordUri.toString() == openedUri.toString()) {
+            return true
+        }
+        val recordPath = canonicalPathOf(context, recordUri) ?: return false
+        val openedPath = canonicalPathOf(context, openedUri) ?: return false
+        return recordPath == openedPath
+    }
+
+    private fun canonicalPathOf(context: android.content.Context?, uri: android.net.Uri): String? {
+        val file = if (uri.scheme == "file") {
+            uri.path?.let { java.io.File(it) }
+        } else {
+            context?.let { UriCanonicalizer.canonicalize(it, uri) }
+        } ?: return null
+        return runCatching { file.canonicalPath }.getOrNull()
+    }
+
+    suspend fun rekeyDocument(oldHash: String, newHash: String) {
+        if (oldHash == newHash) {
+            return
+        }
+        safeWrite {
+            database.runInTransaction {
+                database.pdfRecordDao().rekey(oldHash, newHash)
+                database.userBookmarkDao().rekey(oldHash, newHash)
+                database.pdfAnnotationSaveDestinationDao().rekeyLastSavedHash(oldHash, newHash)
+            }
+        }
+    }
+
     suspend fun copyOrUpdateRecordIdentity(
         oldHash: String,
         newHash: String,
@@ -158,31 +221,33 @@ class PdfRepository(private val database: AppDatabase) {
         destinationUri: android.net.Uri,
         fileName: String,
     ) {
+        val replacingSourceFile = sourceUri.toString() == destinationUri.toString()
+        if (oldHash == newHash) {
+            safeWrite {
+                database.pdfRecordDao()
+                    .updateIdentity(oldHash, destinationUri, fileName, LocalDateTime.now())
+            }
+            return
+        }
+        if (replacingSourceFile) {
+            rekeyDocument(oldHash, newHash)
+            safeWrite {
+                database.pdfRecordDao()
+                    .updateIdentity(newHash, destinationUri, fileName, LocalDateTime.now())
+            }
+            return
+        }
         safeWrite {
             val dao = database.pdfRecordDao()
-            val now = LocalDateTime.now()
-            val replacingSourceFile = sourceUri.toString() == destinationUri.toString()
-            if (oldHash == newHash) {
-                if (replacingSourceFile) {
-                    dao.updateIdentity(oldHash, destinationUri, fileName, now)
-                }
-                return@safeWrite
-            }
-
-            val source = dao.findByHash(oldHash)
-            if (source != null) {
-                dao.insert(
-                    source.copy(
-                        hash = newHash,
-                        uri = destinationUri,
-                        fileName = fileName,
-                        lastOpened = now,
-                    )
+            val source = dao.findByHash(oldHash) ?: return@safeWrite
+            dao.insert(
+                source.copy(
+                    hash = newHash,
+                    uri = destinationUri,
+                    fileName = fileName,
+                    lastOpened = LocalDateTime.now(),
                 )
-                if (replacingSourceFile) {
-                    dao.deleteByHash(oldHash)
-                }
-            }
+            )
         }
     }
 
@@ -237,6 +302,15 @@ class PdfRepository(private val database: AppDatabase) {
     suspend fun setLastOpened(fileHash: String, lastOpened: LocalDateTime) {
         safeWrite {
             database.pdfRecordDao().updateLastOpened(fileHash, lastOpened)
+        }
+    }
+
+    suspend fun setLength(fileHash: String, length: Int) {
+        if (length <= 0) {
+            return
+        }
+        safeWrite {
+            database.pdfRecordDao().updateLength(fileHash, length)
         }
     }
 

@@ -35,6 +35,7 @@ import com.gitlab.mudlej.MjPdfReader.data.translation.TranslationSettings
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityMainBinding
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
 import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
+import com.gitlab.mudlej.MjPdfReader.data.resolveReadingLayout
 import com.gitlab.mudlej.MjPdfReader.ui.about.AboutActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.ConfigurableActionResolver
 import com.gitlab.mudlej.MjPdfReader.ui.reader.actions.FullScreenButtonController
@@ -59,6 +60,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.PdfThemeController
 import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.ZoomSwipeLockController
 import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.readingdirection.ReadingDirectionController
 import com.gitlab.mudlej.MjPdfReader.ui.reader.controls.readingdirection.ReadingDirectionResolver
+import com.gitlab.mudlej.MjPdfReader.ui.reader.input.EdgeTapPager
 import com.gitlab.mudlej.MjPdfReader.ui.reader.input.MousePager
 import com.gitlab.mudlej.MjPdfReader.ui.reader.input.TapDispatcher
 import com.gitlab.mudlej.MjPdfReader.ui.reader.input.VolumeKeyPager
@@ -75,11 +77,14 @@ import com.gitlab.mudlej.MjPdfReader.ui.text_mode.TextModeActivity
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
 import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
 import com.gitlab.mudlej.MjPdfReader.core.io.UriCanonicalizer
-import com.gitlab.mudlej.MjPdfReader.core.io.computeHash
+import com.gitlab.mudlej.MjPdfReader.core.io.DocumentIdentity
 import com.gitlab.mudlej.MjPdfReader.core.io.navIntent
 import com.gitlab.mudlej.MjPdfReader.data.entity.PdfRecord
 import com.gitlab.mudlej.MjPdfReader.ui.home.HomeActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.load.TemporaryCopyImporter
+import com.gitlab.mudlej.MjPdfReader.core.PermissionManager
+import com.gitlab.mudlej.MjPdfReader.ui.reader.load.CopyConsentRequest
+import com.gitlab.mudlej.MjPdfReader.ui.reader.load.CopyConsentDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
@@ -101,8 +106,8 @@ class ReaderComposition(
     private val scope = activity.lifecycleScope
 
     private val pdfPickerLauncher: ActivityResultLauncher<Array<String>> = activity.registerForActivityResult(OpenDocument()) { selectedDocumentUri ->
-        val exitOnCancel = pickerOpenedByBackButton
-        pickerOpenedByBackButton = false
+        val exitOnCancel = vm.pickerOpenedByBackButton
+        vm.pickerOpenedByBackButton = false
         if (selectedDocumentUri != null) {
             if (!vm.incognito) {
                 PersistedGrantKeeper.takeReadGrant(activity, selectedDocumentUri)
@@ -113,18 +118,14 @@ class ReaderComposition(
         }
     }
 
-    private var pickerOpenedByBackButton = false
-
-    private var pendingRelocateRecord: PdfRecord? = null
-
     private val relocatePickerLauncher: ActivityResultLauncher<Array<String>> = activity.registerForActivityResult(OpenDocument()) { pickedUri ->
-        val record = pendingRelocateRecord
-        pendingRelocateRecord = null
+        val pendingHash = vm.pendingRelocate?.hash
+        vm.pendingRelocate = null
         if (pickedUri == null) {
             exitAfterFailedRecovery()
             return@registerForActivityResult
         }
-        if (record == null) {
+        if (pendingHash == null) {
             if (!vm.incognito) {
                 PersistedGrantKeeper.takeReadGrant(activity, pickedUri)
             }
@@ -132,15 +133,24 @@ class ReaderComposition(
             return@registerForActivityResult
         }
         scope.launch {
-            val pickedHash = computeHash(activity, pickedUri)
-            if (pickedHash == record.hash) {
+            val record = pdfRepository.findRecord(pendingHash)
+            if (record == null) {
+                if (!vm.incognito) {
+                    PersistedGrantKeeper.takeReadGrant(activity, pickedUri)
+                }
+                activity.displayFromUri(pickedUri, savePassword = true)
+                return@launch
+            }
+            val identities = DocumentIdentity.of(activity, pickedUri)
+            if (identities != null && identities.matches(record.hash)) {
+                val pickedHash = pdfRepository.resolveIdentity(identities)
                 if (!vm.incognito) {
                     PersistedGrantKeeper.takeReadGrant(activity, pickedUri)
                 }
                 val canonicalFile = withContext(Dispatchers.IO) { UriCanonicalizer.canonicalize(activity, pickedUri) }
                 val durableUri = canonicalFile?.let(Uri::fromFile) ?: pickedUri
                 if (historyPolicy.canRecord()) {
-                    pdfRepository.updateRecordIdentity(record.hash, durableUri, record.fileName, record.lastOpened)
+                    pdfRepository.updateRecordIdentity(pickedHash, durableUri, record.fileName, record.lastOpened)
                 }
                 activity.displayFromUri(durableUri)
             } else {
@@ -157,11 +167,11 @@ class ReaderComposition(
         activity.restartAppIfGranted(granted)
     }
 
-    private var alwaysHideMarginsWhenSettingsOpened = false
-
     private val settingsLauncher: ActivityResultLauncher<Intent> = activity.registerForActivityResult(StartActivityForResult()) {
+        val baseline = vm.alwaysHideMarginsAtSettingsOpen
+        vm.alwaysHideMarginsAtSettingsOpen = null
         val alwaysHideMargins = pref.getAlwaysHideMargins()
-        if (alwaysHideMargins != alwaysHideMarginsWhenSettingsOpened) {
+        if (baseline != null && alwaysHideMargins != baseline) {
             setCropMarginsEnabled(alwaysHideMargins)
         }
         activity.displayFromUri(doc.uri)
@@ -234,12 +244,13 @@ class ReaderComposition(
     val autoScrollManager: AutoScrollManager =
         AutoScrollManager(binding, vm, pref, autoScrollSpeedStore::onSpeedChanged)
     val fullScreenOptionsManager: FullScreenOptionsManager =
-        FullScreenOptionsManager(binding, vm, pref.getHideDelay().toLong(), pref)
+        FullScreenOptionsManager(binding, vm, pref)
     val zoomSwipeLockController = ZoomSwipeLockController(binding, ::drawableOf)
     val brightnessController = BrightnessController(activity, binding, vm)
     val pdfThemeController = PdfThemeController(activity, binding, pref)
     val volumeKeyPager = VolumeKeyPager(binding, doc, pref)
     val mousePager = MousePager(binding, doc, pref)
+    val edgeTapPager = EdgeTapPager(binding, doc, pref)
     val printController = PrintController(activity, binding, doc, scope) { activity.shareFile(doc.uri) }
     val pageTextCopier = PageTextCopier(activity, binding, doc, scope)
     val screenshotController: ScreenshotController = ScreenshotController(
@@ -251,7 +262,7 @@ class ReaderComposition(
     )
 
     val annotationController: AnnotationController = AnnotationController(activity, binding, vm, historyPolicy)
-    val formFieldController = FormFieldController(activity, binding, ::onAnnotationEdit)
+    val formFieldController = FormFieldController(activity, binding, ::onAnnotationEdit, ::canEditDocument)
     val signatureController: SignatureController = SignatureController(
         activity,
         binding,
@@ -259,7 +270,9 @@ class ReaderComposition(
         SignatureStore(activity),
         annotationController,
         ::onAnnotationEdit,
+        ::canEditDocument,
         ui::updateDirtyUi,
+        { vm.incognito },
     )
     val dictionaryDefinitionController: DictionaryDefinitionController = DictionaryDefinitionController(
         activity,
@@ -270,6 +283,7 @@ class ReaderComposition(
         binding,
         { readerNavigationController.clearActiveSearchResultHighlight() },
         ::onAnnotationEdit,
+        ::canEditDocument,
         ui::updateDirtyUiPosition,
         { pref.getDetectExistingHighlights() },
         { pref.getHighlightColors() },
@@ -300,6 +314,7 @@ class ReaderComposition(
         { readerNavigationController.clearActiveSearchResultHighlight() },
         ui::updateDirtyUi,
         { signatureController.commitPendingSignature() },
+        activity::performPostSaveAction,
     ) {
         ui.updateTitle()
     }
@@ -326,7 +341,7 @@ class ReaderComposition(
         { vm.incognito },
         { saveToDownloadPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE) },
         { file -> documentLoader.initPdfViewAndLoad(binding.pdfView.fromFile(file)) },
-        { uri -> ui.runAfterDirtyAnnotationPrompt { activity.displayFromUri(uri, savePassword = true) } },
+        { uri -> ui.runAfterDirtyAnnotationPrompt(PostSaveAction.DISPLAY_URI, uri) },
     )
 
     val readerHistory: ReaderHistoryManager = ReaderHistoryManager({ binding.pdfView }, ::onHistoryChanged)
@@ -338,6 +353,8 @@ class ReaderComposition(
         scope,
         ui,
         ::refreshActions,
+        { vm.incognito },
+        ::toggleIncognito,
     )
     val readerNavigationController: ReaderNavigationController = ReaderNavigationController(
         activity,
@@ -346,6 +363,7 @@ class ReaderComposition(
         pref,
         { vm.incognito },
         readerHistory,
+        scope,
         userBookmarkController::onPageDisplayed,
         ui::updateTitle,
         { intent -> tableOfContentsLauncher.launch(intent) },
@@ -360,13 +378,13 @@ class ReaderComposition(
 
     val actionResolver: ConfigurableActionResolver = ConfigurableActionResolver(
         doc::hasFile,
-        pref::getHorizontalScroll,
+        { resolveReadingLayout(pref).swipeHorizontal },
         { vm.cropMarginsEnabled },
         pref::getDualPageMode,
         { pdfThemeController.effectivePdfDarkTheme() },
-        { pref.getPdfPagesTheme() == Preferences.themeSystem },
         { readerHistory.canGoBack() },
         { readerHistory.canGoForward() },
+        { readerHistory.hasTrail() },
         { userBookmarkController.isCurrentPageBookmarked },
         { vm.incognito },
         createHandlers(),
@@ -406,6 +424,8 @@ class ReaderComposition(
     val tapDispatcher = TapDispatcher(listOf(
         { event -> inlineAnnotationActionController.handleImmediatePdfTap(event) },
         { event -> formFieldController.handlePdfTap(event) },
+        { event -> binding.pdfView.performLinkTap(event.x, event.y) },
+        { event -> edgeTapPager.handleTap(event) },
         { _ ->
             inlineAnnotationActionController.handleEmptyTap()
             true
@@ -441,11 +461,33 @@ class ReaderComposition(
         pref,
         { doc.uri to doc.name },
         backgroundSaveScope,
-    ) { fileHash, messageRes ->
-        binding.root.post {
-            if (!activity.isFinishing && !activity.isDestroyed && doc.fileHash == fileHash) {
-                AppSnackbar.make(binding.root, messageRes, Snackbar.LENGTH_SHORT).show()
+        { fileHash, messageRes ->
+            binding.root.post {
+                if (!activity.isFinishing && !activity.isDestroyed && doc.fileHash == fileHash) {
+                    AppSnackbar.make(binding.root, messageRes, Snackbar.LENGTH_SHORT).show()
+                }
             }
+        },
+        { request -> showCopyConsent(request) },
+    )
+
+    private val readerPermissionManager = PermissionManager(activity)
+
+    private fun showCopyConsent(request: CopyConsentRequest) {
+        binding.root.post {
+            if (activity.isFinishing || activity.isDestroyed || doc.fileHash != request.fileHash) {
+                return@post
+            }
+            CopyConsentDialog.show(
+                activity,
+                request,
+                onGrantAccess = { readerPermissionManager.requestFullAccess() },
+                onCopy = {
+                    backgroundSaveScope.launch {
+                        temporaryCopyImporter.performCopy(request.fileHash, request.uri, request.name)
+                    }
+                },
+            )
         }
     }
 
@@ -462,6 +504,7 @@ class ReaderComposition(
     }
 
     fun onActivityDestroyed() {
+        readerNavigationController.onActivityDestroyed()
         if (activity.isFinishing) {
             vm.onSaveComplete = null
         }
@@ -520,7 +563,7 @@ class ReaderComposition(
             override fun onDocumentLoaded(event: DocumentLoadedEvent) {
                 if (event.applyDocumentLoadDefaults) {
                     fullscreenController.checkAutoFullScreen()
-                    activity.checkAlwaysHorizontal()
+                    activity.applyOrientationPolicy()
                     openTextModeByDefault()
                     configureButtonsLabels()
                 }
@@ -655,14 +698,16 @@ class ReaderComposition(
     }
 
     fun pickFile() {
-        ui.runAfterDirtyAnnotationPrompt {
-            pickerOpenedByBackButton = false
-            launchPdfPicker()
-        }
+        ui.runAfterDirtyAnnotationPrompt(PostSaveAction.OPEN_PICKER)
+    }
+
+    fun openPickerWithoutPrompt() {
+        vm.pickerOpenedByBackButton = false
+        launchPdfPicker()
     }
 
     fun pickFileOnBackPressed() {
-        pickerOpenedByBackButton = true
+        vm.pickerOpenedByBackButton = true
         launchPdfPicker()
     }
 
@@ -696,7 +741,7 @@ class ReaderComposition(
             reload = activity::reloadPdf,
             openLocal = ::pickFile,
             openOnline = { onlinePdfController.showOpenOnlinePdfDialog() },
-            search = { showSearchDialog(activity, doc, vm.incognito) { intent -> searchLauncher.launch(intent) } },
+            search = { showSearchDialog(activity, doc) { query, ignoreAccents -> readerNavigationController.startInlineSearch(query, ignoreAccents) } },
             goToPage = ::goToPage,
             extractText = { pageTextCopier.copyPageText() },
             textMode = ::navToTextMode,
@@ -795,7 +840,7 @@ class ReaderComposition(
             .setTitle(R.string.home_relocate_title)
             .setMessage(activity.getString(R.string.home_relocate_message, record.fileName))
             .setPositiveButton(R.string.home_relocate_action) { _, _ ->
-                pendingRelocateRecord = record
+                vm.pendingRelocate = PendingRelocate(record.hash)
                 relocatePickerLauncher.launch(arrayOf(PDF.FILE_TYPE))
             }
             .setNegativeButton(R.string.cancel) { _, _ -> exitAfterFailedRecovery() }
@@ -808,7 +853,7 @@ class ReaderComposition(
             .setTitle(R.string.stale_shared_title)
             .setMessage(R.string.stale_shared_message)
             .setPositiveButton(R.string.stale_shared_locate) { _, _ ->
-                pendingRelocateRecord = null
+                vm.pendingRelocate = PendingRelocate(null)
                 relocatePickerLauncher.launch(arrayOf(PDF.FILE_TYPE))
             }
             .setNegativeButton(R.string.cancel) { _, _ -> exitAfterFailedRecovery() }
@@ -865,6 +910,14 @@ class ReaderComposition(
         }
     }
 
+    private fun canEditDocument(): Boolean {
+        if (!annotationController.isSaving) {
+            return true
+        }
+        AppSnackbar.make(binding.root, R.string.annotation_edit_blocked_while_saving, Snackbar.LENGTH_SHORT).show()
+        return false
+    }
+
     private fun onAnnotationEdit(edit: AnnotationEdit) {
         annotationController.recordEdit(edit)
         ui.updateDirtyUi()
@@ -884,8 +937,10 @@ class ReaderComposition(
     }
 
     private fun switchPdfTheme() {
-        pdfThemeController.switchPdfTheme { ui.checkHasFile() }
-        refreshActions()
+        pdfThemeController.switchPdfTheme(
+            hasFile = { ui.checkHasFile() },
+            onThemeChanged = ::refreshActions,
+        )
     }
 
     private fun showReadingDirectionDialog() {
@@ -917,18 +972,14 @@ class ReaderComposition(
         if (!ui.checkHasFile()) {
             return
         }
-        activity.runAfterAnnotationSaveGate {
-            readerNavigationController.showUserNotes()
-        }
+        activity.runAfterAnnotationSaveGate(PostSaveAction.SHOW_USER_NOTES)
     }
 
     private fun showUserHighlights() {
         if (!ui.checkHasFile()) {
             return
         }
-        activity.runAfterAnnotationSaveGate {
-            readerNavigationController.showUserHighlights()
-        }
+        activity.runAfterAnnotationSaveGate(PostSaveAction.SHOW_USER_HIGHLIGHTS)
     }
 
     private fun printFile() {
@@ -955,7 +1006,7 @@ class ReaderComposition(
     }
 
     private fun openSettings() {
-        alwaysHideMarginsWhenSettingsOpened = pref.getAlwaysHideMargins()
+        vm.alwaysHideMarginsAtSettingsOpen = pref.getAlwaysHideMargins()
         val settingsIntent = Intent(activity, SettingsActivity::class.java)
         settingsIntent.putExtra(PDF.incognitoKey, vm.incognito)
         settingsLauncher.launch(settingsIntent)

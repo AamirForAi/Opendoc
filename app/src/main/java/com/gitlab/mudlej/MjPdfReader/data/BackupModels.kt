@@ -59,6 +59,7 @@ data class BackupPdfRecord(
     val textModeDetectHeadings: Boolean? = null,
     val textModeCodeBlocks: Boolean? = null,
     val hidden: Boolean = false,
+    val sourceUri: String? = null,
 )
 
 data class BackupUserBookmark(

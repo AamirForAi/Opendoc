@@ -8,6 +8,7 @@ import com.gitlab.mudlej.MjPdfReader.ui.reader.DocumentState
 import com.gitlab.mudlej.MjPdfReader.data.Preferences
 import com.gitlab.mudlej.MjPdfReader.pdf.ReadingDirection
 import com.gitlab.mudlej.MjPdfReader.data.PdfRepository
+import com.gitlab.mudlej.MjPdfReader.data.resolveReadingLayout
 
 class ReadingDirectionResolver(
     private val activity: Activity,
@@ -47,7 +48,7 @@ class ReadingDirectionResolver(
     }
 
     suspend fun detectIfNeeded(documentUri: Uri?): ReadingDirection? {
-        if (!pref.getHorizontalScroll() || documentUri == null) {
+        if (!resolveReadingLayout(pref).swipeHorizontal || documentUri == null) {
             return null
         }
         val result = ReadingDirectionDetector.detect(activity, documentUri, pdf.password)

@@ -14,6 +14,7 @@ class DocumentState(
     var name: String = "",
     var password: String? = null,
     var pageNumber: Int = 0,
+    var pageRangeStart: Int = 0,
     var pageRangeEnd: Int = 0,
     var length: Int = 0,
     var autoScrollSpeed: Int? = null,
@@ -30,8 +31,9 @@ class DocumentState(
     }
 
     fun getPageCounterText(): String {
-        if (pageRangeEnd > pageNumber) {
-            return String.format("[%s-%s/%s]", pageNumber + 1, pageRangeEnd + 1, length)
+        val rangeStart = minOf(pageRangeStart, pageNumber)
+        if (pageRangeEnd > rangeStart) {
+            return String.format("[%s-%s/%s]", rangeStart + 1, pageRangeEnd + 1, length)
         }
         return String.format("[%s/%s]", pageNumber + 1, length)
     }

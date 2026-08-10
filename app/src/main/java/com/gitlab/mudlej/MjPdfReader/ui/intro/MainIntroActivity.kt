@@ -9,6 +9,7 @@ import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewpager2.widget.ViewPager2
 import com.gitlab.mudlej.MjPdfReader.R
+import com.gitlab.mudlej.MjPdfReader.core.ui.setupScreenChrome
 import com.gitlab.mudlej.MjPdfReader.databinding.ActivityIntroBinding
 
 class MainIntroActivity : AppCompatActivity() {
@@ -64,6 +65,7 @@ class MainIntroActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityIntroBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setupScreenChrome()
         supportActionBar?.hide()
 
         binding.introPager.adapter = IntroPagerAdapter(pages)

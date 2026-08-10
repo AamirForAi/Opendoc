@@ -62,7 +62,18 @@ class PermissionManager(
         } else if (legacyDeniedPermanently) {
             launchFirstWorkingIntent(appDetailsSettingsIntent())
         } else {
-            legacyPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+            legacyPermissionLauncher.launch(legacyStoragePermissions())
+        }
+    }
+
+    private fun legacyStoragePermissions(): Array<String> {
+        return if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
+            arrayOf(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            )
+        } else {
+            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
     }
 
@@ -85,8 +96,9 @@ class PermissionManager(
         }
 
     private val legacyPermissionLauncher =
-        activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (!granted && !ActivityCompat.shouldShowRequestPermissionRationale(
+        activity.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+            val readGranted = results[Manifest.permission.READ_EXTERNAL_STORAGE] == true
+            if (!readGranted && !ActivityCompat.shouldShowRequestPermissionRationale(
                     activity, Manifest.permission.READ_EXTERNAL_STORAGE
                 )
             ) {

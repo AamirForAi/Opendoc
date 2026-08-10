@@ -5,11 +5,13 @@ package com.gitlab.mudlej.MjPdfReader.ui.home
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.provider.DocumentsContract
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
@@ -31,12 +33,14 @@ import com.gitlab.mudlej.MjPdfReader.data.annotation.AnnotationJournal
 import com.gitlab.mudlej.MjPdfReader.data.signature.SignatureStore
 import com.gitlab.mudlej.MjPdfReader.core.PermissionManager
 import com.gitlab.mudlej.MjPdfReader.core.ui.AppSnackbar
+import com.gitlab.mudlej.MjPdfReader.core.ui.ColorUtil
 import com.gitlab.mudlej.MjPdfReader.data.AppDatabase
 import com.gitlab.mudlej.MjPdfReader.ui.about.WhatsNewActivity
 import com.gitlab.mudlej.MjPdfReader.ui.reader.MainActivity
 import com.gitlab.mudlej.MjPdfReader.ui.intro.MainIntroActivity
 import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsActivity
 import com.gitlab.mudlej.MjPdfReader.ui.settings.SettingsPage
+import com.gitlab.mudlej.MjPdfReader.core.io.DocumentRemover
 import com.gitlab.mudlej.MjPdfReader.core.io.PersistedGrantKeeper
 import com.gitlab.mudlej.MjPdfReader.core.text.StringUtil.formatEnumToTitle
 import com.google.android.material.color.MaterialColors
@@ -49,6 +53,8 @@ import java.time.LocalDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 class HomeActivity : AppCompatActivity(), HomeItemFunctions {
@@ -72,17 +78,21 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     private lateinit var libraryTab: LibraryTabController
     private lateinit var foldersTab: FoldersTabController
 
+    private val homeViewModel: HomeViewModel by viewModels()
+
     private var allItems: List<HomeItem> = emptyList()
     private var allRecordItems: List<HomeItem> = emptyList()
     private var relinkRunning = false
+    private val renderMutex = Mutex()
 
-    private val foldersBackCallback = object : OnBackPressedCallback(false) {
+    private val homeBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
-            foldersTab.goBack()
+            when {
+                selectionController.wantsBackButton -> selectionController.finish()
+                foldersCanGoBack() -> foldersTab.goBack()
+            }
         }
     }
-
-    private var pickIncognito = false
 
     private val scanLocationsPicker =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -98,20 +108,45 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
         }
 
     private val pdfPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        val incognito = pickIncognito
-        pickIncognito = false
-        if (uri != null) {
-            if (!incognito) {
-                PersistedGrantKeeper.takeReadGrant(this, uri)
-            }
-            openInReader(uri, incognito = incognito)
+        openPickedDocument(uri, incognito = false)
+    }
+
+    private val pdfPickerIncognito = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        openPickedDocument(uri, incognito = true)
+    }
+
+    private fun openPickedDocument(uri: Uri?, incognito: Boolean) {
+        if (uri == null) {
+            return
         }
+        if (!incognito) {
+            PersistedGrantKeeper.takeReadGrant(this, uri)
+        }
+        openInReader(uri, incognito = incognito)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pref = Preferences(PreferenceManager.getDefaultSharedPreferences(this))
+        val launchIntro = launchIntroOnFirstInstall()
+        if (redirectToReaderIfHomeDisabled()) {
+            return
+        }
+        binding = ActivityHomeBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        setupWindowChrome()
+        createCoreServices()
+        createControllers()
+        setupPager()
+        setupSearch()
+        setupMenuAndNavigation()
+        setupOpenFab()
+        observeLibraryIndex()
+        maybeShowWhatsNew(launchIntro)
+        handleRelocateIntent(intent)
+    }
 
+    private fun launchIntroOnFirstInstall(): Boolean {
         val launchIntro = pref.getFirstInstall()
         if (launchIntro) {
             pref.setFirstInstall(false)
@@ -119,17 +154,43 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             pref.setLastSeenVersionCode(BuildConfig.VERSION_CODE)
             introLauncher.launch(Intent(this, MainIntroActivity::class.java))
         }
+        return launchIntro
+    }
 
+    private fun redirectToReaderIfHomeDisabled(): Boolean {
         if (pref.getHomeDisabled()) {
+            val whatsNewDue = consumeWhatsNewDue()
             startActivity(Intent(this, MainActivity::class.java))
+            if (whatsNewDue) {
+                startActivity(Intent(this, WhatsNewActivity::class.java))
+            }
             overridePendingTransition(0, 0)
             finish()
-            return
+            return true
         }
+        return false
+    }
 
-        binding = ActivityHomeBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+    private fun consumeWhatsNewDue(): Boolean {
+        if (pref.getLastSeenVersionCode() >= BuildConfig.VERSION_CODE) {
+            return false
+        }
+        pref.setLastSeenVersionCode(BuildConfig.VERSION_CODE)
+        return true
+    }
 
+    private fun setupWindowChrome() {
+        ColorUtil.applySystemBarIconColors(this, window)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val bottomInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            if (view.paddingBottom != bottomInset) {
+                view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, bottomInset)
+            }
+            insets
+        }
+    }
+
+    private fun createCoreServices() {
         pdfRepository = PdfRepository(AppDatabase.getInstance(applicationContext))
         coverCache = CoverCache.getInstance(applicationContext)
         historyPolicy = HistoryPolicy(pref)
@@ -154,7 +215,9 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
                 scanLocationsPicker.launch(Intent(this, ScanLocationsActivity::class.java))
             },
         )
+    }
 
+    private fun createControllers() {
         recordOptionsDialog = RecordOptionsDialog(
             this,
             pdfRepository,
@@ -193,19 +256,6 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             onScanSetupClicked = { scanSetupDialog.show() },
             onFilterChanged = ::refresh,
         )
-        foldersTab = FoldersTabController(
-            this,
-            pref,
-            coverCache,
-            lifecycleScope,
-            this,
-            onGrantAccessClicked = { permissionManager.requestFullAccess() },
-            hasFullAccess = { permissionManager.hasFullAccess() },
-            libraryController = libraryController,
-            onNavigationChanged = ::updateFoldersBackState,
-            selection = { selectionController.selectedHashes },
-        )
-
         selectionController = HomeSelectionController(
             this,
             binding,
@@ -217,17 +267,31 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             onHideBatch = ::hideBatch,
             onDeleteBatch = ::deleteBatch,
         )
+
+        foldersTab = FoldersTabController(
+            this,
+            pref,
+            coverCache,
+            lifecycleScope,
+            this,
+            onGrantAccessClicked = { permissionManager.requestFullAccess() },
+            hasFullAccess = { permissionManager.hasFullAccess() },
+            libraryController = libraryController,
+            onNavigationChanged = ::updateBackState,
+            selection = { selectionController.selectedHashes },
+        )
         relocateController = RelocateController(
             this,
             pdfRepository,
             libraryScanner,
+            homeViewModel,
             lifecycleScope,
             onOpen = ::openInReader,
             onHealed = ::refresh,
         )
+    }
 
-        setupPager()
-        setupSearch()
+    private fun setupMenuAndNavigation() {
         menuDialog = HomeMenuDialog(
             this,
             pref,
@@ -242,7 +306,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             hasFullAccess = { permissionManager.hasFullAccess() },
             onScanLocations = { scanSetupDialog.show() },
         )
-        onBackPressedDispatcher.addCallback(this, foldersBackCallback)
+        onBackPressedDispatcher.addCallback(this, homeBackCallback)
         binding.searchBar.inflateMenu(R.menu.home_search_bar)
         binding.searchBar.setOnMenuItemClickListener { menuItem ->
             if (menuItem.itemId == R.id.homeMenuOption) {
@@ -252,26 +316,30 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
                 false
             }
         }
+    }
+
+    private fun setupOpenFab() {
         binding.openPdfFab.setOnClickListener { pdfPicker.launch(arrayOf(PDF.FILE_TYPE)) }
         binding.openPdfFab.setOnLongClickListener {
-            pickIncognito = true
             Toast.makeText(this, R.string.open_in_incognito_hint, Toast.LENGTH_SHORT).show()
-            pdfPicker.launch(arrayOf(PDF.FILE_TYPE))
+            pdfPickerIncognito.launch(arrayOf(PDF.FILE_TYPE))
             true
         }
+    }
 
+    private fun observeLibraryIndex() {
         lifecycleScope.launch {
             libraryScanner.index.collect { refresh() }
         }
+    }
 
+    private fun maybeShowWhatsNew(launchIntro: Boolean) {
         if (!launchIntro) {
-            if (pref.getLastSeenVersionCode() < BuildConfig.VERSION_CODE) {
+            if (consumeWhatsNewDue()) {
                 pref.setShowFeaturesDialog(true)
-                pref.setLastSeenVersionCode(BuildConfig.VERSION_CODE)
             }
             showWhatsNewOnFirstRun()
         }
-        handleRelocateIntent(intent)
     }
 
     private fun setupPager() {
@@ -300,14 +368,17 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             override fun onPageSelected(position: Int) {
                 pref.setHomeTab(HomeTab.entries[position])
                 selectionController.finish()
-                updateFoldersBackState()
+                updateBackState()
             }
         })
     }
 
-    private fun updateFoldersBackState() {
-        foldersBackCallback.isEnabled =
-            currentTab() == HomeTab.FOLDERS && foldersTab.canGoBack()
+    private fun updateBackState() {
+        homeBackCallback.isEnabled = selectionController.wantsBackButton || foldersCanGoBack()
+    }
+
+    private fun foldersCanGoBack(): Boolean {
+        return currentTab() == HomeTab.FOLDERS && foldersTab.canGoBack()
     }
 
     private fun currentTab(): HomeTab = HomeTab.entries[binding.homePager.currentItem]
@@ -437,17 +508,19 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     }
 
     private suspend fun renderTabs() {
-        val probe = AvailabilityProbe(applicationContext, permissionManager.hasFullAccess())
-        allRecordItems = libraryController.loadLibrary(probe, getString(R.string.home_title_annotated))
-        allItems = allRecordItems.filter { it.availability != Availability.MISSING }
-        val scanIndex = libraryScanner.index.value
-        recentTab.render(allItems)
-        libraryTab.render(allItems)
-        foldersTab.render(allItems, scanIndex.entries, scanIndex.scanning)
-        if (binding.searchView.isShowing) {
-            submitSearchResults()
+        renderMutex.withLock {
+            val probe = AvailabilityProbe(applicationContext, permissionManager.hasFullAccess())
+            allRecordItems = libraryController.loadLibrary(probe, getString(R.string.home_title_annotated))
+            allItems = allRecordItems.filter { it.availability != Availability.MISSING }
+            val scanIndex = libraryScanner.index.value
+            recentTab.render(allItems)
+            libraryTab.render(allItems)
+            foldersTab.render(allItems, scanIndex.entries, scanIndex.scanning)
+            if (binding.searchView.isShowing) {
+                submitSearchResults()
+            }
+            maybeRelinkRecords()
         }
-        maybeRelinkRecords()
     }
 
     private fun maybeRelinkRecords() {
@@ -573,6 +646,7 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
     }
 
     private fun notifySelectionChanged() {
+        updateBackState()
         recentTab.notifySelectionChanged()
         libraryTab.notifySelectionChanged()
         foldersTab.notifySelectionChanged()
@@ -636,21 +710,14 @@ class HomeActivity : AppCompatActivity(), HomeItemFunctions {
             )
             .setPositiveButton(R.string.delete) { _, _ ->
                 lifecycleScope.launch {
-                    val deleted = withContext(Dispatchers.IO) {
-                        items.filter { item ->
-                            if (item.uri.scheme == "file") {
-                                item.uri.path?.let { File(it).delete() } ?: false
-                            } else {
-                                runCatching {
-                                    DocumentsContract.deleteDocument(contentResolver, item.uri)
-                                }.getOrDefault(false)
-                            }
-                        }
+                    val removals = withContext(Dispatchers.IO) {
+                        items.map { item -> item to DocumentRemover.remove(this@HomeActivity, item.uri) }
                     }
-                    deleted.forEach { item ->
+                    val deleted = removals.filter { it.second.deleted }
+                    deleted.forEach { (item, removal) ->
                         historyCleaner.deleteDocument(item.hash)
                         coverCache.invalidate(item.coverKey)
-                        item.uri.path?.let { libraryScanner.onFileRemoved(it) }
+                        removal.path?.let { libraryScanner.onFileRemoved(it) }
                     }
                     if (deleted.size < items.size) {
                         Toast.makeText(this@HomeActivity, R.string.home_delete_failed, Toast.LENGTH_SHORT).show()
