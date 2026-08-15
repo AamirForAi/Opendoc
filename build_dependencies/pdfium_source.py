@@ -1,19 +1,21 @@
 import os
 import shutil
 import subprocess
+import time
 
-from build_dependencies.common import delete_file_if_exists, error, get_lib_path, log
+from build_dependencies.common import DOWNLOAD_RETRY_DELAYS, delete_file_if_exists, error, get_lib_path, log
 from build_dependencies.values import (
     ALL_ARCHES,
     ARCH_NAMES,
     DEPOT_TOOLS_GIT_URL,
+    DEPOT_TOOLS_REVISION,
     FILE_NAMES,
     Lib,
     LIB_EXTENSION,
-    PDFIUM_BRANCH,
     PDFIUM_GIT_URL,
     PDFIUM_GN_ARGS,
     PDFIUM_GN_CPU_NAMES,
+    PDFIUM_REVISION,
     PDFIUM_SOURCE_DIR,
 )
 
@@ -37,12 +39,66 @@ def build_pdfium_from_source(arches):
 
 def depot_tools_env(root):
     depot_tools = os.path.join(root, DEPOT_TOOLS_DIR)
-    if not os.path.isdir(depot_tools):
-        run(["git", "clone", "--depth", "1", DEPOT_TOOLS_GIT_URL, depot_tools], root, os.environ.copy())
+    ensure_depot_tools(root, depot_tools)
 
-    env = os.environ.copy()
+    env = network_env()
     env["PATH"] = depot_tools + os.pathsep + env["PATH"]
+    env["DEPOT_TOOLS_UPDATE"] = "0"
+    run(
+        [os.path.join(depot_tools, "ensure_bootstrap")],
+        root,
+        env,
+        retry_delays=DOWNLOAD_RETRY_DELAYS,
+        timeout=600,
+    )
     return env
+
+def network_env():
+    env = os.environ.copy()
+    env.setdefault("GIT_HTTP_LOW_SPEED_LIMIT", "1024")
+    env.setdefault("GIT_HTTP_LOW_SPEED_TIME", "60")
+    return env
+
+
+def ensure_depot_tools(root, depot_tools):
+    if os.path.isdir(depot_tools):
+        if git_revision(depot_tools) == DEPOT_TOOLS_REVISION:
+            return
+        log("Replacing depot_tools checkout that is not at the pinned revision.")
+        shutil.rmtree(depot_tools)
+
+    partial_checkout = depot_tools + ".part"
+    shutil.rmtree(partial_checkout, ignore_errors=True)
+    os.makedirs(partial_checkout)
+
+    try:
+        env = network_env()
+        run(["git", "init", "--quiet"], partial_checkout, env)
+        run(["git", "remote", "add", "origin", DEPOT_TOOLS_GIT_URL], partial_checkout, env)
+        run(
+            ["git", "fetch", "--depth", "1", "origin", DEPOT_TOOLS_REVISION],
+            partial_checkout,
+            env,
+            retry_delays=DOWNLOAD_RETRY_DELAYS,
+            timeout=600,
+        )
+        run(["git", "checkout", "--detach", "FETCH_HEAD"], partial_checkout, env)
+        os.replace(partial_checkout, depot_tools)
+    finally:
+        shutil.rmtree(partial_checkout, ignore_errors=True)
+
+
+def git_revision(directory):
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=directory,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
 
 
 def sync_pdfium(root, env):
@@ -63,13 +119,21 @@ def sync_pdfium(root, env):
             ],
             checkout,
             env,
+            retry_delays=DOWNLOAD_RETRY_DELAYS,
+            timeout=600,
         )
 
         with open(os.path.join(checkout, ".gclient"), "a") as config:
             config.write("target_os = ['android']\n")
 
     reset_patched_repositories(source, env)
-    run(["gclient", "sync", "-r", f"origin/{PDFIUM_BRANCH}", "--no-history", "--shallow"], checkout, env)
+    run(
+        ["gclient", "sync", "-r", PDFIUM_REVISION, "--no-history", "--shallow"],
+        checkout,
+        env,
+        retry_delays=DOWNLOAD_RETRY_DELAYS,
+        timeout=3600,
+    )
     apply_pdfium_patches(root, source, env)
 
     return source
@@ -191,12 +255,25 @@ def install_lib(out_dir, arch):
     log(f"Installed {lib_path}.")
 
 
-def run(command, cwd, env):
-    log("Run: " + " ".join(command))
+def run(command, cwd, env, retry_delays=(), timeout=None):
+    attempts = len(retry_delays) + 1
+    failure = None
+    for attempt in range(attempts):
+        log("Run: " + " ".join(command))
+        try:
+            result = subprocess.run(command, cwd=cwd, env=env, timeout=timeout)
+            if result.returncode == 0:
+                return
+            failure = f"failed with code {result.returncode}"
+        except subprocess.TimeoutExpired:
+            failure = f"timed out after {timeout} seconds"
 
-    result = subprocess.run(command, cwd=cwd, env=env)
-    if result.returncode != 0:
-        error(f"'{command[0]}' failed with code {result.returncode}")
+        if attempt < len(retry_delays):
+            delay = retry_delays[attempt]
+            log(f"'{command[0]}' {failure}; retrying in {delay} seconds.")
+            time.sleep(delay)
+
+    error(f"'{command[0]}' {failure} after {attempts} attempts")
 
 
 if __name__ == "__main__":

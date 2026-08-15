@@ -5,7 +5,7 @@ import shutil
 from build_dependencies.common import download_file, extract_tar_file, log, delete_if_exists, \
     delete_file_if_exists, get_lib_path, run_cmd, get_toolchain
 from build_dependencies.values import FILE_NAMES, LIB_EXTENSION, Lib, FREETYPE_BUILD, \
-    ARCH_NAMES, LIBPNG_BUILD, FREETYPE_URL, FREETYPE_SHA256, ANDROID_PLATFORM, BUILD_TYPE, LINKER_FLAGS_16KB, ALL_ARCHES
+    ARCH_NAMES, LIBPNG_BUILD, FREETYPE_URLS, FREETYPE_SHA256, ANDROID_PLATFORM, BUILD_TYPE, LINKER_FLAGS_16KB, ALL_ARCHES
 
 BUILT_LIB_NAME = "libfreetype.so"
 DOWNLOADED_LIB_PATH = f"{FREETYPE_BUILD}/{BUILT_LIB_NAME}"
@@ -20,7 +20,7 @@ def build_freetype_libs(arches):
     FREETYPE_ROOT_PATH = os.getcwd()
 
     temp_file_name = "freetype.tar.xz"
-    download_file(FREETYPE_URL, temp_file_name, sha256=FREETYPE_SHA256)
+    download_file(FREETYPE_URLS, temp_file_name, sha256=FREETYPE_SHA256)
 
     extract_tar_file(temp_file_name)
     delete_file_if_exists(temp_file_name)

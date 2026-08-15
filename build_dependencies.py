@@ -67,7 +67,9 @@ def clean_native_outputs():
         Path("PdfiumAndroid/src/main/jni/obj"),
     ]
     for path in paths_to_clean:
-        if path.exists():
+        if path.is_symlink() or path.is_file():
+            path.unlink()
+        elif path.exists():
             shutil.rmtree(path)
 
     for lib in Path("PdfiumAndroid/src/main").glob("**/*.so"):

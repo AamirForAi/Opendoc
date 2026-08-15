@@ -73,9 +73,17 @@ PDFIUM_URLS = {
     Arch.armeabi: "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7920/pdfium-android-arm.tgz",
 }
 
+PDFIUM_SHA256 = {
+    Arch.x86: "2a1f0f845323c5322d98c6ce76fcc9ef5ef4f38795e757228a10601179684045",
+    Arch.x86_64: "5ac4a1894c18b228bb150b6e4d704b4eec527d68f61db4622dabc978e9ce90b0",
+    Arch.arm64: "50657e8e0f8a5d94804be7fbf6f872fa5ebaceeb401dd1450022dd63bc07f005",
+    Arch.armeabi: "7363c2ad4cb5e443a067ac0c74d693dfae84e8592d86a8823e39ac6cfd1502eb",
+}
+
 PDFIUM_GIT_URL = "https://pdfium.googlesource.com/pdfium.git"
+PDFIUM_REVISION = "2bb2bde1426504e792c84894c6ebc28ca418f499"
 DEPOT_TOOLS_GIT_URL = "https://chromium.googlesource.com/chromium/tools/depot_tools.git"
-PDFIUM_BRANCH = "chromium/7920"
+DEPOT_TOOLS_REVISION = "13febbee9ece9e03df923f69d540afc63c6db93e"
 PDFIUM_SOURCE_DIR = "pdfium_source"
 
 PDFIUM_GN_CPU_NAMES = {
@@ -112,9 +120,15 @@ LIB_CPP_DIR_NAMES = {
 }
 
 LIBPNG_VERSION = "1.6.58"
-LIBPNG_URL = f"https://download.sourceforge.net/libpng/libpng-{LIBPNG_VERSION}.tar.xz"
+LIBPNG_URLS = (
+    f"https://downloads.sourceforge.net/project/libpng/libpng16/{LIBPNG_VERSION}/libpng-{LIBPNG_VERSION}.tar.xz",
+    f"https://download.sourceforge.net/libpng/libpng-{LIBPNG_VERSION}.tar.xz",
+)
 LIBPNG_SHA256 = "28eb403f51f0f7405249132cecfe82ea5c0ef97f1b32c5a65828814ae0d34775"
 
 FREETYPE_VERSION = "2.14.3"
-FREETYPE_URL = f"https://download.savannah.gnu.org/releases/freetype/freetype-{FREETYPE_VERSION}.tar.xz"
+FREETYPE_URLS = (
+    f"https://download.savannah.gnu.org/releases/freetype/freetype-{FREETYPE_VERSION}.tar.xz",
+    f"https://downloads.sourceforge.net/freetype/freetype-{FREETYPE_VERSION}.tar.xz",
+)
 FREETYPE_SHA256 = "36bc4f1cc413335368ee656c42afca65c5a3987e8768cc28cf11ba775e785a5f"

@@ -4,11 +4,23 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import time
+from urllib.parse import unquote, urlsplit
 
 from build_dependencies.values import LIB_DIR_PATH, ARCH_NAMES, DEFAULT_TOOLCHAIN, ANDROID_TOOLCHAIN_FILENAME, \
     get_toolchain_path, FILE_NAMES, Lib
 
 alternative_cpp_path = ""
+
+DOWNLOAD_RETRY_DELAYS = (1, 4, 9)
+DOWNLOAD_TIMEOUT = (15, 60)
+DOWNLOAD_CHUNK_SIZE = 64 * 1024
+DOWNLOAD_USER_AGENT = "MJ-PDF-build"
+RETRYABLE_HTTP_STATUS_CODES = {408, 425, 429, 500, 502, 503, 504}
+
+
+class _DownloadError(Exception):
+    pass
 
 
 # ------------------------------------------------------------
@@ -39,35 +51,105 @@ def delete_file_if_exists(path):
         os.remove(path)
 
 
-def download_file(url, filename=None, show_done_message=False, sha256=None):
+def _download_sources(urls):
+    if isinstance(urls, str):
+        sources = (urls,)
+    else:
+        sources = tuple(dict.fromkeys(urls))
+
+    if not sources or any(not isinstance(url, str) or not url for url in sources):
+        error("At least one non-empty download URL is required.")
+    return sources
+
+
+def _fetch_from_sources(urls, description, consume):
     import requests
 
+    sources = _download_sources(urls)
+    failures = {}
+    disabled_sources = set()
+    attempts = len(DOWNLOAD_RETRY_DELAYS) + 1
+
+    for attempt in range(attempts):
+        for url in sources:
+            if url in disabled_sources:
+                continue
+
+            log(f"Fetching {description} from {url} (attempt {attempt + 1}/{attempts}).")
+            try:
+                with requests.get(
+                        url,
+                        stream=True,
+                        timeout=DOWNLOAD_TIMEOUT,
+                        headers={"User-Agent": DOWNLOAD_USER_AGENT},
+                ) as request:
+                    request.raise_for_status()
+                    return consume(request)
+            except (requests.RequestException, OSError, _DownloadError) as exception:
+                failures[url] = str(exception)
+                log(f"Fetch failed: {exception}")
+
+                if isinstance(exception, requests.HTTPError) and exception.response is not None:
+                    status = exception.response.status_code
+                    if 400 <= status < 500 and status not in RETRYABLE_HTTP_STATUS_CODES:
+                        disabled_sources.add(url)
+
+        if attempt == attempts - 1 or len(disabled_sources) == len(sources):
+            break
+
+        delay = DOWNLOAD_RETRY_DELAYS[attempt]
+        log(f"All download sources failed; retrying in {delay} seconds.")
+        time.sleep(delay)
+
+    details = "\n".join(f"      {url}: {failures.get(url, 'not attempted')}" for url in sources)
+    error(f"Could not fetch {description} from any configured source:\n{details}")
+
+
+def fetch_text(urls, description):
+    return _fetch_from_sources(urls, description, lambda request: request.text)
+
+
+def download_file(urls, filename=None, show_done_message=False, sha256=None):
+    sources = _download_sources(urls)
     if not filename:
-        filename = url.split('/')[-1] + ".tar.xz"
+        filename = os.path.basename(unquote(urlsplit(sources[0]).path))
+        if not filename:
+            error("Could not determine a filename from the download URL.")
 
-    print(f"* Downloading {filename}")
-    with requests.get(url, stream=True) as request:
-        request.raise_for_status()
+    filename = os.fspath(filename)
+    partial_filename = filename + ".part"
+    delete_file_if_exists(partial_filename)
 
-        with open(filename, 'wb') as file:
-            for chunk in request.iter_content(chunk_size=1024):
-                file.write(chunk)
+    def save(request):
+        digest = hashlib.sha256() if sha256 else None
+        try:
+            with open(partial_filename, "wb") as file:
+                for chunk in request.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE):
+                    if not chunk:
+                        continue
+                    file.write(chunk)
+                    if digest:
+                        digest.update(chunk)
 
-    if sha256:
-        digest = hashlib.sha256()
-        with open(filename, 'rb') as file:
-            for chunk in iter(lambda: file.read(8192), b""):
-                digest.update(chunk)
-        actual = digest.hexdigest()
-        if actual.lower() != sha256.lower():
-            error(f"SHA256 mismatch for {filename}\n"
-                  f"      expected: {sha256}\n"
-                  f"      actual:   {actual}\n"
-                  f"Hint: a wrong or corrupted download such as an HTML mirror page can cause this.")
+            if digest:
+                actual = digest.hexdigest()
+                if actual.lower() != sha256.lower():
+                    raise _DownloadError(
+                        f"SHA256 mismatch for {filename}\n"
+                        f"      expected: {sha256}\n"
+                        f"      actual:   {actual}"
+                    )
 
-    if show_done_message:
-        print(f"* Finished downloading {filename}")
-    return filename
+            os.replace(partial_filename, filename)
+        except BaseException:
+            delete_file_if_exists(partial_filename)
+            raise
+
+        if show_done_message:
+            log(f"Finished downloading {filename}")
+        return filename
+
+    return _fetch_from_sources(sources, filename, save)
 
 
 def extract_tar_file(filename, path=".", show_done_message=False):

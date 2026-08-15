@@ -3,8 +3,8 @@ import shutil
 
 from build_dependencies.common import download_file, extract_tar_file, log, delete_if_exists, delete_file_if_exists, \
     get_lib_path
-from build_dependencies.values import ALL_ARCHES, PDFIUM_URLS, FILE_NAMES, LIB_EXTENSION, Lib, TGZ_EXTENSION, BUILD, \
-    ARCH_NAMES
+from build_dependencies.values import ALL_ARCHES, PDFIUM_URLS, PDFIUM_SHA256, FILE_NAMES, LIB_EXTENSION, Lib, \
+    TGZ_EXTENSION, BUILD, ARCH_NAMES
 
 DOWNLOADED_LIB_PATH = "./lib/libpdfium.so"
 
@@ -16,7 +16,7 @@ def fetch_prebuilt_pdfium(arches):
         os.chdir(BUILD)
 
         filename = FILE_NAMES[Lib.pdfium] + TGZ_EXTENSION
-        download_file(PDFIUM_URLS[arch], filename)
+        download_file(PDFIUM_URLS[arch], filename, sha256=PDFIUM_SHA256[arch])
         extract_tar_file(filename)
 
         lib_filename = FILE_NAMES[Lib.pdfium] + LIB_EXTENSION

@@ -4,8 +4,8 @@ import shutil
 
 from build_dependencies.common import download_file, extract_tar_file, log, delete_if_exists, \
     delete_file_if_exists, get_lib_path, run_cmd, get_toolchain
-from build_dependencies.values import FILE_NAMES, LIB_EXTENSION, Lib, ARCH_NAMES, LIBPNG_URL, LIBPNG_SHA256, LIBPNG_BUILD, BUILD, \
-    ANDROID_PLATFORM, BUILD_TYPE, LINKER_FLAGS_16KB, ALL_ARCHES
+from build_dependencies.values import FILE_NAMES, LIB_EXTENSION, Lib, ARCH_NAMES, LIBPNG_URLS, LIBPNG_SHA256, \
+    LIBPNG_BUILD, BUILD, ANDROID_PLATFORM, BUILD_TYPE, LINKER_FLAGS_16KB, ALL_ARCHES
 
 BUILT_LIB_NAME = "libpng16.so"
 
@@ -17,7 +17,7 @@ def build_libpng_libs(arches):
     LIBPNG_ROOT_PATH = os.getcwd()
 
     temp_file_name = "libpng.tar.xz"
-    download_file(LIBPNG_URL, temp_file_name, sha256=LIBPNG_SHA256)
+    download_file(LIBPNG_URLS, temp_file_name, sha256=LIBPNG_SHA256)
     extract_tar_file(temp_file_name)
     delete_file_if_exists(temp_file_name)
 

@@ -7,8 +7,9 @@ import shutil
 import sqlite3
 import sys
 import tarfile
-import urllib.request
 from pathlib import Path
+
+from build_dependencies.common import download_file
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--fresh", action="store_true", help="Redownload WordNet and rebuild the database from scratch.")
@@ -16,6 +17,7 @@ args = parser.parse_args()
 
 DICTIONARY_VERSION = 1
 WORDNET_URL = "https://wordnetcode.princeton.edu/wn3.1.dict.tar.gz"
+WORDNET_SHA256 = "3f7d8be8ef6ecc7167d39b10d66954ec734280b5bdcd57f7d9eafe429d11c22a"
 WORK_DIR = Path("dist/wordnet")
 DICT_DIR = WORK_DIR / "dict"
 TARBALL = WORK_DIR / "wn3.1.dict.tar.gz"
@@ -60,9 +62,11 @@ def fetch_wordnet():
         shutil.rmtree(DICT_DIR)
     if args.fresh and TARBALL.exists():
         TARBALL.unlink()
+    if TARBALL.exists() and sha256(TARBALL) != WORDNET_SHA256:
+        log("Discarding cached WordNet archive with an invalid SHA-256.")
+        TARBALL.unlink()
     if not TARBALL.exists():
-        log("Downloading " + WORDNET_URL)
-        urllib.request.urlretrieve(WORDNET_URL, TARBALL)
+        download_file(WORDNET_URL, TARBALL, sha256=WORDNET_SHA256)
     else:
         log("Using cached " + str(TARBALL))
     if not DICT_DIR.exists():
