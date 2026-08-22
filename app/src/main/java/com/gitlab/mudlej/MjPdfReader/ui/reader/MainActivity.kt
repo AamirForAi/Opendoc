@@ -121,6 +121,26 @@ class MainActivity : AppCompatActivity(), ReaderUi {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // ➡️ OPENDOC ROUTER INTERCEPTOR: Redirect non-PDF extensions instantly
+        intent?.data?.let { uri ->
+            val path = uri.path?.lowercase() ?: ""
+            if (path.endsWith(".docx") || path.endsWith(".doc") || 
+                path.endsWith(".xlsx") || path.endsWith(".xls") || 
+                path.endsWith(".pptx") || path.endsWith(".ppt") || 
+                path.endsWith(".txt")  || path.endsWith(".json") || 
+                path.endsWith(".csv")) {
+                
+                val openDocIntent = Intent(this, OpenDocViewerActivity::class.java).apply {
+                    data = uri
+                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                }
+                startActivity(openDocIntent)
+                finish() 
+                return
+            }
+        }
+
+        // Base original flow starts here for PDF rendering
         val incognito = if (savedInstanceState?.containsKey(PDF.incognitoKey) == true) {
             savedInstanceState.getBoolean(PDF.incognitoKey)
         } else {
@@ -156,6 +176,7 @@ class MainActivity : AppCompatActivity(), ReaderUi {
         reader.wireViews()
         overrideOnBackButtonPressed()
     }
+
 
     private fun openInitialDocument(savedInstanceState: Bundle?) {
         if (savedInstanceState != null) {
