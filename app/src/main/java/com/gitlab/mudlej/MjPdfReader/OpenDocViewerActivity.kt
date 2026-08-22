@@ -24,6 +24,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.ScaleGestureDetector
 import android.view.View
+import android.webkit.WebView // ✅ 1. Yeh naya import yahan jodh diya hai
 import android.widget.EditText
 import android.widget.TableLayout
 import android.widget.TableRow
