@@ -4,16 +4,14 @@
     ~ Copyright (C) 2026 AamirForAi & OpenDoc Contributors
     ~ Licensed under the GNU General Public License v3.0
 -->
-<androidx.constraintlayout.widget.ConstraintLayout 
-    xmlns:android="http://android.com"
-    xmlns:app="http://android.com"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/opendoc_root_container"
-    android:layout_width="match_Expanded"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground">
 
-    <!-- 🛠️ Top Bar Custom Controls (Properties, Print, Page Info) -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/opendoc_toolbar"
         android:layout_width="match_parent"
@@ -24,14 +22,13 @@
         app:titleTextColor="?attr/colorOnPrimary"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 🔍 Zoomable Interaction Layer (Sets hard boundaries up to max limit) -->
-    <ScrollView
+    <androidx.core.widget.NestedScrollView
         android:id="@+id/opendoc_scroll_wrapper"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:fillViewport="true"
         app:layout_constraintTop_toBottomOf="@id/opendoc_toolbar"
-        app:layout_bottom_toTopOf="@id/opendoc_bottom_bar">
+        app:layout_constraintBottom_toTopOf="@id/opendoc_bottom_bar">
 
         <LinearLayout
             android:id="@+id/opendoc_zoom_content_holder"
@@ -40,7 +37,6 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- 📄 Container 1: High-Speed Text Reader (For Word Documents, Text and JSON Data) -->
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/opendoc_text_render_view"
                 android:layout_width="match_parent"
@@ -50,24 +46,27 @@
                 android:textColor="?android:attr/textColorPrimary"
                 android:visibility="visible" />
 
-            <!-- 📊 Container 2: High-Performance Local Tabular Grid (For Excel Sheets and CSV Records) -->
-            <HorizontalScrollView
+            <androidx.core.widget.NestedScrollView
                 android:id="@+id/opendoc_spreadsheet_scroll"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:visibility="gone">
 
-                <TableLayout
-                    android:id="@+id/opendoc_tabular_render_grid"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:stretchColumns="*" />
-            </HorizontalScrollView>
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TableLayout
+                        android:id="@+id/opendoc_tabular_render_grid"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:stretchColumns="*" />
+                </HorizontalScrollView>
+            </androidx.core.widget.NestedScrollView>
 
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
-    <!-- 🧭 Bottom Navigation Control Layer (Dynamic Controls for Page Navigation) -->
     <LinearLayout
         android:id="@+id/opendoc_bottom_bar"
         android:layout_width="match_parent"
@@ -76,9 +75,8 @@
         android:background="?attr/colorSurface"
         android:elevation="8dp"
         android:padding="8dp"
-        app:layout_bottom_toBottomOf="parent">
+        app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- 📖 Page Location Status Indicator (Visible for Page-based Formats like Word/PPT) -->
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/opendoc_page_index_status"
             android:layout_width="0dp"
@@ -90,14 +88,12 @@
             android:textColor="?attr/colorOnSurface"
             android:textSize="14sp" />
 
-        <!-- ➡️ Go To Page Input Action Trigger (Disabled automatically for flat text data streams) -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/opendoc_btn_goto_page"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Go To Page"
-            app:icon="@drawable/ic_goto_page" />
+            android:text="Go To Page" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
