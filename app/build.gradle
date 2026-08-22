@@ -25,7 +25,7 @@ android {
     defaultConfig {
         // Updated unique identification for your brand new OpenDoc App
         applicationId "com.opendoc.documentreader"
-        minSdkVersion 23
+        minSdkVersion 26
         compileSdkVersion 36
         targetSdkVersion 36
         versionCode 1
