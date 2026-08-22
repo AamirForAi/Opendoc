@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+    ~ OPENDOC: Privacy-First Document Reader
+    ~ Copyright (C) 2026 AamirForAi & OpenDoc Contributors
+    ~ Licensed under the GNU General Public License v3.0
+-->
+<menu xmlns:android="http://android.com"
+    xmlns:app="http://android.com">
+
+    <!-- ➡️ Action 1: Go To Page Frame Input (Maps to layout actions) -->
+    <item
+        android:id="@+id/action_opendoc_goto"
+        android:title="Go To Page"
+        android:icon="?attr/actionModeSelectAllDrawable"
+        app:showAsAction="ifRoom" />
+
+    <!-- 🖨️ Action 2: On-Device Printer Framework Canvas -->
+    <item
+        android:id="@+id/action_opendoc_print"
+        android:title="Print Document"
+        app:showAsAction="never" />
+
+    <!-- 📊 Action 3: Allocation Meta State Metadata Dialog -->
+    <item
+        android:id="@+id/action_opendoc_properties"
+        android:title="File Properties"
+        app:showAsAction="never" />
+
+</menu>
