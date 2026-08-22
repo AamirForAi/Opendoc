@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Written by Mudlej. License is GPLv3. -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<!-- 
+    ~ OPENDOC: Privacy-First Document Reader
+    ~ Copyright (C) 2026 AamirForAi & OpenDoc Contributors
+    ~ Licensed under the GNU General Public License v3.0
+-->
+<manifest xmlns:android="http://android.com">
 
+    <!-- 100% Offline App: Internet Permission Strictly Removed -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="29" />
-    <uses-permission android:name="android.permission.INTERNET" />
 
     <queries>
         <intent>
@@ -17,24 +21,26 @@
     </queries>
 
     <application
-        android:name="com.gitlab.mudlej.MjPdfReader.App"
+        android:name="com.opendoc.documentreader.App"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:label="@string/mj_app_name"
+        android:label="OpenDoc"
         android:largeHeap="true"
         android:requestLegacyExternalStorage="true"
         android:supportsRtl="true"
-        android:theme="@style/MJ_PDF_THEME"
-        android:usesCleartextTraffic="true">
+        android:theme="@style/OPENDOC_THEME"
+        android:usesCleartextTraffic="false">
+        
         <activity
             android:name=".ui.home.HomeActivity"
             android:exported="false"
             android:launchMode="singleTask"
             android:theme="@style/HomeTheme"
             android:windowSoftInputMode="adjustNothing" />
+            
         <activity-alias
             android:name=".Launcher"
             android:exported="true"
@@ -44,6 +50,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
+        
         <activity
             android:name=".ui.search.SearchActivity"
             android:exported="false" />
@@ -82,17 +89,18 @@
             android:name=".ui.text_mode.TextModeActivity"
             android:exported="false"
             android:theme="@style/TextModeTheme" />
+            
         <activity
             android:name=".ui.reader.MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:documentLaunchMode="intoExisting"
             android:exported="true">
+            
+            <!-- Core Component: High-Performance Offline PDF Viewer Engines -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
-
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-
                 <data android:host="*" />
                 <data android:scheme="smb" />
                 <data android:scheme="http" />
@@ -101,10 +109,8 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
-
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-
                 <data android:host="*" />
                 <data android:scheme="smb" />
                 <data android:scheme="http" />
@@ -113,37 +119,64 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
-
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-
                 <data android:host="*" />
                 <data android:scheme="file" />
                 <data android:scheme="content" />
-                <!-- Workaround to match files in paths with dots in them, like /sdcard/my.folder/test.pdf -->
                 <data android:pathPattern=".*\\.pdf" />
                 <data android:pathPattern=".*\\..*\\.pdf" />
                 <data android:pathPattern=".*\\..*\\..*\\.pdf" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
-
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-
                 <data android:host="*" />
                 <data android:scheme="file" />
                 <data android:scheme="content" />
                 <data android:mimeType="application/pdf" />
             </intent-filter>
+
+            <!-- OpenDoc Core Extension: Offline Office Format Decoders (Word, Excel, PPT) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <!-- Microsoft Word Extensions -->
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/msword" />
+                <!-- Microsoft Excel Extensions -->
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+                <data android:mimeType="application/vnd.ms-excel" />
+                <!-- Microsoft PowerPoint Extensions -->
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation" />
+                <data android:mimeType="application/vnd.ms-powerpoint" />
+            </intent-filter>
+
+            <!-- OpenDoc Core Extension: Offline Structured Text Decoders (TXT, JSON, CSV) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="application/json" />
+                <data android:mimeType="text/csv" />
+            </intent-filter>
+
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
-
                 <category android:name="android.intent.category.DEFAULT" />
-
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+        
         <activity
             android:name=".ui.about.AboutActivity"
             android:exported="false"
@@ -164,7 +197,7 @@
         <activity
             android:name=".ui.intro.MainIntroActivity"
             android:exported="false"
-            android:label="@string/mj_app_name" />
+            android:label="OpenDoc" />
         <activity
             android:name=".ui.settings.SettingsActivity"
             android:exported="false"
