@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 
+<!--
     ~ OPENDOC: Privacy-First Document Reader
     ~ Copyright (C) 2026 AamirForAi & OpenDoc Contributors
     ~ Licensed under the GNU General Public License v3.0
 -->
-<manifest xmlns:android="http://android.com">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- 100% Offline App: Internet Permission Strictly Removed -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -33,14 +33,14 @@
         android:supportsRtl="true"
         android:theme="@style/OPENDOC_THEME"
         android:usesCleartextTraffic="false">
-        
+
         <activity
             android:name=".ui.home.HomeActivity"
             android:exported="false"
             android:launchMode="singleTask"
             android:theme="@style/HomeTheme"
             android:windowSoftInputMode="adjustNothing" />
-            
+
         <activity-alias
             android:name=".Launcher"
             android:exported="true"
@@ -50,7 +50,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
-        
+
         <activity
             android:name=".ui.search.SearchActivity"
             android:exported="false" />
@@ -89,13 +89,13 @@
             android:name=".ui.text_mode.TextModeActivity"
             android:exported="false"
             android:theme="@style/TextModeTheme" />
-            
+
         <activity
             android:name=".ui.reader.MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:documentLaunchMode="intoExisting"
             android:exported="true">
-            
+
             <!-- Core Component: High-Performance Offline PDF Viewer Engines -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -176,7 +176,13 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
-        
+
+        <!-- OpenDoc Multi-Format Viewer -->
+        <activity
+            android:name="com.gitlab.mudlej.MjPdfReader.OpenDocViewerActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
+
         <activity
             android:name=".ui.about.AboutActivity"
             android:exported="false"
@@ -213,5 +219,4 @@
                 android:resource="@xml/file_paths" />
         </provider>
     </application>
-
 </manifest>
