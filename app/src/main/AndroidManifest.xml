@@ -31,7 +31,7 @@
         android:largeHeap="true"
         android:requestLegacyExternalStorage="true"
         android:supportsRtl="true"
-        android:theme="@style/OPENDOC_THEME"
+        android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"
         android:usesCleartextTraffic="false">
 
         <activity
