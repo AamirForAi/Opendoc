@@ -3,7 +3,7 @@ name: OpenDoc Automated Cloud Build
 on:
   push:
     branches: [ "main", "master", "android" ]
-  workflow_dispatch: # Isse aap manually bhi jab chahe button daba kar APK bana sakte hain
+  workflow_dispatch: # Manual trigger ke liye
 
 jobs:
   build-android-apk:
@@ -19,6 +19,28 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
         cache: 'gradle'
+
+    # 🆕 YEH NAYA STEP ADD KIYA GAYA HAI: Namespace Mismatch ko Auto-Fix karega
+    - name: 🔄 Auto-Fix Namespace Mismatch (Pre-build Refactor)
+      run: |
+        echo "🔄 Migrating package structure for clean build..."
+        
+        # 1. Naya package directory structure banayein
+        mkdir -p app/src/main/java/com/opendoc/documentreader
+        
+        # 2. Purane folder ka saara content (ui, core, data, pdf, App.kt, etc.) naye folder mein move karein
+        mv app/src/main/java/com/gitlab/mudlej/MjPdfReader/* app/src/main/java/com/opendoc/documentreader/
+        
+        # 3. Purane khali folders ko delete karein
+        rm -rf app/src/main/java/com/gitlab
+        
+        # 4. Saari .kt files ke andar purane package name ko naye name se replace karein (package declarations + imports)
+        find app/src/main/java -type f -name "*.kt" -exec sed -i 's/com\.gitlab\.mudlej\.MjPdfReader/com.opendoc.documentreader/g' {} +
+        
+        # 5. AndroidManifest.xml mein hardcoded OpenDocViewerActivity reference ko fix karein
+        sed -i 's/com\.gitlab\.mudlej\.MjPdfReader\.OpenDocViewerActivity/com.opendoc.documentreader.OpenDocViewerActivity/g' app/src/main/AndroidManifest.xml
+        
+        echo "✅ Namespace sync complete! Build ab bina kisi error ke chalega."
 
     - name: Grant Execute Permission for Gradle Wrapper
       run: chmod +x gradlew
