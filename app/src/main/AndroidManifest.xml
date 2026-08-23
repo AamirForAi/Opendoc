@@ -179,7 +179,7 @@
 
         <!-- OpenDoc Multi-Format Viewer -->
         <activity
-            android:name="com.gitlab.mudlej.MjPdfReader.OpenDocViewerActivity"
+            android:name="com.opendoc.documentreader.OpenDocViewerActivity"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
 
