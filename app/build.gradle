@@ -1,6 +1,6 @@
 /*
- *          ~ OPENDOC: Privacy-First Document Reader
- *    ~ Copyright (C) 2026 AamirForAi & OpenDoc Contributors
+ * ~ OPENDOC: Privacy-First Document Reader
+ * ~ Copyright (C) 2026 AamirForAi & OpenDoc Contributors
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,14 +16,14 @@
 
 plugins {
     id 'com.android.application'
-    id 'com.google.devtools.ksp' version '2.3.9'
+    id 'org.jetbrains.kotlin.android' version '2.1.0'
+    id 'com.google.devtools.ksp' version '2.1.0-1.0.29'
 }
 
 android {
     def fdroidAbi = project.findProperty("fdroidAbi")
 
     defaultConfig {
-        // Updated unique identification for your brand new OpenDoc App
         applicationId "com.opendoc.documentreader"
         minSdkVersion 26
         compileSdkVersion 36
@@ -36,6 +36,7 @@ android {
         def crashAppId = project.findProperty("AI") ?: ""
         def crashApiKey = project.findProperty("AK") ?: ""
         def crashApiUri = project.findProperty("AU") ?: ""
+
         resValue "string", "CRASH_REPORT_APP_ID", "\"${crashAppId}\""
         resValue "string", "CRASH_REPORT_API_KEY", "\"${crashApiKey}\""
         resValue "string", "CRASH_REPORT_API_URI", "\"${crashApiUri}\""
@@ -55,7 +56,9 @@ android {
 
     splits {
         abi {
-            enable gradle.startParameter.taskNames.any { it.toLowerCase(Locale.ROOT).contains('release') }
+            enable gradle.startParameter.taskNames.any { 
+                it.toLowerCase(java.util.Locale.ROOT).contains('release') 
+            }
             reset()
             if (fdroidAbi != null) {
                 include fdroidAbi
@@ -79,25 +82,28 @@ android {
             shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
-
         debug {
             debuggable true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    compileOptions {
-        coreLibraryDesugaringEnabled = true // For handling dates on older Android versions locally
 
+    compileOptions {
+        coreLibraryDesugaringEnabled = true
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-    
-    // Modernized package namespace for OpenDoc
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
     namespace 'com.opendoc.documentreader'
-    
+
     testOptions {
         unitTests.returnDefaultValues = true
     }
+
     lint {
         abortOnError = true
         checkReleaseBuilds = true
@@ -126,23 +132,19 @@ ksp {
 }
 
 dependencies {
-    // Core Languages Core Ecosystems
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.4.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
     implementation 'androidx.preference:preference-ktx:1.2.1'
     implementation 'androidx.documentfile:documentfile:1.1.0'
     implementation 'androidx.work:work-runtime-ktx:2.10.1'
 
-    // UI Architecture & Layout components
     api 'androidx.activity:activity-ktx:1.13.0'
     implementation "androidx.fragment:fragment-ktx:1.8.9"
     implementation 'androidx.navigation:navigation-fragment-ktx:2.9.8'
     implementation 'androidx.navigation:navigation-ui-ktx:2.9.8'
 
-    // Fast Secure Local Storage Engine
     implementation "androidx.room:room-runtime:2.8.4"
     ksp "androidx.room:room-compiler:2.8.4"
 
-    // Standalone Renderers Bundle
     implementation project(path: ':PdfiumAndroid')
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.2.0'
     implementation 'androidx.appcompat:appcompat:1.7.1'
@@ -151,16 +153,13 @@ dependencies {
     implementation 'com.google.android.material:material:1.14.0'
     implementation project(':AndroidPdfViewer:android-pdf-viewer')
 
-    // 100% Offline Modern Format Decoders (No Internet Required)
     implementation 'com.google.code.gson:gson:2.14.0'
     implementation 'org.apache.poi:poi-ooxml:5.2.5'
     implementation 'com.opencsv:opencsv:5.9'
 
-    // Asynchronous Execution Handlers
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 
-    // Standalone Local Crash Safety
     implementation('ch.acra:acra-dialog:5.13.1') {
         exclude group: 'com.google.auto.service', module: 'auto-service'
     }
